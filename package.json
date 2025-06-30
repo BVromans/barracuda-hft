@@ -1,0 +1,24 @@
+{
+    "name": "rujira-hft-bot",
+    "version": "0.0.1",
+    "private": true,
+    "scripts": {
+        "dev": "NODE_ENV=development bun run --inspect=9222 src/index.ts",
+        "build": "bun build src/index.ts --outdir dist",
+        "start": "NODE_ENV=production bun run src/index.ts",
+        "test:unit": "bun test --inspect=9222 tests/index.test.ts",
+        "test:integration": "bun test --inspect=9222 integration/index.test.ts",
+        "playground:01": "NODE_ENV=development bun run --inspect=9222 src/playground/01.ts",
+        "playground:02": "NODE_ENV=development bun run --inspect=9222 src/playground/02.ts",
+        "playground:03": "NODE_ENV=development bun run --inspect=9222 src/playground/03.ts"
+    },
+    "dependencies": {
+        "decimal.js": "^10.5.0",
+        "dotenv": "latest"
+    },
+    "devDependencies": {
+        "@types/bn.js": "^5.1.6",
+        "@types/node": "latest",
+        "bun-types": "^1.2.16"
+    }
+}
