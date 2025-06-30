@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -ex
+
+bun install -g wscat
+
+git submodule update --init -- ./resources/references/<1> ./resources/references/<2>
+git submodule update -- ./resources/references/<1> ./resources/references/<2>
+
+bun install
+
+set +ex
