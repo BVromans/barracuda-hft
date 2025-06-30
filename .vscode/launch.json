@@ -1,71 +1,71 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "bun",
-            "internalConsoleOptions": "neverOpen",
-            "request": "launch",
-            "name": "rujira-hft-bot:dev",
-            "runtimeExecutable": "bun",
-            "runtimeArgs": ["run", "dev"],
-            "cwd": "${workspaceFolder}",
-            "stopOnEntry": false,
-            "watchMode": true
-        },
-        {
-            "type": "bun",
-            "internalConsoleOptions": "neverOpen",
-            "request": "launch",
-            "name": "rujira-hft-bot:test:unit",
-            "runtimeExecutable": "bun",
-            "runtimeArgs": ["run", "test:unit"],
-            "cwd": "${workspaceFolder}",
-            "stopOnEntry": false,
-            "watchMode": true
-        },
-        {
-            "type": "bun",
-            "internalConsoleOptions": "neverOpen",
-            "request": "launch",
-            "name": "rujira-hft-bot:test:integration",
-            "runtimeExecutable": "bun",
-            "runtimeArgs": ["run", "test:integration"],
-            "cwd": "${workspaceFolder}",
-            "stopOnEntry": false,
-            "watchMode": true
-        },
-        {
-            "type": "bun",
-            "internalConsoleOptions": "neverOpen",
-            "request": "launch",
-            "name": "rujira-hft-bot:playground:01",
-            "runtimeExecutable": "bun",
-            "runtimeArgs": ["run", "playground:01"],
-            "cwd": "${workspaceFolder}",
-            "stopOnEntry": false,
-            "watchMode": true
-        },
-        {
-            "type": "bun",
-            "internalConsoleOptions": "neverOpen",
-            "request": "launch",
-            "name": "rujira-hft-bot:playground:02",
-            "runtimeExecutable": "bun",
-            "runtimeArgs": ["run", "playground:02"],
-            "cwd": "${workspaceFolder}",
-            "stopOnEntry": false,
-            "watchMode": true
-        },
-        {
-            "type": "bun",
-            "internalConsoleOptions": "neverOpen",
-            "request": "launch",
-            "name": "rujira-hft-bot:playground:03",
-            "runtimeExecutable": "bun",
-            "runtimeArgs": ["run", "playground:03"],
-            "cwd": "${workspaceFolder}",
-            "stopOnEntry": false,
-            "watchMode": true
-        }
-    ]
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "bun",
+			"internalConsoleOptions": "neverOpen",
+			"request": "launch",
+			"name": "rujira-hft-bot:dev",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["run", "dev"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"watchMode": true
+		},
+		{
+			"type": "bun",
+			"internalConsoleOptions": "neverOpen",
+			"request": "launch",
+			"name": "rujira-hft-bot:test:unit",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["run", "test:unit"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"watchMode": true
+		},
+		{
+			"type": "bun",
+			"internalConsoleOptions": "neverOpen",
+			"request": "launch",
+			"name": "rujira-hft-bot:test:integration",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["run", "test:integration"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"watchMode": true
+		},
+		{
+			"type": "bun",
+			"internalConsoleOptions": "neverOpen",
+			"request": "launch",
+			"name": "rujira-hft-bot:playground:01",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["run", "playground:01"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"watchMode": true
+		},
+		{
+			"type": "bun",
+			"internalConsoleOptions": "neverOpen",
+			"request": "launch",
+			"name": "rujira-hft-bot:playground:02",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["run", "playground:02"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"watchMode": true
+		},
+		{
+			"type": "bun",
+			"internalConsoleOptions": "neverOpen",
+			"request": "launch",
+			"name": "rujira-hft-bot:playground:03",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["run", "playground:03"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"watchMode": true
+		}
+	]
 }
