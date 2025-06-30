@@ -5,6 +5,28 @@
 			"type": "bun",
 			"internalConsoleOptions": "neverOpen",
 			"request": "launch",
+			"name": "rujira-hft-bot:start",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["run", "start"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"watchMode": true
+		},
+		{
+			"type": "bun",
+			"internalConsoleOptions": "neverOpen",
+			"request": "launch",
+			"name": "rujira-hft-bot:build",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["run", "build"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"watchMode": true
+		},
+		{
+			"type": "bun",
+			"internalConsoleOptions": "neverOpen",
+			"request": "launch",
 			"name": "rujira-hft-bot:dev",
 			"runtimeExecutable": "bun",
 			"runtimeArgs": ["run", "dev"],

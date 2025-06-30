@@ -1,6 +1,6 @@
 [submodule "resources/references/<1>"]
 	path = resources/references/<1>
-	url = https://github.com/raydium-io/<1>.git
+	url = https://github.com//<1>.git
 [submodule "resources/references/<2>"]
 	path = resources/references/<2>
-	url = https://github.com/raydium-io/<2>.git
+	url = https://github.com//<2>.git
