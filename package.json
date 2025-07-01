@@ -13,6 +13,9 @@
         "playground:03": "NODE_ENV=development bun run --inspect=9222 src/playground/03.ts"
     },
     "dependencies": {
+        "@cosmjs/cosmwasm-stargate": "^0.33.1",
+        "@cosmjs/proto-signing": "^0.33.1",
+        "@cosmjs/stargate": "^0.33.1",
         "decimal.js": "^10.5.0",
         "dotenv": "latest"
     },
