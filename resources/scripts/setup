@@ -2,8 +2,10 @@
 
 set -ex
 
-git submodule update --init -- ./resources/references/<1> ./resources/references/<2>
-git submodule update -- ./resources/references/<1> ./resources/references/<2>
+mkdir -p resources/references/rujira
+
+git submodule update --init -- ./resources/references/rujira/contracts ./resources/references/rujira/api ./resources/references/rujira/ui
+git submodule update -- ./resources/references/rujira/contracts ./resources/references/rujira/api ./resources/references/rujira/ui
 
 bun install
 
