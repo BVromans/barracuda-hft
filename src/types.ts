@@ -41,4 +41,16 @@ export interface QueryMsg {
     denom: string;
     amount: string;
   };
+  strategy?: {
+    denom: string;
+    amount: string;
+  };
+  quote?: {
+    denom: string;
+    amount: string;
+    offer_denom: string;
+    offer_amount: string;
+    ask_denom: string;
+    ask_amount: string;
+  };
 }

@@ -25,42 +25,40 @@ async function main() {
   );
   console.log('✅ Connected successfully!');
 
-  console.log('📋 Querying contract config...');
-  const config = await client.query<any>({ config: {} });
-  console.log("✅ Contract configuration:", config);
+  // const simulate = await client.query<any>({ simulate: { denom: "btc-btc", amount: "1000000" } });
+  // console.log("✅ Simulate:", simulate);
 
-  console.log('📝 Preparing order message...');
-  const executeMsg: ExecuteMsg = {
-    order: [
-      [
-        [
-          "base", // side
-          { fixed: "100000" }, // price
-          "1000000", // amount
-        ],
-      ],
-      null, // callback
-    ],
-  };
+  console.log('📊 Querying strategy...');
+  try {
+    const strategy = await client.query({
+      strategy: { denom: "btc-btc", amount: "1000000" },
+    });
+    console.log("✅ Strategy query result:", strategy);
+  } catch (error: unknown) {
+    console.log("⚠️ Strategy query failed:", error instanceof Error ? error.message : String(error));
+  }
 
-  console.log('💸 Executing order transaction...');
-  const result = await client.execute(executeMsg, [
-    { denom: "btc-btc", amount: "1000000" },
-  ]);
-  console.log("✅ Transaction result:", result);
+  console.log('💰 Querying quote...');
+  try {
+    const quote = await client.query({
+      quote: { denom: "btc-btc", amount: "1000000", offer_denom: "rune", offer_amount: "1000000", ask_denom: "rune", ask_amount: "1000000" },
+    });
+    console.log("✅ Quote query result:", quote);
+  } catch (error: unknown) {
+    console.log("⚠️ Quote query failed:", error instanceof Error ? error.message : String(error));
+  }
 
-  console.log('📚 Querying order book...');
-  const book = await client.query<Response>({
-    book: { limit: 10, offset: 0 },
-  });
-  console.log("✅ Order book:", book);
+  console.log('🔍 Testing contract interaction...');
+  try {
+    // Teste simples de query para verificar se o contrato responde
+    const testQuery = await client.query({
+      strategy: { denom: "btc-btc", amount: "100000" },
+    });
+    console.log("✅ Contract is responding! Test query result:", testQuery);
+  } catch (error: unknown) {
+    console.log("❌ Contract interaction failed:", error instanceof Error ? error.message : String(error));
+  }
 
-  console.log('🧮 Simulating swap...');
-  const simulate = await client.query({
-    simulate: { denom: "btc-btc", amount: "1000000" },
-  });
-  console.log("✅ Simulation:", simulate);
-  
   console.log('🎉 Playground completed successfully!');
 }
 

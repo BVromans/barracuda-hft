@@ -18,7 +18,7 @@ export class RujiraClient {
     contractAddress: string
   ): Promise<RujiraClient> {
     const wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
-      prefix: "cosmos",
+      prefix: "sthor",
     });
     const client = await CosmWasmClient.connect(rpcEndpoint);
     return new RujiraClient(client, wallet, contractAddress, rpcEndpoint);
