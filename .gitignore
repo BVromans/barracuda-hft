@@ -5,4 +5,4 @@ dist
 debug.log
 *.iml
 
-temporary/**
+temporary/unversioned/**

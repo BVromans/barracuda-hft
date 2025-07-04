@@ -8,9 +8,9 @@
         "start": "NODE_ENV=production bun run src/index.ts",
         "test:unit": "bun test --inspect=9222 tests/index.test.ts",
         "test:integration": "bun test --inspect=9222 integration/index.test.ts",
-        "playground:01": "NODE_ENV=development bun run --inspect=9222 src/playground/01.ts",
-        "playground:02": "NODE_ENV=development bun run --inspect=9222 src/playground/02.ts",
-        "playground:03": "NODE_ENV=development bun run --inspect=9222 src/playground/03.ts"
+        "playground:01": "NODE_ENV=development bun run --inspect=9222 temporary/playground/01.ts",
+        "playground:02": "NODE_ENV=development bun run --inspect=9222 temporary/playground/02.ts",
+        "playground:03": "NODE_ENV=development bun run --inspect=9222 temporary/playground/03.ts"
     },
     "dependencies": {
         "decimal.js": "^10.5.0",
