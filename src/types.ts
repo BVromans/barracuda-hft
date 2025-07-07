@@ -1,56 +1,18 @@
-// Rujira HFT Bot - Interface Definitions Playground
-// Comprehensive TypeScript interfaces for the trading bot system
-// Based on fun-api patterns and rujira references
+// Rujira HFT Bot - Essential TypeScript Interfaces
+// Focused on FIN Protocol interfaces following clean architecture patterns
+
+import Decimal from 'decimal.js';
 
 // ============================================================================
-// CORE SYSTEM INTERFACES
+// CORE ENUMS
 // ============================================================================
-
-/**
- * System status enumeration following fun-api patterns
- */
-export enum SystemStatus {
-  STOPPED = 'stopped',
-  STARTING = 'starting',
-  IDLE = 'idle',
-  RUNNING = 'running',
-  STOPPING = 'stopping',
-  UNKNOWN = 'unknown'
-}
-
-/**
- * HTTP method enumeration
- */
-export enum HttpMethod {
-  GET = 'get',
-  POST = 'post',
-  PUT = 'put',
-  DELETE = 'delete',
-  PATCH = 'patch',
-  HEAD = 'head',
-  OPTIONS = 'options'
-}
-
-/**
- * Trading strategy types
- */
-export enum StrategyType {
-  MARKET_MAKING = 'market_making',
-  ARBITRAGE = 'arbitrage',
-  MOMENTUM = 'momentum',
-  MEAN_REVERSION = 'mean_reversion',
-  GRID_TRADING = 'grid_trading',
-  CUSTOM = 'custom'
-}
 
 /**
  * Order side enumeration
  */
 export enum OrderSide {
   BUY = 'buy',
-  SELL = 'sell',
-  BASE = 'base',
-  QUOTE = 'quote'
+  SELL = 'sell'
 }
 
 /**
@@ -58,9 +20,7 @@ export enum OrderSide {
  */
 export enum OrderType {
   MARKET = 'market',
-  LIMIT = 'limit',
-  STOP = 'stop',
-  STOP_LIMIT = 'stop_limit'
+  LIMIT = 'limit'
 }
 
 /**
@@ -75,41 +35,101 @@ export enum OrderStatus {
   REJECTED = 'rejected'
 }
 
+/**
+ * Network types
+ */
+export enum Network {
+  MAINNET = 'mainnet',
+  TESTNET = 'testnet'
+}
+
 // ============================================================================
-// NETWORK & CONNECTION INTERFACES
+// CORE INTERFACES
 // ============================================================================
 
 /**
- * Network configuration interface
+ * Transaction interface
  */
-export interface NetworkConfig {
-  rpc: string;
-  rest: string;
-  chainId: string;
-  gasPrice: string;
-  explorer?: string;
+export interface Transaction {
+  /**
+   * Blockchain transaction hash
+   */
+  hash: string;
+
+  /**
+   * Status of the transaction
+   */
+  status: string;
+
+  /**
+   * Raw data of the transaction
+   */
+  raw: any;
+}
+
+/**
+ * Asset interface
+ */
+export interface Asset {
+  /**
+   * Symbol of the asset
+   */
+  symbol: string;
+
+  /**
+   * Name of the asset
+   */
   name: string;
+
+  /**
+   * Denomination string
+   */
+  denom: string;
+
+  /**
+   * Number of decimal places
+   */
+  decimals: number;
+
+  /**
+   * Chain identifier
+   */
+  chain: string;
+
+  /**
+   * Contract address (optional)
+   */
+  address?: string;
+
+  /**
+   * Icon URL (optional)
+   */
+  icon?: string;
 }
 
 /**
- * Connection status interface
+ * THORChain oracle interface
  */
-export interface ConnectionStatus {
-  isConnected: boolean;
-  lastPing?: number;
-  latency?: number;
-  error?: string;
-  reconnectAttempts: number;
-}
+export interface ThorchainOracle {
+  /**
+   * Asset identifier
+   */
+  asset: string;
 
-/**
- * WebSocket connection interface
- */
-export interface WebSocketConnection {
-  url: string;
-  status: ConnectionStatus;
-  subscriptions: string[];
-  messageHandlers: Map<string, Function>;
+  /**
+   * Current price
+   */
+  price: Decimal;
+
+  /**
+   * Timestamp of the price
+   */
+  timestamp: string;
+
+  /**
+   * Block height
+   */
+  blockHeight: string;
 }
 
 // ============================================================================
@@ -120,15 +140,54 @@ export interface WebSocketConnection {
  * FIN contract configuration interface
  */
 export interface FinContractConfig {
+  /**
+   * Contract address
+   */
   address: string;
+
+  /**
+   * Supported denominations
+   */
   denoms: string[];
+
+  /**
+   * Oracle addresses
+   */
   oracles: string[] | null;
+
+  /**
+   * Market maker address
+   */
   marketMaker: string | null;
+
+  /**
+   * Tick size
+   */
   tick: number;
-  feeTaker: string;
-  feeMaker: string;
+
+  /**
+   * Taker fee
+   */
+  feeTaker: Decimal;
+
+  /**
+   * Maker fee
+   */
+  feeMaker: Decimal;
+
+  /**
+   * Fee collection address
+   */
   feeAddress: string;
+
+  /**
+   * Contract description
+   */
   description?: string;
+
+  /**
+   * Whether contract has oracles
+   */
   hasOracles?: boolean;
 }
 
@@ -136,38 +195,119 @@ export interface FinContractConfig {
  * FIN pair information interface
  */
 export interface FinPair {
+  /**
+   * Contract address
+   */
   address: string;
+
+  /**
+   * Base asset
+   */
   assetBase: Asset;
+
+  /**
+   * Quote asset
+   */
   assetQuote: Asset;
+
+  /**
+   * Base asset oracle
+   */
   oracleBase?: ThorchainOracle;
+
+  /**
+   * Quote asset oracle
+   */
   oracleQuote?: ThorchainOracle;
-  tick: string;
-  feeTaker: string;
-  feeMaker: string;
+
+  /**
+   * Tick size
+   */
+  tick: Decimal;
+
+  /**
+   * Taker fee
+   */
+  feeTaker: Decimal;
+
+  /**
+   * Maker fee
+   */
+  feeMaker: Decimal;
+
+  /**
+   * Fee collection address
+   */
   feeAddress: string;
-  deploymentStatus: DeploymentTargetStatus;
+
+  /**
+   * Deployment status
+   */
+  deploymentStatus: string;
 }
 
 /**
  * FIN orderbook entry interface
  */
 export interface FinBookEntry {
-  price: string;
-  total: string;
+  /**
+   * Price level
+   */
+  price: Decimal;
+
+  /**
+   * Total amount at this price
+   */
+  total: Decimal;
+
+  /**
+   * Side (buy/sell)
+   */
   side: string;
-  value: string;
-  virtualTotal: string;
-  virtualValue: string;
+
+  /**
+   * Value in quote currency
+   */
+  value: Decimal;
+
+  /**
+   * Virtual total (for AMM)
+   */
+  virtualTotal: Decimal;
+
+  /**
+   * Virtual value (for AMM)
+   */
+  virtualValue: Decimal;
 }
 
 /**
  * FIN orderbook interface
  */
 export interface FinBook {
+  /**
+   * Ask orders (sell side)
+   */
   asks: FinBookEntry[];
+
+  /**
+   * Bid orders (buy side)
+   */
   bids: FinBookEntry[];
-  center?: string;
-  spread?: string;
+
+  /**
+   * Center price
+   */
+  center?: Decimal;
+
+  /**
+   * Bid-ask spread
+   */
+  spread?: Decimal;
+
+  /**
+   * Trading pair
+   */
   pair: FinPair;
 }
 
@@ -175,662 +315,432 @@ export interface FinBook {
  * FIN order interface
  */
 export interface FinOrder {
+  /**
+   * Order ID
+   */
   id: string;
+
+  /**
+   * Trading pair
+   */
   pair: FinPair;
+
+  /**
+   * Order owner address
+   */
   owner: string;
+
+  /**
+   * Order side
+   */
   side: OrderSide;
-  rate: string;
+
+  /**
+   * Order price
+   */
+  rate: Decimal;
+
+  /**
+   * Last update timestamp
+   */
   updatedAt: string;
-  offer: string;
-  offerValue: string;
-  remaining: string;
-  remainingValue: string;
-  filled: string;
-  filledValue: string;
-  filledFee: string;
+
+  /**
+   * Original offer amount
+   */
+  offer: Decimal;
+
+  /**
+   * Original offer value
+   */
+  offerValue: Decimal;
+
+  /**
+   * Remaining amount
+   */
+  remaining: Decimal;
+
+  /**
+   * Remaining value
+   */
+  remainingValue: Decimal;
+
+  /**
+   * Filled amount
+   */
+  filled: Decimal;
+
+  /**
+   * Filled value
+   */
+  filledValue: Decimal;
+
+  /**
+   * Filled fee amount
+   */
+  filledFee: Decimal;
+
+  /**
+   * Order type
+   */
   type: string;
-  deviation?: string;
-  valueUsd: string;
+
+  /**
+   * Price deviation (optional)
+   */
+  deviation?: Decimal;
+
+  /**
+   * Value in USD
+   */
+  valueUsd: Decimal;
 }
 
 /**
  * FIN trade interface
  */
 export interface FinTrade {
+  /**
+   * Trade ID
+   */
   id: string;
-  height: string;
-  txIdx: string;
-  idx: string;
-  contract: string;
-  txhash: string;
-  quoteAmount: string;
-  baseAmount: string;
-  price: string;
-  type: string;
-  protocol: string;
-  timestamp: string;
-  assetBase: Asset;
-  assetQuote: Asset;
-}
 
-/**
- * FIN account action interface
- */
-export interface FinAccountAction {
-  type?: string;
-  height?: string;
-  txIdx?: string;
-  idx?: string;
-  contract?: string;
-  txhash?: string;
-  quoteAmount?: string;
-  baseAmount?: string;
-  price?: string;
-  protocol?: string;
-  timestamp?: string;
-  assetBase?: Asset;
-  assetQuote?: Asset;
+  /**
+   * Block height
+   */
+  height: string;
+
+  /**
+   * Transaction index
+   */
+  txIdx: string;
+
+  /**
+   * Trade index
+   */
+  idx: string;
+
+  /**
+   * Contract address
+   */
+  contract: string;
+
+  /**
+   * Transaction hash
+   */
+  txhash: string;
+
+  /**
+   * Quote amount
+   */
+  quoteAmount: Decimal;
+
+  /**
+   * Base amount
+   */
+  baseAmount: Decimal;
+
+  /**
+   * Trade price
+   */
+  price: Decimal;
+
+  /**
+   * Trade type
+   */
+  type: string;
+
+  /**
+   * Protocol identifier
+   */
+  protocol: string;
+
+  /**
+   * Timestamp
+   */
+  timestamp: string;
+
+  /**
+   * Base asset
+   */
+  assetBase: Asset;
+
+  /**
+   * Quote asset
+   */
+  assetQuote: Asset;
 }
 
 /**
  * FIN summary interface
  */
 export interface FinSummary {
-  last: string;
-  lastUsd: string;
-  high: string;
-  low: string;
-  change: string;
-  volume: Layer1Balance;
+  /**
+   * Last price
+   */
+  last: Decimal;
+
+  /**
+   * Last price in USD
+   */
+  lastUsd: Decimal;
+
+  /**
+   * 24h high
+   */
+  high: Decimal;
+
+  /**
+   * 24h low
+   */
+  low: Decimal;
+
+  /**
+   * 24h change
+   */
+  change: Decimal;
+
+  /**
+   * 24h volume
+   */
+  volume: {
+    amount: Decimal;
+    denom: string;
+    usdValue?: Decimal;
+  };
 }
 
 /**
  * FIN candle interface
  */
 export interface FinCandle {
+  /**
+   * Candle ID
+   */
   id: string;
+
+  /**
+   * Time resolution
+   */
   resolution: string;
-  high: string;
-  low: string;
-  open: string;
-  close: string;
-  volume: string;
+
+  /**
+   * High price
+   */
+  high: Decimal;
+
+  /**
+   * Low price
+   */
+  low: Decimal;
+
+  /**
+   * Open price
+   */
+  open: Decimal;
+
+  /**
+   * Close price
+   */
+  close: Decimal;
+
+  /**
+   * Volume
+   */
+  volume: Decimal;
+
+  /**
+   * Time bin
+   */
   bin: string;
 }
 
 // ============================================================================
-// ASSET & BALANCE INTERFACES
+// REQUEST/RESPONSE INTERFACES
 // ============================================================================
 
 /**
- * Asset interface
+ * Request to get contract configuration
  */
-export interface Asset {
-  symbol: string;
-  name: string;
-  denom: string;
-  decimals: number;
-  chain: string;
-  address?: string;
-  icon?: string;
-}
-
-/**
- * Layer 1 balance interface
- */
-export interface Layer1Balance {
-  amount: string;
-  denom: string;
-  usdValue?: string;
-}
-
-/**
- * Account balance interface
- */
-export interface AccountBalance {
+export interface GetContractConfigRequest {
+  /**
+   * Contract address
+   */
   address: string;
-  balances: Layer1Balance[];
-  totalUsdValue?: string;
-  lastUpdated: string;
-}
-
-// ============================================================================
-// THORCHAIN INTERFACES
-// ============================================================================
-
-/**
- * THORChain oracle interface
- */
-export interface ThorchainOracle {
-  asset: string;
-  price: string;
-  timestamp: string;
-  blockHeight: string;
 }
 
 /**
- * THORChain pool interface
+ * Response with contract configuration
  */
-export interface ThorchainPool {
-  asset: string;
-  runeBalance: string;
-  assetBalance: string;
-  poolUnits: string;
-  status: string;
-  price: string;
-}
-
-// ============================================================================
-// STRATEGY INTERFACES
-// ============================================================================
-
-/**
- * Base strategy interface
- */
-export interface Strategy {
-  id: string;
-  type: StrategyType;
-  version: string;
-  name: string;
-  description?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+export interface GetContractConfigResponse {
+  /**
+   * Contract configuration
+   */
+  config: FinContractConfig;
 }
 
 /**
- * Strategy configuration interface
+ * Request to get orderbook
  */
-export interface StrategyConfig {
-  strategy: Strategy;
-  parameters: Record<string, any>;
-  riskLimits: RiskLimits;
-  tradingPairs: string[];
-  enabled: boolean;
-}
-
-/**
- * Strategy execution interface
- */
-export interface StrategyExecution {
-  id: string;
-  strategyId: string;
-  status: SystemStatus;
-  startTime: string;
-  endTime?: string;
-  ordersPlaced: number;
-  tradesExecuted: number;
-  profitLoss: string;
-  error?: string;
-}
-
-/**
- * Risk limits interface
- */
-export interface RiskLimits {
-  maxPositionSize: string;
-  maxDailyLoss: string;
-  maxDrawdown: string;
-  maxOrdersPerMinute: number;
-  maxSlippage: string;
-}
-
-// ============================================================================
-// TRADING INTERFACES
-// ============================================================================
-
-/**
- * Order interface
- */
-export interface Order {
-  id: string;
-  pairAddress: string;
-  owner: string;
-  side: OrderSide;
-  type: OrderType;
-  price: string;
-  amount: string;
-  filled: string;
-  remaining: string;
-  status: OrderStatus;
-  createdAt: string;
-  updatedAt: string;
-  txhash?: string;
-}
-
-/**
- * Trade interface
- */
-export interface Trade {
-  id: string;
-  orderId: string;
-  pairAddress: string;
-  side: OrderSide;
-  price: string;
-  amount: string;
-  fee: string;
-  timestamp: string;
-  txhash: string;
-  blockHeight: string;
-}
-
-/**
- * Position interface
- */
-export interface Position {
-  id: string;
-  pairAddress: string;
-  owner: string;
-  baseAmount: string;
-  quoteAmount: string;
-  averagePrice: string;
-  unrealizedPnL: string;
-  realizedPnL: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ============================================================================
-// MARKET DATA INTERFACES
-// ============================================================================
-
-/**
- * Market data interface
- */
-export interface MarketData {
-  pairAddress: string;
-  lastPrice: string;
-  bid: string;
-  ask: string;
-  volume24h: string;
-  change24h: string;
-  high24h: string;
-  low24h: string;
-  timestamp: string;
-}
-
-/**
- * Price feed interface
- */
-export interface PriceFeed {
-  asset: string;
-  price: string;
-  source: string;
-  timestamp: string;
-  confidence?: string;
-}
-
-// ============================================================================
-// DEPLOYMENT INTERFACES
-// ============================================================================
-
-/**
- * Deployment target status enumeration
- */
-export enum DeploymentTargetStatus {
-  PENDING = 'pending',
-  DEPLOYING = 'deploying',
-  ACTIVE = 'active',
-  FAILED = 'failed',
-  DEPRECATED = 'deprecated'
-}
-
-/**
- * Contract info interface
- */
-export interface ContractInfo {
+export interface GetOrderbookRequest {
+  /**
+   * Contract address
+   */
   address: string;
-  codeId: string;
-  creator: string;
-  admin?: string;
-  label?: string;
-  createdAt: string;
-  status: DeploymentTargetStatus;
+
+  /**
+   * Number of levels to return
+   */
+  limit?: number;
+}
+
+/**
+ * Response with orderbook
+ */
+export interface GetOrderbookResponse {
+  /**
+   * Orderbook data
+   */
+  orderbook: FinBook;
+}
+
+/**
+ * Request to get user orders
+ */
+export interface GetUserOrdersRequest {
+  /**
+   * Contract address
+   */
+  address: string;
+
+  /**
+   * User address
+   */
+  owner: string;
+
+  /**
+   * Order side filter
+   */
+  side?: OrderSide;
+
+  /**
+   * Order status filter
+   */
+  status?: OrderStatus;
+}
+
+/**
+ * Response with user orders
+ */
+export interface GetUserOrdersResponse {
+  /**
+   * Array of user orders
+   */
+  orders: FinOrder[];
+}
+
+/**
+ * Request to simulate trade
+ */
+export interface SimulateTradeRequest {
+  /**
+   * Contract address
+   */
+  address: string;
+
+  /**
+   * Trade side
+   */
+  side: OrderSide;
+
+  /**
+   * Amount to trade
+   */
+  amount: Decimal;
+
+  /**
+   * Price (for limit orders)
+   */
+  price?: Decimal;
+}
+
+/**
+ * Response with trade simulation
+ */
+export interface SimulateTradeResponse {
+  /**
+   * Simulated trade details
+   */
+  trade: FinTrade;
+}
+
+/**
+ * Request to get market summary
+ */
+export interface GetMarketSummaryRequest {
+  /**
+   * Contract address
+   */
+  address: string;
+}
+
+/**
+ * Response with market summary
+ */
+export interface GetMarketSummaryResponse {
+  /**
+   * Market summary
+   */
+  summary: FinSummary;
+}
+
+/**
+ * Request to get candles
+ */
+export interface GetCandlesRequest {
+  /**
+   * Contract address
+   */
+  address: string;
+
+  /**
+   * Resolution (1m, 5m, 15m, 1h, 4h, 1d)
+   */
+  resolution: string;
+
+  /**
+   * Start time
+   */
+  from: number;
+
+  /**
+   * End time
+   */
+  to: number;
+}
+
+/**
+ * Response with candles
+ */
+export interface GetCandlesResponse {
+  /**
+   * Array of candles
+   */
+  candles: FinCandle[];
 }
 
 // ============================================================================
-// API & GRAPHQL INTERFACES
+// MAIN INTERFACE
 // ============================================================================
 
 /**
- * GraphQL query interface
+ * Main interface for FIN Protocol operations
  */
-export interface GraphQLQuery {
-  query: string;
-  variables?: Record<string, any>;
-  operationName?: string;
-}
-
-/**
- * GraphQL response interface
- */
-export interface GraphQLResponse<T = any> {
-  data?: T;
-  errors?: GraphQLError[];
-  extensions?: Record<string, any>;
-}
-
-/**
- * GraphQL error interface
- */
-export interface GraphQLError {
-  message: string;
-  locations?: Array<{ line: number; column: number }>;
-  path?: string[];
-  extensions?: Record<string, any>;
-}
-
-/**
- * API request interface
- */
-export interface ApiRequest {
-  method: HttpMethod;
-  url: string;
-  headers?: Record<string, string>;
-  body?: any;
-  timeout?: number;
-}
-
-/**
- * API response interface
- */
-export interface ApiResponse<T = any> {
-  status: number;
-  statusText: string;
-  data: T;
-  headers: Record<string, string>;
-}
-
-// ============================================================================
-// DATABASE & STORAGE INTERFACES
-// ============================================================================
-
-/**
- * Database connection interface
- */
-export interface DatabaseConnection {
-  host: string;
-  port: number;
-  database: string;
-  username: string;
-  password: string;
-  ssl?: boolean;
-}
-
-/**
- * Database query interface
- */
-export interface DatabaseQuery {
-  sql: string;
-  params?: any[];
-  timeout?: number;
-}
-
-/**
- * Database result interface
- */
-export interface DatabaseResult<T = any> {
-  rows: T[];
-  rowCount: number;
-  fields?: any[];
-}
-
-// ============================================================================
-// LOGGING & MONITORING INTERFACES
-// ============================================================================
-
-/**
- * Log level enumeration
- */
-export enum LogLevel {
-  DEBUG = 'debug',
-  INFO = 'info',
-  WARN = 'warn',
-  ERROR = 'error',
-  FATAL = 'fatal'
-}
-
-/**
- * Log entry interface
- */
-export interface LogEntry {
-  level: LogLevel;
-  message: string;
-  timestamp: string;
-  context?: Record<string, any>;
-  error?: Error;
-}
-
-/**
- * Metrics interface
- */
-export interface Metrics {
-  ordersPerSecond: number;
-  tradesPerSecond: number;
-  averageLatency: number;
-  errorRate: number;
-  profitLoss: string;
-  timestamp: string;
-}
-
-// ============================================================================
-// CONFIGURATION INTERFACES
-// ============================================================================
-
-/**
- * Application configuration interface
- */
-export interface AppConfig {
-  environment: string;
-  debug: boolean;
-  logLevel: LogLevel;
-  database: DatabaseConnection;
-  networks: Record<string, NetworkConfig>;
-  strategies: StrategyConfig[];
-  api: {
-    port: number;
-    host: string;
-    cors: boolean;
-  };
-  websocket: {
-    port: number;
-    host: string;
-  };
-}
-
-/**
- * Trading configuration interface
- */
-export interface TradingConfig {
-  defaultGasPrice: string;
-  maxGasLimit: number;
-  slippageTolerance: string;
-  minOrderSize: string;
-  maxOrderSize: string;
-  orderTimeout: number;
-  retryAttempts: number;
-}
-
-// ============================================================================
-// EVENT & SUBSCRIPTION INTERFACES
-// ============================================================================
-
-/**
- * Event type enumeration
- */
-export enum EventType {
-  ORDER_CREATED = 'order_created',
-  ORDER_UPDATED = 'order_updated',
-  ORDER_FILLED = 'order_filled',
-  ORDER_CANCELLED = 'order_cancelled',
-  TRADE_EXECUTED = 'trade_executed',
-  PRICE_UPDATED = 'price_updated',
-  STRATEGY_STARTED = 'strategy_started',
-  STRATEGY_STOPPED = 'strategy_stopped',
-  ERROR_OCCURRED = 'error_occurred'
-}
-
-/**
- * Event interface
- */
-export interface Event {
-  type: EventType;
-  data: any;
-  timestamp: string;
-  source: string;
-  id: string;
-}
-
-/**
- * Event handler interface
- */
-export interface EventHandler {
-  eventType: EventType;
-  handler: (event: Event) => void | Promise<void>;
-  priority?: number;
-}
-
-/**
- * Subscription interface
- */
-export interface Subscription {
-  id: string;
-  topic: string;
-  handler: (data: any) => void;
-  isActive: boolean;
-  createdAt: string;
-}
-
-// ============================================================================
-// UTILITY INTERFACES
-// ============================================================================
-
-/**
- * Pagination interface
- */
-export interface Pagination {
-  page: number;
-  limit: number;
-  total: number;
-  hasNext: boolean;
-  hasPrevious: boolean;
-}
-
-/**
- * Paginated response interface
- */
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: Pagination;
-}
-
-/**
- * Error interface
- */
-export interface AppError {
-  code: string;
-  message: string;
-  details?: any;
-  timestamp: string;
-  stack?: string;
-}
-
-/**
- * Result interface for operations that can fail
- */
-export interface Result<T, E = AppError> {
-  success: boolean;
-  data?: T;
-  error?: E;
-}
-
-// ============================================================================
-// EXPORT ALL INTERFACES
-// ============================================================================
-
-export {
-  // Core system
-  SystemStatus,
-  HttpMethod,
-  StrategyType,
-  OrderSide,
-  OrderType,
-  OrderStatus,
-  
-  // Network & connection
-  NetworkConfig,
-  ConnectionStatus,
-  WebSocketConnection,
-  
-  // FIN Protocol
-  FinContractConfig,
-  FinPair,
-  FinBookEntry,
-  FinBook,
-  FinOrder,
-  FinTrade,
-  FinAccountAction,
-  FinSummary,
-  FinCandle,
-  
-  // Asset & balance
-  Asset,
-  Layer1Balance,
-  AccountBalance,
-  
-  // THORChain
-  ThorchainOracle,
-  ThorchainPool,
-  
-  // Strategy
-  Strategy,
-  StrategyConfig,
-  StrategyExecution,
-  RiskLimits,
-  
-  // Trading
-  Order,
-  Trade,
-  Position,
-  
-  // Market data
-  MarketData,
-  PriceFeed,
-  
-  // Deployment
-  DeploymentTargetStatus,
-  ContractInfo,
-  
-  // API & GraphQL
-  GraphQLQuery,
-  GraphQLResponse,
-  GraphQLError,
-  ApiRequest,
-  ApiResponse,
-  
-  // Database
-  DatabaseConnection,
-  DatabaseQuery,
-  DatabaseResult,
-  
-  // Logging & monitoring
-  LogLevel,
-  LogEntry,
-  Metrics,
-  
-  // Configuration
-  AppConfig,
-  TradingConfig,
-  
-  // Events & subscriptions
-  EventType,
-  Event,
-  EventHandler,
-  Subscription,
-  
-  // Utilities
-  Pagination,
-  PaginatedResponse,
-  AppError,
-  Result
-}; 
+export interface FinProtocolInterface {
+  getContractConfig(request: GetContractConfigRequest): Promise<GetContractConfigResponse>;
+  getOrderbook(request: GetOrderbookRequest): Promise<GetOrderbookResponse>;
+  getUserOrders(request: GetUserOrdersRequest): Promise<GetUserOrdersResponse>;
+  simulateTrade(request: SimulateTradeRequest): Promise<SimulateTradeResponse>;
+  getMarketSummary(request: GetMarketSummaryRequest): Promise<GetMarketSummaryResponse>;
+  getCandles(request: GetCandlesRequest): Promise<GetCandlesResponse>;
+} 
