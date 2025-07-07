@@ -161,7 +161,7 @@ function analyzeFinMarket(finData: any[], decimals: number) {
     
     // Market insights
     if (isStable) {
-      console.log(`- 💰 Market Type: Stable Pair (likely stablecoins or pegged assets)`);
+      console.log(`- 💰 Market import {  BowQuoteResponse } from "../types";Type: Stable Pair (likely stablecoins or pegged assets)`);
     } else if (price > 100) {
       console.log(`- 🚀 Market Type: High-Value Base (Base asset significantly more valuable)`);
     } else if (price < 0.01) {

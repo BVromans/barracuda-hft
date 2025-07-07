@@ -7,18 +7,19 @@ config({ path: ".env" });
 const THORCHAIN_CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS3 || '';
 
 // Thorchain RPC endpoint (Mainnet)
-const THORCHAIN_RPC_URL = 'https://rpc.thorchain.network';
+const THORCHAIN_RPC_URL = process.env.RPC_ENDPOINT2 || '';
 
 // Required environment variables
 const requiredEnvironmentVariables = [
-    'CONTRACT_ADDRESS3'
+    THORCHAIN_CONTRACT_ADDRESS,
+    THORCHAIN_RPC_URL
 ];
 
 const missingEnvironmentVariables = requiredEnvironmentVariables.filter(varName => !process.env[varName]);
 
 if (missingEnvironmentVariables.length > 0) {
     console.error(`Missing required environment variables: ${missingEnvironmentVariables.join(', ')}`);
-    console.error('Please set CONTRACT_ADDRESS3 in your .env file');
+    console.error('Please set CONTRACT_ADDRESS3 and RPC_ENDPOINT2 in your .env file');
     process.exit(1);
 }
 

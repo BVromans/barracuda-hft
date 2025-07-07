@@ -4,21 +4,22 @@ import { config } from "dotenv";
 config({ path: ".env" });
 
 // Thorchain contract address for playground 06 (Stagenet)
-const THORCHAIN_CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
+const THORCHAIN_CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS3 || "";
 
 // Thorchain RPC endpoint (Stagenet)
-const THORCHAIN_RPC_URL = 'https://stagenet-rpc.ninerealms.com';
+const THORCHAIN_RPC_URL = process.env.RPC_ENDPOINT || '';
 
 // Required environment variables
 const requiredEnvironmentVariables = [
-    'CONTRACT_ADDRESS'
+    'CONTRACT_ADDRESS2',
+    'RPC_ENDPOINT2'
 ];
 
 const missingEnvironmentVariables = requiredEnvironmentVariables.filter(varName => !process.env[varName]);
 
 if (missingEnvironmentVariables.length > 0) {
     console.error(`Missing required environment variables: ${missingEnvironmentVariables.join(', ')}`);
-    console.error('Please set CONTRACT_ADDRESS in your .env file');
+    console.error('Please set CONTRACT_ADDRESS2 and RPC_ENDPOINT2 in your .env file');
     process.exit(1);
 }
 

@@ -11,8 +11,8 @@ const THORCHAIN_RPC_URL = process.env.RPC_ENDPOINT || '';
 
 // Required environment variables
 const requiredEnvironmentVariables = [
-    'CONTRACT_ADDRESS',
-    'RPC_ENDPOINT'
+    THORCHAIN_CONTRACT_ADDRESS,
+    THORCHAIN_RPC_URL
 ];
 
 const missingEnvironmentVariables = requiredEnvironmentVariables.filter(varName => !process.env[varName]);
@@ -204,90 +204,90 @@ async function main() {
 
         // Test 5: Build Order Book from Contract Data
         console.log('\n📊 Test 5: Build Order Book from Contract Data');
-        // if (queryClient) {
-        //     try {
-        //         // Get strategy data to build order book
-        //         const strategyQuery = {
-        //             strategy: {}
-        //         };
+        if (queryClient) {
+            try {
+                // Get strategy data to build order book
+                const strategyQuery = {
+                    strategy: {}
+                };
 
-        //         const strategyResult = await queryClient.queryContractSmart(
-        //             THORCHAIN_CONTRACT_ADDRESS,
-        //             strategyQuery
-        //         );
+                const strategyResult = await queryClient.queryContractSmart(
+                    THORCHAIN_CONTRACT_ADDRESS,
+                    strategyQuery
+                );
 
-        //         console.log('✅ Strategy Data for Order Book:', JSON.stringify(strategyResult, null, 2));
+                console.log('✅ Strategy Data for Order Book:', JSON.stringify(strategyResult, null, 2));
 
-        //         // Build order book from strategy data
-        //         if (strategyResult && strategyResult.xyk && strategyResult.xyk.length >= 2) {
-        //             const poolConfig = strategyResult.xyk[0];
-        //             const poolState = strategyResult.xyk[1];
+                // Build order book from strategy data
+                if (strategyResult && strategyResult.xyk && strategyResult.xyk.length >= 2) {
+                    const poolConfig = strategyResult.xyk[0];
+                    const poolState = strategyResult.xyk[1];
                     
-        //             // Calculate current price
-        //             const xAmount = parseInt(poolState.x);
-        //             const yAmount = parseInt(poolState.y);
-        //             const currentPrice = yAmount / xAmount;
+                    // Calculate current price
+                    const xAmount = parseInt(poolState.x);
+                    const yAmount = parseInt(poolState.y);
+                    const currentPrice = yAmount / xAmount;
                     
-        //             console.log('\n📊 Real Order Book from Contract Data:');
-        //             console.log('Current Price (RUNE per x/ruji):', currentPrice.toFixed(6));
-        //             console.log('Pool Reserves:');
-        //             console.log(`  x/ruji: ${xAmount.toLocaleString()}`);
-        //             console.log(`  RUNE: ${yAmount.toLocaleString()}`);
-        //             console.log('Pool Config:');
-        //             console.log(`  Step: ${poolConfig.step}`);
-        //             console.log(`  Min Quote: ${poolConfig.min_quote}`);
-        //             console.log(`  Fee: ${poolConfig.fee}%`);
+                    console.log('\n📊 Real Order Book from Contract Data:');
+                    console.log('Current Price (RUNE per x/ruji):', currentPrice.toFixed(6));
+                    console.log('Pool Reserves:');
+                    console.log(`  x/ruji: ${xAmount.toLocaleString()}`);
+                    console.log(`  RUNE: ${yAmount.toLocaleString()}`);
+                    console.log('Pool Config:');
+                    console.log(`  Step: ${poolConfig.step}`);
+                    console.log(`  Min Quote: ${poolConfig.min_quote}`);
+                    console.log(`  Fee: ${poolConfig.fee}%`);
                     
-        //             // Generate order book levels around current price
-        //             const orderBookLevels = [];
-        //             const step = parseFloat(poolConfig.step);
+                    // Generate order book levels around current price
+                    const orderBookLevels = [];
+                    const step = parseFloat(poolConfig.step);
                     
-        //             // Generate 5 levels above current price (asks)
-        //             for (let i = 1; i <= 5; i++) {
-        //                 const askPrice = currentPrice * (1 + i * step);
-        //                 const askAmount = Math.floor(xAmount * 0.1 * i); // 10% of reserves per level
-        //                 orderBookLevels.push({
-        //                     type: 'ask',
-        //                     price: askPrice.toFixed(6),
-        //                     amount: askAmount.toLocaleString(),
-        //                     total: (askPrice * askAmount).toFixed(2)
-        //                 });
-        //             }
+                    // Generate 5 levels above current price (asks)
+                    for (let i = 1; i <= 5; i++) {
+                        const askPrice = currentPrice * (1 + i * step);
+                        const askAmount = Math.floor(xAmount * 0.1 * i); // 10% of reserves per level
+                        orderBookLevels.push({
+                            type: 'ask',
+                            price: askPrice.toFixed(6),
+                            amount: askAmount.toLocaleString(),
+                            total: (askPrice * askAmount).toFixed(2)
+                        });
+                    }
                     
-        //             // Generate 5 levels below current price (bids)
-        //             for (let i = 1; i <= 5; i++) {
-        //                 const bidPrice = currentPrice * (1 - i * step);
-        //                 const bidAmount = Math.floor(yAmount * 0.1 * i); // 10% of reserves per level
-        //                 orderBookLevels.push({
-        //                     type: 'bid',
-        //                     price: bidPrice.toFixed(6),
-        //                     amount: bidAmount.toLocaleString(),
-        //                     total: (bidPrice * bidAmount).toFixed(2)
-        //                 });
-        //             }
+                    // Generate 5 levels below current price (bids)
+                    for (let i = 1; i <= 5; i++) {
+                        const bidPrice = currentPrice * (1 - i * step);
+                        const bidAmount = Math.floor(yAmount * 0.1 * i); // 10% of reserves per level
+                        orderBookLevels.push({
+                            type: 'bid',
+                            price: bidPrice.toFixed(6),
+                            amount: bidAmount.toLocaleString(),
+                            total: (bidPrice * bidAmount).toFixed(2)
+                        });
+                    }
                     
-        //             // Display order book
-        //             console.log('\n📈 Order Book Levels:');
-        //             console.log('Asks (Sell Orders):');
-        //             orderBookLevels.filter(level => level.type === 'ask')
-        //                 .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
-        //                 .forEach((level, index) => {
-        //                     console.log(`  ${index + 1}. Price: ${level.price} | Amount: ${level.amount} | Total: ${level.total}`);
-        //                 });
+                    // Display order book
+                    console.log('\n📈 Order Book Levels:');
+                    console.log('Asks (Sell Orders):');
+                    orderBookLevels.filter(level => level.type === 'ask')
+                        .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
+                        .forEach((level, index) => {
+                            console.log(`  ${index + 1}. Price: ${level.price} | Amount: ${level.amount} | Total: ${level.total}`);
+                        });
                     
-        //             console.log('Bids (Buy Orders):');
-        //             orderBookLevels.filter(level => level.type === 'bid')
-        //                 .sort((a, b) => parseFloat(b.price) - parseFloat(a.price))
-        //                 .forEach((level, index) => {
-        //                     console.log(`  ${index + 1}. Price: ${level.price} | Amount: ${level.amount} | Total: ${level.total}`);
-        //                 });
-        //         }
-        //     } catch (error) {
-        //         console.log('❌ Failed to build order book from contract data:', (error as Error).message);
-        //     }
-        // } else {
-        //     console.log('⚠️  Skipping order book build (no connection)');
-        // }
+                    console.log('Bids (Buy Orders):');
+                    orderBookLevels.filter(level => level.type === 'bid')
+                        .sort((a, b) => parseFloat(b.price) - parseFloat(a.price))
+                        .forEach((level, index) => {
+                            console.log(`  ${index + 1}. Price: ${level.price} | Amount: ${level.amount} | Total: ${level.total}`);
+                        });
+                }
+            } catch (error) {
+                console.log('❌ Failed to build order book from contract data:', (error as Error).message);
+            }
+        } else {
+            console.log('⚠️  Skipping order book build (no connection)');
+        }
         
         // Simulate swap quote for demonstration
         const simulatedSwapQuote: SwapQuote = {

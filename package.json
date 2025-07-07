@@ -14,7 +14,9 @@
         "playground:04": "NODE_ENV=development bun run --inspect=9222 src/playground/04.ts",
         "playground:05": "NODE_ENV=development bun run --inspect=9222 src/playground/05.ts",
         "playground:06": "NODE_ENV=development bun run --inspect=9222 src/playground/06.ts",
-        "playground:07": "NODE_ENV=development bun run --inspect=9222 src/playground/07.ts"
+        "playground:07": "NODE_ENV=development bun run --inspect=9222 src/playground/07.ts",
+        "playground:08": "NODE_ENV=development bun run --inspect=9222 src/playground/08.ts",
+        "playground:09": "NODE_ENV=development bun run --inspect=9222 src/playground/09.ts"
     },
     "dependencies": {
         "@cosmjs/cosmwasm-stargate": "^0.33.1",

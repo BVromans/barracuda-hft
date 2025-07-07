@@ -1,9 +1,150 @@
-import { RujiraClient } from "../client";
-import { BowQueryMsg, BowStrategyResponse, BowQuoteResponse } from "../types";
 import "dotenv/config";
 import { config } from "dotenv";
+import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
+import { GasPrice } from "@cosmjs/stargate";
+import {CosmWasmClient, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 
 config({ path: ".env" });
+
+export interface BowStrategyResponse {
+  xyk: [
+    {
+      x: string;
+      y: string;
+      step: string;
+      min_quote: string;
+      fee: string;
+    },
+    {
+      x: string;
+      y: string;
+      k: string;
+      shares: string;
+    }
+  ];
+}
+
+export interface BowQuoteResponse {
+  price: string;
+  size: string;
+  data: string; // Base64 encoded data
+}
+
+export interface Coin {
+  amount: string; // Uint128
+  denom: string;
+}
+
+export interface Side {
+  base: string;
+  quote: string;
+}
+
+export interface Price {
+  fixed?: string; // Decimal string
+  oracle?: number; // Integer index
+}
+
+export interface FinQueryMsg {
+  config?: {};
+  simulate?: Coin;
+  order?: [string, Side, Price]; // [owner, side, price]
+  orders?: {
+    owner: string;
+    side?: Side;
+    offset?: number; // uint8
+    limit?: number; // uint8 (max 30)
+  };
+  book?: {
+    limit?: number; // uint8
+    offset?: number; // uint8
+  };
+}
+export interface BowQueryMsg {
+  strategy?: {
+    denom: string;
+    amount: string;
+  };
+  quote?: {
+    denom: string;
+    amount: string;
+    offer_denom: string;
+    offer_amount: string;
+    ask_denom: string;
+    ask_amount: string;
+  };
+}
+
+export interface SwapRequest {
+  min_return?: string; // Uint128
+  to?: string; // Address
+  callback?: any; // Binary data
+}
+
+export interface CallbackData {
+  // Binary data for callbacks
+}
+
+export interface FinExecuteMsg {
+  swap?: SwapRequest;
+  order?: [
+    Array<[Side, Price, string | null]>, // [side, price, amount]
+    CallbackData | null
+  ];
+  arb?: {
+    then?: any; // Binary data
+  };
+  do_swap?: [string, SwapRequest]; // [address, swap_request]
+}
+
+class RujiraClient {
+  private constructor(
+    public readonly client: CosmWasmClient,
+    public readonly wallet: DirectSecp256k1HdWallet,
+    public readonly contractAddress: string,
+    public readonly rpcEndpoint: string
+  ) {}
+
+  static async connect(
+    rpcEndpoint: string,
+    mnemonic: string,
+    contractAddress: string
+  ): Promise<RujiraClient> {
+    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
+      prefix: "sthor",
+    });
+    const client = await CosmWasmClient.connect(rpcEndpoint);
+    return new RujiraClient(client, wallet, contractAddress, rpcEndpoint);
+  }
+
+  async query<T>(queryMsg: BowQueryMsg): Promise<T> {
+    return this.client.queryContractSmart(this.contractAddress, queryMsg);
+  }
+
+  async execute(
+    executeMsg: FinExecuteMsg,
+    funds?: { denom: string; amount: string }[]
+  ) {
+    const [{ address }] = await this.wallet.getAccounts();
+    const gasPrice = GasPrice.fromString("0.025uatom");
+    const signingClient = await SigningCosmWasmClient.connectWithSigner(
+      this.rpcEndpoint,
+      this.wallet,
+      { gasPrice }
+    );
+
+    return signingClient.execute(
+      address,
+      this.contractAddress,
+      executeMsg,
+      "auto",
+      undefined,
+      funds
+    );
+  }
+}
+
+
 
 async function main() {
   console.log('🚀 Starting Rujira Bow playground...');
