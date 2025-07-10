@@ -1,352 +1,403 @@
-import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate';
-import { config } from "dotenv";
+import { Logger } from '../utils/logger';
 
-config({ path: ".env" });
+class ThorchainTransactionAnalyzer {
+  private logger: Logger;
+  private thorchainEndpoints: string[];
 
-// Thorchain contract address
-const THORCHAIN_CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || '';
+  constructor() {
+    this.logger = new Logger('playground05');
+    this.thorchainEndpoints = [
+      'https://thornode.ninerealms.com',
+      'https://rpc.thorchain.info',
+      'https://rpc-testnet.thorchain.info'
+    ];
+  }
 
-// Thorchain RPC endpoint (mainnet)
-const THORCHAIN_RPC_URL = process.env.RPC_ENDPOINT || '';
+  async analyzeTransaction(hash: string, targetAddress?: string): Promise<void> {
+    console.log(`🚀 Analyzing ThorChain Transaction Hash: ${hash}`);
+    if (targetAddress) {
+      console.log(`🎯 Target Address: ${targetAddress}`);
+    }
+    console.log('='.repeat(80));
+    
+    this.logger.log('transaction_analysis_started', {
+      transactionHash: hash,
+      targetAddress: targetAddress,
+      endpoints: this.thorchainEndpoints
+    });
+    
+    const transactionData = await this.getTransactionFromEndpoints(hash);
+    
+    if (transactionData) {
+      this.displayDetailedAnalysis(transactionData, targetAddress);
+      
+      // Fetch current balance if target address is provided
+      if (targetAddress) {
+        console.log('\n' + '='.repeat(80));
+        const balanceData = await this.getBalanceFromEndpoints(targetAddress);
+        this.displayBalanceInfo(balanceData, targetAddress);
+      }
+    } else {
+      console.log('❌ Transaction not found');
+    }
+  }
 
-// Required environment variables
-const requiredEnvironmentVariables = [
-    THORCHAIN_CONTRACT_ADDRESS,
-    THORCHAIN_RPC_URL
-];
+  private async getTransactionFromEndpoints(hash: string): Promise<any> {
+    for (const endpoint of this.thorchainEndpoints) {
+      try {
+        console.log(`📡 Trying ${endpoint}...`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch(`${endpoint}/cosmos/tx/v1beta1/txs/${hash}`, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Thorchain-Tx-Analyzer/1.0'
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`✅ Transaction found via ${endpoint}`);
+          this.logger.log('transaction_retrieved', {
+            transactionHash: hash,
+            endpoint: endpoint,
+            transactionData: data
+          });
+          return data;
+        } else {
+          console.log(`❌ HTTP ${response.status}: ${response.statusText}`);
+          this.logger.log('transaction_failed', {
+            transactionHash: hash,
+            endpoint: endpoint,
+            status: response.status,
+            statusText: response.statusText
+          });
+        }
+        
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log(`⏰ Timeout for ${endpoint}`);
+        } else {
+          console.log(`❌ Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+    }
+    
+    return null;
+  }
 
-const missingEnvironmentVariables = requiredEnvironmentVariables.filter(varName => !process.env[varName]);
+  private async getBalanceFromEndpoints(address: string): Promise<any> {
+    for (const endpoint of this.thorchainEndpoints) {
+      try {
+        console.log(`💰 Fetching balance from ${endpoint}...`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch(`${endpoint}/cosmos/bank/v1beta1/balances/${address}`, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Thorchain-Balance-Checker/1.0'
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`✅ Balance found via ${endpoint}`);
+          this.logger.log('balance_retrieved', {
+            address: address,
+            endpoint: endpoint,
+            balanceData: data
+          });
+          return data;
+        } else {
+          console.log(`❌ HTTP ${response.status}: ${response.statusText}`);
+          this.logger.log('balance_failed', {
+            address: address,
+            endpoint: endpoint,
+            status: response.status,
+            statusText: response.statusText
+          });
+        }
+        
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log(`⏰ Timeout for ${endpoint}`);
+        } else {
+          console.log(`❌ Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+    }
+    
+    return null;
+  }
 
-if (missingEnvironmentVariables.length > 0) {
-    console.error(`Missing required environment variables: ${missingEnvironmentVariables.join(', ')}`);
-    process.exit(1);
-}
+  private parseAmount(amountStr: string): { value: number; asset: string; decimals: number } {
+    if (amountStr.includes('rune')) {
+      const value = parseInt(amountStr.replace('rune', '')) / 100000000;
+      return { value, asset: 'RUNE', decimals: 8 };
+    } else if (amountStr.includes('x/ruji')) {
+      const value = parseInt(amountStr.replace('x/ruji', ''));
+      return { value, asset: 'RUJI', decimals: 0 };
+    } else if (amountStr.includes('eth')) {
+      const value = parseInt(amountStr.replace('eth', '')) / 1000000000000000000;
+      return { value, asset: 'ETH', decimals: 18 };
+    } else if (amountStr.includes('btc')) {
+      const value = parseInt(amountStr.replace('btc', '')) / 100000000;
+      return { value, asset: 'BTC', decimals: 8 };
+    } else {
+      return { value: parseInt(amountStr) || 0, asset: 'Unknown', decimals: 0 };
+    }
+  }
 
-interface OrderBookEntry {
-    price: string;
-    amount: string;
-    total: string;
-}
+  private displayDetailedAnalysis(data: any, targetAddress?: string): void {
+    const tx = data.tx_response;
+    if (!tx) {
+      console.log('❌ No transaction data in response');
+      return;
+    }
 
-interface OrderBook {
-    asks: OrderBookEntry[];
-    bids: OrderBookEntry[];
-    lastUpdateId: string;
-}
+    console.log('\n📊 DETAILED TRANSACTION ANALYSIS');
+    console.log('='.repeat(60));
+    
+    // Basic Information
+    this.displayBasicInfo(tx);
+    
+    // Fee Analysis
+    this.displayFeeAnalysis(tx);
+    
+    // Contract Analysis
+    this.displayContractAnalysis(tx);
+    
+    // Message Analysis
+    this.displayMessageAnalysis(tx);
+    
+    // Token Transfers
+    this.displayTokenTransfers(tx);
+    
+    // Special Events
+    this.displaySpecialEvents(tx);
+    
+    // Address Involvement
+    this.displayAddressInvolvement(tx, targetAddress);
+    
+    // Account Information
+    this.displayAccountInfo(tx);
+    
+    // Raw Data Summary
+    this.displayRawDataSummary(tx);
+  }
 
-interface PoolInfo {
-    asset: string;
-    runeDepth: string;
-    assetDepth: string;
-    assetPrice: string;
-    assetPriceUSD: string;
-    runePriceUSD: string;
-    poolAPY: string;
-    status: string;
-}
+  private displayBasicInfo(tx: any): void {
+    console.log('\n🔗 BASIC INFORMATION:');
+    console.log('='.repeat(30));
+    console.log(`Hash: ${tx.txhash}`);
+    console.log(`Block Height: ${tx.height}`);
+    console.log(`Status: ${tx.code === 0 ? '✅ Success' : '❌ Failed'}`);
+    
+    // Convert timestamp to Brasília time
+    const utcDate = new Date(tx.timestamp);
+    console.log(`Timestamp (UTC): ${tx.timestamp}`);
+    console.log(`Timestamp (BR): ${utcDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
+    
+    console.log(`Gas Used: ${tx.gas_used}`);
+    console.log(`Gas Wanted: ${tx.gas_wanted || 'N/A'}`);
+  }
 
-interface SwapQuote {
-    inputAmount: string;
-    outputAmount: string;
-    fee: string;
-    slip: string;
-    priceImpact: string;
+  private displayFeeAnalysis(tx: any): void {
+    console.log('\n💰 FEE ANALYSIS:');
+    console.log('='.repeat(30));
+    
+    const feeEvents = tx.events.filter((e: any) => e.type === 'tx' && e.attributes.some((a: any) => a.key === 'fee'));
+    if (feeEvents.length > 0) {
+      feeEvents.forEach((event: any) => {
+        const feeAttr = event.attributes.find((a: any) => a.key === 'fee');
+        if (feeAttr) {
+          const fee = this.parseAmount(feeAttr.value);
+          console.log(`Transaction Fee: ${fee.value.toFixed(8)} ${fee.asset}`);
+          
+          if (fee.asset === 'RUNE') {
+            const runePriceUSD = 1.25; // Approximate
+            console.log(`Fee (USD): $${(fee.value * runePriceUSD).toFixed(6)}`);
+          }
+        }
+      });
+    }
+  }
+
+  private displayContractAnalysis(tx: any): void {
+    console.log('\n🏗️ CONTRACT ANALYSIS:');
+    console.log('='.repeat(30));
+    
+    const contractEvents = tx.events.filter((e: any) => e.type === 'execute');
+    if (contractEvents.length > 0) {
+      contractEvents.forEach((event: any) => {
+        const contractAddr = event.attributes.find((a: any) => a.key === '_contract_address');
+        if (contractAddr) {
+          console.log(`Contract: ${contractAddr.value}`);
+          
+          if (contractAddr.value.includes('rujira')) {
+            console.log('Protocol: Rujira Finance');
+          }
+        }
+      });
+    }
+  }
+
+  private displayMessageAnalysis(tx: any): void {
+    console.log('\n📝 MESSAGE ANALYSIS:');
+    console.log('='.repeat(30));
+    
+    if (tx.tx?.body?.messages) {
+      tx.tx.body.messages.forEach((msg: any, idx: number) => {
+        console.log(`Message ${idx + 1}: ${msg['@type']}`);
+        if (msg.sender) console.log(`Sender: ${msg.sender}`);
+        if (msg.contract) console.log(`Contract: ${msg.contract}`);
+        
+        if (msg.funds && msg.funds.length > 0) {
+          msg.funds.forEach((fund: any) => {
+            const amount = this.parseAmount(`${fund.amount}${fund.denom}`);
+            console.log(`Funds: ${amount.value.toLocaleString()} ${amount.asset}`);
+          });
+        }
+        
+        if (msg.msg) {
+          console.log(`Action: ${JSON.stringify(msg.msg, null, 2).substring(0, 200)}...`);
+        }
+      });
+    }
+  }
+
+  private displayTokenTransfers(tx: any): void {
+    console.log('\n🔄 TOKEN TRANSFERS:');
+    console.log('='.repeat(30));
+    
+    const transferEvents = tx.events.filter((e: any) => e.type === 'transfer');
+    transferEvents.forEach((event: any) => {
+      const sender = event.attributes.find((a: any) => a.key === 'sender')?.value;
+      const recipient = event.attributes.find((a: any) => a.key === 'recipient')?.value;
+      const amount = event.attributes.find((a: any) => a.key === 'amount')?.value;
+      
+      if (sender && recipient && amount) {
+        const parsedAmount = this.parseAmount(amount);
+        console.log(`${sender} → ${recipient}`);
+        console.log(`Amount: ${parsedAmount.value.toLocaleString()} ${parsedAmount.asset}`);
+      }
+    });
+  }
+
+  private displaySpecialEvents(tx: any): void {
+    console.log('\n🎯 SPECIAL EVENTS:');
+    console.log('='.repeat(30));
+    
+    const specialEvents = tx.events.filter((e: any) => e.type.includes('rujira') || e.type.includes('order'));
+    specialEvents.forEach((event: any) => {
+      console.log(`Event: ${event.type}`);
+      event.attributes.forEach((attr: any) => {
+        console.log(`  ${attr.key}: ${attr.value}`);
+      });
+    });
+  }
+
+  private displayAddressInvolvement(tx: any, targetAddress?: string): void {
+    console.log('\n👤 ADDRESS INVOLVEMENT:');
+    console.log('='.repeat(30));
+    
+    const allAddresses = new Set<string>();
+    tx.events.forEach((event: any) => {
+      event.attributes.forEach((attr: any) => {
+        if (attr.value && attr.value.startsWith('thor1')) {
+          allAddresses.add(attr.value);
+        }
+      });
+    });
+    
+    console.log(`Total addresses involved: ${allAddresses.size}`);
+    allAddresses.forEach(addr => {
+      const isTarget = targetAddress && addr === targetAddress;
+      console.log(`${addr} ${isTarget ? '🎯 (TARGET)' : ''}`);
+    });
+  }
+
+  private displayAccountInfo(tx: any): void {
+    console.log('\n🔢 ACCOUNT INFO:');
+    console.log('='.repeat(30));
+    
+    const accSeqEvent = tx.events.find((e: any) => e.type === 'tx' && e.attributes.some((a: any) => a.key === 'acc_seq'));
+    if (accSeqEvent) {
+      const accSeq = accSeqEvent.attributes.find((a: any) => a.key === 'acc_seq')?.value;
+      if (accSeq) {
+        const [address, sequence] = accSeq.split('/');
+        console.log(`Account: ${address}`);
+        console.log(`Sequence: ${sequence}`);
+      }
+    }
+  }
+
+  private displayBalanceInfo(balanceData: any, address: string): void {
+    console.log('\n💰 CURRENT BALANCE:');
+    console.log('='.repeat(30));
+    console.log(`Address: ${address}`);
+    
+    if (!balanceData || !balanceData.balances) {
+      console.log('❌ No balance data found');
+      return;
+    }
+    
+    if (balanceData.balances.length === 0) {
+      console.log('💸 Balance: 0 (empty wallet)');
+      return;
+    }
+    
+    balanceData.balances.forEach((balance: any) => {
+      const parsedAmount = this.parseAmount(`${balance.amount}${balance.denom}`);
+      console.log(`${parsedAmount.asset}: ${parsedAmount.value.toLocaleString()}`);
+      
+      // Estimate USD value for RUNE
+      if (parsedAmount.asset === 'RUNE') {
+        const runePriceUSD = 1.25; // Approximate
+        const usdValue = parsedAmount.value * runePriceUSD;
+        console.log(`  USD Value: $${usdValue.toLocaleString()}`);
+      }
+    });
+  }
+
+  private displayRawDataSummary(tx: any): void {
+    console.log('\n📄 RAW DATA SUMMARY:');
+    console.log('='.repeat(30));
+    
+    const summary = {
+      height: tx.height,
+      txhash: tx.txhash,
+      code: tx.code,
+      gas_used: tx.gas_used,
+      timestamp: tx.timestamp,
+      events_count: tx.events.length,
+      event_types: [...new Set(tx.events.map((e: any) => e.type))]
+    };
+    
+    console.log(JSON.stringify(summary, null, 2));
+  }
 }
 
 async function main() {
-    console.log('Playground 05 - Thorchain Contract Testing (Rujira Project)\n');
-    console.log('Contract Address:', THORCHAIN_CONTRACT_ADDRESS);
-    console.log('RPC URL:', THORCHAIN_RPC_URL);
-    console.log('');
-
-    try {
-        // Simulate wallet for testing purposes
-        const testWalletAddress = 'thor1testwalletaddressforplayground';
-        console.log('Test Wallet Address:', testWalletAddress);
-        console.log('');
-
-        // Create read-only client for queries
-        let queryClient: CosmWasmClient | null = null;
-        try {
-            queryClient = await CosmWasmClient.connect(THORCHAIN_RPC_URL);
-            console.log('✅ Connected to Thorchain RPC');
-        } catch (error) {
-            console.log('⚠️  Could not connect to Thorchain RPC, running in simulation mode only');
-            console.log('Error:', error);
-        }
-
-        // Test 1: Query contract info
-        console.log('\n📋 Test 1: Query Contract Info');
-        if (queryClient) {
-            try {
-                const contractInfo = await queryClient.getContract(THORCHAIN_CONTRACT_ADDRESS);
-                console.log('Contract Info:', {
-                    address: contractInfo.address,
-                    codeId: contractInfo.codeId,
-                    creator: contractInfo.creator,
-                    admin: contractInfo.admin,
-                    label: contractInfo.label,
-                    ibcPortId: contractInfo.ibcPortId
-                });
-            } catch (error) {
-                console.log('❌ Could not fetch contract info:', error);
-            }
-        } else {
-            console.log('⚠️  Skipping contract info query (no connection)');
-        }
-
-        // Test 2: Query contract balance
-        console.log('\n💰 Test 2: Query Contract Balance');
-        if (queryClient) {
-            try {
-                const balance = await queryClient.getBalance(THORCHAIN_CONTRACT_ADDRESS, 'rune');
-                console.log('Contract RUNE Balance:', {
-                    amount: balance.amount,
-                    denom: balance.denom
-                });
-            } catch (error) {
-                console.log('❌ Could not fetch contract balance:', error);
-            }
-        } else {
-            console.log('⚠️  Skipping contract balance query (no connection)');
-        }
-
-        // Test 3: Query strategy (real contract interaction)
-        console.log('\n📊 Test 3: Query Strategy (Real Contract Interaction)');
-        if (queryClient) {
-            try {
-                const strategyQuery = {
-                    strategy: {}
-                };
-
-                const strategyResult = await queryClient.queryContractSmart(
-                    THORCHAIN_CONTRACT_ADDRESS,
-                    strategyQuery
-                );
-                console.log('✅ Strategy Query Result:', JSON.stringify(strategyResult, null, 2));
-            } catch (error) {
-                console.log('❌ Strategy query failed:', error);
-            }
-        } else {
-            console.log('⚠️  Skipping strategy query (no connection)');
-        }
-        
-        // Simulate order book data for demonstration
-        const simulatedOrderBook: OrderBook = {
-            asks: [
-                { price: '0.00012345', amount: '1000.0', total: '0.12345' },
-                { price: '0.00012350', amount: '500.0', total: '0.06175' },
-                { price: '0.00012355', amount: '750.0', total: '0.09266' }
-            ],
-            bids: [
-                { price: '0.00012340', amount: '1200.0', total: '0.14808' },
-                { price: '0.00012335', amount: '800.0', total: '0.09868' },
-                { price: '0.00012330', amount: '600.0', total: '0.07398' }
-            ],
-            lastUpdateId: '123456789'
-        };
-        
-        console.log('📊 Simulated Order Book:');
-        console.log('Asks (Sell Orders):');
-        simulatedOrderBook.asks.forEach((ask, index) => {
-            console.log(`  ${index + 1}. Price: ${ask.price} | Amount: ${ask.amount} | Total: ${ask.total}`);
-        });
-        
-        console.log('Bids (Buy Orders):');
-        simulatedOrderBook.bids.forEach((bid, index) => {
-            console.log(`  ${index + 1}. Price: ${bid.price} | Amount: ${bid.amount} | Total: ${bid.total}`);
-        });
-
-        // Test 4: Query quote (real contract interaction)
-        console.log('\n💱 Test 4: Query Quote (Real Contract Interaction)');
-        if (queryClient) {
-            try {
-                const quoteQuery = {
-                    quote: {
-                        offer_denom: "rune",
-                        ask_denom: "x/ruji",
-                        amount: "1000000"
-                    }
-                };
-
-                const quoteResult = await queryClient.queryContractSmart(
-                    THORCHAIN_CONTRACT_ADDRESS,
-                    quoteQuery
-                );
-                console.log('✅ Quote Query Result:', JSON.stringify(quoteResult, null, 2));
-            } catch (error) {
-                console.log('❌ Quote query failed:', error);
-            }
-        } else {
-            console.log('⚠️  Skipping quote query (no connection)');
-        }
-        
-        // Simulate pool data for demonstration
-        const simulatedPoolInfo: PoolInfo = {
-            asset: 'BTC.BTC',
-            runeDepth: '1000000.0',
-            assetDepth: '50.0',
-            assetPrice: '20000.0',
-            assetPriceUSD: '20000.0',
-            runePriceUSD: '1.0',
-            poolAPY: '12.5',
-            status: 'Available'
-        };
-        
-        console.log('🏊 Simulated Pool Info:');
-        console.log('Asset:', simulatedPoolInfo.asset);
-        console.log('RUNE Depth:', simulatedPoolInfo.runeDepth);
-        console.log('Asset Depth:', simulatedPoolInfo.assetDepth);
-        console.log('Asset Price (RUNE):', simulatedPoolInfo.assetPrice);
-        console.log('Asset Price (USD):', simulatedPoolInfo.assetPriceUSD);
-        console.log('Pool APY:', simulatedPoolInfo.poolAPY + '%');
-        console.log('Status:', simulatedPoolInfo.status);
-
-        // Test 5: Build Order Book from Contract Data
-        console.log('\n📊 Test 5: Build Order Book from Contract Data');
-        if (queryClient) {
-            try {
-                // Get strategy data to build order book
-                const strategyQuery = {
-                    strategy: {}
-                };
-
-                const strategyResult = await queryClient.queryContractSmart(
-                    THORCHAIN_CONTRACT_ADDRESS,
-                    strategyQuery
-                );
-
-                console.log('✅ Strategy Data for Order Book:', JSON.stringify(strategyResult, null, 2));
-
-                // Build order book from strategy data
-                if (strategyResult && strategyResult.xyk && strategyResult.xyk.length >= 2) {
-                    const poolConfig = strategyResult.xyk[0];
-                    const poolState = strategyResult.xyk[1];
-                    
-                    // Calculate current price
-                    const xAmount = parseInt(poolState.x);
-                    const yAmount = parseInt(poolState.y);
-                    const currentPrice = yAmount / xAmount;
-                    
-                    console.log('\n📊 Real Order Book from Contract Data:');
-                    console.log('Current Price (RUNE per x/ruji):', currentPrice.toFixed(6));
-                    console.log('Pool Reserves:');
-                    console.log(`  x/ruji: ${xAmount.toLocaleString()}`);
-                    console.log(`  RUNE: ${yAmount.toLocaleString()}`);
-                    console.log('Pool Config:');
-                    console.log(`  Step: ${poolConfig.step}`);
-                    console.log(`  Min Quote: ${poolConfig.min_quote}`);
-                    console.log(`  Fee: ${poolConfig.fee}%`);
-                    
-                    // Generate order book levels around current price
-                    const orderBookLevels = [];
-                    const step = parseFloat(poolConfig.step);
-                    
-                    // Generate 5 levels above current price (asks)
-                    for (let i = 1; i <= 5; i++) {
-                        const askPrice = currentPrice * (1 + i * step);
-                        const askAmount = Math.floor(xAmount * 0.1 * i); // 10% of reserves per level
-                        orderBookLevels.push({
-                            type: 'ask',
-                            price: askPrice.toFixed(6),
-                            amount: askAmount.toLocaleString(),
-                            total: (askPrice * askAmount).toFixed(2)
-                        });
-                    }
-                    
-                    // Generate 5 levels below current price (bids)
-                    for (let i = 1; i <= 5; i++) {
-                        const bidPrice = currentPrice * (1 - i * step);
-                        const bidAmount = Math.floor(yAmount * 0.1 * i); // 10% of reserves per level
-                        orderBookLevels.push({
-                            type: 'bid',
-                            price: bidPrice.toFixed(6),
-                            amount: bidAmount.toLocaleString(),
-                            total: (bidPrice * bidAmount).toFixed(2)
-                        });
-                    }
-                    
-                    // Display order book
-                    console.log('\n📈 Order Book Levels:');
-                    console.log('Asks (Sell Orders):');
-                    orderBookLevels.filter(level => level.type === 'ask')
-                        .sort((a, b) => parseFloat(a.price) - parseFloat(b.price))
-                        .forEach((level, index) => {
-                            console.log(`  ${index + 1}. Price: ${level.price} | Amount: ${level.amount} | Total: ${level.total}`);
-                        });
-                    
-                    console.log('Bids (Buy Orders):');
-                    orderBookLevels.filter(level => level.type === 'bid')
-                        .sort((a, b) => parseFloat(b.price) - parseFloat(a.price))
-                        .forEach((level, index) => {
-                            console.log(`  ${index + 1}. Price: ${level.price} | Amount: ${level.amount} | Total: ${level.total}`);
-                        });
-                }
-            } catch (error) {
-                console.log('❌ Failed to build order book from contract data:', (error as Error).message);
-            }
-        } else {
-            console.log('⚠️  Skipping order book build (no connection)');
-        }
-        
-        // Simulate swap quote for demonstration
-        const simulatedSwapQuote: SwapQuote = {
-            inputAmount: '0.1',
-            outputAmount: '2.5',
-            fee: '0.0001',
-            slip: '0.5',
-            priceImpact: '0.1'
-        };
-        
-        console.log('💱 Simulated Swap Quote:');
-        console.log('Input Amount (BTC):', simulatedSwapQuote.inputAmount);
-        console.log('Output Amount (ETH):', simulatedSwapQuote.outputAmount);
-        console.log('Fee (RUNE):', simulatedSwapQuote.fee);
-        console.log('Slippage:', simulatedSwapQuote.slip + '%');
-        console.log('Price Impact:', simulatedSwapQuote.priceImpact + '%');
-
-        // Test 6: Simulate transaction (read-only)
-        console.log('\n🔧 Test 6: Simulate Transaction (Read-only)');
-        try {
-            // This would be a simulation of a swap transaction
-            const swapMsg = {
-                swap: {
-                    input_asset: 'BTC.BTC',
-                    output_asset: 'ETH.ETH',
-                    input_amount: '0.01',
-                    recipient: testWalletAddress,
-                    memo: 'Test swap from Rujira playground'
-                }
-            };
-
-            // Simulate the transaction (this won't actually execute)
-            console.log('📝 Simulated Swap Transaction:');
-            console.log('Input Asset:', swapMsg.swap.input_asset);
-            console.log('Output Asset:', swapMsg.swap.output_asset);
-            console.log('Input Amount:', swapMsg.swap.input_amount);
-            console.log('Recipient:', swapMsg.swap.recipient);
-            console.log('Memo:', swapMsg.swap.memo);
-            
-            console.log('⚠️  This is a simulation - no actual transaction will be executed');
-        } catch (error) {
-            console.log('❌ Transaction simulation failed:', error);
-        }
-
-        console.log('\n✅ Playground 05 completed successfully!');
-        console.log('\n📝 Summary:');
-        console.log('- Connected to Thorchain RPC');
-        console.log('- Queried contract information');
-        console.log('- Simulated order book data');
-        console.log('- Simulated pool information');
-        console.log('- Simulated swap quotes');
-        console.log('- All operations completed in simulation mode');
-        console.log('- Project: Rujira HFT Bot');
-
-    } catch (error) {
-        console.error('❌ Error in playground:', error);
-        process.exit(1);
-    }
+  const analyzer = new ThorchainTransactionAnalyzer();
+  
+  try {
+    const hash = 'D75B3563F046760A69460C26BE4C4AABE01268C659D3581BFAEDF7FC8EFC0839';
+    const targetAddress = 'thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy';
+    await analyzer.analyzeTransaction(hash, targetAddress);
+  } catch (error) {
+    console.log(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
-// Run the playground
 main().catch(console.error); 

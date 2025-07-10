@@ -4,5 +4,10 @@ dist
 .bun
 debug.log
 *.iml
-
-temporary/**
+*.json
+*.log
+*.txt
+logs/
+src/utils/
+temporary/
+test-connection

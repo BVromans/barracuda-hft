@@ -1,480 +1,715 @@
-import "dotenv/config";
-import { config } from "dotenv";
-import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
-import { GasPrice } from "@cosmjs/stargate";
-import {CosmWasmClient, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { Logger } from '../utils/logger';
 
-config({ path: ".env" });
+class TransactionAnalyzer {
+  private logger: Logger;
+  private thorchainEndpoints: string[];
+  private fallbackEndpoints: string[];
 
-export interface BowStrategyResponse {
-  xyk: [
-    {
-      x: string;
-      y: string;
-      step: string;
-      min_quote: string;
-      fee: string;
-    },
-    {
-      x: string;
-      y: string;
-      k: string;
-      shares: string;
+  constructor() {
+    this.logger = new Logger('playground03');
+    this.thorchainEndpoints = [
+      'https://thornode.ninerealms.com',
+      'https://rpc.thorchain.info',
+      'https://rpc-testnet.thorchain.info'
+    ];
+    this.fallbackEndpoints = [
+      'https://thornode.thorswap.net',
+      'https://thornode.thorchain.info',
+      'https://rpc.thorchain.org'
+    ];
+  }
+
+  async analyzeTransaction(hash: string): Promise<void> {
+    this.logger.log('analysis_started', { hash });
+    console.log(`🚀 Analyzing Transaction Hash: ${hash}`);
+    console.log('=' .repeat(80));
+    
+    // Try multiple endpoints to get transaction data
+    const transactionData = await this.getTransactionFromAllEndpoints(hash);
+    
+    let addresses: Set<string> = new Set();
+    if (transactionData) {
+      this.logger.log('transaction_found', { hash, transactionData });
+      this.displayDetailedTransactionInfo(transactionData);
+      // Coletar endereços das mensagens e eventos
+      addresses = this.collectAddresses(transactionData);
+      this.logger.log('addresses_found', { hash, addresses: Array.from(addresses) });
+    } else {
+      this.logger.log('transaction_not_found', { hash });
+      console.log('❌ Transaction not found on any endpoint');
+      console.log('💡 Trying alternative methods...');
+      await this.tryAlternativeMethods(hash);
     }
-  ];
-}
+    // Consultar e exibir balanças para cada endereço
+    if (addresses.size > 0) {
+      console.log('\n================ BALANCES FOR INVOLVED ADDRESSES ================');
+      for (const address of addresses) {
+        await this.showAllBalances(address);
+      }
+    }
+  }
 
-export interface BowQuoteResponse {
-  price: string;
-  size: string;
-  data: string; // Base64 encoded data
-}
+  private async getTransactionFromAllEndpoints(hash: string): Promise<any> {
+    const allEndpoints = [...this.thorchainEndpoints, ...this.fallbackEndpoints];
+    
+    for (const endpoint of allEndpoints) {
+      try {
+        console.log(`📡 Trying ${endpoint}...`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch(`${endpoint}/cosmos/tx/v1beta1/txs/${hash}`, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Thorchain-Explorer/1.0'
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          this.logger.log('transaction_retrieved', { hash, endpoint, data });
+          console.log(`✅ Transaction found via ${endpoint}`);
+          return data;
+        } else {
+          this.logger.log('transaction_failed', { hash, endpoint, status: response.status, statusText: response.statusText });
+          console.log(`❌ HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+      } catch (error) {
+        this.logger.log('transaction_failed', { hash, endpoint, error: error instanceof Error ? error.message : String(error) });
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log(`⏰ Timeout for ${endpoint}`);
+        } else {
+          console.log(`❌ Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+    }
+    
+    return null;
+  }
 
-export interface Coin {
-  amount: string; // Uint128
-  denom: string;
-}
+  private async tryAlternativeMethods(hash: string): Promise<void> {
+    // Try block explorer APIs
+    await this.tryBlockExplorerAPI(hash);
+    
+    // Try searching recent blocks
+    await this.searchRecentBlocks(hash);
+    
+    // Try legacy API format
+    await this.tryLegacyAPI(hash);
+  }
 
-export interface Side {
-  base: string;
-  quote: string;
-}
+  private async tryBlockExplorerAPI(hash: string): Promise<void> {
+    console.log('\n🌐 Trying block explorer API...');
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const viewblockUrl = `https://api.viewblock.io/thorchain/tx/${hash}`;
+      
+      const response = await fetch(viewblockUrl, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Thorchain-Explorer/1.0'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`✅ Found transaction via block explorer API`);
+        this.displayBlockExplorerData(data);
+        return;
+      }
+      
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log(`⏰ Block explorer API timeout`);
+      } else {
+        console.log(`❌ Block explorer API failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+  }
 
-export interface Price {
-  fixed?: string; // Decimal string
-  oracle?: number; // Integer index
-}
+  private async searchRecentBlocks(hash: string): Promise<void> {
+    console.log('\n📦 Searching recent blocks for transaction...');
+    
+    const workingEndpoints = ['https://thornode.ninerealms.com'];
+    
+    for (const endpoint of workingEndpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        
+        // Get latest block height first
+        const heightResponse = await fetch(`${endpoint}/cosmos/base/tendermint/v1beta1/blocks/latest`, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Thorchain-Explorer/1.0'
+          }
+        });
+        
+        if (heightResponse.ok) {
+          const heightData = await heightResponse.json() as any;
+          const latestHeight = parseInt(heightData.block.header.height);
+          
+          console.log(`  📊 Latest block height: ${latestHeight}`);
+          
+          // Search last 10 blocks for the transaction
+          for (let i = 0; i < 10; i++) {
+            const blockHeight = latestHeight - i;
+            try {
+              const blockResponse = await fetch(`${endpoint}/cosmos/base/tendermint/v1beta1/blocks/${blockHeight}`, {
+                signal: controller.signal,
+                headers: {
+                  'Accept': 'application/json',
+                  'User-Agent': 'Thorchain-Explorer/1.0'
+                }
+              });
+              
+              if (blockResponse.ok) {
+                const blockData = await blockResponse.json() as any;
+                const txs = blockData.block.data.txs || [];
+                
+                // Check if our transaction is in this block
+                for (const tx of txs) {
+                  if (tx.includes(hash)) {
+                    console.log(`✅ Found transaction in block ${blockHeight}`);
+                    this.displayBlockTransactionInfo(blockData, hash);
+                    clearTimeout(timeoutId);
+                    return;
+                  }
+                }
+              }
+            } catch (blockError) {
+              console.log(`  ⚠️ Block ${blockHeight} search failed, continuing...`);
+            }
+          }
+          
+          console.log(`  ⚠️ Transaction not found in recent blocks`);
+        }
+        
+        clearTimeout(timeoutId);
+        
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log(`⏰ Block search timeout for ${endpoint}`);
+        } else {
+          console.log(`❌ Block search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+    }
+  }
 
-export interface FinQueryMsg {
-  config?: {};
-  simulate?: Coin;
-  order?: [string, Side, Price]; // [owner, side, price]
-  orders?: {
-    owner: string;
-    side?: Side;
-    offset?: number; // uint8
-    limit?: number; // uint8 (max 30)
-  };
-  book?: {
-    limit?: number; // uint8
-    offset?: number; // uint8
-  };
-}
-export interface BowQueryMsg {
-  strategy?: {
-    denom: string;
-    amount: string;
-  };
-  quote?: {
-    denom: string;
-    amount: string;
-    offer_denom: string;
-    offer_amount: string;
-    ask_denom: string;
-    ask_amount: string;
-  };
-}
+  private async tryLegacyAPI(hash: string): Promise<void> {
+    console.log('\n🔧 Trying legacy API format...');
+    
+    const workingEndpoints = ['https://thornode.ninerealms.com'];
+    
+    for (const endpoint of workingEndpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        
+        const legacyQueries = [
+          `txs/${hash}`,
+          `tx/${hash}`,
+          `transaction/${hash}`
+        ];
+        
+        for (const query of legacyQueries) {
+          try {
+            const response = await fetch(`${endpoint}/${query}`, {
+              signal: controller.signal,
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Thorchain-Explorer/1.0'
+              }
+            });
+            
+            if (response.ok) {
+              const data = await response.json() as any;
+              console.log(`✅ Found transaction via legacy API`);
+              this.displayLegacyData(data);
+              clearTimeout(timeoutId);
+              return;
+            }
+          } catch (legacyError) {
+            // Continue to next legacy query
+          }
+        }
+        
+        clearTimeout(timeoutId);
+        
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log(`⏰ Legacy API timeout for ${endpoint}`);
+        } else {
+          console.log(`❌ Legacy API failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+    }
+  }
 
-export interface SwapRequest {
-  min_return?: string; // Uint128
-  to?: string; // Address
-  callback?: any; // Binary data
-}
+  private displayDetailedTransactionInfo(data: any): void {
+    const tx = data.tx_response;
+    if (!tx) {
+      console.log('❌ No transaction data in response');
+      return;
+    }
 
-export interface CallbackData {
-  // Binary data for callbacks
-}
+    console.log('\n📋 DETAILED TRANSACTION INFORMATION:');
+    console.log('=' .repeat(60));
+    
+    // Basic transaction info
+    console.log(`🔗 Transaction Hash: ${tx.txhash}`);
+    console.log(`📊 Block Height: ${tx.height}`);
+    console.log(`✅ Success: ${tx.code === 0 ? 'Yes' : 'No'}`);
+    console.log(`⛽ Gas Used: ${tx.gas_used}`);
+    console.log(`⛽ Gas Wanted: ${tx.gas_wanted}`);
+    console.log(`📅 Timestamp: ${tx.timestamp}`);
+    
+    if (tx.raw_log) {
+      console.log(`📝 Raw Log: ${tx.raw_log}`);
+    }
 
-export interface FinExecuteMsg {
-  swap?: SwapRequest;
-  order?: [
-    Array<[Side, Price, string | null]>, // [side, price, amount]
-    CallbackData | null
-  ];
-  arb?: {
-    then?: any; // Binary data
-  };
-  do_swap?: [string, SwapRequest]; // [address, swap_request]
-}
+    // Fee information
+    console.log('\n💰 TRANSACTION FEES:');
+    console.log('=' .repeat(30));
+    
+    let feesFound = false;
+    
+    // Calculate estimated fee based on gas used (always show this)
+    if (tx.gas_used && tx.gas_used > 0) {
+      // Thorchain typically has a gas rate of 2 RUNE per gas unit
+      const estimatedFee = (tx.gas_used * 2) / 100000000; // Convert to RUNE
+      console.log(`  Estimated Gas Fee: ${estimatedFee.toFixed(8)} RUNE (based on ${tx.gas_used} gas used)`);
+      feesFound = true;
+    }
+    
+    // Try to find explicit fees in auth_info
+    if (tx.tx?.auth_info?.fee?.amount) {
+      tx.tx.auth_info.fee.amount.forEach((fee: any) => {
+        const amount = this.formatThorchainAmount(fee.amount, fee.denom);
+        console.log(`  Explicit Fee: ${amount}`);
+        feesFound = true;
+      });
+    }
+    
+    // Try to find fees in events
+    if (tx.events) {
+      tx.events.forEach((event: any) => {
+        if (event.type === 'tx' && event.attributes) {
+          event.attributes.forEach((attr: any) => {
+            if (attr.key === 'fee' && attr.value) {
+              console.log(`  Fee: ${attr.value}`);
+              feesFound = true;
+            }
+          });
+        }
+      });
+    }
+    
+    // Try to find fees in raw_log
+    if (!feesFound && tx.raw_log) {
+      const feeMatch = tx.raw_log.match(/"fee":\s*"([^"]+)"/);
+      if (feeMatch) {
+        console.log(`  Fee: ${feeMatch[1]}`);
+        feesFound = true;
+      }
+    }
+    
+    // Look for specific fee events
+    if (tx.events) {
+      // Look for small coin_spent events that might be fees
+      tx.events.forEach((event: any) => {
+        if (event.type === 'coin_spent' && event.attributes) {
+          let spender = '';
+          let amount = '';
+          
+          event.attributes.forEach((attr: any) => {
+            if (attr.key === 'spender') spender = attr.value;
+            if (attr.key === 'amount') amount = attr.value;
+          });
+          
+          // Check if this is a fee payment (small amounts to specific addresses)
+          if (spender && amount && amount.includes('rune')) {
+            const runeAmount = parseInt(amount.replace('rune', ''));
+            // If it's a small amount (likely a fee) and not a large transfer
+            if (runeAmount < 10000000) { // Less than 0.1 RUNE
+              const formattedAmount = this.formatThorchainAmount(runeAmount.toString(), 'rune');
+              console.log(`  Fee Payment: ${formattedAmount} from ${spender}`);
+              feesFound = true;
+            }
+          }
+        }
+      });
+    }
+    
+    if (!feesFound) {
+      console.log('  (no explicit fees found in transaction data)');
+      // Show gas information as fallback
+      if (tx.gas_used && tx.gas_used > 0) {
+        console.log(`  Gas Used: ${tx.gas_used} (fee calculation not available)`);
+      }
+    }
 
-class RujiraClient {
-  private constructor(
-    public readonly client: CosmWasmClient,
-    public readonly wallet: DirectSecp256k1HdWallet,
-    public readonly contractAddress: string,
-    public readonly rpcEndpoint: string
-  ) {}
+    // Messages analysis
+    if (tx.tx?.body?.messages) {
+      console.log('\n📨 TRANSACTION MESSAGES:');
+      console.log('=' .repeat(30));
+      tx.tx.body.messages.forEach((msg: any, index: number) => {
+        console.log(`\nMessage ${index + 1}:`);
+        console.log(`  Type: ${msg['@type']}`);
+        this.extractMessageDetails(msg);
+      });
+    }
 
-  static async connect(
-    rpcEndpoint: string,
-    mnemonic: string,
-    contractAddress: string
-  ): Promise<RujiraClient> {
-    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
-      prefix: "sthor",
+    // Events analysis
+    if (tx.events) {
+      console.log('\n⚡ TRANSACTION EVENTS:');
+      console.log('=' .repeat(30));
+      tx.events.forEach((event: any, index: number) => {
+        console.log(`\nEvent ${index + 1}: ${event.type}`);
+        if (event.attributes) {
+          event.attributes.forEach((attr: any) => {
+            console.log(`  ${attr.key}: ${attr.value}`);
+          });
+        }
+      });
+    }
+
+    // Summary
+    this.generateTransactionSummary(tx);
+  }
+
+  private extractMessageDetails(msg: any): void {
+    // Extract addresses
+    const addressFields = ['from_address', 'to_address', 'sender', 'recipient', 'delegator_address', 'validator_address'];
+    addressFields.forEach(field => {
+      if (msg[field]) {
+        console.log(`  ${field}: ${msg[field]}`);
+      }
     });
-    const client = await CosmWasmClient.connect(rpcEndpoint);
-    return new RujiraClient(client, wallet, contractAddress, rpcEndpoint);
+
+    // Extract amounts and coins
+    const amountFields = ['amount', 'amounts', 'coins', 'funds', 'value'];
+    amountFields.forEach(field => {
+      if (msg[field]) {
+        console.log(`  💰 ${field}:`);
+        if (Array.isArray(msg[field])) {
+          msg[field].forEach((item: any) => {
+            if (item.amount && item.denom) {
+              const formatted = this.formatThorchainAmount(item.amount, item.denom);
+              console.log(`    ${formatted}`);
+            }
+          });
+        } else if (msg[field].amount && msg[field].denom) {
+          const formatted = this.formatThorchainAmount(msg[field].amount, msg[field].denom);
+          console.log(`    ${formatted}`);
+        }
+      }
+    });
+
+    // Extract other important fields
+    const otherFields = ['memo', 'proposal_id', 'voter', 'depositor'];
+    otherFields.forEach(field => {
+      if (msg[field]) {
+        console.log(`  ${field}: ${msg[field]}`);
+      }
+    });
   }
 
-  async query<T>(queryMsg: BowQueryMsg): Promise<T> {
-    return this.client.queryContractSmart(this.contractAddress, queryMsg);
+  private formatThorchainAmount(amount: string, denom: string): string {
+    let displayAmount = amount;
+    let tokenName = denom;
+    
+    // Handle different token formats
+    if (denom === 'rune') {
+      displayAmount = (parseInt(amount) / 100000000).toFixed(8);
+      tokenName = 'RUNE';
+    } else if (denom === 'cacao') {
+      displayAmount = (parseInt(amount) / 100000000).toFixed(8);
+      tokenName = 'CACAO';
+    } else if (denom.includes('eth-usdc')) {
+      displayAmount = (parseInt(amount) / 1000000).toFixed(6);
+      tokenName = 'USDC (ETH)';
+    } else if (denom === 'tcy') {
+      displayAmount = parseInt(amount).toLocaleString();
+      tokenName = 'TCy';
+    } else if (denom === 'x/ruji') {
+      displayAmount = parseInt(amount).toLocaleString();
+      tokenName = 'RUJI';
+    } else if (denom.includes('usdc')) {
+      displayAmount = (parseInt(amount) / 1000000).toFixed(6);
+      tokenName = 'USDC';
+    } else if (denom.includes('eth')) {
+      displayAmount = (parseInt(amount) / 1000000000000000000).toFixed(18);
+      tokenName = 'ETH';
+    } else if (denom.includes('btc')) {
+      displayAmount = (parseInt(amount) / 100000000).toFixed(8);
+      tokenName = 'BTC';
+    } else if (denom.includes('atom')) {
+      displayAmount = (parseInt(amount) / 1000000).toFixed(6);
+      tokenName = 'ATOM';
+    } else if (denom.includes('osmo')) {
+      displayAmount = (parseInt(amount) / 1000000).toFixed(6);
+      tokenName = 'OSMO';
+    } else if (denom.includes('axl')) {
+      displayAmount = (parseInt(amount) / 1000000).toFixed(6);
+      tokenName = 'AXL';
+    } else {
+      // For unknown tokens, show raw amount
+      displayAmount = parseInt(amount).toLocaleString();
+      tokenName = denom;
+    }
+    
+    return `${displayAmount} ${tokenName}`;
   }
 
-  async execute(
-    executeMsg: FinExecuteMsg,
-    funds?: { denom: string; amount: string }[]
-  ) {
-    const [{ address }] = await this.wallet.getAccounts();
-    const gasPrice = GasPrice.fromString("0.025uatom");
-    const signingClient = await SigningCosmWasmClient.connectWithSigner(
-      this.rpcEndpoint,
-      this.wallet,
-      { gasPrice }
-    );
+  private generateTransactionSummary(tx: any): void {
+    console.log('\n💡 TRANSACTION SUMMARY:');
+    console.log('=' .repeat(30));
+    
+    const isSuccess = tx.code === 0;
+    console.log(`Status: ${isSuccess ? '✅ Success' : '❌ Failed'}`);
+    console.log(`Block: ${tx.height}`);
+    console.log(`Gas Used: ${tx.gas_used} / ${tx.gas_wanted}`);
+    
+    // Try to determine transaction type
+    let txType = 'Unknown';
+    if (tx.tx?.body?.messages) {
+      const msgTypes = tx.tx.body.messages.map((msg: any) => msg['@type']);
+      if (msgTypes.some((type: string) => type.includes('bank'))) {
+        txType = 'Transfer';
+      } else if (msgTypes.some((type: string) => type.includes('staking'))) {
+        txType = 'Staking';
+      } else if (msgTypes.some((type: string) => type.includes('governance'))) {
+        txType = 'Governance';
+      } else if (msgTypes.some((type: string) => type.includes('swap'))) {
+        txType = 'Swap';
+      }
+    }
+    
+    console.log(`Type: ${txType}`);
+    
+    // Calculate total value if possible
+    let totalValue = 0;
+    if (tx.tx?.auth_info?.fee?.amount) {
+      tx.tx.auth_info.fee.amount.forEach((fee: any) => {
+        if (fee.denom === 'rune') {
+          totalValue += parseInt(fee.amount) / 100000000;
+        }
+      });
+    }
+    
+    if (totalValue > 0) {
+      console.log(`Total Fee Value: ${totalValue.toFixed(8)} RUNE`);
+    }
+  }
 
-    return signingClient.execute(
-      address,
-      this.contractAddress,
-      executeMsg,
-      "auto",
-      undefined,
-      funds
-    );
+  private displayBlockExplorerData(data: any): void {
+    console.log('\n🌐 BLOCK EXPLORER DATA:');
+    console.log('=' .repeat(30));
+    console.log(JSON.stringify(data, null, 2));
+  }
+
+  private displayBlockTransactionInfo(blockData: any, hash: string): void {
+    console.log('\n📦 BLOCK TRANSACTION INFO:');
+    console.log('=' .repeat(30));
+    console.log(`Block Height: ${blockData.block.header.height}`);
+    console.log(`Block Hash: ${blockData.block.header.hash}`);
+    console.log(`Transaction Hash: ${hash}`);
+    console.log(`Found in block: Yes`);
+  }
+
+  private displayLegacyData(data: any): void {
+    console.log('\n🔧 LEGACY API DATA:');
+    console.log('=' .repeat(30));
+    console.log(JSON.stringify(data, null, 2));
+  }
+
+  private collectAddresses(data: any): Set<string> {
+    const addresses = new Set<string>();
+    const tx = data.tx_response;
+    if (!tx) return addresses;
+    // Mensagens
+    if (tx.tx?.body?.messages) {
+      tx.tx.body.messages.forEach((msg: any) => {
+        [
+          'from_address', 'to_address', 'sender', 'recipient',
+          'delegator_address', 'validator_address', 'receiver', 'spender'
+        ].forEach(field => {
+          if (msg[field]) addresses.add(msg[field]);
+        });
+      });
+    }
+    // Eventos
+    if (tx.events) {
+      tx.events.forEach((event: any) => {
+        if (event.attributes) {
+          event.attributes.forEach((attr: any) => {
+            if (attr.key && typeof attr.value === 'string') {
+              if ([
+                'sender', 'recipient', 'receiver', 'spender',
+                'delegator', 'validator', 'acc_seq', 'signer'
+              ].some(k => attr.key.includes(k))) {
+                // Pode conter endereço
+                if (attr.value.startsWith('thor1')) addresses.add(attr.value);
+                // acc_seq pode ser "address/seq"
+                if (attr.value.includes('/') && attr.value.startsWith('thor1')) {
+                  addresses.add(attr.value.split('/')[0]);
+                }
+              }
+            }
+          });
+        }
+      });
+    }
+    return addresses;
+  }
+
+  private async showAllBalances(address: string): Promise<void> {
+    this.logger.log('balance_check_started', { address });
+    console.log(`\n🔎 Address: ${address}`);
+    await this.showBalance(address);
+    await this.showSpendableBalance(address);
+    await this.showDelegationBalance(address);
+    await this.showVestingInfo(address);
+    this.logger.log('balance_check_completed', { address });
+  }
+
+  private async showBalance(address: string): Promise<void> {
+    const endpoint = this.thorchainEndpoints[0];
+    try {
+      const response = await fetch(`${endpoint}/cosmos/bank/v1beta1/balances/${address}`);
+      if (response.ok) {
+        const data = await response.json() as any;
+        this.logger.log('balance_retrieved', { address, endpoint, balances: data });
+        console.log('💰 Total Balance:');
+        if (data.balances && data.balances.length > 0) {
+          data.balances.forEach((bal: any) => {
+            console.log(`  - ${this.formatThorchainAmount(bal.amount, bal.denom)}`);
+          });
+        } else {
+          console.log('  (none)');
+        }
+      } else {
+        this.logger.log('balance_failed', { address, endpoint, status: response.status, statusText: response.statusText });
+        console.log('  (could not fetch total balance)');
+      }
+    } catch (err) {
+      this.logger.log('balance_failed', { address, endpoint, error: err instanceof Error ? err.message : String(err) });
+      console.log('  (error fetching total balance)');
+    }
+  }
+
+  private async showSpendableBalance(address: string): Promise<void> {
+    const endpoint = this.thorchainEndpoints[0];
+    try {
+      const response = await fetch(`${endpoint}/cosmos/bank/v1beta1/spendable_balances/${address}`);
+      if (response.ok) {
+        const data = await response.json() as any;
+        console.log('💳 Spendable Balance:');
+        if (data.balances && data.balances.length > 0) {
+          data.balances.forEach((bal: any) => {
+            console.log(`  - ${this.formatThorchainAmount(bal.amount, bal.denom)}`);
+          });
+        } else {
+          console.log('  (none)');
+        }
+      } else {
+        console.log('  (could not fetch spendable balance)');
+      }
+    } catch {
+      console.log('  (error fetching spendable balance)');
+    }
+  }
+
+  private async showDelegationBalance(address: string): Promise<void> {
+    const endpoint = this.thorchainEndpoints[0];
+    try {
+      const response = await fetch(`${endpoint}/cosmos/staking/v1beta1/delegations/${address}`);
+      if (response.ok) {
+        const data = await response.json() as any;
+        console.log('🔒 Delegated (Staked):');
+        if (data.delegation_responses && data.delegation_responses.length > 0) {
+          data.delegation_responses.forEach((del: any) => {
+            const bal = del.balance;
+            const validator = del.delegation?.validator_address;
+            console.log(`  - ${this.formatThorchainAmount(bal.amount, bal.denom)} to ${validator}`);
+          });
+        } else {
+          console.log('  (none)');
+        }
+      } else {
+        console.log('  (could not fetch delegation balance)');
+      }
+    } catch {
+      console.log('  (error fetching delegation balance)');
+    }
+  }
+
+  private async showVestingInfo(address: string): Promise<void> {
+    const endpoint = this.thorchainEndpoints[0];
+    try {
+      const response = await fetch(`${endpoint}/cosmos/auth/v1beta1/accounts/${address}`);
+      if (response.ok) {
+        const data = await response.json() as any;
+        const account = data.account;
+        if (account && account['@type']?.includes('vesting')) {
+          console.log('🔐 Vesting Account:');
+          if (account.base_vesting_account) {
+            const vesting = account.base_vesting_account;
+            if (vesting.original_vesting && vesting.original_vesting.length > 0) {
+              vesting.original_vesting.forEach((v: any) => {
+                console.log(`  - Original: ${this.formatThorchainAmount(v.amount, v.denom)}`);
+              });
+            }
+            if (vesting.delegated_free && vesting.delegated_free.length > 0) {
+              vesting.delegated_free.forEach((v: any) => {
+                console.log(`  - Delegated Free: ${this.formatThorchainAmount(v.amount, v.denom)}`);
+              });
+            }
+            if (vesting.delegated_vesting && vesting.delegated_vesting.length > 0) {
+              vesting.delegated_vesting.forEach((v: any) => {
+                console.log(`  - Delegated Vesting: ${this.formatThorchainAmount(v.amount, v.denom)}`);
+              });
+            }
+            if (vesting.end_time) {
+              const endTime = new Date(parseInt(vesting.end_time) * 1000);
+              console.log(`  - Vesting End Time: ${endTime.toISOString()}`);
+            }
+          }
+        } else {
+          console.log('🔐 Vesting: (none)');
+        }
+      } else {
+        console.log('  (could not fetch vesting info)');
+      }
+    } catch {
+      console.log('  (error fetching vesting info)');
+    }
   }
 }
-
-
 
 async function main() {
-  console.log('🚀 Starting Rujira Bow playground...');
+  const analyzer = new TransactionAnalyzer();
   
-  const RPC_ENDPOINT = process.env.RPC_ENDPOINT || "";
-  const MNEMONIC = process.env.MNEMONIC || "";
-  const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
-
-  console.log('📡 Connecting to RPC endpoint:', RPC_ENDPOINT);
-  console.log('🔑 Using mnemonic (first 3 words):', MNEMONIC.split(' ').slice(0, 3).join(' ') + '...');
-  console.log('📄 Contract address:', CONTRACT_ADDRESS);
-
-  console.log('🔌 Connecting to Rujira client...');
-  const client = await RujiraClient.connect(
-    RPC_ENDPOINT,
-    MNEMONIC,
-    CONTRACT_ADDRESS
-  );
-  console.log('✅ Connected successfully!');
-
-  // Test Rujira Bow contract queries (these are the ones that actually work)
-
-  console.log('\n🎯 Querying strategy (XYK AMM)...');
   try {
-    const strategy = await client.query<BowStrategyResponse>({
-      strategy: { denom: "btc-btc", amount: "1000000" },
-    });
-    console.log("✅ Strategy query result:", JSON.stringify(strategy, null, 2));
-    
-    // Parse the strategy data
-    if (strategy.xyk && strategy.xyk.length >= 2) {
-      const [config, state] = strategy.xyk;
-      console.log('\n📊 Strategy Analysis:');
-      console.log(`- Pool: ${config.x} / ${config.y}`);
-      console.log(`- Step size: ${config.step}`);
-      console.log(`- Min quote: ${config.min_quote}`);
-      console.log(`- Fee: ${config.fee}`);
-      console.log(`- Current X: ${state.x}`);
-      console.log(`- Current Y: ${state.y}`);
-      console.log(`- K constant: ${state.k}`);
-      console.log(`- Total shares: ${state.shares}`);
-    }
-  } catch (error: unknown) {
-    console.log("⚠️ Strategy query failed:", error instanceof Error ? error.message : String(error));
+    const hash = '44378ADDEB391274840A9EC51BC7EB8DEA62C8C8E7AE547261747CCBC8FA29C6';
+    await analyzer.analyzeTransaction(hash);
+  } catch (error) {
+    console.log(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-
-  console.log('\n🔍 Base Analysis for BTC...');
-  try {
-    const strategy = await client.query<BowStrategyResponse>({
-      strategy: { denom: "btc-btc", amount: "1000000" },
-    });
-    
-    if (strategy.xyk && strategy.xyk.length >= 2) {
-      const [config, state] = strategy.xyk;
-      
-      // Parse the base (X) and quote (Y) amounts
-      const baseAmount = parseInt(state.x);
-      const quoteAmount = parseInt(state.y);
-      const kConstant = parseInt(state.k);
-      const totalShares = parseInt(state.shares);
-      
-      console.log('\n📈 Base Side Analysis:');
-      console.log(`- Base Token: ${config.x} (RUJI)`);
-      console.log(`- Quote Token: ${config.y} (USDC)`);
-      console.log(`- Base Liquidity: ${baseAmount.toLocaleString()} units`);
-      console.log(`- Quote Liquidity: ${quoteAmount.toLocaleString()} units`);
-      console.log(`- Base/Quote Ratio: ${(baseAmount / quoteAmount).toFixed(6)}`);
-      console.log(`- Quote/Base Ratio: ${(quoteAmount / baseAmount).toFixed(6)}`);
-      
-      // Calculate market cap and value metrics
-      const basePercentage = ((baseAmount / (baseAmount + quoteAmount)) * 100).toFixed(2);
-      const quotePercentage = ((quoteAmount / (baseAmount + quoteAmount)) * 100).toFixed(2);
-      
-      console.log('\n💰 Liquidity Distribution:');
-      console.log(`- Base Side: ${basePercentage}% of total liquidity`);
-      console.log(`- Quote Side: ${quotePercentage}% of total liquidity`);
-      
-      // Calculate price impact for different trade sizes
-      console.log('\n📊 Price Impact Analysis:');
-      const tradeSizes = [1000, 10000, 100000, 1000000];
-      
-      for (const tradeSize of tradeSizes) {
-        // Simple price impact calculation for XYK
-        const newBaseAmount = baseAmount + tradeSize;
-        const newQuoteAmount = kConstant / newBaseAmount;
-        const priceImpact = ((quoteAmount - newQuoteAmount) / quoteAmount) * 100;
-        
-        console.log(`- ${tradeSize.toLocaleString()} base units: ${priceImpact.toFixed(4)}% price impact`);
-      }
-      
-      // Calculate impermanent loss scenarios
-      console.log('\n⚠️ Impermanent Loss Scenarios:');
-      const priceChanges = [0.5, 1.0, 1.5, 2.0, 3.0];
-      
-      for (const priceChange of priceChanges) {
-        const newQuoteAmount = quoteAmount * priceChange;
-        const newK = baseAmount * newQuoteAmount;
-        const newBaseAmount = Math.sqrt(newK);
-        const impermanentLoss = ((baseAmount + newQuoteAmount) / (baseAmount + quoteAmount) - 1) * 100;
-        
-        console.log(`- ${priceChange}x price change: ${impermanentLoss.toFixed(4)}% IL`);
-      }
-      
-      console.log('\n🔧 Pool Health Metrics:');
-      console.log(`- K Constant: ${kConstant.toLocaleString()}`);
-      console.log(`- Total Shares: ${totalShares.toLocaleString()}`);
-      console.log(`- Average Share Value: ${(kConstant / totalShares).toFixed(2)}`);
-      console.log(`- Pool Depth: ${Math.min(baseAmount, quoteAmount).toLocaleString()} units`);
-    }
-  } catch (error: unknown) {
-    console.log("⚠️ Base Analysis failed:", error instanceof Error ? error.message : String(error));
-  }
-
-  console.log('\n💱 Querying quote for RUJI...');
-  try {
-    const quote = await client.query<BowQuoteResponse>({
-      quote: { 
-        denom: "ruji", 
-        amount: "1000000", 
-        offer_denom: "usdc", 
-        offer_amount: "1000000", 
-        ask_denom: "usdc", 
-        ask_amount: "1000000" 
-      },
-    });
-    console.log("✅ Quote query result:", JSON.stringify(quote, null, 2));
-    
-    // Parse the quote data
-    console.log('\n💰 Quote Analysis:');
-    console.log(`- Price: ${quote.price} USDC per RUJI`);
-    console.log(`- Size: ${quote.size}`);
-    console.log(`- Data: ${quote.data} (base64 encoded pool state)`);
-    
-    // Decode the base64 data if needed
-    try {
-      const decodedData = Buffer.from(quote.data, 'base64').toString('utf-8');
-      console.log(`- Decoded data: ${decodedData}`);
-    } catch (decodeError) {
-      console.log(`- Could not decode base64 data: ${decodeError}`);
-    }
-  } catch (error: unknown) {
-    console.log("⚠️ Quote query failed:", error instanceof Error ? error.message : String(error));
-  }
-
-  console.log('\n🔄 Testing BASE token (alias for RUJI)...');
-  try {
-    const baseTokenQuote = await client.query<BowQuoteResponse>({
-      quote: { 
-        denom: "base", 
-        amount: "1000000", 
-        offer_denom: "usdc", 
-        offer_amount: "1000000", 
-        ask_denom: "usdc", 
-        ask_amount: "1000000" 
-      },
-    });
-    console.log("✅ BASE token quote result:", JSON.stringify(baseTokenQuote, null, 2));
-    
-    console.log('\n💰 BASE Token Analysis:');
-    console.log(`- Price: ${baseTokenQuote.price} USDC per BASE token`);
-    console.log(`- Size: ${baseTokenQuote.size}`);
-    console.log(`- Note: BASE token returns same result as RUJI - they are aliases`);
-  } catch (error: unknown) {
-    console.log("⚠️ BASE token quote failed:", error instanceof Error ? error.message : String(error));
-  }
-
-  console.log('\n🎉 Playground completed successfully!');
-  console.log('\n📝 Summary:');
-  console.log('- Rujira Bow contract supports: strategy, quote queries');
-  console.log('- Strategy shows XYK AMM configuration and current state');
-  console.log('- Quote provides price and size for swaps');
-  console.log('- All amounts are strings representing large numbers');
-  console.log('- This is an AMM (Automated Market Maker) contract, not an order book');
-  console.log('- The contract uses XYK (x*y=k) formula for pricing');
 }
 
-// === Rujira Fin Order Book Analysis ===
-
-/**
- * Processes and displays Rujira Fin order book data.
- * @param finData The data.fin array from the Fin contract query
- */
-function analyzeFinOrderBooks(finData: any[]) {
-  if (!Array.isArray(finData)) {
-    console.log('No order book data found.');
-    return;
-  }
-  console.log('\n📚 Rujira Fin Order Book Analysis:');
-  for (const entry of finData) {
-    const book = entry.book;
-    if (!book || !book.pair) continue;
-    const id = book.id;
-    const basePrice = Number(book.pair.assetBase.price.current);
-    const quotePrice = Number(book.pair.assetQuote.price.current);
-    const price = quotePrice !== 0 ? basePrice / quotePrice : 0;
-    // Try to decode the id (base64)
-    let decodedId = id;
-    try {
-      decodedId = Buffer.from(id, 'base64').toString('utf-8');
-    } catch {}
-    console.log('------------------------------');
-    console.log(`Book ID: ${decodedId}`);
-    console.log(`- Base Price: ${basePrice}`);
-    console.log(`- Quote Price: ${quotePrice}`);
-    console.log(`- Base/Quote Price: ${price}`);
-  }
-  console.log('------------------------------');
-}
-
-// === Example usage ===
-// To use this, paste your Fin query result as below:
-// const finResult = { ... };
-// analyzeFinOrderBooks(finResult.data.fin);
-
-// === Dados reais do usuário (Fin query) - 2 tokens apenas ===
-const finDecimals = 6; // Altere para 18 se necessário
-const realFinResult = {
-  data: {
-    fin: [
-      { book: { id: "RmluQm9vazp0aG9yMXM4cnhjdmc4M2N3YXI4N2VodjRjODY2YXV4dWprZmozazR3amt4a2FyZW43dm12bjluYXNzODBla3A=", pair: { assetBase: { price: { current: "4060000000000" } }, assetQuote: { price: { current: "999907000000" } } } } },
-      { book: { id: "RmluQm9vazp0aG9yMTV0NGN5a2YzbWo4ZnN2ZDZoYThqMGxuYXZjeWV4Mmg0YTRsMnB2OHprY3RhbmR3Y2szenNoczkyank=", pair: { assetBase: { price: { current: "16645600000" } }, assetQuote: { price: { current: "999907000000" } } } } }
-    ]
-  }
-};
-
-function analyzeFinBasePrices(finData: any[], decimals: number) {
-  if (!Array.isArray(finData)) {
-    console.log('No order book data found.');
-    return;
-  }
-  console.log(`\n🔬 Rujira Fin Market Analysis (2 tokens, divisor: 1e${decimals}):`);
-  
-  // Market statistics
-  let totalPairs = 0;
-  let stablePairs = 0;
-  let volatilePairs = 0;
-  let highValuePairs = 0;
-  
-  for (const [i, entry] of finData.entries()) {
-    const book = entry.book;
-    if (!book || !book.pair) continue;
-    
-    const baseRaw = book.pair.assetBase.price.current;
-    const quoteRaw = book.pair.assetQuote.price.current;
-    const base = Number(baseRaw) / 10 ** decimals;
-    const quote = Number(quoteRaw) / 10 ** decimals;
-    const price = quote !== 0 ? base / quote : 0;
-    
-    // Market analysis
-    const isStable = Math.abs(price - 1) < 0.01; // Within 1% of 1.0
-    const isVolatile = price > 10 || price < 0.1; // Very high or very low ratio
-    const isHighValue = base > 1000000 || quote > 1000000; // High absolute values
-    
-    if (isStable) stablePairs++;
-    if (isVolatile) volatilePairs++;
-    if (isHighValue) highValuePairs++;
-    totalPairs++;
-    
-    // Market category
-    let marketCategory = "Normal";
-    if (isStable) marketCategory = "Stable";
-    else if (isVolatile) marketCategory = "Volatile";
-    else if (isHighValue) marketCategory = "High-Value";
-    
-    // Price trend indicator
-    let trendIndicator = "";
-    if (price > 1.5) trendIndicator = "📈 Bullish (Base Strong)";
-    else if (price < 0.5) trendIndicator = "📉 Bearish (Base Weak)";
-    else if (Math.abs(price - 1) < 0.1) trendIndicator = "➡️ Sideways (Stable)";
-    else trendIndicator = "🔄 Mixed";
-    
-    console.log(`\n📊 Pair #${i + 1} - ${marketCategory} Market:`);
-    console.log(`- Base Asset Price: ${base.toLocaleString()} (raw: ${baseRaw})`);
-    console.log(`- Quote Asset Price: ${quote.toLocaleString()} (raw: ${quoteRaw})`);
-    console.log(`- Market Ratio: ${price.toFixed(6)} (1 Base = ${price.toFixed(6)} Quote)`);
-    console.log(`- Trend: ${trendIndicator}`);
-    
-    // Market insights
-    if (isStable) {
-      console.log(`- 💰 Market Type: Stable Pair (likely stablecoins or pegged assets)`);
-    } else if (price > 100) {
-      console.log(`- 🚀 Market Type: High-Value Base (Base asset significantly more valuable)`);
-    } else if (price < 0.01) {
-      console.log(`- 📉 Market Type: Low-Value Base (Base asset significantly less valuable)`);
-    } else {
-      console.log(`- 📊 Market Type: Standard Trading Pair`);
-    }
-    
-    // Trading insights
-    if (price > 1) {
-      console.log(`- 💡 Trading Insight: Base is ${price.toFixed(2)}x more valuable than Quote`);
-    } else if (price < 1) {
-      console.log(`- 💡 Trading Insight: Quote is ${(1/price).toFixed(2)}x more valuable than Base`);
-    } else {
-      console.log(`- 💡 Trading Insight: Assets are at parity`);
-    }
-    
-    console.log('─'.repeat(50));
-  }
-  
-  // Market summary
-  console.log(`\n📈 Quick Market Summary:`);
-  console.log(`- Total Tokens Analyzed: ${totalPairs}`);
-  console.log(`- Analysis shows base/quote price relationships`);
-  console.log(`- Useful for understanding token valuations`);
-}
-
-// Run the analysis on the real data
-analyzeFinBasePrices(realFinResult.data.fin, finDecimals);
-
-main().catch((error) => {
-  console.error('❌ Error occurred:');
-  console.error('Message:', error.message);
-  console.error('Stack trace:');
-  console.error(error.stack);
-
-  if (error.message.includes('mnemonic')) {
-    console.error('\n💡 Tip: Make sure your mnemonic has 12, 15, 18, 21, or 24 words');
-  }
-  
-  if (error.message.includes('connection') || error.message.includes('rpc')) {
-    console.error('\n💡 Tip: Check if the RPC endpoint is correct and accessible');
-  }
-  
-  if (error.message.includes('526') || error.message.includes('Bad status')) {
-    console.error('\n💡 Tip: RPC endpoint is not accessible. Try:');
-    console.error('   - Check your internet connection');
-    console.error('   - Try a different RPC endpoint (e.g., https://rpc-testnet.cosmos.network)');
-    console.error('   - The endpoint might be down or blocked');
-  }
-  
-  process.exit(1);
-});
+main().catch(console.error); 

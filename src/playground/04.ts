@@ -1,375 +1,407 @@
-import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
-import { GasPrice } from "@cosmjs/stargate";
-import { CosmWasmClient, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import "dotenv/config";
-import { config } from "dotenv";
+import { Logger } from '../utils/logger';
 
-config({ path: ".env" });
+class SwapTransactionAnalyzer {
+  private logger: Logger;
+  private thorchainEndpoints: string[];
 
-// Rujira Contract Interface
-interface RujiraExecuteMsg {
-  // Placeholder for future execute operations
-}
+  constructor() {
+    this.logger = new Logger('playground04');
+    this.thorchainEndpoints = [
+      'https://thornode.ninerealms.com',
+      'https://rpc.thorchain.info',
+      'https://rpc-testnet.thorchain.info'
+    ];
+  }
 
-interface RujiraQueryMsg {
-  // Rujira Bow/Fin queries
-  strategy?: {
-    denom: string;
-    amount: string;
-  };
-  quote?: {
-    denom: string;
-    amount: string;
-    offer_denom: string;
-    offer_amount: string;
-    ask_denom: string;
-    ask_amount: string;
-  };
-  // BASE queries for Rujira Fin contract
-  base?: {
-    denom: string;
-  };
-  base_price?: {
-    base_denom: string;
-    quote_denom: string;
-  };
-  base_liquidity?: {
-    denom: string;
-  };
-}
-
-class RujiraClient {
-  private constructor(
-    public readonly client: CosmWasmClient,
-    public readonly wallet: DirectSecp256k1HdWallet,
-    public readonly contractAddress: string,
-    public readonly rpcEndpoint: string
-  ) {}
-
-  static async connect(
-    rpcEndpoint: string,
-    mnemonic: string,
-    contractAddress: string
-  ): Promise<RujiraClient> {
-    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
-      prefix: "sthor",
+  async analyzeSwapTransaction(hash: string): Promise<void> {
+    console.log(`🚀 Analyzing Swap Transaction Hash: ${hash}`);
+    console.log('=' .repeat(80));
+    
+    this.logger.log('swap_analysis_started', {
+      transactionHash: hash,
+      endpoints: this.thorchainEndpoints
     });
-    const client = await CosmWasmClient.connect(rpcEndpoint);
-    return new RujiraClient(client, wallet, contractAddress, rpcEndpoint);
+    
+    // Get transaction data
+    const transactionData = await this.getTransactionFromEndpoints(hash);
+    
+    if (transactionData) {
+      this.displaySwapAnalysis(transactionData);
+    } else {
+      console.log('❌ Transaction not found');
+    }
   }
 
-  async query<T>(queryMsg: RujiraQueryMsg): Promise<T> {
-    return this.client.queryContractSmart(this.contractAddress, queryMsg);
-  }
-
-  async simulate(
-    executeMsg: RujiraExecuteMsg,
-    funds?: { denom: string; amount: string }[]
-  ) {
-    const [{ address }] = await this.wallet.getAccounts();
-    const signingClient = await SigningCosmWasmClient.connectWithSigner(
-      this.rpcEndpoint,
-      this.wallet,
-      { gasPrice: GasPrice.fromString("0.025uatom") }
-    );
-
-    return signingClient.simulate(
-      address,
-      [{
-        typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-        value: {
-          sender: address,
-          contract: this.contractAddress,
-          msg: Buffer.from(JSON.stringify(executeMsg)).toString("base64"),
-          funds: funds || []
+  private async getTransactionFromEndpoints(hash: string): Promise<any> {
+    for (const endpoint of this.thorchainEndpoints) {
+      try {
+        console.log(`📡 Trying ${endpoint}...`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch(`${endpoint}/cosmos/tx/v1beta1/txs/${hash}`, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Thorchain-Swap-Analyzer/1.0'
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`✅ Transaction found via ${endpoint}`);
+          this.logger.log('swap_transaction_retrieved', {
+            transactionHash: hash,
+            endpoint: endpoint,
+            transactionData: data
+          });
+          return data;
+        } else {
+          console.log(`❌ HTTP ${response.status}: ${response.statusText}`);
+          this.logger.log('swap_transaction_failed', {
+            transactionHash: hash,
+            endpoint: endpoint,
+            status: response.status,
+            statusText: response.statusText
+          });
         }
-      }],
-      ""
-    );
-  }
-
-  async execute(
-    executeMsg: RujiraExecuteMsg,
-    funds?: { denom: string; amount: string }[]
-  ) {
-    const [{ address }] = await this.wallet.getAccounts();
-    const gasPrice = GasPrice.fromString("0.025uatom");
-    const signingClient = await SigningCosmWasmClient.connectWithSigner(
-      this.rpcEndpoint,
-      this.wallet,
-      { gasPrice }
-    );
-
-    return signingClient.execute(
-      address,
-      this.contractAddress,
-      executeMsg,
-      "auto",
-      undefined,
-      funds
-    );
-  }
-}
-
-// === Rujira Fin Market Analysis (2 tokens only) ===
-const finDecimals = 6; // Altere para 18 se necessário
-const sampleFinData = [
-  { book: { id: "RmluQm9vazp0aG9yMXM4cnhjdmc4M2N3YXI4N2VodjRjODY2YXV4dWprZmozazR3amt4a2FyZW43dm12bjluYXNzODBla3A=", pair: { assetBase: { price: { current: "4060000000000" } }, assetQuote: { price: { current: "999907000000" } } } } },
-  { book: { id: "RmluQm9vazp0aG9yMTV0NGN5a2YzbWo4ZnN2ZDZoYThqMGxuYXZjeWV4Mmg0YTRsMnB2OHprY3RhbmR3Y2szenNoczkyank=", pair: { assetBase: { price: { current: "16645600000" } }, assetQuote: { price: { current: "999907000000" } } } } }
-];
-
-function analyzeFinMarket(finData: any[], decimals: number) {
-  if (!Array.isArray(finData)) {
-    console.log('No order book data found.');
-    return;
-  }
-  console.log(`\n🔬 Rujira Fin Market Analysis (2 tokens, divisor: 1e${decimals}):`);
-  
-  for (const [i, entry] of finData.entries()) {
-    const book = entry.book;
-    if (!book || !book.pair) continue;
-    
-    const baseRaw = book.pair.assetBase.price.current;
-    const quoteRaw = book.pair.assetQuote.price.current;
-    const base = Number(baseRaw) / 10 ** decimals;
-    const quote = Number(quoteRaw) / 10 ** decimals;
-    const price = quote !== 0 ? base / quote : 0;
-    
-    // Market analysis
-    const isStable = Math.abs(price - 1) < 0.01;
-    const isVolatile = price > 10 || price < 0.1;
-    const isHighValue = base > 1000000 || quote > 1000000;
-    
-    // Market category
-    let marketCategory = "Normal";
-    if (isStable) marketCategory = "Stable";
-    else if (isVolatile) marketCategory = "Volatile";
-    else if (isHighValue) marketCategory = "High-Value";
-    
-    // Price trend indicator
-    let trendIndicator = "";
-    if (price > 1.5) trendIndicator = "📈 Bullish (Base Strong)";
-    else if (price < 0.5) trendIndicator = "📉 Bearish (Base Weak)";
-    else if (Math.abs(price - 1) < 0.1) trendIndicator = "➡️ Sideways (Stable)";
-    else trendIndicator = "🔄 Mixed";
-    
-    console.log(`\n📊 Token #${i + 1} - ${marketCategory} Market:`);
-    console.log(`- Base Asset Price: ${base.toLocaleString()} (raw: ${baseRaw})`);
-    console.log(`- Quote Asset Price: ${quote.toLocaleString()} (raw: ${quoteRaw})`);
-    console.log(`- Market Ratio: ${price.toFixed(6)} (1 Base = ${price.toFixed(6)} Quote)`);
-    console.log(`- Trend: ${trendIndicator}`);
-    
-    // Market insights
-    if (isStable) {
-      console.log(`- 💰 Market import {  BowQuoteResponse } from "../types";Type: Stable Pair (likely stablecoins or pegged assets)`);
-    } else if (price > 100) {
-      console.log(`- 🚀 Market Type: High-Value Base (Base asset significantly more valuable)`);
-    } else if (price < 0.01) {
-      console.log(`- 📉 Market Type: Low-Value Base (Base asset significantly less valuable)`);
-    } else {
-      console.log(`- 📊 Market Type: Standard Trading Pair`);
+        
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log(`⏰ Timeout for ${endpoint}`);
+        } else {
+          console.log(`❌ Failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
     }
     
-    // Trading insights
-    if (price > 1) {
-      console.log(`- 💡 Trading Insight: Base is ${price.toFixed(2)}x more valuable than Quote`);
-    } else if (price < 1) {
-      console.log(`- 💡 Trading Insight: Quote is ${(1/price).toFixed(2)}x more valuable than Base`);
-    } else {
-      console.log(`- 💡 Trading Insight: Assets are at parity`);
+    return null;
+  }
+
+  private displaySwapAnalysis(data: any): void {
+    const tx = data.tx_response;
+    if (!tx) {
+      console.log('❌ No transaction data in response');
+      return;
+    }
+
+    console.log('\n📊 SWAP TRANSACTION ANALYSIS');
+    console.log('=' .repeat(60));
+    
+    // Basic transaction info
+    console.log(`🔗 Transaction Hash: ${tx.txhash}`);
+    console.log(`📊 Block Height: ${tx.height}`);
+    console.log(`✅ Success: ${tx.code === 0 ? 'Yes' : 'No'}`);
+    console.log(`📅 Timestamp: ${tx.timestamp}`);
+    
+    // Extract swap-specific information
+    this.extractSwapDetails(tx);
+    
+    // Extract fees
+    this.extractSwapFees(tx);
+    
+    // Extract amounts and rates
+    this.extractSwapAmounts(tx);
+    
+    // Extract memo information
+    this.extractMemoInfo(tx);
+    
+    // Show events summary
+    this.showEventsSummary(tx);
+  }
+
+  private extractSwapDetails(tx: any): void {
+    console.log('\n💱 SWAP DETAILS:');
+    console.log('=' .repeat(30));
+    
+    // Try to identify swap type from memo
+    if (tx.tx?.body?.messages) {
+      tx.tx.body.messages.forEach((msg: any, index: number) => {
+        if (msg.memo) {
+          console.log(`📝 Memo: ${msg.memo}`);
+          this.parseSwapMemo(msg.memo);
+        }
+      });
     }
     
-    console.log('─'.repeat(50));
+    // Look for swap events
+    if (tx.events) {
+      tx.events.forEach((event: any) => {
+        if (event.type === 'swap') {
+          console.log('🔄 Swap Event Detected');
+          event.attributes?.forEach((attr: any) => {
+            console.log(`  ${attr.key}: ${attr.value}`);
+          });
+        }
+      });
+    }
   }
-  
-  console.log(`\n📈 Quick Market Summary:`);
-  console.log(`- Total Tokens Analyzed: ${finData.length}`);
-  console.log(`- Analysis shows base/quote price relationships`);
-  console.log(`- Useful for understanding token valuations`);
+
+  private parseSwapMemo(memo: string): void {
+    // Parse Thorchain swap memo format
+    // Example: =:BASE~ETH:thor14mh37ua4vkyur0l5ra297a4la6tmf95mt96a55:2477927
+    
+    if (memo.startsWith('=:')) {
+      const parts = memo.split(':');
+      if (parts.length >= 4) {
+        const assetPair = parts[1]; // BASE~ETH
+        const address = parts[2]; // thor14mh37ua4vkyur0l5ra297a4la6tmf95mt96a55
+        const limit = parts[3]; // 2477927
+        
+        console.log(`  📊 Asset Pair: ${assetPair}`);
+        console.log(`  👤 Address: ${address}`);
+        console.log(`  🎯 Limit: ${limit}`);
+        
+        // Parse asset pair
+        const [fromAsset, toAsset] = assetPair.split('~');
+        console.log(`  ➡️ From: ${fromAsset}`);
+        console.log(`  ⬅️ To: ${toAsset}`);
+      }
+    }
+  }
+
+  private extractSwapFees(tx: any): void {
+    console.log('\n💰 SWAP FEES:');
+    console.log('=' .repeat(30));
+    
+    // Calculate gas fee
+    if (tx.gas_used && tx.gas_used > 0) {
+      const gasFee = (tx.gas_used * 2) / 100000000; // 2 RUNE per gas unit
+      console.log(`⛽ Gas Fee: ${gasFee.toFixed(8)} RUNE`);
+    }
+    
+    // Look for liquidity fees in events
+    let liquidityFee = 0;
+    if (tx.events) {
+      tx.events.forEach((event: any) => {
+        if (event.type === 'coin_spent') {
+          event.attributes?.forEach((attr: any) => {
+            if (attr.key === 'amount' && attr.value && attr.value.includes('rune')) {
+              const runeAmount = parseInt(attr.value.replace('rune', ''));
+              if (runeAmount < 10000000) { // Small amounts likely fees
+                const fee = runeAmount / 100000000;
+                if (fee > liquidityFee) {
+                  liquidityFee = fee;
+                }
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    if (liquidityFee > 0) {
+      console.log(`💧 Liquidity Fee: ${liquidityFee.toFixed(8)} RUNE`);
+      
+      // Estimate USD value (approximate RUNE price)
+      const runePriceUSD = 1.25; // Approximate RUNE price
+      const usdValue = liquidityFee * runePriceUSD;
+      console.log(`💵 Liquidity Fee (USD): $${usdValue.toFixed(2)}`);
+    }
+    
+    // Look for fee events specifically
+    if (tx.events) {
+      tx.events.forEach((event: any) => {
+        if (event.type === 'fee') {
+          console.log('💰 Fee Event Detected:');
+          event.attributes?.forEach((attr: any) => {
+            console.log(`  ${attr.key}: ${attr.value}`);
+          });
+        }
+      });
+    }
+  }
+
+  private extractSwapAmounts(tx: any): void {
+    console.log('\n📈 SWAP AMOUNTS:');
+    console.log('=' .repeat(30));
+    
+    let inputAmount = 0;
+    let outputAmount = 0;
+    let inputAsset = '';
+    let outputAsset = '';
+    let baseAmount = 0;
+    let ethAmount = 0;
+    
+    // Parse memo for limit amount
+    if (tx.tx?.body?.messages) {
+      tx.tx.body.messages.forEach((msg: any) => {
+        if (msg.memo && msg.memo.includes('BASE~ETH')) {
+          const parts = msg.memo.split(':');
+          if (parts.length >= 4) {
+            const limit = parseInt(parts[3]);
+            if (limit) {
+              baseAmount = limit / 1000000; // BASE has 6 decimals
+              console.log(`🎯 Limit Amount: ${baseAmount.toFixed(6)} BASE`);
+            }
+          }
+        }
+      });
+    }
+    
+    if (tx.events) {
+      tx.events.forEach((event: any) => {
+        if (event.type === 'coin_spent') {
+          event.attributes?.forEach((attr: any) => {
+            if (attr.key === 'amount') {
+              const amount = this.parseAmount(attr.value);
+              if (amount.value > inputAmount) {
+                inputAmount = amount.value;
+                inputAsset = amount.asset;
+              }
+            }
+          });
+        }
+        
+        if (event.type === 'coin_received') {
+          event.attributes?.forEach((attr: any) => {
+            if (attr.key === 'amount') {
+              const amount = this.parseAmount(attr.value);
+              if (amount.value > outputAmount) {
+                outputAmount = amount.value;
+                outputAsset = amount.asset;
+              }
+            }
+          });
+        }
+        
+        // Look for specific asset transfers
+        if (event.type === 'transfer') {
+          event.attributes?.forEach((attr: any) => {
+            if (attr.key === 'amount' && attr.value.includes('base')) {
+              const amount = parseInt(attr.value.replace('base', '')) / 1000000;
+              if (amount > 0) {
+                console.log(`📤 BASE Amount: ${amount.toFixed(6)} BASE`);
+              }
+            }
+            if (attr.key === 'amount' && attr.value.includes('eth')) {
+              const amount = parseInt(attr.value.replace('eth', '')) / 1000000000000000000;
+              if (amount > 0) {
+                console.log(`📥 ETH Amount: ${amount.toFixed(18)} ETH`);
+                ethAmount = amount;
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    if (inputAmount > 0) {
+      console.log(`📤 Input: ${inputAmount.toFixed(8)} ${inputAsset}`);
+    }
+    
+    if (outputAmount > 0) {
+      console.log(`📥 Output: ${outputAmount.toFixed(8)} ${outputAsset}`);
+    }
+    
+    // Calculate rate if both amounts are available
+    if (baseAmount > 0 && ethAmount > 0) {
+      const rate = ethAmount / baseAmount;
+      console.log(`📊 Rate: 1 BASE = ${rate.toFixed(12)} ETH`);
+      
+      // Calculate reverse rate for RUNE comparison
+      const runeToEthRate = ethAmount / inputAmount;
+      console.log(`📊 Rate: 1 RUNE = ${runeToEthRate.toFixed(12)} ETH`);
+    }
+    
+    // Calculate swap slip if limit is available
+    if (baseAmount > 0 && ethAmount > 0) {
+      const actualRate = ethAmount / baseAmount;
+      const expectedRate = 0.0005074730498967412; // From website
+      const slip = Math.abs((actualRate - expectedRate) / expectedRate) * 100;
+      console.log(`📉 Swap Slip: ${slip.toFixed(2)}%`);
+    }
+  }
+
+  private parseAmount(amountStr: string): { value: number; asset: string } {
+    if (amountStr.includes('rune')) {
+      const value = parseInt(amountStr.replace('rune', '')) / 100000000;
+      return { value, asset: 'RUNE' };
+    } else if (amountStr.includes('eth')) {
+      const value = parseInt(amountStr.replace('eth', '')) / 1000000000000000000;
+      return { value, asset: 'ETH' };
+    } else if (amountStr.includes('btc')) {
+      const value = parseInt(amountStr.replace('btc', '')) / 100000000;
+      return { value, asset: 'BTC' };
+    } else if (amountStr.includes('usdc')) {
+      const value = parseInt(amountStr.replace('usdc', '')) / 1000000;
+      return { value, asset: 'USDC' };
+    } else {
+      return { value: parseInt(amountStr) || 0, asset: 'Unknown' };
+    }
+  }
+
+  private extractMemoInfo(tx: any): void {
+    console.log('\n📝 MEMO ANALYSIS:');
+    console.log('=' .repeat(30));
+    
+    if (tx.tx?.body?.messages) {
+      tx.tx.body.messages.forEach((msg: any, index: number) => {
+        if (msg.memo) {
+          console.log(`Memo ${index + 1}: ${msg.memo}`);
+          
+          // Check for swap indicators
+          if (msg.memo.includes('~')) {
+            console.log('  ✅ Swap transaction detected');
+          }
+          
+          // Check for limit orders
+          if (msg.memo.includes('=')) {
+            console.log('  🎯 Limit order detected');
+          }
+          
+          // Check for address
+          if (msg.memo.includes('thor1')) {
+            const address = msg.memo.match(/thor1[a-zA-Z0-9]{38}/);
+            if (address) {
+              console.log(`  👤 Address: ${address[0]}`);
+            }
+          }
+        }
+      });
+    }
+  }
+
+  private showEventsSummary(tx: any): void {
+    console.log('\n⚡ EVENTS SUMMARY:');
+    console.log('=' .repeat(30));
+    
+    if (tx.events) {
+      const eventTypes = new Set();
+      tx.events.forEach((event: any) => {
+        eventTypes.add(event.type);
+      });
+      
+      console.log('Event Types Found:');
+      eventTypes.forEach(type => {
+        console.log(`  - ${type}`);
+      });
+      
+      // Count specific events
+      const coinSpentCount = tx.events.filter((e: any) => e.type === 'coin_spent').length;
+      const coinReceivedCount = tx.events.filter((e: any) => e.type === 'coin_received').length;
+      const transferCount = tx.events.filter((e: any) => e.type === 'transfer').length;
+      
+      console.log(`\nEvent Counts:`);
+      console.log(`  💸 Coin Spent: ${coinSpentCount}`);
+      console.log(`  💰 Coin Received: ${coinReceivedCount}`);
+      console.log(`  🔄 Transfer: ${transferCount}`);
+    }
+  }
 }
 
 async function main() {
-  // Run Fin market analysis first
-  analyzeFinMarket(sampleFinData, finDecimals);
-  
-  console.log('🚀 Starting Rujira Playground...');
-  
-  // Run Fin market analysis first
-  analyzeFinMarket(sampleFinData, finDecimals);
-  
-  const RPC_ENDPOINT = process.env.RPC_ENDPOINT || "";
-  const MNEMONIC = process.env.MNEMONIC || "";
-  const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
-
-  console.log('📡 Connecting to RPC endpoint:', RPC_ENDPOINT);
-  console.log('🔑 Using mnemonic (first 3 words):', MNEMONIC.split(' ').slice(0, 3).join(' ') + '...');
-  console.log('📄 SO Contract address:', CONTRACT_ADDRESS);
-
-  if (!CONTRACT_ADDRESS) {
-    console.log('⚠️ No SO contract address provided. Using Rujira contract for testing...');
-    console.log('💡 Add CONTRACT_ADDRESS to your .env file for SO-specific testing');
-  }
-
-  console.log('🔌 Connecting to Rujira client...');
-  const client = await RujiraClient.connect(
-    RPC_ENDPOINT,
-    MNEMONIC,
-    CONTRACT_ADDRESS
-  );
-  console.log('✅ Connected successfully!');
-
-  // Get wallet address for operations
-  const [{ address }] = await client.wallet.getAccounts();
-  console.log('👤 Wallet address:', address);
-
-  // ===== PUBLIC QUERIES (NO FUNDS REQUIRED) =====
-  console.log('\n🌐 Public queries (no funds required):');
-  console.log('These operations only query public contract data:');
-
-  // Test Rujira queries
-  console.log('\n📊 Testing Rujira queries...');
+  const analyzer = new SwapTransactionAnalyzer();
   
   try {
-    const strategyQuery = await client.query<any>({
-      strategy: { denom: "ruji", amount: "1000000" },
-    });
-    console.log("✅ Strategy query:", JSON.stringify(strategyQuery, null, 2));
-  } catch (error: unknown) {
-    console.log("⚠️ Strategy query failed:", error instanceof Error ? error.message : String(error));
+    const hash = '44378ADDEB391274840A9EC51BC7EB8DEA62C8C8E7AE547261747CCBC8FA29C6';
+    await analyzer.analyzeSwapTransaction(hash);
+  } catch (error) {
+    console.log(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
-
-  try {
-    const quoteQuery = await client.query<any>({
-      quote: { 
-        denom: "ruji", 
-        amount: "1000000", 
-        offer_denom: "usdc", 
-        offer_amount: "1000000", 
-        ask_denom: "usdc", 
-        ask_amount: "1000000" 
-      },
-    });
-    console.log("✅ Quote query:", JSON.stringify(quoteQuery, null, 2));
-  } catch (error: unknown) {
-    console.log("⚠️ Quote query failed:", error instanceof Error ? error.message : String(error));
-  }
-
-  // Test with USDC token
-  console.log('\n📊 Testing with USDC token...');
-  
-  try {
-    const strategyQuery = await client.query<any>({
-      strategy: { denom: "usdc", amount: "1000000" },
-    });
-    console.log("✅ USDC Strategy:", JSON.stringify(strategyQuery, null, 2));
-  } catch (error: unknown) {
-    console.log("⚠️ USDC strategy failed:", error instanceof Error ? error.message : String(error));
-  }
-
-  try {
-    const quoteQuery = await client.query<any>({
-      quote: { 
-        denom: "usdc", 
-        amount: "1000000", 
-        offer_denom: "ruji", 
-        offer_amount: "1000000", 
-        ask_denom: "ruji", 
-        ask_amount: "1000000" 
-      },
-    });
-    console.log("✅ USDC Quote:", JSON.stringify(quoteQuery, null, 2));
-  } catch (error: unknown) {
-    console.log("⚠️ USDC quote failed:", error instanceof Error ? error.message : String(error));
-  }
-
-  // === BASE Analysis for ruji ↔ usdc ===
-  console.log('\n🔍 BASE Analysis for ruji ↔ usdc pair...');
-  
-  try {
-    // Test BASE query for RUJI
-    const baseQuery = await client.query<any>({
-      base: { denom: "ruji" },
-    });
-    console.log("✅ BASE query for RUJI:", JSON.stringify(baseQuery, null, 2));
-  } catch (error: unknown) {
-    console.log("⚠️ BASE query for RUJI failed:", error instanceof Error ? error.message : String(error));
-  }
-
-  try {
-    // Test BASE query for USDC
-    const baseUsdcQuery = await client.query<any>({
-      base: { denom: "usdc" },
-    });
-    console.log("✅ BASE query for USDC:", JSON.stringify(baseUsdcQuery, null, 2));
-  } catch (error: unknown) {
-    console.log("⚠️ BASE query for USDC failed:", error instanceof Error ? error.message : String(error));
-  }
-
-  // Test BASE price analysis
-  console.log('\n📊 BASE Price Analysis for ruji ↔ usdc:');
-  try {
-    const basePriceQuery = await client.query<any>({
-      base_price: { 
-        base_denom: "ruji",
-        quote_denom: "usdc"
-      },
-    });
-    console.log("✅ BASE price query:", JSON.stringify(basePriceQuery, null, 2));
-  } catch (error: unknown) {
-    console.log("⚠️ BASE price query failed:", error instanceof Error ? error.message : String(error));
-  }
-
-  // Test BASE liquidity analysis
-  console.log('\n💧 BASE Liquidity Analysis:');
-  try {
-    const baseLiquidityQuery = await client.query<any>({
-      base_liquidity: { 
-        denom: "ruji"
-      },
-    });
-    console.log("✅ BASE liquidity query:", JSON.stringify(baseLiquidityQuery, null, 2));
-  } catch (error: unknown) {
-    console.log("⚠️ BASE liquidity query failed:", error instanceof Error ? error.message : String(error));
-  }
-
-  // Summary of available operations
-  console.log('\n📝 Summary of available operations:');
-  console.log('✅ Rujira Contract - available operations:');
-  console.log('  • Strategy queries');
-  console.log('  • Quote queries');
-  console.log('  • BASE queries (Fin contract)');
-  console.log('  • Market analysis (Fin)');
-
-  console.log('\n🎉 Rujira playground completed successfully!');
-  console.log('\n📝 Available public operations:');
-  console.log('  • Strategy queries (Rujira Bow/Fin)');
-  console.log('  • Quote queries (Rujira Bow/Fin)');
-  console.log('  • BASE queries (Rujira Fin only)');
-  console.log('  • Market analysis (2 tokens)');
-  console.log('\n⚠️ All operations are public queries - no funds required!');
-  console.log('\n💡 Note: BASE queries only work with Rujira Fin contract');
 }
 
-main().catch((error) => {
-  console.error('❌ Error occurred:');
-  console.error('Message:', error.message);
-  console.error('Stack trace:');
-  console.error(error.stack);
-
-  if (error.message.includes('mnemonic')) {
-    console.error('\n💡 Tip: Make sure your mnemonic has 12, 15, 18, 21, or 24 words');
-  }
-  
-  if (error.message.includes('connection') || error.message.includes('rpc')) {
-    console.error('\n💡 Tip: Check if the RPC endpoint is correct and accessible');
-  }
-  
-  if (error.message.includes('526') || error.message.includes('Bad status')) {
-    console.error('\n💡 Tip: RPC endpoint is not accessible. Try:');
-    console.error('   - Check your internet connection');
-    console.error('   - Try a different RPC endpoint');
-    console.error('   - The endpoint might be down or blocked');
-  }
-  
-  process.exit(1);
-}); 
+main().catch(console.error); 
