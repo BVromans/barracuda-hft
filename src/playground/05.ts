@@ -207,7 +207,6 @@ class ThorchainTransactionAnalyzer {
     const utcDate = new Date(tx.timestamp);
     console.log(`Timestamp (UTC): ${tx.timestamp}`);
     console.log(`Timestamp (BR): ${utcDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
-    
     console.log(`Gas Used: ${tx.gas_used}`);
     console.log(`Gas Wanted: ${tx.gas_wanted || 'N/A'}`);
   }
@@ -365,7 +364,7 @@ class ThorchainTransactionAnalyzer {
       if (parsedAmount.asset === 'RUNE') {
         const runePriceUSD = 1.25; // Approximate
         const usdValue = parsedAmount.value * runePriceUSD;
-        console.log(`  USD Value: $${usdValue.toLocaleString()}`);
+        console.log(`USD Value: $${usdValue.toLocaleString()}`);
       }
     });
   }
