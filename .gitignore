@@ -9,4 +9,4 @@ debug.log
 *.txt
 logs/
 src/utils/
-temporary/
+temporary/unversioned/**
