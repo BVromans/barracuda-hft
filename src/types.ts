@@ -1,746 +1,404 @@
-// Rujira HFT Bot - Essential TypeScript Interfaces
-// Focused on FIN Protocol interfaces following clean architecture patterns
-
 import Decimal from 'decimal.js';
 
-// ============================================================================
-// CORE ENUMS
-// ============================================================================
+export const NATIVE_TOKEN = {
+	address: undefined as unknown as string,
+	symbol: 'RUJI',
+	name: 'RUJIRA',
+	decimals: undefined as unknown as number,
+	raw: undefined as unknown as Raw
+} as Token;
 
-/**
- * Order side enumeration
- */
-export enum OrderSide {
-  BUY = 'buy',
-  SELL = 'sell'
-}
+export const FEE_PAYMENT_TOKEN = {
+	address: undefined as unknown as string,
+	symbol: 'RUNE',
+	name: 'RUNE',
+	decimals: undefined as unknown as number,
+	raw: undefined as unknown as Raw
+} as Token;
 
-/**
- * Order type enumeration
- */
-export enum OrderType {
-  MARKET = 'market',
-  LIMIT = 'limit'
-}
+export const BEACON_TOKEN = {
+	address: undefined as unknown as string,
+	symbol: 'USDC',
+	name: 'USDC',
+	decimals: undefined as unknown as number,
+	raw: undefined as unknown as Raw
+} as Token;
 
-/**
- * Order status enumeration
- */
-export enum OrderStatus {
-  PENDING = 'pending',
-  OPEN = 'open',
-  PARTIALLY_FILLED = 'partially_filled',
-  FILLED = 'filled',
-  CANCELLED = 'cancelled',
-  REJECTED = 'rejected'
+export enum Chain {
+	ETHEREUM = 'ethereum',
+	RUJIRA = 'rujira',
+	THORCHAIN = 'thorchain',
 }
 
 /**
  * Network types
  */
 export enum Network {
-  MAINNET = 'mainnet',
-  TESTNET = 'testnet'
+	MAINNET = 'mainnet',
+	TESTNET = 'testnet'
 }
 
-// ============================================================================
-// CORE INTERFACES
-// ============================================================================
+export enum TransactionStatus {
+	SUCCESS = 'success',
+	FAILED = 'failed'
+}
+
+export enum MarketStatus {
+	ACTIVE = 'active',
+	INACTIVE = 'inactive'
+}
+
+/**
+ * Order side enumeration
+ */
+export enum OrderSide {
+	BUY = 'buy',
+	SELL = 'sell'
+}
+
+/**
+ * Order type enumeration
+ */
+export enum OrderType {
+	MARKET = 'market',
+	LIMIT = 'limit'
+}
+
+/**
+ * Order status enumeration
+ */
+export enum OrderStatus {
+	OPEN = 'open',
+	CANCELLED = 'cancelled',
+	PARTIALLY_FILLED = 'partially_filled',
+	FILLED = 'filled',
+	CREATION_PENDING = 'creation_pending',
+	CANCELLATION_PENDING = 'cancellation_pending',
+	UNKNOWN = 'unknown'
+}
+
+export type Raw = any;
+export type Address = string;
+export type Integer = number;
+export type Amount = Decimal;
+
+export type TokenAddress = Address;
+export type TokenSymbol = string;
+export type TokenName = string;
+export type TokenDecimals = number;
+
+export type FeeAmount = Amount;
+export type FeeToken = Token;
+
+export type Hash = string;
+export type TransactionHash = Hash;
+
+export type MarketAddress = Address;
+export type MarketName = string;
+export type MarketDecimals = Integer;
+export type MarketPrice = Amount;
+
+export type OrderBookOrderPrice = Amount;
+export type OrderBookOrderAmount = Amount;
+export type OrderBookMiddlePrice = Amount;
+
+export type TickerPrice = Amount;
+export type TickerTimestamp = number;
+
+/**
+ * Token interface
+ */
+export interface Token {
+	/**
+	 * Contract address of the token
+	 */
+	address: TokenAddress;
+
+	/**
+	 * Symbol of the token
+	 */
+	symbol: TokenSymbol;
+
+	/**
+	 * Name of the token
+	 */
+	name: TokenName;
+
+	/**
+	 * Number of decimal places
+	 */
+	decimals: TokenDecimals;
+
+	/**
+	 * Raw data of the token
+	 */
+	raw: Raw;
+}
 
 /**
  * Transaction interface
  */
 export interface Transaction {
-  /**
-   * Blockchain transaction hash
-   */
-  hash: string;
+	/**
+	 * Blockchain transaction hash
+	 */
+	hash: TransactionHash;
 
-  /**
-   * Status of the transaction
-   */
-  status: string;
+	/**
+	 * Status of the transaction
+	 */
+	status: TransactionStatus;
 
-  /**
-   * Raw data of the transaction
-   */
-  raw: any;
+	/**
+	 * Fees paid for the transaction
+	 */
+	fee: {
+		amount: FeeAmount;
+		token: FeeToken;
+	};
+
+	/**
+	 * Raw data of the transaction
+	 */
+	raw: Raw;
 }
 
 /**
- * Asset interface
+ * Market interface
  */
-export interface Asset {
-  /**
-   * Symbol of the asset
-   */
-  symbol: string;
+export interface Market {
+	/**
+	 * Address of the market
+	 */
+	address: MarketAddress;
 
-  /**
-   * Name of the asset
-   */
-  name: string;
+	/**
+	 * Name of the market
+	 */
+	name: MarketName;
 
-  /**
-   * Denomination string
-   */
-  denom: string;
+	/**
+	 * Tokens of the market
+	 */
+	tokens: {
+		/**
+		 * Base token of the market
+		 */
+		base: Token;
 
-  /**
-   * Number of decimal places
-   */
-  decimals: number;
+		/**
+		 * Quote token of the market
+		 */
+		quote: Token;
+	};
 
-  /**
-   * Chain identifier
-   */
-  chain: string;
+	/**
+	 * Number of decimal places
+	 */
+	decimals: MarketDecimals;
 
-  /**
-   * Contract address (optional)
-   */
-  address?: string;
+	/**
+	 * Price of the market
+	 */
+	price?: {
+		/**
+		 * Price of the base token in the quote token
+		 */
+		baseQuote: MarketPrice;
 
-  /**
-   * Icon URL (optional)
-   */
-  icon?: string;
+		/**
+		 * Price of the quote token in the base token
+		 */
+		quoteBase: MarketPrice;
+	}
+
+	/**
+	 * Whether the market is active
+	 */
+	status: MarketStatus;
+
+	/**
+	 * Raw data of the market
+	 */
+	raw: Raw;
 }
 
 /**
- * THORChain oracle interface
+ * Order book order interface
  */
-export interface ThorchainOracle {
-  /**
-   * Asset identifier
-   */
-  asset: string;
+export interface OrderBookOrder {
+	/**
+	 * Price of the order
+	 */
+	price: OrderBookOrderPrice;
 
-  /**
-   * Current price
-   */
-  price: Decimal;
+	/**
+	 * Amount of the order
+	 */
+	amount: OrderBookOrderAmount;
 
-  /**
-   * Timestamp of the price
-   */
-  timestamp: string;
-
-  /**
-   * Block height
-   */
-  blockHeight: string;
-}
-
-// ============================================================================
-// FIN PROTOCOL INTERFACES
-// ============================================================================
-
-/**
- * FIN contract configuration interface
- */
-export interface FinContractConfig {
-  /**
-   * Contract address
-   */
-  address: string;
-
-  /**
-   * Supported denominations
-   */
-  denoms: string[];
-
-  /**
-   * Oracle addresses
-   */
-  oracles: string[] | null;
-
-  /**
-   * Market maker address
-   */
-  marketMaker: string | null;
-
-  /**
-   * Tick size
-   */
-  tick: number;
-
-  /**
-   * Taker fee
-   */
-  feeTaker: Decimal;
-
-  /**
-   * Maker fee
-   */
-  feeMaker: Decimal;
-
-  /**
-   * Fee collection address
-   */
-  feeAddress: string;
-
-  /**
-   * Contract description
-   */
-  description?: string;
-
-  /**
-   * Whether contract has oracles
-   */
-  hasOracles?: boolean;
+	/**
+	 * Raw data of the order
+	 */
+	raw: Raw;
 }
 
 /**
- * FIN pair information interface
+ * Order book interface
  */
-export interface FinPair {
-  /**
-   * Contract address
-   */
-  address: string;
+export interface OrderBook {
+	/**
+	 * Market of the order book
+	 */
+	market: Market;
 
-  /**
-   * Base asset
-   */
-  assetBase: Asset;
+	/**
+	 * Book of the order book
+	 */
+	book: {
+		/**
+		 * Bids of the order book
+		 */
+		bids: OrderBookOrder[];
 
-  /**
-   * Quote asset
-   */
-  assetQuote: Asset;
+		/**
+		 * Asks of the order book
+		 */
+		asks: OrderBookOrder[];
 
-  /**
-   * Base asset oracle
-   */
-  oracleBase?: ThorchainOracle;
+		/**
+		 * Best bid of the order book
+		 */
+		bestBid: OrderBookOrder;
 
-  /**
-   * Quote asset oracle
-   */
-  oracleQuote?: ThorchainOracle;
+		/**
+		 * Best ask of the order book
+		 */
+		bestAsk: OrderBookOrder;
 
-  /**
-   * Tick size
-   */
-  tick: Decimal;
+		/**
+		 * Middle price of the order book
+		 */
+		middlePrice: OrderBookMiddlePrice;
+	}
 
-  /**
-   * Taker fee
-   */
-  feeTaker: Decimal;
-
-  /**
-   * Maker fee
-   */
-  feeMaker: Decimal;
-
-  /**
-   * Fee collection address
-   */
-  feeAddress: string;
-
-  /**
-   * Deployment status
-   */
-  deploymentStatus: string;
+	/**
+	 * Raw data of the order book
+	 */
+	raw: Raw;
 }
 
 /**
- * FIN orderbook entry interface
+ * Ticker interface
  */
-export interface FinBookEntry {
-  /**
-   * Price level
-   */
-  price: Decimal;
+export interface Ticker {
+	/**
+	 * Market of the ticker
+	 */
+	market: Market;
 
-  /**
-   * Total amount at this price
-   */
-  total: Decimal;
+	/**
+	 * Price of the ticker
+	 */
+	price: TickerPrice;
 
-  /**
-   * Side (buy/sell)
-   */
-  side: string;
+	/**
+	 * Timestamp of the ticker
+	 */
+	timestamp: TickerTimestamp;
 
-  /**
-   * Value in quote currency
-   */
-  value: Decimal;
-
-  /**
-   * Virtual total (for AMM)
-   */
-  virtualTotal: Decimal;
-
-  /**
-   * Virtual value (for AMM)
-   */
-  virtualValue: Decimal;
+	/**
+	 * Raw data of the ticker
+	 */
+	raw: Raw;
 }
 
 /**
- * FIN orderbook interface
+ * Base balance interface
  */
-export interface FinBook {
-  /**
-   * Ask orders (sell side)
-   */
-  asks: FinBookEntry[];
+export interface BaseBalance {
+	/**
+	 * Free balance
+	 */
+	free: Amount;
 
-  /**
-   * Bid orders (buy side)
-   */
-  bids: FinBookEntry[];
+	/**
+	 * Balance locked in orders
+	 */
+	lockedInOrders: Amount;
 
-  /**
-   * Center price
-   */
-  center?: Decimal;
+	/**
+	 * Unsettled (or waiting to withdraw) balance, usually refers to filled but unclaimed orders
+	 */
+	unsettled: Amount;
 
-  /**
-   * Bid-ask spread
-   */
-  spread?: Decimal;
+	/**
+	 * Total balance
+	 */
+	total: Amount;
 
-  /**
-   * Trading pair
-   */
-  pair: FinPair;
+	/**
+	 * Quotation used to convert the balance
+	 */
+	quotation?: {
+		/**
+		 * Token used to convert the balance
+		 */
+		token: Token;
+
+		/**
+		 * Conversion rate of the balance
+		 */
+		conversionRate: Amount;
+	}
 }
 
 /**
- * FIN order interface
+ * Base token balance interface
  */
-export interface FinOrder {
-  /**
-   * Order ID
-   */
-  id: string;
+export interface BaseTokenBalance {
+	/**
+	 * Token balance
+	 */
+	token?: BaseBalance;
 
-  /**
-   * Trading pair
-   */
-  pair: FinPair;
+	/**
+	 * Native token balance
+	 */
+	nativeToken?: BaseBalance;
 
-  /**
-   * Order owner address
-   */
-  owner: string;
-
-  /**
-   * Order side
-   */
-  side: OrderSide;
-
-  /**
-   * Order price
-   */
-  rate: Decimal;
-
-  /**
-   * Last update timestamp
-   */
-  updatedAt: string;
-
-  /**
-   * Original offer amount
-   */
-  offer: Decimal;
-
-  /**
-   * Original offer value
-   */
-  offerValue: Decimal;
-
-  /**
-   * Remaining amount
-   */
-  remaining: Decimal;
-
-  /**
-   * Remaining value
-   */
-  remainingValue: Decimal;
-
-  /**
-   * Filled amount
-   */
-  filled: Decimal;
-
-  /**
-   * Filled value
-   */
-  filledValue: Decimal;
-
-  /**
-   * Filled fee amount
-   */
-  filledFee: Decimal;
-
-  /**
-   * Order type
-   */
-  type: string;
-
-  /**
-   * Price deviation (optional)
-   */
-  deviation?: Decimal;
-
-  /**
-   * Value in USD
-   */
-  valueUsd: Decimal;
+	/**
+	 * Beacon token balance
+	 */
+	beaconToken?: BaseBalance;
 }
 
 /**
- * FIN trade interface
+ * Token balance interface
  */
-export interface FinTrade {
-  /**
-   * Trade ID
-   */
-  id: string;
+export interface TokenBalance {
+	/**
+	 * Token of the token balance
+	 */
+	token: Token;
 
-  /**
-   * Block height
-   */
-  height: string;
-
-  /**
-   * Transaction index
-   */
-  txIdx: string;
-
-  /**
-   * Trade index
-   */
-  idx: string;
-
-  /**
-   * Contract address
-   */
-  contract: string;
-
-  /**
-   * Transaction hash
-   */
-  txhash: string;
-
-  /**
-   * Quote amount
-   */
-  quoteAmount: Decimal;
-
-  /**
-   * Base amount
-   */
-  baseAmount: Decimal;
-
-  /**
-   * Trade price
-   */
-  price: Decimal;
-
-  /**
-   * Trade type
-   */
-  type: string;
-
-  /**
-   * Protocol identifier
-   */
-  protocol: string;
-
-  /**
-   * Timestamp
-   */
-  timestamp: string;
-
-  /**
-   * Base asset
-   */
-  assetBase: Asset;
-
-  /**
-   * Quote asset
-   */
-  assetQuote: Asset;
+	/**
+	 * Balances of the token balance
+	 */
+	balances: BaseTokenBalance;
 }
 
 /**
- * FIN summary interface
+ * Balances interface
  */
-export interface FinSummary {
-  /**
-   * Last price
-   */
-  last: Decimal;
+export interface Balances {
+	/**
+	 * Tokens of the balances
+	 */
+	tokens: Map<TokenAddress, TokenBalance>;
 
-  /**
-   * Last price in USD
-   */
-  lastUsd: Decimal;
-
-  /**
-   * 24h high
-   */
-  high: Decimal;
-
-  /**
-   * 24h low
-   */
-  low: Decimal;
-
-  /**
-   * 24h change
-   */
-  change: Decimal;
-
-  /**
-   * 24h volume
-   */
-  volume: {
-    amount: Decimal;
-    denom: string;
-    usdValue?: Decimal;
-  };
+	/**
+	 * Total balance
+	 */
+	total: BaseTokenBalance;
 }
-
-/**
- * FIN candle interface
- */
-export interface FinCandle {
-  /**
-   * Candle ID
-   */
-  id: string;
-
-  /**
-   * Time resolution
-   */
-  resolution: string;
-
-  /**
-   * High price
-   */
-  high: Decimal;
-
-  /**
-   * Low price
-   */
-  low: Decimal;
-
-  /**
-   * Open price
-   */
-  open: Decimal;
-
-  /**
-   * Close price
-   */
-  close: Decimal;
-
-  /**
-   * Volume
-   */
-  volume: Decimal;
-
-  /**
-   * Time bin
-   */
-  bin: string;
-}
-
-// ============================================================================
-// REQUEST/RESPONSE INTERFACES
-// ============================================================================
-
-/**
- * Request to get contract configuration
- */
-export interface GetContractConfigRequest {
-  /**
-   * Contract address
-   */
-  address: string;
-}
-
-/**
- * Response with contract configuration
- */
-export interface GetContractConfigResponse {
-  /**
-   * Contract configuration
-   */
-  config: FinContractConfig;
-}
-
-/**
- * Request to get orderbook
- */
-export interface GetOrderbookRequest {
-  /**
-   * Contract address
-   */
-  address: string;
-
-  /**
-   * Number of levels to return
-   */
-  limit?: number;
-}
-
-/**
- * Response with orderbook
- */
-export interface GetOrderbookResponse {
-  /**
-   * Orderbook data
-   */
-  orderbook: FinBook;
-}
-
-/**
- * Request to get user orders
- */
-export interface GetUserOrdersRequest {
-  /**
-   * Contract address
-   */
-  address: string;
-
-  /**
-   * User address
-   */
-  owner: string;
-
-  /**
-   * Order side filter
-   */
-  side?: OrderSide;
-
-  /**
-   * Order status filter
-   */
-  status?: OrderStatus;
-}
-
-/**
- * Response with user orders
- */
-export interface GetUserOrdersResponse {
-  /**
-   * Array of user orders
-   */
-  orders: FinOrder[];
-}
-
-/**
- * Request to simulate trade
- */
-export interface SimulateTradeRequest {
-  /**
-   * Contract address
-   */
-  address: string;
-
-  /**
-   * Trade side
-   */
-  side: OrderSide;
-
-  /**
-   * Amount to trade
-   */
-  amount: Decimal;
-
-  /**
-   * Price (for limit orders)
-   */
-  price?: Decimal;
-}
-
-/**
- * Response with trade simulation
- */
-export interface SimulateTradeResponse {
-  /**
-   * Simulated trade details
-   */
-  trade: FinTrade;
-}
-
-/**
- * Request to get market summary
- */
-export interface GetMarketSummaryRequest {
-  /**
-   * Contract address
-   */
-  address: string;
-}
-
-/**
- * Response with market summary
- */
-export interface GetMarketSummaryResponse {
-  /**
-   * Market summary
-   */
-  summary: FinSummary;
-}
-
-/**
- * Request to get candles
- */
-export interface GetCandlesRequest {
-  /**
-   * Contract address
-   */
-  address: string;
-
-  /**
-   * Resolution (1m, 5m, 15m, 1h, 4h, 1d)
-   */
-  resolution: string;
-
-  /**
-   * Start time
-   */
-  from: number;
-
-  /**
-   * End time
-   */
-  to: number;
-}
-
-/**
- * Response with candles
- */
-export interface GetCandlesResponse {
-  /**
-   * Array of candles
-   */
-  candles: FinCandle[];
-}
-
-// ============================================================================
-// MAIN INTERFACE
-// ============================================================================
-
-/**
- * Main interface for FIN Protocol operations
- */
-export interface FinProtocolInterface {
-  getContractConfig(request: GetContractConfigRequest): Promise<GetContractConfigResponse>;
-  getOrderbook(request: GetOrderbookRequest): Promise<GetOrderbookResponse>;
-  getUserOrders(request: GetUserOrdersRequest): Promise<GetUserOrdersResponse>;
-  simulateTrade(request: SimulateTradeRequest): Promise<SimulateTradeResponse>;
-  getMarketSummary(request: GetMarketSummaryRequest): Promise<GetMarketSummaryResponse>;
-  getCandles(request: GetCandlesRequest): Promise<GetCandlesResponse>;
-} 
