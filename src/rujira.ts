@@ -1,4 +1,5 @@
-import { MarketAddress, MarketName, OrderBook, SystemStatus, Token, TokenAddress, TokenSymbol, Transaction, TransactionHash } from "./types";
+import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { Integer, Market, MarketAddress, MarketName, OrderBook, OrderBookMiddlePrice, OrderBookOrder, SystemStatus, Token, TokenAddress, TokenSymbol, Transaction, TransactionHash } from "./types";
 
 /**
  * Get status request
@@ -88,8 +89,16 @@ export interface FinGetOrderBookRequest {
 	 * Market name
 	 */
 	marketName?: MarketName;
+
+	/**
+	 * Limit
+	 */
+	limit?: Integer;
 }
 
+/**
+ * Get order book response
+ */
 export interface FinGetOrderBookResponse extends OrderBook {}
 
 export interface FinGetTickerRequest {}
@@ -144,18 +153,27 @@ export class Rujira {
 
 export class Fin {
 	private client: CosmWasmClient;
+	private tokensByAddress: Map<TokenAddress, Token>;
+	private tokensBySymbol: Map<TokenSymbol, Token>;
+	private marketsByAddress: Map<MarketAddress, Market>;
+	private marketsByName: Map<MarketName, Market>;
 
 	/**
 	 * Constructor
 	 */
-	constructor() {
+	constructor(rpcEndpoint: string) {
+		this.client = undefined as unknown as CosmWasmClient;
+		this.tokensByAddress = new Map();
+		this.tokensBySymbol = new Map();
+		this.marketsByAddress = new Map();
+		this.marketsByName = new Map();
 	}
 
 	/**
 	 * Initialize the client
 	 */
 	async initialize(): Promise<void> {
-		this.client = new CosmWasmClient(this.rpcEndpoint);
+		throw new Error("Not implemented");
 	}
 
 	/**
@@ -212,7 +230,35 @@ export class Fin {
 			throw new Error("Either market address or market name must be provided");
 		}
 
-		throw new Error("Not implemented");
+		if (request.marketName && !request.marketAddress) {
+			request.marketAddress = this.marketsByName.get(request.marketName)?.address;
+		}
+
+		if (!request.marketAddress) {
+			throw new Error("Market address must be provided");
+		}
+
+		const market = this.marketsByAddress.get(request.marketAddress);
+
+		const rawOrderBook = await this.client.queryContractSmart(request.marketAddress, {
+			order_book: {
+				limit: request.limit
+			} as any
+		});
+
+		const orderBook: OrderBook = {
+			market: market!,
+			book: {
+				asks: undefined as unknown as OrderBookOrder[],
+				bids: undefined as unknown as OrderBookOrder[],
+				bestBid: undefined as unknown as OrderBookOrder,
+				bestAsk: undefined as unknown as OrderBookOrder,
+				middlePrice: undefined as unknown as OrderBookMiddlePrice,
+			},
+			raw: rawOrderBook
+		} as OrderBook;
+
+		return orderBook;
 	}
 
 	/**
