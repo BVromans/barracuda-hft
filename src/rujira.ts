@@ -1,4 +1,4 @@
-import { SystemStatus, Token, TokenAddress, TokenSymbol, Transaction, TransactionHash } from "./types";
+import { MarketAddress, MarketName, OrderBook, SystemStatus, Token, TokenAddress, TokenSymbol, Transaction, TransactionHash } from "./types";
 
 /**
  * Get status request
@@ -60,11 +60,37 @@ export type FinGetTokensResponse = Map<TokenAddress, Token>;
  */
 export interface FinGetMarketRequest {}
 
+/**
+ * Get market response
+ */
 export interface FinGetMarketResponse {}
 
-export interface FinGetOrderBookRequest {}
+/**
+ * Get markets request
+ */
+export interface FinGetMarketsRequest {}
 
-export interface FinGetOrderBookResponse {}
+/**
+ * Get markets response
+ */
+export interface FinGetMarketsResponse {}
+
+/**
+ * Get order book request
+ */
+export interface FinGetOrderBookRequest {
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market name
+	 */
+	marketName?: MarketName;
+}
+
+export interface FinGetOrderBookResponse extends OrderBook {}
 
 export interface FinGetTickerRequest {}
 
@@ -117,10 +143,19 @@ export class Rujira {
 }
 
 export class Fin {
+	private client: CosmWasmClient;
+
 	/**
 	 * Constructor
 	 */
 	constructor() {
+	}
+
+	/**
+	 * Initialize the client
+	 */
+	async initialize(): Promise<void> {
+		this.client = new CosmWasmClient(this.rpcEndpoint);
 	}
 
 	/**
@@ -141,6 +176,10 @@ export class Fin {
 	 * Get token
 	 */
 	async getToken(request: FinGetTokenRequest): Promise<FinGetTokenResponse> {
+		if (!request.address && !request.symbol) {
+			throw new Error("Either address or symbol must be provided");
+		}
+
 		throw new Error("Not implemented");
 	}
 
@@ -159,9 +198,20 @@ export class Fin {
 	}
 
 	/**
+	 * Get markets
+	 */
+	async getMarkets(request: FinGetMarketsRequest): Promise<FinGetMarketsResponse> {
+		throw new Error("Not implemented");
+	}
+
+	/**
 	 * Get order book
 	 */
 	async getOrderBook(request: FinGetOrderBookRequest): Promise<FinGetOrderBookResponse> {
+		if (!request.marketAddress && !request.marketName) {
+			throw new Error("Either market address or market name must be provided");
+		}
+
 		throw new Error("Not implemented");
 	}
 
