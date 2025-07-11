@@ -1,4 +1,4 @@
-import { Logger } from '../utils/logger';
+import { Logger } from '../../src/utils/logger'
 
 class TransactionAnalyzer {
   private logger: Logger;

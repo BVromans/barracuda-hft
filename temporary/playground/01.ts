@@ -3,7 +3,7 @@ import { config } from "dotenv";
 import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
 import { GasPrice } from "@cosmjs/stargate";
 import {CosmWasmClient, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { Logger } from '../utils/logger';
+import { Logger } from '../../src/utils/logger';
 
 config({ path: ".env" });
 
