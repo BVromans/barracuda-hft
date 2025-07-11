@@ -6,6 +6,14 @@ export class Rujira {
 	}
 }
 
+export interface FinStatusResponse {
+	status: 'connected' | 'disconnected' | 'error';
+	contractAddress?: string;
+	network?: string;
+	lastInteraction?: Date;
+	error?: Error;
+}
+
 export interface FinGetTokenRequest {}
 
 export interface FinGetTokenResponse {}
@@ -62,9 +70,71 @@ export interface FinWithdrawsRequest {}
 
 export interface FinWithdrawsResponse {}
 
+export interface FinGetTransactionsRequest {
+	contractAddress: string;
+	fromBlock?: number;
+	toBlock?: number;
+	limit?: number;
+}
 
+export interface FinGetTransactionsResponse {
+	transactions: Transaction[];
+	total: number;
+}
+
+export interface Transaction {
+	hash: string;
+	blockNumber: number;
+	timestamp: Date;
+	from: string;
+	to: string;
+	value: string;
+	method: string;
+	status: 'true' | 'false';
+}
 
 export class Fin {
+	async getStatus(): Promise<FinStatusResponse> {
+		try {
+			const isConnected = await this.checkConnection();
+			return {
+				status: isConnected ? 'connected' : 'disconnected',
+				lastInteraction: new Date()
+			};
+		} catch (error) {
+			throw new Error(error instanceof Error ? error.message : 'Unknown error');
+		}
+	}
+
+	async getTransactions(request: FinGetTransactionsRequest): Promise<FinGetTransactionsResponse> {
+		
+		try {
+			const { contractAddress, fromBlock, toBlock, limit = 100 } = request;
+			
+			const transactions = await this.fetchContractTransactions({
+				contractAddress,
+				fromBlock,
+				toBlock,
+				limit
+			});
+			
+			return {
+				transactions,
+				total: transactions.length
+			};
+		} catch (error) {
+			throw new Error(`Failed to fetch transactions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
+
+	}
+
+	private async fetchContractTransactions(request: FinGetTransactionsRequest): Promise<Transaction[]> {
+		throw new Error("Not implemented");
+	}
+
+	private async checkConnection(): Promise<boolean> {
+		return true; // Placeholder - implement actual contract check
+	}
 
 	async getToken(request: FinGetTokenRequest): Promise<FinGetTokenResponse> {
 		throw new Error("Not implemented");
