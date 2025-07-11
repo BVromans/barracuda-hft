@@ -1,5 +1,8 @@
 import Decimal from 'decimal.js';
 
+/**
+ * Native token
+ */
 export const NATIVE_TOKEN = {
 	address: undefined as unknown as string,
 	symbol: 'RUJI',
@@ -8,6 +11,9 @@ export const NATIVE_TOKEN = {
 	raw: undefined as unknown as Raw
 } as Token;
 
+/**
+ * Fee payment token
+ */
 export const FEE_PAYMENT_TOKEN = {
 	address: undefined as unknown as string,
 	symbol: 'RUNE',
@@ -16,6 +22,9 @@ export const FEE_PAYMENT_TOKEN = {
 	raw: undefined as unknown as Raw
 } as Token;
 
+/**
+ * Beacon token
+ */
 export const BEACON_TOKEN = {
 	address: undefined as unknown as string,
 	symbol: 'USDC',
@@ -24,6 +33,17 @@ export const BEACON_TOKEN = {
 	raw: undefined as unknown as Raw
 } as Token;
 
+/**
+ * Token types
+ */
+export enum SystemStatus {
+	UP = 'up',
+	DOWN = 'down',
+}
+
+/**
+ * Chain types
+ */
 export enum Chain {
 	ETHEREUM = 'ethereum',
 	RUJIRA = 'rujira',
@@ -38,11 +58,17 @@ export enum Network {
 	TESTNET = 'testnet'
 }
 
+/**
+ * Transaction status types
+ */
 export enum TransactionStatus {
 	SUCCESS = 'success',
 	FAILED = 'failed'
 }
 
+/**
+ * Market status types
+ */
 export enum MarketStatus {
 	ACTIVE = 'active',
 	INACTIVE = 'inactive'
@@ -81,6 +107,8 @@ export type Raw = any;
 export type Address = string;
 export type Integer = number;
 export type Amount = Decimal;
+export type Hash = string;
+export type Timestamp = number;
 
 export type TokenAddress = Address;
 export type TokenSymbol = string;
@@ -90,7 +118,6 @@ export type TokenDecimals = number;
 export type FeeAmount = Amount;
 export type FeeToken = Token;
 
-export type Hash = string;
 export type TransactionHash = Hash;
 
 export type MarketAddress = Address;
@@ -103,7 +130,7 @@ export type OrderBookOrderAmount = Amount;
 export type OrderBookMiddlePrice = Amount;
 
 export type TickerPrice = Amount;
-export type TickerTimestamp = number;
+export type TickerTimestamp = Timestamp;
 
 /**
  * Token interface
@@ -153,7 +180,14 @@ export interface Transaction {
 	 * Fees paid for the transaction
 	 */
 	fee: {
+		/**
+		 * Amount of the fee
+		 */
 		amount: FeeAmount;
+
+		/**
+		 * Token of the fee
+		 */
 		token: FeeToken;
 	};
 

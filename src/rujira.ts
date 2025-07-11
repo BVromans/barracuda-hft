@@ -1,27 +1,63 @@
-export class Rujira {
-	private readonly fin: Fin;
+import { SystemStatus, Token, TokenAddress, TokenSymbol, Transaction, TransactionHash } from "./types";
 
-	constructor() {
-		this.fin = undefined as unknown as Fin;
-	}
+/**
+ * Get status request
+ */
+export interface FinGetStatusRequest {}
+
+/**
+ * Get status response
+ */
+export interface FinGetStatusResponse {
+	/**
+	 * System status
+	 */
+	status: SystemStatus;
 }
 
-export interface FinStatusResponse {
-	status: 'connected' | 'disconnected' | 'error';
-	contractAddress?: string;
-	network?: string;
-	lastInteraction?: Date;
-	error?: Error;
+/**
+ * Get token request
+ */
+export interface FinGetTokenRequest {
+	/**
+	 * Token address
+	 */
+	address?: TokenAddress;
+
+	/**
+	 * Token symbol
+	 */
+	symbol?: TokenSymbol;
 }
 
-export interface FinGetTokenRequest {}
+/**
+ * Get token response
+ */
+export interface FinGetTokenResponse extends Token {}
 
-export interface FinGetTokenResponse {}
+/**
+ * Get tokens request (if no addresses or symbols are provided, all tokens will be returned)
+ */
+export interface FinGetTokensRequest {
+	/**
+	 * Token addresses
+	 */
+	addresses?: TokenAddress[];
 
-export interface FinGetTokensRequest {}
+	/**
+	 * Token symbols
+	 */
+	symbols?: TokenSymbol[];
+}
 
-export interface FinGetTokensResponse {}
+/**
+ * Get tokens response
+ */
+export type FinGetTokensResponse = Map<TokenAddress, Token>;
 
+/**
+ * Get market request
+ */
 export interface FinGetMarketRequest {}
 
 export interface FinGetMarketResponse {}
@@ -37,6 +73,12 @@ export interface FinGetTickerResponse {}
 export interface FinGetBalancesRequest {}
 
 export interface FinGetBalancesResponse {}
+
+export interface FinGetTransactionRequest {
+	hash: TransactionHash;
+}
+
+export interface FinGetTransactionResponse extends Transaction {}
 
 export interface FinGetOrderRequest {}
 
@@ -66,129 +108,123 @@ export interface FinWithdrawRequest {}
 
 export interface FinWithdrawResponse {}
 
-export interface FinWithdrawsRequest {}
+export class Rujira {
+	private readonly fin: Fin;
 
-export interface FinWithdrawsResponse {}
-
-export interface FinGetTransactionsRequest {
-	contractAddress: string;
-	fromBlock?: number;
-	toBlock?: number;
-	limit?: number;
-}
-
-export interface FinGetTransactionsResponse {
-	transactions: Transaction[];
-	total: number;
-}
-
-export interface Transaction {
-	hash: string;
-	blockNumber: number;
-	timestamp: Date;
-	from: string;
-	to: string;
-	value: string;
-	method: string;
-	status: 'true' | 'false';
+	constructor() {
+		this.fin = undefined as unknown as Fin;
+	}
 }
 
 export class Fin {
-	async getStatus(): Promise<FinStatusResponse> {
-		try {
-			const isConnected = await this.checkConnection();
-			return {
-				status: isConnected ? 'connected' : 'disconnected',
-				lastInteraction: new Date()
-			};
-		} catch (error) {
-			throw new Error(error instanceof Error ? error.message : 'Unknown error');
-		}
+	/**
+	 * Constructor
+	 */
+	constructor() {
 	}
 
-	async getTransactions(request: FinGetTransactionsRequest): Promise<FinGetTransactionsResponse> {
-		
-		try {
-			const { contractAddress, fromBlock, toBlock, limit = 100 } = request;
-			
-			const transactions = await this.fetchContractTransactions({
-				contractAddress,
-				fromBlock,
-				toBlock,
-				limit
-			});
-			
-			return {
-				transactions,
-				total: transactions.length
-			};
-		} catch (error) {
-			throw new Error(`Failed to fetch transactions: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		}
-
-	}
-
-	private async fetchContractTransactions(request: FinGetTransactionsRequest): Promise<Transaction[]> {
+	/**
+	 * Get status
+	 */
+	async getStatus(): Promise<FinGetStatusResponse> {
 		throw new Error("Not implemented");
 	}
 
-	private async checkConnection(): Promise<boolean> {
-		return true; // Placeholder - implement actual contract check
+	/**
+	 * Get transaction
+	 */
+	async getTransaction(request: FinGetTransactionRequest): Promise<FinGetTransactionResponse> {
+		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Get token
+	 */
 	async getToken(request: FinGetTokenRequest): Promise<FinGetTokenResponse> {
 		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Get tokens
+	 */
 	async getTokens(request: FinGetTokensRequest): Promise<FinGetTokensResponse> {
 		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Get market
+	 */
 	async getMarket(request: FinGetMarketRequest): Promise<FinGetMarketResponse> {
 		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Get order book
+	 */
 	async getOrderBook(request: FinGetOrderBookRequest): Promise<FinGetOrderBookResponse> {
 		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Get ticker
+	 */
 	async getTicker(request: FinGetTickerRequest): Promise<FinGetTickerResponse> {
 		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Get balances
+	 */
 	async getBalances(request: FinGetBalancesRequest): Promise<FinGetBalancesResponse> {
 		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Get order
+	 */
 	async getOrder(request: FinGetOrderRequest): Promise<FinGetOrderResponse> {
 		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Get orders
+	 */
 	async getOrders(request: FinGetOrdersRequest): Promise<FinGetOrdersResponse> {
 		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Create order
+	 */
 	async createOrder(request: FinCreateOrderRequest): Promise<FinCreateOrderResponse> {
 		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Create orders
+	 */
 	async createOrders(request: FinCreateOrdersRequest): Promise<FinCreateOrdersResponse> {
 		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Cancel order
+	 */
 	async cancelOrder(request: FinCancelOrderRequest): Promise<FinCancelOrderResponse> {
 		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Cancel orders
+	 */
 	async cancelOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
 		throw new Error("Not implemented");
 	}
 
+	/**
+	 * Withdraw from market
+	 */
 	async withdrawFromMarket(request: FinWithdrawRequest): Promise<FinWithdrawResponse> {
-		throw new Error("Not implemented");
-	}
-
-	async withdrawFromMarkets(request: FinWithdrawsRequest): Promise<FinWithdrawsResponse> {
 		throw new Error("Not implemented");
 	}
 }
