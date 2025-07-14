@@ -110,6 +110,8 @@ export type Amount = Decimal;
 export type Hash = string;
 export type Timestamp = number;
 
+export type WalletAddress = Address;
+
 export type TokenAddress = Address;
 export type TokenSymbol = string;
 export type TokenName = string;
@@ -121,7 +123,7 @@ export type FeeToken = Token;
 export type TransactionHash = Hash;
 
 export type MarketAddress = Address;
-export type MarketName = string;
+export type MarketSymbol = string;
 export type MarketDecimals = Integer;
 export type MarketPrice = Amount;
 
@@ -209,7 +211,7 @@ export interface Market {
 	/**
 	 * Name of the market
 	 */
-	name: MarketName;
+	symbol: MarketSymbol;
 
 	/**
 	 * Tokens of the market
