@@ -23,7 +23,8 @@
         "@cosmjs/proto-signing": "^0.33.1",
         "@cosmjs/stargate": "^0.33.1",
         "decimal.js": "^10.5.0",
-        "dotenv": "latest"
+        "dotenv": "latest",
+        "memo-decorator": "^2.0.1"
     },
     "devDependencies": {
         "@types/bn.js": "^5.1.6",
