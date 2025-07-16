@@ -76,7 +76,14 @@ const WORKING_FIN_CONTRACTS = {
     market_maker: "thor1c020ygq35hu6fp2hpd3ws0fa9xmlqhpw9g4nz624wnwmvlq7l49s877kkx",
     tick: 6,
     description: "Liquid staking derivative vs USDC"
-  }
+  },
+  "NAMI/USDC": {
+    address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty",
+    denoms: ["thor.nami", "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"],
+    market_maker: "thor1j45s6a4ym8ru2zd70acnrwk4fkmew2a43eq2wngu46ur7yg4d8eqnvvfxx",
+    tick: 6,
+    description: "NAMI token vs USDC"
+  },
 };
 
 export class PrivateMethodsClient {
