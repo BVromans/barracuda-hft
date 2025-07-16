@@ -1,5 +1,5 @@
 import { RujiraClient } from "../client";
-import { BowQueryMsg, BowStrategyResponse, BowQuoteResponse } from "../types";
+import { BowQueryMsg, BowStrategyResponse, BowQuoteResponse } from "../../src/types";
 import "dotenv/config";
 import { config } from "dotenv";
 
