@@ -10,7 +10,9 @@
 		"outDir": "dist",
 		"rootDir": ".",
 		"skipLibCheck": true,
-		"types": ["bun-types"]
+		"types": ["bun-types"],
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true
 	},
 	"include": ["src", "integration", "tests", "temporary/playground"],
 	"exclude": ["node_modules", "dist"]

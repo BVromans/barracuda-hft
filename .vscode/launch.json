@@ -99,6 +99,17 @@
 			"cwd": "${workspaceFolder}",
 			"stopOnEntry": false,
 			"watchMode": true
-		}
+		},
+		{
+			"type": "bun",
+			"internalConsoleOptions": "neverOpen",
+			"request": "launch",
+			"name": "rujira-hft-bot:playground:09",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["run", "playground:09"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"watchMode": true
+		},
 	]
 }
