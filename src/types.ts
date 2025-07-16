@@ -76,6 +76,7 @@ export enum OrderStatus {
 	UNKNOWN = 'unknown'
 }
 
+export type Boolean = boolean;
 export type Raw = any;
 export type Address = string;
 export type Integer = number;
@@ -84,13 +85,18 @@ export type Hash = string;
 export type Timestamp = number;
 
 export type WalletAddress = Address;
+
 export type TokenAddress = Address;
 export type TokenSymbol = string;
 export type TokenName = string;
 export type TokenDecimals = number;
+
 export type FeeAmount = Amount;
 export type FeeToken = Token;
+
 export type TransactionHash = Hash;
+export type TransactionConfirmation = Boolean;
+
 export type MarketAddress = Address;
 export type MarketSymbol = string;
 export type MarketDecimals = Integer;
@@ -227,12 +233,12 @@ export interface FinGetTokenRequest {
 	/**
 	 * Token address
 	 */
-	address: TokenAddress;
+	address?: TokenAddress;
 
 	/**
 	 * Token symbol
 	 */
-	symbol: TokenSymbol;
+	symbol?: TokenSymbol;
 }
 
 /**
@@ -395,7 +401,15 @@ export interface FinGetBalancesResponse extends Balances {}
  * Get transaction request
  */
 export interface FinGetTransactionRequest {
+	/**
+	 * Transaction hash
+	 */
 	hash: TransactionHash;
+
+  /**
+   * Wait for confirmation
+   */
+  waitForConfirmation?: boolean;
 }
 
 /**

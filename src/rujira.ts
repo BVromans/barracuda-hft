@@ -159,6 +159,14 @@ export class Fin {
 	 * Get token
 	 */
 	async getToken(request: FinGetTokenRequest): Promise<FinGetTokenResponse> {
+		if (request.address) {
+			request.address = request.address.toLowerCase().trim();
+		}
+
+		if (request.symbol) {
+			request.symbol = request.symbol.toLowerCase().trim();
+		}
+
 		if (!request.address && !request.symbol) {
 			throw new Error("Either address or symbol must be provided");
 		}
