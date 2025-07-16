@@ -1,3 +1,5 @@
+import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
+import { DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
 
 export const NATIVE_TOKEN = {
@@ -78,13 +80,18 @@ export enum OrderStatus {
 
 export type Boolean = boolean;
 export type Raw = any;
+export type Mnemonic = string;
 export type Address = string;
 export type Integer = number;
 export type Amount = Decimal;
 export type Hash = string;
 export type Timestamp = number;
+export type URL = string;
+
+export type RPCEndpoint = URL;
 
 export type WalletAddress = Address;
+export type WalletMnemonic = Mnemonic;
 
 export type TokenAddress = Address;
 export type TokenSymbol = string;
@@ -196,6 +203,58 @@ export interface Balances {
 ///////////////////////////////////////////////////
 
 /**
+ * Rujira constructor options
+ */
+export interface RujiraConstructorOptions {
+  /**
+   * RPC endpoint
+   */
+  rpcEndpoint: RPCEndpoint;
+
+  /**
+   * Wallet mnemonic
+   */
+  walletMnemonic: WalletMnemonic;
+}
+
+/**
+ * Rujira initialize options
+ */
+export interface RujiraInitializeOptions {
+}
+
+/**
+ * Fin constructor options
+ */
+export interface FinConstructorOptions {
+  /**
+   * RPC endpoint
+   */
+  rpcEndpoint: RPCEndpoint;
+
+  /**
+   * Wallet mnemonic
+   */
+  walletMnemonic: WalletMnemonic;
+}
+
+/**
+ * Fin initialize options
+ */
+export interface FinInitializeOptions {
+
+  /**
+	 * Wallet
+	 */
+	wallet: DirectSecp256k1Wallet;
+
+	/**
+	 * Cosm client
+	 */
+	cosmClient: SigningCosmWasmClient;
+}
+
+/**
  * Get status request
  */
 export interface FinGetStatusRequest {
@@ -288,6 +347,16 @@ export interface FinGetTokensRequest {
 export type FinGetTokensResponse = Map<TokenAddress, Token>;
 
 /**
+ * Get all tokens request
+ */
+export interface FinGetAllTokensRequest {}
+
+/**
+ * Get all tokens response
+ */
+export interface FinGetAllTokensResponse extends Map<TokenAddress, Token> {}
+
+/**
  * Get market request
  */
 export interface FinGetMarketRequest {
@@ -326,6 +395,16 @@ export interface FinGetMarketsRequest {
  * Get markets response
  */
 export interface FinGetMarketsResponse extends Map<MarketAddress, Market> {}
+
+/**
+ * Get all markets request
+ */
+export interface FinGetAllMarketsRequest {}
+
+/**
+ * Get all markets response
+ */
+export interface FinGetAllMarketsResponse extends Map<MarketAddress, Market> {}
 
 /**
  * Get order book request
@@ -406,10 +485,10 @@ export interface FinGetTransactionRequest {
 	 */
 	hash: TransactionHash;
 
-  /**
-   * Wait for confirmation
-   */
-  waitForConfirmation?: boolean;
+	/**
+	 * Wait for confirmation
+	 */
+	waitForConfirmation?: boolean;
 }
 
 /**
