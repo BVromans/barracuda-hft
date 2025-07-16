@@ -81,7 +81,7 @@ export class Fin {
 	/**
 	 * Get status
 	 */
-	async getStatus(): Promise<FinGetStatusResponse> {
+	async getStatus(request: FinGetBalancesRequest): Promise<FinGetStatusResponse> {
 		try {
 			// Check if client is initialized and can connect
 			if (!this.client) {
@@ -203,7 +203,9 @@ export class Fin {
 			throw new Error("Market address must be provided");
 		}
 
-		const market = this.marketsByAddress.get(request.marketAddress);
+		const market = await this.getMarket({
+			address: request.marketAddress
+		});
 
 		const rawOrderBook = await this.client.queryContractSmart(request.marketAddress, {
 			order_book: {
