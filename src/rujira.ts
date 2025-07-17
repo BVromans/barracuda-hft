@@ -8,6 +8,7 @@ import {
 	Market,
 	MarketAddress,
 	MarketSymbol,
+	MarketStatus,
 	OrderBook,
 	OrderBookMiddlePrice,
 	OrderBookOrder,
@@ -59,6 +60,7 @@ import {
 	RPCEndpoint,
 	WalletMnemonic
 } from "./types";
+import Decimal from 'decimal.js';
 import { GasPrice } from "@cosmjs/stargate";
 import { DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
 
@@ -406,12 +408,34 @@ export class Fin {
 		ttlSeconds: 60 * 60 * 6,
 	})
 	async getAllTokens(request: FinGetAllTokensRequest): Promise<FinGetAllTokensResponse> {
-		// for (const token of tokens.values()) {
-		// 	this.tokensByAddress.set(token.address, token);
-		// 	this.tokensBySymbol.set(token.symbol, token);
-		// }
+		try {
+			// Get all markets first (this already contains all token data)
+			const markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
+			const tokenMap = new Map<TokenAddress, Token>();
 
-		throw new Error("Not implemented");
+			// Extract all unique tokens from the markets
+			for (const market of markets.values()) {
+				// Add base token if not already added
+				if (!tokenMap.has(market.tokens.base.address)) {
+					tokenMap.set(market.tokens.base.address, market.tokens.base);
+				}
+
+				// Add quote token if not already added
+				if (!tokenMap.has(market.tokens.quote.address)) {
+					tokenMap.set(market.tokens.quote.address, market.tokens.quote);
+				}
+			}
+
+			// Update internal maps
+			for (const token of tokenMap.values()) {
+				this.tokensByAddress.set(token.address, token);
+				this.tokensBySymbol.set(token.symbol, token);
+			}
+
+			return tokenMap;
+		} catch (error) {
+			throw new Error(`Failed to fetch tokens: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
 	}
 
 	/**
@@ -436,12 +460,195 @@ export class Fin {
 		ttlSeconds: 60 * 60 * 6,
 	})
 	async getAllMarkets(request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
-		// for (const market of markets.values()) {
-		// 	this.marketsByAddress.set(market.address, market);
-		// 	this.marketsBySymbol.set(market.symbol, market);
-		// }
+		const GRAPHQL_ENDPOINT = 'https://api.rujira.network/api/graphiql';
+		
+		const MARKETS_QUERY = `
+			query {
+				rujira {
+					fin {
+						id
+						address
+						tick
+						feeTaker
+						feeMaker
+						feeAddress
+						deploymentStatus
 
-		throw new Error("Not implemented");
+						# Asset Base
+						assetBase {
+							id
+							asset
+							type
+							chain
+							metadata {
+								symbol
+								name
+								decimals
+								description
+								display
+							}
+							price {
+								current
+								changeDay
+								mcap
+								timestamp
+							}
+							variants {
+								layer1 { asset }
+								secured { asset }
+								native { denom }
+							}
+						}
+
+						# Asset Quote
+						assetQuote {
+							id
+							asset
+							type
+							chain
+							metadata {
+								symbol
+								name
+								decimals
+								description
+								display
+							}
+							price {
+								current
+								changeDay
+								mcap
+								timestamp
+							}
+							variants {
+								layer1 { asset }
+								secured { asset }
+								native { denom }
+							}
+						}
+
+						# Oracles
+						oracleBase {
+							id
+							asset {
+								asset
+								metadata { symbol name decimals }
+							}
+							price
+						}
+						oracleQuote {
+							id
+							asset {
+								asset
+								metadata { symbol name decimals }
+							}
+							price
+						}
+					}
+				}
+			}
+		`;
+
+		try {
+			const response = await fetch(GRAPHQL_ENDPOINT, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ query: MARKETS_QUERY })
+			});
+
+			if (!response.ok) {
+				throw new Error(`GraphQL request failed: ${response.status} ${response.statusText}`);
+			}
+
+			const json: any = await response.json();
+			const { data, errors } = json;
+			
+			if (errors) {
+				throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
+			}
+
+			const rawPairs = data?.rujira?.fin || [];
+			const markets = new Map<MarketAddress, Market>();
+
+			for (const pair of rawPairs) {
+				// Only include LIVE markets
+				if (pair.deploymentStatus !== 'LIVE') {
+					continue;
+				}
+
+				// Create base token
+				const baseToken: Token = {
+					address: pair.assetBase.asset,
+					symbol: pair.assetBase.metadata?.symbol || pair.assetBase.asset,
+					name: pair.assetBase.metadata?.name || pair.assetBase.metadata?.symbol || pair.assetBase.asset,
+					decimals: pair.assetBase.metadata?.decimals ?? 8,
+					raw: pair.assetBase
+				};
+
+				// Create quote token
+				const quoteToken: Token = {
+					address: pair.assetQuote.asset,
+					symbol: pair.assetQuote.metadata?.symbol || pair.assetQuote.asset,
+					name: pair.assetQuote.metadata?.name || pair.assetQuote.metadata?.symbol || pair.assetQuote.asset,
+					decimals: pair.assetQuote.metadata?.decimals ?? 8,
+					raw: pair.assetQuote
+				};
+
+				// Create market symbol
+				const marketSymbol = `${baseToken.symbol}/${quoteToken.symbol}`;
+
+				// Create market object
+				const market: Market = {
+					address: pair.address,
+					symbol: marketSymbol,
+					tokens: {
+						base: baseToken,
+						quote: quoteToken
+					},
+					decimals: pair.tick || 6, // Use tick as decimals
+					status: MarketStatus.ACTIVE, // LIVE markets are active
+					raw: {
+						id: pair.id,
+						tick: pair.tick,
+						feeTaker: pair.feeTaker,
+						feeMaker: pair.feeMaker,
+						feeAddress: pair.feeAddress,
+						deploymentStatus: pair.deploymentStatus,
+						oracleBase: pair.oracleBase,
+						oracleQuote: pair.oracleQuote,
+						assetBase: pair.assetBase,
+						assetQuote: pair.assetQuote
+					}
+				};
+
+				// Add price data if available
+				if (pair.assetBase.price?.current && pair.assetQuote.price?.current) {
+					const basePrice = new Decimal(pair.assetBase.price.current);
+					const quotePrice = new Decimal(pair.assetQuote.price.current);
+					
+					if (quotePrice.gt(0)) {
+						const baseQuotePrice = basePrice.div(quotePrice);
+						const quoteBasePrice = quotePrice.div(basePrice);
+						
+						market.price = {
+							baseQuote: baseQuotePrice,
+							quoteBase: quoteBasePrice
+						};
+					}
+				}
+
+				markets.set(pair.address, market);
+			}
+
+			// Update internal maps
+			for (const market of markets.values()) {
+				this.marketsByAddress.set(market.address, market);
+				this.marketsBySymbol.set(market.symbol, market);
+			}
+
+			return markets;
+		} catch (error) {
+			throw new Error(`Failed to fetch markets: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
 	}
 
 	/**
