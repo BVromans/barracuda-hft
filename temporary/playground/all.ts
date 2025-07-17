@@ -33,9 +33,6 @@ let privateClient: SigningCosmWasmClient;
     await publicQueryContract(contract, {
       config: {}
     });
-    await privateQueryContract(contract, {
-      config: {}
-    });
   }
 })();
 
