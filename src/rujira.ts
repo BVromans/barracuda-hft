@@ -1,6 +1,7 @@
 import { CosmWasmClient, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
 import { stringToPath, Bip39, EnglishMnemonic, Slip10, Slip10Curve } from "@cosmjs/crypto";
+import { fromBase64 } from "@cosmjs/encoding";
 import cacheManager, { Cacheable, CacheManagerOptions } from "@type-cacheable/core";
 import { useAdapter } from "@type-cacheable/lru-cache-adapter";
 import { LRUCache } from 'lru-cache';
@@ -548,7 +549,3 @@ export class Fin {
 		throw new Error("Not implemented");
 	}
 }
-function fromBase64(arg0: string): Uint8Array<ArrayBufferLike> {
-	throw new Error("Function not implemented.");
-}
-
