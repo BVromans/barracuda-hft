@@ -46,10 +46,10 @@ import {
 } from "./types";
 
 export class Rujira {
-	private readonly fin: Fin;
+	public readonly fin: Fin;
 
 	constructor() {
-		this.fin = undefined as unknown as Fin;
+		this.fin = new Fin(''); // Initialize with empty RPC endpoint
 	}
 }
 
@@ -59,11 +59,13 @@ export class Fin {
 	private tokensBySymbol: Map<TokenSymbol, Token>;
 	private marketsByAddress: Map<MarketAddress, Market>;
 	private marketsByName: Map<MarketSymbol, Market>;
+	private readonly rpcEndpoint: string;
 
 	/**
 	 * Constructor
 	 */
 	constructor(rpcEndpoint: string) {
+		this.rpcEndpoint = rpcEndpoint;
 		this.client = undefined as unknown as CosmWasmClient;
 		this.tokensByAddress = new Map();
 		this.tokensBySymbol = new Map();
@@ -75,7 +77,9 @@ export class Fin {
 	 * Initialize the client
 	 */
 	async initialize(): Promise<void> {
-		throw new Error("Not implemented");
+		if (!this.client) {
+			this.client = await CosmWasmClient.connect(this.rpcEndpoint);
+		}
 	}
 
 	/**
@@ -113,46 +117,64 @@ export class Fin {
 	 * Get transaction
 	 */
 	async getTransaction(request: FinGetTransactionRequest): Promise<FinGetTransactionResponse> {
-		if (!this.client) {
-			throw new Error("Client not initialized. Please call initialize() first.");
-		}
-
 		if (!request.hash) {
 			throw new Error("Transaction hash is required");
 		}
 
-		try {
-			// Get transaction details from the blockchain
+		// Se não for para esperar confirmação, busca normalmente
+		if (!request.waitForConfirmation) {
 			const transaction = await this.client.getTx(request.hash);
 
 			if (!transaction) {
 				throw new Error("Transaction not found");
 			}
 
-			// Transform the raw transaction data to match our interface
-			const transactionResponse: FinGetTransactionResponse = {
-				hash: request.hash,
-				status: transaction.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
-				fee: {
-					amount: (transaction.gasUsed || 0) as any,
-					token: {
-						address: '',
-						symbol: '',
-						name: '',
-						decimals: 0 as TokenDecimals,
-						raw: {}
-					}
-				},
-				raw: transaction
+			return {
+				transaction: {
+					hash: request.hash,
+					status: transaction.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
+					fee: {
+						amount: (transaction.gasUsed || 0) as any,
+						token: {
+							address: 'rujirarujira',
+							symbol: 'Ruji',
+							name: 'Rujira',
+							decimals: 6,
+							raw: {}
+						}
+					},
+					raw: transaction
+				}
 			};
-
-			return transactionResponse;
-		} catch (error) {
-			if (error instanceof Error && error.message === "Transaction not found") {
-				throw error;
-			}
-			throw new Error(`Failed to get transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
+
+		// Se for para esperar confirmação, faz polling até encontrar ou timeout
+		const maxAttempts = 30;
+		const delayMs = 2000;
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
+			const transaction = await this.client.getTx(request.hash);
+			if (transaction) {
+				return {
+					transaction: {
+						hash: request.hash,
+						status: transaction.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
+						fee: {
+							amount: (transaction.gasUsed || 0) as any,
+							token: {
+								address: 'rujirarujira',
+								symbol: 'Ruji',
+								name: 'Rujira',
+								decimals: 6,
+								raw: {}
+							}
+						},
+						raw: transaction
+					}
+				};
+			}
+			await new Promise(res => setTimeout(res, delayMs));
+		}
+		throw new Error("Transaction not found after waiting for confirmation");
 	}
 
 	/**
@@ -211,7 +233,7 @@ export class Fin {
 			throw new Error("Market address must be provided");
 		}
 
-		const market = await this.getMarket({
+		const marketResponse = await this.getMarket({
 			address: request.marketAddress
 		});
 
@@ -222,7 +244,7 @@ export class Fin {
 		});
 
 		const orderBook: OrderBook = {
-			market: market!,
+			market: marketResponse.market,
 			book: {
 				asks: undefined as unknown as OrderBookOrder[],
 				bids: undefined as unknown as OrderBookOrder[],
@@ -233,7 +255,7 @@ export class Fin {
 			raw: rawOrderBook
 		} as OrderBook;
 
-		return orderBook;
+		return { orderBook };
 	}
 
 	/**

@@ -1,4 +1,384 @@
+// ===== CONTRACT TYPES =====
+// Core types from Rujira contracts
+export type Side = "base" | "quote";
+export type Chain = "avax" | "bch" | "bsc" | "btc" | "doge" | "eth" | "gaia" | "ltc" | "thor";
+
+export interface Uint128 {
+  // String representation for large numbers
+  // e.g., "1000000"
+}
+
+export interface Uint64 {
+  // String representation for 64-bit numbers
+}
+
+export interface Layer1Asset {
+  chain: Chain;
+  symbol: string;
+}
+
+export interface Price {
+  fixed?: string; // Decimal string
+  oracle?: number; // Integer index
+}
+
+export interface Coin {
+  amount: string; // Uint128
+  denom: string;
+}
+
+export interface SwapRequest {
+  min_return?: string; // Uint128
+  to?: string; // Address
+  callback?: any; // Binary data
+}
+
+export interface CallbackData {
+  // Binary data for callbacks
+}
+
+// ===== RUJIRA BOW CONTRACT (Current) =====
+export interface BowInstantiateMsg {
+  denoms: {
+    bid: string;
+    ask: string;
+  };
+  market_maker?: string;
+  oracles?: string[];
+  tick: { exponent: number };
+  fee_taker: string;
+  fee_maker: string;
+  fee_address: string;
+}
+
+export interface BowExecuteMsg {
+  swap?: {
+    min_return?: string;
+    to?: string;
+    callback?: any;
+  };
+  order?: [Array<[string, any, string]>, any];
+  arb?: {
+    then?: any;
+  };
+  do_swap?: [string, any];
+}
+
+export interface BowQueryMsg {
+  strategy?: {
+    denom: string;
+    amount: string;
+  };
+  quote?: {
+    denom: string;
+    amount: string;
+    offer_denom: string;
+    offer_amount: string;
+    ask_denom: string;
+    ask_amount: string;
+  };
+}
+
+// Bow Response types
+export interface BowStrategyResponse {
+  xyk: [
+    {
+      x: string;
+      y: string;
+      step: string;
+      min_quote: string;
+      fee: string;
+    },
+    {
+      x: string;
+      y: string;
+      k: string;
+      shares: string;
+    }
+  ];
+}
+
+export interface BowQuoteResponse {
+  price: string;
+  size: string;
+  data: string; // Base64 encoded data
+}
+
+// ===== RUJIRA FIN CONTRACT (Future) =====
+export interface FinInstantiateMsg {
+  denoms: string[]; // Array of 2 strings [base, quote]
+  fee_address: string;
+  fee_maker: string; // Decimal
+  fee_taker: string; // Decimal
+  tick: number; // uint8
+  market_maker?: string;
+  oracles?: Layer1Asset[]; // Array of 2 Layer1Asset
+}
+
+export interface FinExecuteMsg {
+  swap?: SwapRequest;
+  order?: [
+    Array<[Side, Price, string | null]>, // [side, price, amount]
+    CallbackData | null
+  ];
+  arb?: {
+    then?: any; // Binary data
+  };
+  do_swap?: [string, SwapRequest]; // [address, swap_request]
+}
+
+export interface FinQueryMsg {
+  config?: {};
+  simulate?: Coin;
+  order?: [string, Side, Price]; // [owner, side, price]
+  orders?: {
+    owner: string;
+    side?: Side;
+    offset?: number; // uint8
+    limit?: number; // uint8 (max 30)
+  };
+  book?: {
+    limit?: number; // uint8
+    offset?: number; // uint8
+  };
+}
+
+// Fin Response types
+export interface FinConfigResponse {
+  denoms: string[];
+  fee_address: string;
+  fee_maker: string; // Decimal
+  fee_taker: string; // Decimal
+  tick: number;
+  market_maker?: string;
+  oracles?: Layer1Asset[];
+}
+
+export interface FinSimulationResponse {
+  fee: string; // Uint128
+  returned: string; // Uint128
+}
+
+export interface FinBookItemResponse {
+  price: string; // Decimal
+  total: string; // Uint128
+}
+
+export interface FinBookResponse {
+  base: FinBookItemResponse[];
+  quote: FinBookItemResponse[];
+}
+
+export interface FinOrderResponse {
+  filled: string; // Uint128
+  offer: string; // Uint128
+  owner: string;
+  price: Price;
+  rate: string; // Decimal
+  remaining: string; // Uint128
+  side: Side;
+  updated_at: string; // Timestamp
+}
+
+export interface FinOrdersResponse {
+  orders: FinOrderResponse[];
+}
+
+// ===== LEGACY TYPES (Backward Compatibility) =====
+export interface InstantiateMsg extends BowInstantiateMsg {}
+export interface ExecuteMsg extends BowExecuteMsg {}
+export interface QueryMsg extends BowQueryMsg {}
+
+// Legacy response types
+export interface ConfigResponse extends FinConfigResponse {}
+export interface SimulationResponse extends FinSimulationResponse {}
+export interface BookResponse extends FinBookResponse {}
+export interface OrdersResponse extends FinOrdersResponse {}
+
+// ===== APPLICATION TYPES =====
 import Decimal from 'decimal.js';
+
+// ===== FIN REQUEST/RESPONSE TYPES =====
+export interface FinCancelOrderRequest {
+	orderId: string;
+	marketAddress?: MarketAddress;
+	marketSymbol?: MarketSymbol;
+}
+
+export interface FinCancelOrderResponse {
+	success: boolean;
+	orderId: string;
+	error?: string;
+}
+
+export interface FinCancelOrdersRequest {
+	marketAddress?: MarketAddress;
+	marketSymbol?: MarketSymbol;
+	side?: OrderSide;
+}
+
+export interface FinCancelOrdersResponse {
+	success: boolean;
+	cancelledCount: number;
+	errors?: string[];
+}
+
+export interface FinCreateOrderRequest {
+	marketAddress?: MarketAddress;
+	marketSymbol?: MarketSymbol;
+	side: OrderSide;
+	type: OrderType;
+	amount: Amount;
+	price?: Amount;
+}
+
+export interface FinCreateOrderResponse {
+	success: boolean;
+	orderId: string;
+	error?: string;
+}
+
+export interface FinCreateOrdersRequest {
+	orders: FinCreateOrderRequest[];
+}
+
+export interface FinCreateOrdersResponse {
+	success: boolean;
+	orderIds: string[];
+	errors?: string[];
+}
+
+export interface FinGetBalancesRequest {
+	walletAddress: WalletAddress;
+}
+
+export interface FinGetBalancesResponse {
+	balances: Balances;
+}
+
+export interface FinGetMarketRequest {
+	address?: MarketAddress;
+	symbol?: MarketSymbol;
+}
+
+export interface FinGetMarketResponse {
+	market: Market;
+}
+
+export interface FinGetMarketsRequest {
+	status?: MarketStatus;
+}
+
+export interface FinGetMarketsResponse {
+	markets: Market[];
+}
+
+export interface FinGetOrderBookRequest {
+	marketAddress?: MarketAddress;
+	marketSymbol?: MarketSymbol;
+	limit?: number;
+}
+
+export interface FinGetOrderBookResponse {
+	orderBook: OrderBook;
+}
+
+export interface FinGetOrderRequest {
+	orderId: string;
+	marketAddress?: MarketAddress;
+	marketSymbol?: MarketSymbol;
+}
+
+export interface FinGetOrderResponse {
+	order: Order;
+}
+
+export interface FinGetOrdersRequest {
+	marketAddress?: MarketAddress;
+	marketSymbol?: MarketSymbol;
+	side?: OrderSide;
+	status?: OrderStatus;
+	limit?: number;
+}
+
+export interface FinGetOrdersResponse {
+	orders: Order[];
+}
+
+export interface FinGetStatusResponse {
+	status: SystemStatus;
+	error?: string;
+}
+
+export interface FinGetTickerRequest {
+	marketAddress?: MarketAddress;
+	marketSymbol?: MarketSymbol;
+}
+
+export interface FinGetTickerResponse {
+	ticker: Ticker;
+}
+
+export interface FinGetTokenRequest {
+	address?: TokenAddress;
+	symbol?: TokenSymbol;
+}
+
+export interface FinGetTokenResponse {
+	token: Token;
+}
+
+export interface FinGetTokensRequest {
+	symbols?: TokenSymbol[];
+}
+
+export interface FinGetTokensResponse {
+	tokens: Token[];
+}
+
+export interface FinGetTransactionRequest {
+	/**
+	 * The hash of the transaction to get
+	 */
+	hash: TransactionHash;
+
+	/**
+	 * Whether to wait for the transaction to be confirmed
+	 */
+	waitForConfirmation?: boolean;
+}
+
+export interface FinGetTransactionResponse {
+	transaction: Transaction;
+}
+
+export interface FinWithdrawRequest {
+	marketAddress: MarketAddress;
+	amount: Amount;
+	token: Token;
+}
+
+export interface FinWithdrawResponse {
+	success: boolean;
+	transactionHash?: TransactionHash;
+	error?: string;
+}
+
+// ===== ORDER TYPES =====
+export interface Order {
+	id: string;
+	market: Market;
+	side: OrderSide;
+	type: OrderType;
+	status: OrderStatus;
+	amount: Amount;
+	filledAmount: Amount;
+	remainingAmount: Amount;
+	price?: Amount;
+	createdAt: Timestamp;
+	updatedAt: Timestamp;
+	raw: Raw;
+}
 
 export const NATIVE_TOKEN = {
 	address: undefined as unknown as string,
@@ -23,12 +403,6 @@ export const BEACON_TOKEN = {
 	decimals: undefined as unknown as number,
 	raw: undefined as unknown as Raw
 } as Token;
-
-export enum Chain {
-	ETHEREUM = 'ethereum',
-	RUJIRA = 'rujira',
-	THORCHAIN = 'thorchain',
-}
 
 export enum SystemStatus {
 	UP = 'up',
@@ -76,7 +450,6 @@ export enum OrderStatus {
 	UNKNOWN = 'unknown'
 }
 
-export type Boolean = boolean;
 export type Raw = any;
 export type Address = string;
 export type Integer = number;
@@ -85,18 +458,13 @@ export type Hash = string;
 export type Timestamp = number;
 
 export type WalletAddress = Address;
-
 export type TokenAddress = Address;
 export type TokenSymbol = string;
 export type TokenName = string;
 export type TokenDecimals = number;
-
 export type FeeAmount = Amount;
 export type FeeToken = Token;
-
 export type TransactionHash = Hash;
-export type TransactionConfirmation = Boolean;
-
 export type MarketAddress = Address;
 export type MarketSymbol = string;
 export type MarketDecimals = Integer;
@@ -191,520 +559,4 @@ export interface TokenBalance {
 export interface Balances {
 	tokens: Map<TokenAddress, TokenBalance>;
 	total: BaseTokenBalance;
-}
-
-///////////////////////////////////////////////////
-
-/**
- * Get status request
- */
-export interface FinGetStatusRequest {
-	/**
-	 * Chain
-	 */
-	chain: Chain;
-
-	/**
-	 * Network
-	 */
-	network: Network;
-
-}
-
-/**
- * Get status response
- */
-export interface FinGetStatusResponse {
-	/**
-	 * System status
-	 */
-	status: SystemStatus;
-
-	/**
-	 * Error message (only present when status is DOWN)
-	 */
-	error?: string;
-}
-
-/**
- * Get token request
- */
-export interface FinGetTokenRequest {
-	/**
-	 * Token address
-	 */
-	address?: TokenAddress;
-
-	/**
-	 * Token symbol
-	 */
-	symbol?: TokenSymbol;
-}
-
-/**
- * Get token response
- */
-export interface FinGetTokenResponse {
-	/**
-	 * Contract address of the token
-	 */
-	address: TokenAddress;
-
-	/**
-	 * Symbol of the token
-	 */
-	symbol: TokenSymbol;
-
-	/**
-	 * Name of the token
-	 */
-	name: TokenName;
-
-	/**
-	 * Number of decimal places
-	 */
-	decimals: TokenDecimals;
-
-}
-
-/**
- * Get tokens request (if no addresses or symbols are provided, all tokens will be returned)
- */
-export interface FinGetTokensRequest {
-	/**
-	 * Token addresses
-	 */
-	addresses?: TokenAddress[];
-
-	/**
-	 * Token symbols
-	 */
-	symbols?: TokenSymbol[];
-}
-
-/**
- * Get tokens response
- */
-export type FinGetTokensResponse = Map<TokenAddress, Token>;
-
-/**
- * Get market request
- */
-export interface FinGetMarketRequest {
-	/**
-	 * Market address
-	 */
-	address?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	symbol?: MarketSymbol;
-}
-
-/**
- * Get market response
- */
-export interface FinGetMarketResponse extends Market {}
-
-/**
- * Get markets request
- */
-export interface FinGetMarketsRequest {
-	/**
-	 * Market address
-	 */
-	addresses?: MarketAddress[];
-
-	/**
-	 * Market name
-	 */
-	symbols?: MarketSymbol[];
-}
-
-/**
- * Get markets response
- */
-export interface FinGetMarketsResponse extends Map<MarketAddress, Market> {}
-
-/**
- * Get order book request
- */
-export interface FinGetOrderBookRequest {
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Limit
-	 */
-	limit?: Integer;
-}
-
-/**
- * Get order book response
- */
-export interface FinGetOrderBookResponse extends OrderBook {}
-
-/**
- * Get ticker request
- */
-export interface FinGetTickerRequest {
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-}
-
-/**
- * Get ticker response
- */
-export interface FinGetTickerResponse extends Ticker {}
-
-/**
- * Get balances request
- */
-export interface FinGetBalancesRequest {
-	/**
-	 * Address
-	 */
-	walletAddress: WalletAddress;
-
-	/**
-	 * Token addresses to filter balances (optional)
-	 */
-	tokenAddresses?: TokenAddress[];
-
-	/**
-	 * Token symbols to filter balances
-	 */
-	tokenSymbols: TokenSymbol[];
-}
-
-/**
- * Get balances response
- */
-export interface FinGetBalancesResponse extends Balances {}
-
-/**
- * Get transaction request
- */
-export interface FinGetTransactionRequest {
-	/**
-	 * Transaction hash
-	 */
-	hash: TransactionHash;
-
-  /**
-   * Wait for confirmation
-   */
-  waitForConfirmation?: boolean;
-}
-
-/**
- * Get transaction response
- */
-export interface FinGetTransactionResponse extends Transaction {}
-
-/**
- * Get order request
- */
-export interface FinGetOrderRequest {
-	/**
-	 * Order ID
-	 */
-	id: string;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Owner address (wallet that owns the order)
-	 */
-	ownerAddress: string;
-}
-
-/**
- * Get order response
- */
-export interface FinGetOrderResponse extends OrderBookOrder {}
-
-/**
- * Get orders request
- */
-export interface FinGetOrdersRequest {
-	/**
-	 * Owner address (wallet that owns the orders)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * Market address (optional filter)
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name (optional filter)
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Order status filter (optional)
-	 */
-	status?: OrderStatus;
-
-	/**
-	 * Order IDs filter (optional)
-	 */
-	ids?: string[];
-
-	/**
-	 * Limit number of orders to return (optional)
-	 */
-	limit?: Integer;
-}
-
-/**
- * Get orders response
- */
-export interface FinGetOrdersResponse {
-	/**
-	 * List of orders
-	 */
-	orders: OrderBookOrder[];
-}
-
-/**
- * Create order request
- */
-export interface FinCreateOrderRequest {
-	/**
-	 * Owner address (wallet that will create the order)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Order side (buy/sell)
-	 */
-	side: OrderSide;
-
-	/**
-	 * Order type (market/limit)
-	 */
-	type: OrderType;
-
-	/**
-	 * Order price (required for limit orders)
-	 */
-	price?: Amount;
-
-	/**
-	 * Order amount
-	 */
-	amount: Amount;
-}
-
-/**
- * Create order response
- */
-export interface FinCreateOrderResponse {
-	
-}
-
-/**
- * Create orders request
- */
-export interface FinCreateOrdersRequest {
-	/**
-	 * Owner address (wallet that will create the orders)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * List of orders to create
-	 */
-	orders: FinCreateOrderRequest[];
-
-	/**
-	 * Gas limit for the transaction (optional)
-	 */
-	gasLimit?: Integer;
-
-	/**
-	 * Gas price for the transaction (optional)
-	 */
-	gasPrice?: Amount;
-}
-
-/**
- * Create orders response
- */
-export interface FinCreateOrdersResponse {
-	/**
-	 * List of created orders
-	 */
-	orders: OrderBookOrder[];
-	
-	/**
-	 * Transaction details
-	 */
-	transaction: Transaction;
-}
-
-/**
- * Cancel order request
- */
-export interface FinCancelOrderRequest {
-	/**
-	 * Owner address (wallet that will cancel the order)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Order ID
-	 */
-	orderId: string;
-}
-
-/**
- * Cancel order response
- */
-export interface FinCancelOrderResponse {
-	/**
-	 * Order ID that was cancelled
-	 */
-	orderId: string;
-	
-	/**
-	 * Status of the cancelled order
-	 */
-	status: OrderStatus;
-	
-	/**
-	 * Transaction details
-	 */
-	transaction: Transaction;
-}
-
-/**
- * Cancel orders request
- */
-export interface FinCancelOrdersRequest {
-	/**
-	 * Owner address (wallet that will cancel the orders)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Order IDs
-	 */
-	orderIds: string[];
-}
-
-/**
- * Cancel orders response
- */
-export interface FinCancelOrdersResponse {
-	/**
-	 * Order IDs that were cancelled
-	 */
-	orderIds: string[];
-	
-	/**
-	 * Status of the cancelled orders
-	 */
-	status: OrderStatus;
-	
-	/**
-	 * Transaction details
-	 */
-	transaction: Transaction;
-}
-
-/**
- * Withdraw from market request
- */
-export interface FinWithdrawRequest {
-	/**
-	 * Owner address (wallet that will withdraw)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Order IDs to withdraw (optional - if not provided, withdraws all filled orders)
-	 */
-	orderIds?: string[];
-}
-
-/**
- * Withdraw from market response
- */
-export interface FinWithdrawResponse {
-	/**
-	 * Whether the withdrawal was successful
-	 */
-	success: boolean;
-	
-	/**
-	 * Transaction details
-	 */
-	transaction: Transaction;
 }
