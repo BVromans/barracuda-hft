@@ -30,9 +30,7 @@ let privateClient: SigningCosmWasmClient;
 
   for (const contract of contractsByCodeId) {
     await getContract(contract);
-    await publicQueryContract(contract, {
-      config: {}
-    });
+    await getContractConfig(contract);
   }
 })();
 
@@ -74,4 +72,20 @@ async function privateQueryContract(address: string, query: JsonObject) {
     console.log(JSON.stringify(result, null, 2));
     console.log('--------------------------------\n');
     return result;
+}
+
+async function getContractConfig(address: string) {
+  return publicQueryContract(address, {
+    config: {}
+  });
+}
+
+async function getDenom(address: string) {
+  const result = await publicQueryContract(address, {
+    denom: {}
+  });
+  console.log('\ngetDenom', address);
+  console.log(JSON.stringify(result, null, 2));
+  console.log('--------------------------------\n');
+  return result;
 }
