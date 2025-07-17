@@ -1,536 +1,49 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import {
-	Ticker,
-	Amount,
-	Balances,
-	Chain,
-	Integer,
 	Market,
 	MarketAddress,
 	MarketSymbol,
-	Network,
 	OrderBook,
 	OrderBookMiddlePrice,
 	OrderBookOrder,
-	OrderSide,
-	OrderStatus,
-	OrderType,
 	SystemStatus,
 	Token,
 	TokenAddress,
 	TokenDecimals,
-	TokenName,
 	TokenSymbol,
-	Transaction,
-	TransactionHash,
-	TransactionStatus, WalletAddress
+	TransactionStatus,
+	FinCancelOrderRequest,
+	FinCancelOrderResponse,
+	FinCancelOrdersRequest,
+	FinCancelOrdersResponse,
+	FinCreateOrderRequest,
+	FinCreateOrderResponse,
+	FinCreateOrdersRequest,
+	FinCreateOrdersResponse,
+	FinGetBalancesRequest,
+	FinGetBalancesResponse,
+	FinGetMarketRequest,
+	FinGetMarketResponse,
+	FinGetMarketsRequest,
+	FinGetMarketsResponse,
+	FinGetOrderBookRequest,
+	FinGetOrderBookResponse,
+	FinGetOrderRequest,
+	FinGetOrderResponse,
+	FinGetOrdersRequest,
+	FinGetOrdersResponse,
+	FinGetStatusResponse,
+	FinGetTickerRequest,
+	FinGetTickerResponse,
+	FinGetTokenRequest,
+	FinGetTokenResponse,
+	FinGetTokensRequest,
+	FinGetTokensResponse,
+	FinGetTransactionRequest,
+	FinGetTransactionResponse,
+	FinWithdrawRequest,
+	FinWithdrawResponse
 } from "./types";
-
-/**
- * Get status request
- */
-export interface FinGetStatusRequest {
-	/**
-	 * Chain
-	 */
-	chain: Chain;
-
-	/**
-	 * Network
-	 */
-	network: Network;
-
-}
-
-/**
- * Get status response
- */
-export interface FinGetStatusResponse {
-	/**
-	 * System status
-	 */
-	status: SystemStatus;
-
-	/**
-	 * Error message (only present when status is DOWN)
-	 */
-	error?: string;
-}
-
-/**
- * Get token request
- */
-export interface FinGetTokenRequest {
-	/**
-	 * Token address
-	 */
-	address: TokenAddress;
-
-	/**
-	 * Token symbol
-	 */
-	symbol: TokenSymbol;
-}
-
-/**
- * Get token response
- */
-export interface FinGetTokenResponse {
-	/**
-	 * Contract address of the token
-	 */
-	address: TokenAddress;
-
-	/**
-	 * Symbol of the token
-	 */
-	symbol: TokenSymbol;
-
-	/**
-	 * Name of the token
-	 */
-	name: TokenName;
-
-	/**
-	 * Number of decimal places
-	 */
-	decimals: TokenDecimals;
-
-}
-
-/**
- * Get tokens request (if no addresses or symbols are provided, all tokens will be returned)
- */
-export interface FinGetTokensRequest {
-	/**
-	 * Token addresses
-	 */
-	addresses?: TokenAddress[];
-
-	/**
-	 * Token symbols
-	 */
-	symbols?: TokenSymbol[];
-}
-
-/**
- * Get tokens response
- */
-export type FinGetTokensResponse = Map<TokenAddress, Token>;
-
-/**
- * Get market request
- */
-export interface FinGetMarketRequest {
-	/**
-	 * Market address
-	 */
-	address?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	symbol?: MarketSymbol;
-}
-
-/**
- * Get market response
- */
-export interface FinGetMarketResponse extends Market {}
-
-/**
- * Get markets request
- */
-export interface FinGetMarketsRequest {
-	/**
-	 * Market address
-	 */
-	addresses?: MarketAddress[];
-
-	/**
-	 * Market name
-	 */
-	symbols?: MarketSymbol[];
-}
-
-/**
- * Get markets response
- */
-export interface FinGetMarketsResponse extends Map<MarketAddress, Market> {}
-
-/**
- * Get order book request
- */
-export interface FinGetOrderBookRequest {
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Limit
-	 */
-	limit?: Integer;
-}
-
-/**
- * Get order book response
- */
-export interface FinGetOrderBookResponse extends OrderBook {}
-
-/**
- * Get ticker request
- */
-export interface FinGetTickerRequest {
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-}
-
-/**
- * Get ticker response
- */
-export interface FinGetTickerResponse extends Ticker {}
-
-/**
- * Get balances request
- */
-export interface FinGetBalancesRequest {
-	/**
-	 * Address
-	 */
-	walletAddress: WalletAddress;
-
-	/**
-	 * Token addresses to filter balances (optional)
-	 */
-	tokenAddresses?: TokenAddress[];
-
-	/**
-	 * Token symbols to filter balances
-	 */
-	tokenSymbols: TokenSymbol[];
-}
-
-/**
- * Get balances response
- */
-export interface FinGetBalancesResponse extends Balances {}
-
-/**
- * Get transaction request
- */
-export interface FinGetTransactionRequest {
-	hash: TransactionHash;
-}
-
-/**
- * Get transaction response
- */
-export interface FinGetTransactionResponse extends Transaction {}
-
-/**
- * Get order request
- */
-export interface FinGetOrderRequest {
-	/**
-	 * Order ID
-	 */
-	id: string;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Owner address (wallet that owns the order)
-	 */
-	ownerAddress: string;
-}
-
-/**
- * Get order response
- */
-export interface FinGetOrderResponse extends OrderBookOrder {}
-
-/**
- * Get orders request
- */
-export interface FinGetOrdersRequest {
-	/**
-	 * Owner address (wallet that owns the orders)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * Market address (optional filter)
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name (optional filter)
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Order status filter (optional)
-	 */
-	status?: OrderStatus;
-
-	/**
-	 * Order IDs filter (optional)
-	 */
-	ids?: string[];
-
-	/**
-	 * Limit number of orders to return (optional)
-	 */
-	limit?: Integer;
-}
-
-/**
- * Get orders response
- */
-export interface FinGetOrdersResponse {
-	/**
-	 * List of orders
-	 */
-	orders: OrderBookOrder[];
-}
-
-/**
- * Create order request
- */
-export interface FinCreateOrderRequest {
-	/**
-	 * Owner address (wallet that will create the order)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Order side (buy/sell)
-	 */
-	side: OrderSide;
-
-	/**
-	 * Order type (market/limit)
-	 */
-	type: OrderType;
-
-	/**
-	 * Order price (required for limit orders)
-	 */
-	price?: Amount;
-
-	/**
-	 * Order amount
-	 */
-	amount: Amount;
-}
-
-/**
- * Create order response
- */
-export interface FinCreateOrderResponse {
-	
-}
-
-/**
- * Create orders request
- */
-export interface FinCreateOrdersRequest {
-	/**
-	 * Owner address (wallet that will create the orders)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * List of orders to create
-	 */
-	orders: FinCreateOrderRequest[];
-
-	/**
-	 * Gas limit for the transaction (optional)
-	 */
-	gasLimit?: Integer;
-
-	/**
-	 * Gas price for the transaction (optional)
-	 */
-	gasPrice?: Amount;
-}
-
-/**
- * Create orders response
- */
-export interface FinCreateOrdersResponse {
-	/**
-	 * List of created orders
-	 */
-	orders: OrderBookOrder[];
-	
-	/**
-	 * Transaction details
-	 */
-	transaction: Transaction;
-}
-
-/**
- * Cancel order request
- */
-export interface FinCancelOrderRequest {
-	/**
-	 * Owner address (wallet that will cancel the order)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Order ID
-	 */
-	orderId: string;
-}
-
-/**
- * Cancel order response
- */
-export interface FinCancelOrderResponse {
-	/**
-	 * Order ID that was cancelled
-	 */
-	orderId: string;
-	
-	/**
-	 * Status of the cancelled order
-	 */
-	status: OrderStatus;
-	
-	/**
-	 * Transaction details
-	 */
-	transaction: Transaction;
-}
-
-/**
- * Cancel orders request
- */
-export interface FinCancelOrdersRequest {
-	/**
-	 * Owner address (wallet that will cancel the orders)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Order IDs
-	 */
-	orderIds: string[];
-}
-
-/**
- * Cancel orders response
- */
-export interface FinCancelOrdersResponse {
-	/**
-	 * Order IDs that were cancelled
-	 */
-	orderIds: string[];
-	
-	/**
-	 * Status of the cancelled orders
-	 */
-	status: OrderStatus;
-	
-	/**
-	 * Transaction details
-	 */
-	transaction: Transaction;
-}
-
-/**
- * Withdraw from market request
- */
-export interface FinWithdrawRequest {
-	/**
-	 * Owner address (wallet that will withdraw)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Order IDs to withdraw (optional - if not provided, withdraws all filled orders)
-	 */
-	orderIds?: string[];
-}
-
-/**
- * Withdraw from market response
- */
-export interface FinWithdrawResponse {
-	/**
-	 * Whether the withdrawal was successful
-	 */
-	success: boolean;
-	
-	/**
-	 * Transaction details
-	 */
-	transaction: Transaction;
-}
 
 export class Rujira {
 	private readonly fin: Fin;
@@ -568,7 +81,7 @@ export class Fin {
 	/**
 	 * Get status
 	 */
-	async getStatus(): Promise<FinGetStatusResponse> {
+	async getStatus(request: FinGetBalancesRequest): Promise<FinGetStatusResponse> {
 		try {
 			// Check if client is initialized and can connect
 			if (!this.client) {
@@ -646,6 +159,14 @@ export class Fin {
 	 * Get token
 	 */
 	async getToken(request: FinGetTokenRequest): Promise<FinGetTokenResponse> {
+		if (request.address) {
+			request.address = request.address.toLowerCase().trim();
+		}
+
+		if (request.symbol) {
+			request.symbol = request.symbol.toLowerCase().trim();
+		}
+
 		if (!request.address && !request.symbol) {
 			throw new Error("Either address or symbol must be provided");
 		}
@@ -690,7 +211,9 @@ export class Fin {
 			throw new Error("Market address must be provided");
 		}
 
-		const market = this.marketsByAddress.get(request.marketAddress);
+		const market = await this.getMarket({
+			address: request.marketAddress
+		});
 
 		const rawOrderBook = await this.client.queryContractSmart(request.marketAddress, {
 			order_book: {
