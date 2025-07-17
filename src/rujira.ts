@@ -1,4 +1,6 @@
 import { CosmWasmClient, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
+import { stringToPath, Bip39, EnglishMnemonic, Slip10, Slip10Curve } from "@cosmjs/crypto";
 import cacheManager, { Cacheable, CacheManagerOptions } from "@type-cacheable/core";
 import { useAdapter } from "@type-cacheable/lru-cache-adapter";
 import { LRUCache } from 'lru-cache';
@@ -134,11 +136,8 @@ export class Rujira {
 	/**
 	 * Initialize the client
 	 */
-	public async initialize(options: RujiraInitializeOptions) {
-		this.wallet = await DirectSecp256k1Wallet.fromKey(
-			fromBase64(this.walletMnemonic),
-			DEFAULT_WALLET_PREFIX
-		);
+	public async initialize(_options: RujiraInitializeOptions) {
+		this.wallet = await this.createWalletFromMnemonic(this.walletMnemonic);
 		
 		this.cosmClient = await SigningCosmWasmClient.connectWithSigner(
 			this.rpcEndpoint,
@@ -154,6 +153,48 @@ export class Rujira {
 				cosmClient: this.cosmClient
 			} as FinInitializeOptions
 		);
+	}
+
+	/**
+	 * Derive wallet private key from mnemonic
+	 * @param mnemonic - The mnemonic to derive the private key from
+	 * @returns The private key
+	 */
+	private async deriveWalletPrivateKeyFromMnemonic(mnemonic: string): Promise<string> {		
+		const englishMnemonic = new EnglishMnemonic(mnemonic);
+		const seed = await Bip39.mnemonicToSeed(englishMnemonic);
+		
+		// Derive the private key using the THORChain HD path
+		const hdPath = stringToPath("m/44'/931'/0'/0/0");
+		const { privkey } = Slip10.derivePath(Slip10Curve.Secp256k1, seed, hdPath);
+		
+		// Convert to base64
+		const base64PrivateKey = Buffer.from(privkey).toString('base64');
+		
+		return base64PrivateKey;
+	}
+
+	/**
+	 * Create wallet from private key
+	 * @param privateKey - The private key to create the wallet from
+	 * @returns The wallet
+	 */
+	private async createWalletFromPrivateKey(privateKey: string): Promise<DirectSecp256k1Wallet> {
+		return await DirectSecp256k1Wallet.fromKey(
+			fromBase64(privateKey),
+			DEFAULT_WALLET_PREFIX
+		);
+	}
+
+	/**
+	 * Create wallet from mnemonic
+	 * @param mnemonic - The mnemonic to create the wallet from
+	 * @returns The wallet
+	 */
+	private async createWalletFromMnemonic(mnemonic: string): Promise<DirectSecp256k1Wallet> {
+		const privateKey = await this.deriveWalletPrivateKeyFromMnemonic(mnemonic);
+
+		return await this.createWalletFromPrivateKey(privateKey);
 	}
 }
 

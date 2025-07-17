@@ -3,7 +3,7 @@ import { stringToPath } from "@cosmjs/crypto";
 import { Bip39, EnglishMnemonic, Slip10, Slip10Curve } from "@cosmjs/crypto";
 
 async function derivePrivateKey() {
-    const mnemonic = "media kidney swap slot fade acoustic sad fire shop city almost wrong vanish trim episode until island net pluck firm laugh burden inform wagon";
+    const mnemonic = process.env.TEAM_RUJIRA_WALLET_MNEMONIC!;
     
     try {
         // Validate mnemonic
