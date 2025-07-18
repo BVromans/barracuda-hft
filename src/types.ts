@@ -613,7 +613,14 @@ export interface FinCreateOrderRequest {
  * Create order response
  */
 export interface FinCreateOrderResponse {
-	
+  /**
+   * The transaction hash of the order creation
+   */
+  transactionHash: string;
+  /**
+   * The full raw transaction result returned by the blockchain client
+   */
+  raw: any;
 }
 
 /**
