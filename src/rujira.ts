@@ -59,7 +59,9 @@ import {
 	FinGetAllMarketsRequest,
 	FinGetAllMarketsResponse,
 	RPCEndpoint,
-	WalletMnemonic
+	WalletMnemonic,
+	WalletPrivateKey,
+	FinGetStatusRequest
 } from "./types";
 import Decimal from 'decimal.js';
 import { GasPrice } from "@cosmjs/stargate";
@@ -108,6 +110,11 @@ export class Rujira {
 	private readonly rpcEndpoint: RPCEndpoint;
 
 	/**
+	 * Wallet private key
+	 */
+	private readonly walletPrivateKey: WalletPrivateKey;
+
+	/**
 	 * Wallet mnemonic
 	 */
 	private readonly walletMnemonic: WalletMnemonic;
@@ -129,6 +136,7 @@ export class Rujira {
 	constructor(options: RujiraConstructorOptions) {
 		this.rpcEndpoint = options.rpcEndpoint;
 		this.walletMnemonic = options.walletMnemonic;
+		this.walletPrivateKey = options.walletPrivateKey;
 
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 		this.wallet = undefined as unknown as DirectSecp256k1Wallet;
@@ -141,7 +149,7 @@ export class Rujira {
 	 */
 	public async initialize(_options: RujiraInitializeOptions) {
 		this.wallet = await this.createWalletFromMnemonic(this.walletMnemonic);
-
+		
 		this.cosmClient = await SigningCosmWasmClient.connectWithSigner(
 			this.rpcEndpoint,
 			this.wallet,
@@ -261,8 +269,10 @@ export class Fin {
 
 	/**
 	 * Get status
+	 * @param request - The request object
+	 * @returns The status response
 	 */
-	async getStatus(request: FinGetBalancesRequest): Promise<FinGetStatusResponse> {
+	async getStatus(_request: FinGetStatusRequest): Promise<FinGetStatusResponse> {
 		try {
 			// Check if client is initialized and can connect
 			if (!this.cosmClient) {
@@ -291,59 +301,62 @@ export class Fin {
 	}
 
 	/**
-	 * Get transaction
+	 * Get transaction details by hash
 	 */
 	async getTransaction(request: FinGetTransactionRequest): Promise<FinGetTransactionResponse> {
-		if (!request.hash) {
-			throw new Error("Transaction hash is required");
+		if (!request.hash?.trim()) {
+			throw new Error("Transaction hash is required and cannot be empty");
 		}
 
-		try {
-			// Get transaction details from the blockchain
-			let transaction = await this.cosmClient.getTx(request.hash);
+		const transactionHash = request.hash.trim();
+		let transaction = await this.cosmClient.getTx(transactionHash);
 
-			// If waitForConfirmation is true and transaction is not found, poll for confirmation
-			if (!transaction && request.waitForConfirmation) {
-				const maxAttempts = 30; // Maximum 30 attempts (30 seconds with 1 second delay)
-				let attempts = 0;
-				
-				while (!transaction && attempts < maxAttempts) {
-					await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-					transaction = await this.cosmClient.getTx(request.hash);
-					attempts++;
+		if (!transaction) {
+			throw new Error(`Transaction not found: ${transactionHash}`);
+		}
+
+		// Wait for confirmation if requested
+		if (request.waitForConfirmation) {
+			console.log(`⏳ Waiting for transaction ${transactionHash} to be confirmed...`);
+			
+			const maxWaitTime = 30000; // 30 seconds timeout
+			const startTime = Date.now();
+			
+			while (!transaction?.height) {
+				// Check timeout
+				if (Date.now() - startTime > maxWaitTime) {
+					throw new Error(`Transaction confirmation timeout after ${maxWaitTime / 1000}s: ${transactionHash}`);
 				}
+				
+				await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+				transaction = await this.cosmClient.getTx(transactionHash);
 				
 				if (!transaction) {
-					throw new Error("Transaction not found after waiting for confirmation");
+					throw new Error(`Transaction not found while waiting for confirmation: ${transactionHash}`);
 				}
-			} else if (!transaction) {
-				throw new Error("Transaction not found");
 			}
-
-			// Transform the raw transaction data to match our interface
-			const transactionResponse: FinGetTransactionResponse = {
-				hash: request.hash,
-				status: transaction.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
-				fee: {
-					amount: (transaction.gasUsed || 0) as any,
-					token: {
-						address: '',
-						symbol: '',
-						name: '',
-						decimals: 0 as TokenDecimals,
-						raw: {}
-					}
-				},
-				raw: transaction
-			};
-
-			return transactionResponse;
-		} catch (error) {
-			if (error instanceof Error && (error.message === "Transaction not found" || error.message === "Transaction not found after waiting for confirmation")) {
-				throw error;
-			}
-			throw new Error(`Failed to get transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			
+			console.log(`✅ Transaction ${transactionHash} confirmed at block height ${transaction.height}`);
 		}
+
+		// Build response
+		const defaultFeeToken: Token = {
+			address: "native",
+			symbol: "RUJI",
+			name: "Rujira",
+			decimals: 6,
+			raw: {}
+		};
+
+		return {
+			hash: transaction.hash,
+			status: transaction.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
+			fee: {
+				amount: transaction.gasUsed ? Decimal(transaction.gasUsed.toString()) : Decimal(0),
+				token: defaultFeeToken,
+			},
+			raw: transaction
+		};
 	}
 
 	/**
@@ -760,10 +773,64 @@ export class Fin {
 	}
 
 	/**
-	 * Create order
+	 * Create order (MARKET or LIMIT)
 	 */
 	async createOrder(request: FinCreateOrderRequest): Promise<FinCreateOrderResponse> {
-		throw new Error("Not implemented");
+		const market = await this.getMarket({
+			address: request.marketAddress,
+			symbol: request.marketSymbol
+		});
+
+		const isBuy = request.side === 'buy';
+		const isMarket = request.type === 'market';
+		const sender = request.ownerAddress;
+		const contractAddress = market.address;
+
+		let msg: any;
+		let funds: any[] = [];
+
+		if (isMarket) {
+			// MARKET order
+			const sendToken = isBuy ? market.tokens.quote : market.tokens.base;
+			const sendAmount = request.amount.toString();
+			// min_return is not provided in the interface, so use amount as min_return for now
+			msg = {
+				swap: {
+					min_return: sendAmount,
+					to: sender
+				}
+			};
+			funds = [{ denom: sendToken.address, amount: sendAmount }];
+		} else {
+			// LIMIT order
+			if (!request.price) throw new Error('Limit orders require a price');
+			const price = request.price.toString();
+			const orderSide = isBuy ? 'quote' : 'base';
+			const sendToken = isBuy ? market.tokens.quote : market.tokens.base;
+			const sendAmount = request.amount.toString();
+			msg = {
+				order: [
+					[[orderSide, { fixed: price }, sendAmount]],
+					null
+				]
+			};
+			funds = [{ denom: sendToken.address, amount: sendAmount }];
+		}
+
+		const result = await this.cosmClient.execute(
+			sender,
+			contractAddress,
+			msg,
+			'auto',
+			undefined,
+			funds
+		);
+
+		const response: FinCreateOrderResponse = {
+			transactionHash: result.transactionHash,
+			raw: result
+		};
+		return response;
 	}
 
 	/**

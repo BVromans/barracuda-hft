@@ -80,18 +80,21 @@ export enum OrderStatus {
 
 export type Boolean = boolean;
 export type Raw = any;
-export type Mnemonic = string;
 export type Address = string;
+export type Mnemonic = string;
+export type PrivateKey = string;
 export type Integer = number;
 export type Amount = Decimal;
 export type Hash = string;
 export type Timestamp = number;
 export type URL = string;
+export type ErrorMessage = string;
 
 export type RPCEndpoint = URL;
 
 export type WalletAddress = Address;
 export type WalletMnemonic = Mnemonic;
+export type WalletPrivateKey = PrivateKey;
 
 export type TokenAddress = Address;
 export type TokenSymbol = string;
@@ -215,6 +218,11 @@ export interface RujiraConstructorOptions {
    * Wallet mnemonic
    */
   walletMnemonic: WalletMnemonic;
+
+  /**
+   * Wallet private key
+   */
+  walletPrivateKey: WalletPrivateKey;
 }
 
 /**
@@ -258,16 +266,6 @@ export interface FinInitializeOptions {
  * Get status request
  */
 export interface FinGetStatusRequest {
-	/**
-	 * Chain
-	 */
-	chain: Chain;
-
-	/**
-	 * Network
-	 */
-	network: Network;
-
 }
 
 /**
@@ -282,7 +280,7 @@ export interface FinGetStatusResponse {
 	/**
 	 * Error message (only present when status is DOWN)
 	 */
-	error?: string;
+	error?: ErrorMessage;
 }
 
 /**
@@ -615,7 +613,7 @@ export interface FinCreateOrderRequest {
  * Create order response
  */
 export interface FinCreateOrderResponse {
-
+	
 }
 
 /**
