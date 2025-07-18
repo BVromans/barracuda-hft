@@ -333,71 +333,56 @@ export class Fin {
 	}
 
 	/**
-	 * Get token
+	 * Get token by address or symbol
 	 */
 	async getToken(request: FinGetTokenRequest): Promise<FinGetTokenResponse> {
-		if (request.address) {
-			request.address = request.address.toLowerCase().trim();
+		await this.getAllTokens({} as FinGetAllTokensRequest);
+
+		const address = request.address?.toLowerCase().trim();
+		const symbol = request.symbol?.toLowerCase().trim();
+
+		if ((!address || address.length === 0) && (!symbol || symbol.length === 0)) {
+			throw new Error("You must provide a non-empty address or symbol to getToken");
 		}
 
-		if (request.symbol) {
-			request.symbol = request.symbol.toLowerCase().trim();
+		let token: Token | undefined;
+		if (address) {
+			token = this.tokensByAddress.get(address);
 		}
-
-		if (!request.address && !request.symbol) {
-			throw new Error("Either address or symbol must be provided");
+		if (!token && symbol) {
+			token = this.tokensBySymbol.get(symbol);
 		}
-
-		const tokens = await this.getTokens({
-			addresses: request.address ? [request.address] : undefined,
-			symbols: request.symbol ? [request.symbol] : undefined
-		});
-
-		if (tokens.size === 0) {
-			throw new Error(`Token ${request.address || request.symbol} not found`);
+		if (!token) {
+			throw new Error(`Token not found: ${address || symbol}`);
 		}
-
-		return tokens.values().next().value as FinGetTokenResponse;
+		return token;
 	}
 
 	/**
-	 * Get tokens
+	 * Get multiple tokens by addresses and/or symbols
 	 */
 	async getTokens(request: FinGetTokensRequest): Promise<FinGetTokensResponse> {
-		if (request.addresses) {
-			request.addresses = request.addresses.map((address) => address.toLowerCase().trim());
-		}
-
-		if (request.symbols) {
-			request.symbols = request.symbols.map((symbol) => symbol.toLowerCase().trim());
-		}
-
-		if (!request.addresses && !request.symbols) {
-			return this.getAllTokens({} as FinGetAllTokensRequest);
-		}
-
 		await this.getAllTokens({} as FinGetAllTokensRequest);
+		const addresses = (request.addresses || []).map(a => a?.toLowerCase().trim()).filter(Boolean);
+		const symbols = (request.symbols || []).map(s => s?.toLowerCase().trim()).filter(Boolean);
+
+		if (addresses.length === 0 && symbols.length === 0) {
+			throw new Error("You must provide at least one non-empty address or symbol to getTokens");
+		}
 
 		const tokens = new Map<TokenAddress, Token>();
-
-		for (const address of request?.addresses || []) {
+		for (const address of addresses) {
+			if (!address || address.length === 0) continue;
 			const token = this.tokensByAddress.get(address);
-			if (token) {
-				tokens.set(address, token);
-			} else {
-				throw new Error(`Token ${address} not found`);
-			}
+			if (!token) throw new Error(`Token not found: ${address}`);
+			tokens.set(token.address, token);
 		}
-
-		for (const symbol of request?.symbols || []) {
+		for (const symbol of symbols) {
+			if (!symbol || symbol.length === 0) continue;
 			const token = this.tokensBySymbol.get(symbol);
-			if (token) {
-				tokens.set(token.address, token);
-			} else {
-				throw new Error(`Token ${symbol} not found`);
-			}
+			if (!token) throw new Error(`Token not found: ${symbol}`);
+			tokens.set(token.address, token);
 		}
-
 		return tokens;
 	}
 
@@ -440,17 +425,56 @@ export class Fin {
 	}
 
 	/**
-	 * Get market
+	 * Get market by address or symbol
 	 */
 	async getMarket(request: FinGetMarketRequest): Promise<FinGetMarketResponse> {
-		throw new Error("Not implemented");
+		await this.getAllMarkets({} as FinGetAllMarketsRequest);
+		const address = request.address?.trim();
+		const symbol = request.symbol?.trim();
+
+		if ((!address || address.length === 0) && (!symbol || symbol.length === 0)) {
+			throw new Error("You must provide a non-empty address or symbol to getMarket");
+		}
+
+		let market: Market | undefined;
+		if (address) {
+			market = this.marketsByAddress.get(address);
+		}
+		if (!market && symbol) {
+			market = this.marketsBySymbol.get(symbol);
+		}
+		if (!market) {
+			throw new Error(`Market not found: ${address || symbol}`);
+		}
+		return market;
 	}
 
 	/**
-	 * Get markets
+	 * Get multiple markets by addresses and/or symbols
 	 */
 	async getMarkets(request: FinGetMarketsRequest): Promise<FinGetMarketsResponse> {
-		throw new Error("Not implemented");
+		await this.getAllMarkets({} as FinGetAllMarketsRequest);
+		const addresses = (request.addresses || []).map(a => a?.trim()).filter(Boolean);
+		const symbols = (request.symbols || []).map(s => s?.trim()).filter(Boolean);
+
+		if (addresses.length === 0 && symbols.length === 0) {
+			throw new Error("You must provide at least one non-empty address or symbol to getMarkets");
+		}
+
+		const markets = new Map<MarketAddress, Market>();
+		for (const address of addresses) {
+			if (!address || address.length === 0) continue;
+			const market = this.marketsByAddress.get(address);
+			if (!market) throw new Error(`Market not found: ${address}`);
+			markets.set(market.address, market);
+		}
+		for (const symbol of symbols) {
+			if (!symbol || symbol.length === 0) continue;
+			const market = this.marketsBySymbol.get(symbol);
+			if (!market) throw new Error(`Market not found: ${symbol}`);
+			markets.set(market.address, market);
+		}
+		return markets;
 	}
 
 	/**
