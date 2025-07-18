@@ -1,8 +1,15 @@
-import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { CosmWasmClient, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
+import { stringToPath, Bip39, EnglishMnemonic, Slip10, Slip10Curve } from "@cosmjs/crypto";
+import { fromBase64 } from "@cosmjs/encoding";
+import cacheManager, { Cacheable, CacheManagerOptions } from "@type-cacheable/core";
+import { useAdapter } from "@type-cacheable/lru-cache-adapter";
+import { LRUCache } from 'lru-cache';
 import {
 	Market,
 	MarketAddress,
 	MarketSymbol,
+	MarketStatus,
 	OrderBook,
 	OrderBookMiddlePrice,
 	OrderBookOrder,
@@ -42,44 +49,214 @@ import {
 	FinGetTransactionRequest,
 	FinGetTransactionResponse,
 	FinWithdrawRequest,
-	FinWithdrawResponse
+	FinWithdrawResponse,
+	RujiraConstructorOptions,
+	RujiraInitializeOptions,
+	FinConstructorOptions,
+	FinInitializeOptions,
+	FinGetAllTokensRequest,
+	FinGetAllTokensResponse,
+	FinGetAllMarketsRequest,
+	FinGetAllMarketsResponse,
+	RPCEndpoint,
+	WalletMnemonic
 } from "./types";
+import Decimal from 'decimal.js';
+import { GasPrice } from "@cosmjs/stargate";
+import { DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
 
+/**
+ * LRU cache
+ */
+const lruCache = new LRUCache<string, any>({
+	max: 999999,
+	ttl: 1000* 60 * 60 * 24 * 365,
+});
+
+/**
+ * Cache adapter
+ */
+const cacheAdapter = useAdapter(lruCache);
+
+// Set cache manager options globally
+cacheManager.setOptions(<CacheManagerOptions>{
+	adapter: cacheAdapter,
+});
+
+/**
+ * Default wallet prefix
+ */
+const DEFAULT_WALLET_PREFIX = 'thor';
+
+/**
+ * Default gas price
+ */
+const DEFAULT_GAS_PRICE = GasPrice.fromString('0.02rune');
+
+/**
+ * Rujira client
+ */
 export class Rujira {
-	public readonly fin: Fin;
+	/**
+	 * Fin client
+	 */
+	private readonly fin: Fin;
 
-	constructor() {
-		this.fin = new Fin(''); // Initialize with empty RPC endpoint
-	}
-}
+	/**
+	 * RPC endpoint
+	 */
+	private readonly rpcEndpoint: RPCEndpoint;
 
-export class Fin {
-	private client: CosmWasmClient;
-	private tokensByAddress: Map<TokenAddress, Token>;
-	private tokensBySymbol: Map<TokenSymbol, Token>;
-	private marketsByAddress: Map<MarketAddress, Market>;
-	private marketsByName: Map<MarketSymbol, Market>;
-	private readonly rpcEndpoint: string;
+	/**
+	 * Wallet mnemonic
+	 */
+	private readonly walletMnemonic: WalletMnemonic;
+
+	/**
+	 * Wallet
+	 */
+	private wallet: DirectSecp256k1Wallet;
+
+	/**
+	 * Cosm client
+	 */
+	private cosmClient: SigningCosmWasmClient;
+
 
 	/**
 	 * Constructor
 	 */
-	constructor(rpcEndpoint: string) {
-		this.rpcEndpoint = rpcEndpoint;
-		this.client = undefined as unknown as CosmWasmClient;
-		this.tokensByAddress = new Map();
-		this.tokensBySymbol = new Map();
-		this.marketsByAddress = new Map();
-		this.marketsByName = new Map();
+	constructor(options: RujiraConstructorOptions) {
+		this.rpcEndpoint = options.rpcEndpoint;
+		this.walletMnemonic = options.walletMnemonic;
+
+		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
+		this.wallet = undefined as unknown as DirectSecp256k1Wallet;
+
+		this.fin = new Fin(options as FinConstructorOptions);
 	}
 
 	/**
 	 * Initialize the client
 	 */
-	async initialize(): Promise<void> {
-		if (!this.client) {
-			this.client = await CosmWasmClient.connect(this.rpcEndpoint);
-		}
+	public async initialize(_options: RujiraInitializeOptions) {
+		this.wallet = await this.createWalletFromMnemonic(this.walletMnemonic);
+
+		this.cosmClient = await SigningCosmWasmClient.connectWithSigner(
+			this.rpcEndpoint,
+			this.wallet,
+			{
+				gasPrice: DEFAULT_GAS_PRICE
+			}
+		);
+
+		await this.fin.initialize(
+			{
+				wallet: this.wallet,
+				cosmClient: this.cosmClient
+			} as FinInitializeOptions
+		);
+	}
+
+	/**
+	 * Derive wallet private key from mnemonic
+	 * @param mnemonic - The mnemonic to derive the private key from
+	 * @returns The private key
+	 */
+	private async deriveWalletPrivateKeyFromMnemonic(mnemonic: string): Promise<string> {
+		const englishMnemonic = new EnglishMnemonic(mnemonic);
+		const seed = await Bip39.mnemonicToSeed(englishMnemonic);
+
+		// Derive the private key using the THORChain HD path
+		const hdPath = stringToPath("m/44'/931'/0'/0/0");
+		const { privkey } = Slip10.derivePath(Slip10Curve.Secp256k1, seed, hdPath);
+
+		// Convert to base64
+		const base64PrivateKey = Buffer.from(privkey).toString('base64');
+
+		return base64PrivateKey;
+	}
+
+	/**
+	 * Create wallet from private key
+	 * @param privateKey - The private key to create the wallet from
+	 * @returns The wallet
+	 */
+	private async createWalletFromPrivateKey(privateKey: string): Promise<DirectSecp256k1Wallet> {
+		return await DirectSecp256k1Wallet.fromKey(
+			fromBase64(privateKey),
+			DEFAULT_WALLET_PREFIX
+		);
+	}
+
+	/**
+	 * Create wallet from mnemonic
+	 * @param mnemonic - The mnemonic to create the wallet from
+	 * @returns The wallet
+	 */
+	private async createWalletFromMnemonic(mnemonic: string): Promise<DirectSecp256k1Wallet> {
+		const privateKey = await this.deriveWalletPrivateKeyFromMnemonic(mnemonic);
+
+		return await this.createWalletFromPrivateKey(privateKey);
+	}
+}
+
+/**
+ * Fin client
+ */
+export class Fin {
+	/**
+	 * Wallet
+	 */
+	private wallet: DirectSecp256k1Wallet;
+
+	/**
+	 * Cosm client
+	 */
+	private cosmClient: SigningCosmWasmClient;
+
+	/**
+	 * Tokens by address
+	 */
+	private tokensByAddress: Map<TokenAddress, Token>;
+
+	/**
+	 * Tokens by symbol
+	 */
+	private tokensBySymbol: Map<TokenSymbol, Token>;
+
+	/**
+	 * Markets by address
+	 */
+	private marketsByAddress: Map<MarketAddress, Market>;
+
+	/**
+	 * Markets by name
+	 */
+	private marketsBySymbol: Map<MarketSymbol, Market>;
+
+	/**
+	 * Constructor
+	 */
+	constructor(options: FinConstructorOptions) {
+		this.wallet = undefined as unknown as DirectSecp256k1Wallet;
+		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
+
+		this.tokensByAddress = new Map();
+		this.tokensBySymbol = new Map();
+		this.marketsByAddress = new Map();
+		this.marketsBySymbol = new Map();
+	}
+
+	/**
+	 * Initialize the client
+	 */
+	async initialize(options: FinInitializeOptions): Promise<void> {
+		this.wallet = options.wallet;
+		this.cosmClient = options.cosmClient;
+
+		await this.getAllTokens({} as FinGetAllTokensRequest);
+		await this.getAllMarkets({} as FinGetAllMarketsRequest);
 	}
 
 	/**
@@ -88,7 +265,7 @@ export class Fin {
 	async getStatus(request: FinGetBalancesRequest): Promise<FinGetStatusResponse> {
 		try {
 			// Check if client is initialized and can connect
-			if (!this.client) {
+			if (!this.cosmClient) {
 				return {
 					error: 'Client not initialized. Please call initialize() first.',
 					status: SystemStatus.DOWN
@@ -96,7 +273,7 @@ export class Fin {
 			}
 
 			// Try to get chain height to verify connection
-			await this.client.getHeight();
+			await this.cosmClient.getHeight();
 
 			return {
 				status: SystemStatus.UP
@@ -121,100 +298,382 @@ export class Fin {
 			throw new Error("Transaction hash is required");
 		}
 
-		// Se não for para esperar confirmação, busca normalmente
-		if (!request.waitForConfirmation) {
-			const transaction = await this.client.getTx(request.hash);
+		try {
+			// Get transaction details from the blockchain
+			const transaction = await this.cosmClient.getTx(request.hash);
 
 			if (!transaction) {
 				throw new Error("Transaction not found");
 			}
 
-			return {
-				transaction: {
-					hash: request.hash,
-					status: transaction.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
-					fee: {
-						amount: (transaction.gasUsed || 0) as any,
-						token: {
-							address: 'rujirarujira',
-							symbol: 'Ruji',
-							name: 'Rujira',
-							decimals: 6,
-							raw: {}
-						}
-					},
-					raw: transaction
-				}
-			};
-		}
-
-		// Se for para esperar confirmação, faz polling até encontrar ou timeout
-		const maxAttempts = 30;
-		const delayMs = 2000;
-		for (let attempt = 0; attempt < maxAttempts; attempt++) {
-			const transaction = await this.client.getTx(request.hash);
-			if (transaction) {
-				return {
-					transaction: {
-						hash: request.hash,
-						status: transaction.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
-						fee: {
-							amount: (transaction.gasUsed || 0) as any,
-							token: {
-								address: 'rujirarujira',
-								symbol: 'Ruji',
-								name: 'Rujira',
-								decimals: 6,
-								raw: {}
-							}
-						},
-						raw: transaction
+			// Transform the raw transaction data to match our interface
+			const transactionResponse: FinGetTransactionResponse = {
+				hash: request.hash,
+				status: transaction.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
+				fee: {
+					amount: (transaction.gasUsed || 0) as any,
+					token: {
+						address: '',
+						symbol: '',
+						name: '',
+						decimals: 0 as TokenDecimals,
+						raw: {}
 					}
-				};
+				},
+				raw: transaction
+			};
+
+			return transactionResponse;
+		} catch (error) {
+			if (error instanceof Error && error.message === "Transaction not found") {
+				throw error;
 			}
-			await new Promise(res => setTimeout(res, delayMs));
+			throw new Error(`Failed to get transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
-		throw new Error("Transaction not found after waiting for confirmation");
 	}
 
 	/**
-	 * Get token
+	 * Get token by address or symbol
 	 */
 	async getToken(request: FinGetTokenRequest): Promise<FinGetTokenResponse> {
-		if (request.address) {
-			request.address = request.address.toLowerCase().trim();
+		await this.getAllTokens({} as FinGetAllTokensRequest);
+
+		const address = request.address?.toLowerCase().trim();
+		const symbol = request.symbol?.toLowerCase().trim();
+
+		if ((!address || address.length === 0) && (!symbol || symbol.length === 0)) {
+			throw new Error("You must provide a non-empty address or symbol to getToken");
 		}
 
-		if (request.symbol) {
-			request.symbol = request.symbol.toLowerCase().trim();
+		let token: Token | undefined;
+		if (address) {
+			token = this.tokensByAddress.get(address);
 		}
-
-		if (!request.address && !request.symbol) {
-			throw new Error("Either address or symbol must be provided");
+		if (!token && symbol) {
+			token = this.tokensBySymbol.get(symbol);
 		}
-
-		throw new Error("Not implemented");
+		if (!token) {
+			throw new Error(`Token not found: ${address || symbol}`);
+		}
+		return token;
 	}
 
 	/**
-	 * Get tokens
+	 * Get multiple tokens by addresses and/or symbols
 	 */
 	async getTokens(request: FinGetTokensRequest): Promise<FinGetTokensResponse> {
-		throw new Error("Not implemented");
+		await this.getAllTokens({} as FinGetAllTokensRequest);
+		const addresses = (request.addresses || []).map(a => a?.toLowerCase().trim()).filter(Boolean);
+		const symbols = (request.symbols || []).map(s => s?.toLowerCase().trim()).filter(Boolean);
+
+		if (addresses.length === 0 && symbols.length === 0) {
+			throw new Error("You must provide at least one non-empty address or symbol to getTokens");
+		}
+
+		const tokens = new Map<TokenAddress, Token>();
+		for (const address of addresses) {
+			if (!address || address.length === 0) continue;
+			const token = this.tokensByAddress.get(address);
+			if (!token) throw new Error(`Token not found: ${address}`);
+			tokens.set(token.address, token);
+		}
+		for (const symbol of symbols) {
+			if (!symbol || symbol.length === 0) continue;
+			const token = this.tokensBySymbol.get(symbol);
+			if (!token) throw new Error(`Token not found: ${symbol}`);
+			tokens.set(token.address, token);
+		}
+		return tokens;
 	}
 
 	/**
-	 * Get market
+	 * Get all tokens
+	 */
+	@Cacheable({
+		cacheKey: (request: FinGetAllTokensRequest) => request.toString(),
+		ttlSeconds: 60 * 60 * 6,
+	})
+	async getAllTokens(request: FinGetAllTokensRequest): Promise<FinGetAllTokensResponse> {
+		try {
+			// Get all markets first (this already contains all token data)
+			const markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
+			const tokenMap = new Map<TokenAddress, Token>();
+
+			// Extract all unique tokens from the markets
+			for (const market of markets.values()) {
+				// Add base token if not already added
+				if (!tokenMap.has(market.tokens.base.address)) {
+					tokenMap.set(market.tokens.base.address, market.tokens.base);
+				}
+
+				// Add quote token if not already added
+				if (!tokenMap.has(market.tokens.quote.address)) {
+					tokenMap.set(market.tokens.quote.address, market.tokens.quote);
+				}
+			}
+
+			// Update internal maps
+			for (const token of tokenMap.values()) {
+				this.tokensByAddress.set(token.address, token);
+				this.tokensBySymbol.set(token.symbol, token);
+			}
+
+			return tokenMap;
+		} catch (error) {
+			throw new Error(`Failed to fetch tokens: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
+	}
+
+	/**
+	 * Get market by address or symbol
 	 */
 	async getMarket(request: FinGetMarketRequest): Promise<FinGetMarketResponse> {
-		throw new Error("Not implemented");
+		await this.getAllMarkets({} as FinGetAllMarketsRequest);
+		const address = request.address?.trim();
+		const symbol = request.symbol?.trim();
+
+		if ((!address || address.length === 0) && (!symbol || symbol.length === 0)) {
+			throw new Error("You must provide a non-empty address or symbol to getMarket");
+		}
+
+		let market: Market | undefined;
+		if (address) {
+			market = this.marketsByAddress.get(address);
+		}
+		if (!market && symbol) {
+			market = this.marketsBySymbol.get(symbol);
+		}
+		if (!market) {
+			throw new Error(`Market not found: ${address || symbol}`);
+		}
+		return market;
 	}
 
 	/**
-	 * Get markets
+	 * Get multiple markets by addresses and/or symbols
 	 */
 	async getMarkets(request: FinGetMarketsRequest): Promise<FinGetMarketsResponse> {
-		throw new Error("Not implemented");
+		await this.getAllMarkets({} as FinGetAllMarketsRequest);
+		const addresses = (request.addresses || []).map(a => a?.trim()).filter(Boolean);
+		const symbols = (request.symbols || []).map(s => s?.trim()).filter(Boolean);
+
+		if (addresses.length === 0 && symbols.length === 0) {
+			throw new Error("You must provide at least one non-empty address or symbol to getMarkets");
+		}
+
+		const markets = new Map<MarketAddress, Market>();
+		for (const address of addresses) {
+			if (!address || address.length === 0) continue;
+			const market = this.marketsByAddress.get(address);
+			if (!market) throw new Error(`Market not found: ${address}`);
+			markets.set(market.address, market);
+		}
+		for (const symbol of symbols) {
+			if (!symbol || symbol.length === 0) continue;
+			const market = this.marketsBySymbol.get(symbol);
+			if (!market) throw new Error(`Market not found: ${symbol}`);
+			markets.set(market.address, market);
+		}
+		return markets;
+	}
+
+	/**
+	 * Get all markets
+	 */
+	@Cacheable({
+		cacheKey: (request: FinGetAllMarketsRequest) => request.toString(),
+		ttlSeconds: 60 * 60 * 6,
+	})
+	async getAllMarkets(request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
+		const GRAPHQL_ENDPOINT = 'https://api.rujira.network/api/graphiql';
+
+		const MARKETS_QUERY = `
+			query {
+				rujira {
+					fin {
+						id
+						address
+						tick
+						feeTaker
+						feeMaker
+						feeAddress
+						deploymentStatus
+
+						# Asset Base
+						assetBase {
+							id
+							asset
+							type
+							chain
+							metadata {
+								symbol
+								name
+								decimals
+								description
+								display
+							}
+							price {
+								current
+								changeDay
+								mcap
+								timestamp
+							}
+							variants {
+								layer1 { asset }
+								secured { asset }
+								native { denom }
+							}
+						}
+
+						# Asset Quote
+						assetQuote {
+							id
+							asset
+							type
+							chain
+							metadata {
+								symbol
+								name
+								decimals
+								description
+								display
+							}
+							price {
+								current
+								changeDay
+								mcap
+								timestamp
+							}
+							variants {
+								layer1 { asset }
+								secured { asset }
+								native { denom }
+							}
+						}
+
+						# Oracles
+						oracleBase {
+							id
+							asset {
+								asset
+								metadata { symbol name decimals }
+							}
+							price
+						}
+						oracleQuote {
+							id
+							asset {
+								asset
+								metadata { symbol name decimals }
+							}
+							price
+						}
+					}
+				}
+			}
+		`;
+
+		try {
+			const response = await fetch(GRAPHQL_ENDPOINT, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ query: MARKETS_QUERY })
+			});
+
+			if (!response.ok) {
+				throw new Error(`GraphQL request failed: ${response.status} ${response.statusText}`);
+			}
+
+			const json: any = await response.json();
+			const { data, errors } = json;
+
+			if (errors) {
+				throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
+			}
+
+			const rawPairs = data?.rujira?.fin || [];
+			const markets = new Map<MarketAddress, Market>();
+
+			for (const pair of rawPairs) {
+				// Only include LIVE markets
+				if (pair.deploymentStatus !== 'LIVE') {
+					continue;
+				}
+
+				// Create base token
+				const baseToken: Token = {
+					address: pair.assetBase.asset,
+					symbol: pair.assetBase.metadata?.symbol || pair.assetBase.asset,
+					name: pair.assetBase.metadata?.name || pair.assetBase.metadata?.symbol || pair.assetBase.asset,
+					decimals: pair.assetBase.metadata?.decimals ?? 8,
+					raw: pair.assetBase
+				};
+
+				// Create quote token
+				const quoteToken: Token = {
+					address: pair.assetQuote.asset,
+					symbol: pair.assetQuote.metadata?.symbol || pair.assetQuote.asset,
+					name: pair.assetQuote.metadata?.name || pair.assetQuote.metadata?.symbol || pair.assetQuote.asset,
+					decimals: pair.assetQuote.metadata?.decimals ?? 8,
+					raw: pair.assetQuote
+				};
+
+				// Create market symbol
+				const marketSymbol = `${baseToken.symbol}/${quoteToken.symbol}`;
+
+				// Create market object
+				const market: Market = {
+					address: pair.address,
+					symbol: marketSymbol,
+					tokens: {
+						base: baseToken,
+						quote: quoteToken
+					},
+					decimals: pair.tick || 6, // Use tick as decimals
+					status: MarketStatus.ACTIVE, // LIVE markets are active
+					raw: {
+						id: pair.id,
+						tick: pair.tick,
+						feeTaker: pair.feeTaker,
+						feeMaker: pair.feeMaker,
+						feeAddress: pair.feeAddress,
+						deploymentStatus: pair.deploymentStatus,
+						oracleBase: pair.oracleBase,
+						oracleQuote: pair.oracleQuote,
+						assetBase: pair.assetBase,
+						assetQuote: pair.assetQuote
+					}
+				};
+
+				// Add price data if available
+				if (pair.assetBase.price?.current && pair.assetQuote.price?.current) {
+					const basePrice = new Decimal(pair.assetBase.price.current);
+					const quotePrice = new Decimal(pair.assetQuote.price.current);
+
+					if (quotePrice.gt(0)) {
+						const baseQuotePrice = basePrice.div(quotePrice);
+						const quoteBasePrice = quotePrice.div(basePrice);
+
+						market.price = {
+							baseQuote: baseQuotePrice,
+							quoteBase: quoteBasePrice
+						};
+					}
+				}
+
+				markets.set(pair.address, market);
+			}
+
+			// Update internal maps
+			for (const market of markets.values()) {
+				this.marketsByAddress.set(market.address, market);
+				this.marketsBySymbol.set(market.symbol, market);
+			}
+
+			return markets;
+		} catch (error) {
+			throw new Error(`Failed to fetch markets: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
 	}
 
 	/**
@@ -226,25 +685,25 @@ export class Fin {
 		}
 
 		if (request.marketSymbol && !request.marketAddress) {
-			request.marketAddress = this.marketsByName.get(request.marketSymbol)?.address;
+			request.marketAddress = this.marketsBySymbol.get(request.marketSymbol)?.address;
 		}
 
 		if (!request.marketAddress) {
 			throw new Error("Market address must be provided");
 		}
 
-		const marketResponse = await this.getMarket({
+		const market = await this.getMarket({
 			address: request.marketAddress
 		});
 
-		const rawOrderBook = await this.client.queryContractSmart(request.marketAddress, {
+		const rawOrderBook = await this.cosmClient.queryContractSmart(request.marketAddress, {
 			order_book: {
 				limit: request.limit
 			} as any
 		});
 
 		const orderBook: OrderBook = {
-			market: marketResponse.market,
+			market: market!,
 			book: {
 				asks: undefined as unknown as OrderBookOrder[],
 				bids: undefined as unknown as OrderBookOrder[],
@@ -255,7 +714,7 @@ export class Fin {
 			raw: rawOrderBook
 		} as OrderBook;
 
-		return { orderBook };
+		return orderBook;
 	}
 
 	/**
