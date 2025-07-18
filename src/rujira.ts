@@ -59,7 +59,9 @@ import {
 	FinGetAllMarketsRequest,
 	FinGetAllMarketsResponse,
 	RPCEndpoint,
-	WalletMnemonic
+	WalletMnemonic,
+	WalletPrivateKey,
+	FinGetStatusRequest
 } from "./types";
 import Decimal from 'decimal.js';
 import { GasPrice } from "@cosmjs/stargate";
@@ -108,6 +110,11 @@ export class Rujira {
 	private readonly rpcEndpoint: RPCEndpoint;
 
 	/**
+	 * Wallet private key
+	 */
+	private readonly walletPrivateKey: WalletPrivateKey;
+
+	/**
 	 * Wallet mnemonic
 	 */
 	private readonly walletMnemonic: WalletMnemonic;
@@ -129,6 +136,7 @@ export class Rujira {
 	constructor(options: RujiraConstructorOptions) {
 		this.rpcEndpoint = options.rpcEndpoint;
 		this.walletMnemonic = options.walletMnemonic;
+		this.walletPrivateKey = options.walletPrivateKey;
 
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 		this.wallet = undefined as unknown as DirectSecp256k1Wallet;
@@ -140,7 +148,13 @@ export class Rujira {
 	 * Initialize the client
 	 */
 	public async initialize(_options: RujiraInitializeOptions) {
-		this.wallet = await this.createWalletFromMnemonic(this.walletMnemonic);
+		if (this.walletPrivateKey) {
+			this.wallet = await this.createWalletFromPrivateKey(this.walletPrivateKey);
+		} else if (this.walletMnemonic) {
+			this.wallet = await this.createWalletFromMnemonic(this.walletMnemonic);
+		} else {
+			throw new Error('No wallet provided. Please provide a wallet private key or mnemonic.');
+		}
 		
 		this.cosmClient = await SigningCosmWasmClient.connectWithSigner(
 			this.rpcEndpoint,
@@ -261,8 +275,10 @@ export class Fin {
 
 	/**
 	 * Get status
+	 * @param request - The request object
+	 * @returns The status response
 	 */
-	async getStatus(request: FinGetBalancesRequest): Promise<FinGetStatusResponse> {
+	async getStatus(_request: FinGetStatusRequest): Promise<FinGetStatusResponse> {
 		try {
 			// Check if client is initialized and can connect
 			if (!this.cosmClient) {
@@ -298,38 +314,24 @@ export class Fin {
 			throw new Error("Transaction hash is required");
 		}
 
-		try {
-			// Get transaction details from the blockchain
-			const transaction = await this.cosmClient.getTx(request.hash);
+		const transaction = await this.cosmClient.getTx(request.hash);
 
-			if (!transaction) {
-				throw new Error("Transaction not found");
-			}
-
-			// Transform the raw transaction data to match our interface
-			const transactionResponse: FinGetTransactionResponse = {
-				hash: request.hash,
-				status: transaction.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
-				fee: {
-					amount: (transaction.gasUsed || 0) as any,
-					token: {
-						address: '',
-						symbol: '',
-						name: '',
-						decimals: 0 as TokenDecimals,
-						raw: {}
-					}
-				},
-				raw: transaction
-			};
-
-			return transactionResponse;
-		} catch (error) {
-			if (error instanceof Error && error.message === "Transaction not found") {
-				throw error;
-			}
-			throw new Error(`Failed to get transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		if (!transaction) {
+			throw new Error("Transaction not found");
 		}
+
+		// Transform the raw transaction data to match our interface
+		const response: FinGetTransactionResponse = {
+			hash: transaction.hash,
+			status: transaction.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
+			fee: {
+				amount: Decimal(transaction.gasUsed.toString()),
+				token: undefined as unknown as Token,
+			},
+			raw: transaction
+		};
+
+		return response;
 	}
 
 	/**
