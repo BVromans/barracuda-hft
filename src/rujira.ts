@@ -300,9 +300,23 @@ export class Fin {
 
 		try {
 			// Get transaction details from the blockchain
-			const transaction = await this.cosmClient.getTx(request.hash);
+			let transaction = await this.cosmClient.getTx(request.hash);
 
-			if (!transaction) {
+			// If waitForConfirmation is true and transaction is not found, poll for confirmation
+			if (!transaction && request.waitForConfirmation) {
+				const maxAttempts = 30; // Maximum 30 attempts (30 seconds with 1 second delay)
+				let attempts = 0;
+				
+				while (!transaction && attempts < maxAttempts) {
+					await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+					transaction = await this.cosmClient.getTx(request.hash);
+					attempts++;
+				}
+				
+				if (!transaction) {
+					throw new Error("Transaction not found after waiting for confirmation");
+				}
+			} else if (!transaction) {
 				throw new Error("Transaction not found");
 			}
 
@@ -325,7 +339,7 @@ export class Fin {
 
 			return transactionResponse;
 		} catch (error) {
-			if (error instanceof Error && error.message === "Transaction not found") {
+			if (error instanceof Error && (error.message === "Transaction not found" || error.message === "Transaction not found after waiting for confirmation")) {
 				throw error;
 			}
 			throw new Error(`Failed to get transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
