@@ -1,9 +1,60 @@
-import { RujiraClient } from "../client";
-import { BowQueryMsg, BowStrategyResponse, BowQuoteResponse } from "../../src/types";
 import "dotenv/config";
-import { config } from "dotenv";
+import { config as dotenvConfig } from "dotenv";
+import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
+import { GasPrice } from "@cosmjs/stargate";
+import { CosmWasmClient, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 
-config({ path: ".env" });
+// Define the interfaces locally since they're not exported from src/client
+export interface BowStrategyResponse {
+  xyk: [
+    {
+      x: string;
+      y: string;
+      step: string;
+      min_quote: string;
+      fee: string;
+    },
+    {
+      x: string;
+      y: string;
+      k: string;
+      shares: string;
+    }
+  ];
+}
+
+export interface BowQuoteResponse {
+  price: string;
+  size: string;
+  data: string; // Base64 encoded data
+}
+
+class RujiraClient {
+  private constructor(
+    public readonly client: CosmWasmClient,
+    public readonly wallet: DirectSecp256k1HdWallet,
+    public readonly contractAddress: string,
+    public readonly rpcEndpoint: string
+  ) {}
+
+  static async connect(
+    rpcEndpoint: string,
+    mnemonic: string,
+    contractAddress: string
+  ): Promise<RujiraClient> {
+    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
+      prefix: "thor",
+    });
+    const client = await CosmWasmClient.connect(rpcEndpoint);
+    return new RujiraClient(client, wallet, contractAddress, rpcEndpoint);
+  }
+
+  async query<T>(queryMsg: any): Promise<T> {
+    return this.client.queryContractSmart(this.contractAddress, queryMsg);
+  }
+}
+
+dotenvConfig({ path: ".env" });
 
 async function main() {
   console.log('🚀 Starting Rujira Bow playground...');
@@ -35,16 +86,16 @@ async function main() {
     
     // Parse the strategy data
     if (strategy.xyk && strategy.xyk.length >= 2) {
-      const [config, state] = strategy.xyk;
+      const [poolConfig, poolState] = strategy.xyk;
       console.log('\n📊 Strategy Analysis:');
-      console.log(`- Pool: ${config.x} / ${config.y}`);
-      console.log(`- Step size: ${config.step}`);
-      console.log(`- Min quote: ${config.min_quote}`);
-      console.log(`- Fee: ${config.fee}`);
-      console.log(`- Current X: ${state.x}`);
-      console.log(`- Current Y: ${state.y}`);
-      console.log(`- K constant: ${state.k}`);
-      console.log(`- Total shares: ${state.shares}`);
+      console.log(`- Pool: ${poolConfig.x} / ${poolConfig.y}`);
+      console.log(`- Step size: ${poolConfig.step}`);
+      console.log(`- Min quote: ${poolConfig.min_quote}`);
+      console.log(`- Fee: ${poolConfig.fee}`);
+      console.log(`- Current X: ${poolState.x}`);
+      console.log(`- Current Y: ${poolState.y}`);
+      console.log(`- K constant: ${poolState.k}`);
+      console.log(`- Total shares: ${poolState.shares}`);
     }
   } catch (error: unknown) {
     console.log("⚠️ Strategy query failed:", error instanceof Error ? error.message : String(error));
@@ -57,17 +108,17 @@ async function main() {
     });
     
     if (strategy.xyk && strategy.xyk.length >= 2) {
-      const [config, state] = strategy.xyk;
+      const [poolConfig, poolState] = strategy.xyk;
       
       // Parse the base (X) and quote (Y) amounts
-      const baseAmount = parseInt(state.x);
-      const quoteAmount = parseInt(state.y);
-      const kConstant = parseInt(state.k);
-      const totalShares = parseInt(state.shares);
+      const baseAmount = parseInt(poolState.x);
+      const quoteAmount = parseInt(poolState.y);
+      const kConstant = parseInt(poolState.k);
+      const totalShares = parseInt(poolState.shares);
       
       console.log('\n📈 Base Side Analysis:');
-      console.log(`- Base Token: ${config.x} (RUJI)`);
-      console.log(`- Quote Token: ${config.y} (USDC)`);
+      console.log(`- Base Token: ${poolConfig.x} (RUJI)`);
+      console.log(`- Quote Token: ${poolConfig.y} (USDC)`);
       console.log(`- Base Liquidity: ${baseAmount.toLocaleString()} units`);
       console.log(`- Quote Liquidity: ${quoteAmount.toLocaleString()} units`);
       console.log(`- Base/Quote Ratio: ${(baseAmount / quoteAmount).toFixed(6)}`);

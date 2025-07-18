@@ -148,13 +148,7 @@ export class Rujira {
 	 * Initialize the client
 	 */
 	public async initialize(_options: RujiraInitializeOptions) {
-		if (this.walletPrivateKey) {
-			this.wallet = await this.createWalletFromPrivateKey(this.walletPrivateKey);
-		} else if (this.walletMnemonic) {
-			this.wallet = await this.createWalletFromMnemonic(this.walletMnemonic);
-		} else {
-			throw new Error('No wallet provided. Please provide a wallet private key or mnemonic.');
-		}
+		this.wallet = await this.createWalletFromMnemonic(this.walletMnemonic);
 		
 		this.cosmClient = await SigningCosmWasmClient.connectWithSigner(
 			this.rpcEndpoint,
@@ -163,7 +157,7 @@ export class Rujira {
 				gasPrice: DEFAULT_GAS_PRICE
 			}
 		);
-		
+
 		await this.fin.initialize(
 			{
 				wallet: this.wallet,
@@ -177,17 +171,17 @@ export class Rujira {
 	 * @param mnemonic - The mnemonic to derive the private key from
 	 * @returns The private key
 	 */
-	private async deriveWalletPrivateKeyFromMnemonic(mnemonic: string): Promise<string> {		
+	private async deriveWalletPrivateKeyFromMnemonic(mnemonic: string): Promise<string> {
 		const englishMnemonic = new EnglishMnemonic(mnemonic);
 		const seed = await Bip39.mnemonicToSeed(englishMnemonic);
-		
+
 		// Derive the private key using the THORChain HD path
 		const hdPath = stringToPath("m/44'/931'/0'/0/0");
 		const { privkey } = Slip10.derivePath(Slip10Curve.Secp256k1, seed, hdPath);
-		
+
 		// Convert to base64
 		const base64PrivateKey = Buffer.from(privkey).toString('base64');
-		
+
 		return base64PrivateKey;
 	}
 
@@ -255,7 +249,7 @@ export class Fin {
 	constructor(options: FinConstructorOptions) {
 		this.wallet = undefined as unknown as DirectSecp256k1Wallet;
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
-		
+
 		this.tokensByAddress = new Map();
 		this.tokensBySymbol = new Map();
 		this.marketsByAddress = new Map();
@@ -307,31 +301,62 @@ export class Fin {
 	}
 
 	/**
-	 * Get transaction
+	 * Get transaction details by hash
 	 */
 	async getTransaction(request: FinGetTransactionRequest): Promise<FinGetTransactionResponse> {
-		if (!request.hash) {
-			throw new Error("Transaction hash is required");
+		if (!request.hash?.trim()) {
+			throw new Error("Transaction hash is required and cannot be empty");
 		}
 
-		const transaction = await this.cosmClient.getTx(request.hash);
+		const transactionHash = request.hash.trim();
+		let transaction = await this.cosmClient.getTx(transactionHash);
 
 		if (!transaction) {
-			throw new Error("Transaction not found");
+			throw new Error(`Transaction not found: ${transactionHash}`);
 		}
 
-		// Transform the raw transaction data to match our interface
-		const response: FinGetTransactionResponse = {
+		// Wait for confirmation if requested
+		if (request.waitForConfirmation) {
+			console.log(`⏳ Waiting for transaction ${transactionHash} to be confirmed...`);
+			
+			const maxWaitTime = 30000; // 30 seconds timeout
+			const startTime = Date.now();
+			
+			while (!transaction?.height) {
+				// Check timeout
+				if (Date.now() - startTime > maxWaitTime) {
+					throw new Error(`Transaction confirmation timeout after ${maxWaitTime / 1000}s: ${transactionHash}`);
+				}
+				
+				await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+				transaction = await this.cosmClient.getTx(transactionHash);
+				
+				if (!transaction) {
+					throw new Error(`Transaction not found while waiting for confirmation: ${transactionHash}`);
+				}
+			}
+			
+			console.log(`✅ Transaction ${transactionHash} confirmed at block height ${transaction.height}`);
+		}
+
+		// Build response
+		const defaultFeeToken: Token = {
+			address: "native",
+			symbol: "RUJI",
+			name: "Rujira",
+			decimals: 6,
+			raw: {}
+		};
+
+		return {
 			hash: transaction.hash,
 			status: transaction.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
 			fee: {
-				amount: Decimal(transaction.gasUsed.toString()),
-				token: undefined as unknown as Token,
+				amount: transaction.gasUsed ? Decimal(transaction.gasUsed.toString()) : Decimal(0),
+				token: defaultFeeToken,
 			},
 			raw: transaction
 		};
-
-		return response;
 	}
 
 	/**
@@ -488,7 +513,7 @@ export class Fin {
 	})
 	async getAllMarkets(request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
 		const GRAPHQL_ENDPOINT = 'https://api.rujira.network/api/graphiql';
-		
+
 		const MARKETS_QUERY = `
 			query {
 				rujira {
@@ -588,7 +613,7 @@ export class Fin {
 
 			const json: any = await response.json();
 			const { data, errors } = json;
-			
+
 			if (errors) {
 				throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
 			}
@@ -651,11 +676,11 @@ export class Fin {
 				if (pair.assetBase.price?.current && pair.assetQuote.price?.current) {
 					const basePrice = new Decimal(pair.assetBase.price.current);
 					const quotePrice = new Decimal(pair.assetQuote.price.current);
-					
+
 					if (quotePrice.gt(0)) {
 						const baseQuotePrice = basePrice.div(quotePrice);
 						const quoteBasePrice = quotePrice.div(basePrice);
-						
+
 						market.price = {
 							baseQuote: baseQuotePrice,
 							quoteBase: quoteBasePrice

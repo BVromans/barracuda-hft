@@ -613,14 +613,7 @@ export interface FinCreateOrderRequest {
  * Create order response
  */
 export interface FinCreateOrderResponse {
-  /**
-   * The transaction hash of the order creation
-   */
-  transactionHash: string;
-  /**
-   * The full raw transaction result returned by the blockchain client
-   */
-  raw: any;
+	
 }
 
 /**
@@ -656,7 +649,7 @@ export interface FinCreateOrdersResponse {
 	 * List of created orders
 	 */
 	orders: OrderBookOrder[];
-	
+
 	/**
 	 * Transaction details
 	 */
@@ -696,12 +689,12 @@ export interface FinCancelOrderResponse {
 	 * Order ID that was cancelled
 	 */
 	orderId: string;
-	
+
 	/**
 	 * Status of the cancelled order
 	 */
 	status: OrderStatus;
-	
+
 	/**
 	 * Transaction details
 	 */
@@ -741,12 +734,12 @@ export interface FinCancelOrdersResponse {
 	 * Order IDs that were cancelled
 	 */
 	orderIds: string[];
-	
+
 	/**
 	 * Status of the cancelled orders
 	 */
 	status: OrderStatus;
-	
+
 	/**
 	 * Transaction details
 	 */
@@ -786,7 +779,7 @@ export interface FinWithdrawResponse {
 	 * Whether the withdrawal was successful
 	 */
 	success: boolean;
-	
+
 	/**
 	 * Transaction details
 	 */
