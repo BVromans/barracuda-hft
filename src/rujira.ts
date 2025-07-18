@@ -18,6 +18,7 @@ import {
 	TokenAddress,
 	TokenDecimals,
 	TokenSymbol,
+	Transaction,
 	TransactionStatus,
 	FinCancelOrderRequest,
 	FinCancelOrderResponse,
@@ -762,14 +763,80 @@ export class Fin {
 	 * Get order
 	 */
 	async getOrder(request: FinGetOrderRequest): Promise<FinGetOrderResponse> {
-		throw new Error("Not implemented");
+		// Validate request
+		if (!request.ownerAddress) {
+			throw new Error("Owner address is required");
+		}
+		if (!request.side) {
+			throw new Error("Order side is required");
+		}
+		if (!request.price) {
+			throw new Error("Order price is required");
+		}
+
+		// Resolve market
+		const market = await this.getMarket({
+			address: request.marketAddress,
+			symbol: request.marketSymbol
+		});
+
+		// Build query message for specific order
+		const queryMsg = {
+			order: [
+				request.ownerAddress,
+				request.side,
+				request.price
+			]
+		};
+
+		try {
+			const result = await this.cosmClient.queryContractSmart(market.address, queryMsg);
+			return result as FinGetOrderResponse;
+		} catch (error) {
+			throw new Error(`Failed to get order: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
 	}
 
 	/**
 	 * Get orders
 	 */
 	async getOrders(request: FinGetOrdersRequest): Promise<FinGetOrdersResponse> {
-		throw new Error("Not implemented");
+		// Validate request
+		if (!request.ownerAddress) {
+			throw new Error("Owner address is required");
+		}
+
+		// Resolve market if provided
+		let contractAddress: string;
+		if (request.marketAddress) {
+			contractAddress = request.marketAddress;
+		} else if (request.marketSymbol) {
+			const market = await this.getMarket({ symbol: request.marketSymbol });
+			contractAddress = market.address;
+		} else {
+			throw new Error("Either market address or market symbol must be provided");
+		}
+
+		// Build query message
+		const queryMsg: any = {
+			orders: {
+				owner: request.ownerAddress,
+				limit: request.limit || 30,
+				offset: request.offset || 0
+			}
+		};
+
+		// Add side filter if provided
+		if (request.side) {
+			queryMsg.orders.side = request.side;
+		}
+
+		try {
+			const result = await this.cosmClient.queryContractSmart(contractAddress, queryMsg);
+			return result as FinGetOrdersResponse;
+		} catch (error) {
+			throw new Error(`Failed to get orders: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
 	}
 
 	/**
@@ -858,6 +925,82 @@ export class Fin {
 	 * Withdraw from market
 	 */
 	async withdrawFromMarket(request: FinWithdrawRequest): Promise<FinWithdrawResponse> {
-		throw new Error("Not implemented");
+		// 1. Resolve the market
+		const market = await this.getMarket({
+			address: request.marketAddress,
+			symbol: request.marketSymbol
+		});
+
+		const sender = request.ownerAddress;
+		const contractAddress = market.address;
+
+		// 2. Get user's orders to build withdraw targets
+		const userOrders = await this.getOrders({
+			ownerAddress: sender,
+			marketAddress: contractAddress,
+			limit: 50 // Get more orders to ensure we don't miss any
+		});
+
+		// 3. Filter for filled orders (orders with filled > 0)
+		const filledOrders = userOrders.orders.filter(order => 
+			parseInt(order.filled) > 0
+		);
+
+		if (filledOrders.length === 0) {
+			throw new Error("No filled orders found to withdraw");
+		}
+
+		// 4. Build order targets for withdrawal
+		// For withdrawal, we use amount "0" to withdraw all filled amounts
+		const orderTargets = filledOrders.map(order => [
+			order.side,
+			order.price,
+			"0" // Withdraw all filled amount
+		]);
+
+		console.log(`📋 Withdrawing ${filledOrders.length} filled orders:`);
+		filledOrders.forEach((order, index) => {
+			const filledPercent = ((parseInt(order.filled) / parseInt(order.offer)) * 100).toFixed(1);
+			console.log(`   ${index + 1}. ${order.side.toUpperCase()} @ ${order.price.fixed || `Oracle ${order.price.oracle}`} - ${order.filled} filled (${filledPercent}%)`);
+		});
+
+		const msg = {
+			order: [orderTargets, null]
+		};
+
+		// 5. Execute the transaction
+		const result = await this.cosmClient.execute(
+			sender,
+			contractAddress,
+			msg,
+			'auto',
+			undefined,
+			[] // No funds needed for withdrawal
+		);
+
+		// 6. Create transaction object for response
+		const transaction: Transaction = {
+			hash: result.transactionHash,
+			status: TransactionStatus.SUCCESS, // Assuming success if no error thrown
+			fee: {
+				amount: new Decimal((result.gasUsed || 0).toString()),
+				token: {
+					address: '',
+					symbol: 'RUNE',
+					name: 'RUNE',
+					decimals: 8,
+					raw: {}
+				}
+			},
+			raw: result
+		};
+
+		// 7. Return response
+		const response: FinWithdrawResponse = {
+			success: true,
+			transaction: transaction
+		};
+
+		return response;
 	}
 }
