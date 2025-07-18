@@ -746,10 +746,64 @@ export class Fin {
 	}
 
 	/**
-	 * Create order
+	 * Create order (MARKET or LIMIT)
 	 */
 	async createOrder(request: FinCreateOrderRequest): Promise<FinCreateOrderResponse> {
-		throw new Error("Not implemented");
+		const market = await this.getMarket({
+			address: request.marketAddress,
+			symbol: request.marketSymbol
+		});
+
+		const isBuy = request.side === 'buy';
+		const isMarket = request.type === 'market';
+		const sender = request.ownerAddress;
+		const contractAddress = market.address;
+
+		let msg: any;
+		let funds: any[] = [];
+
+		if (isMarket) {
+			// MARKET order
+			const sendToken = isBuy ? market.tokens.quote : market.tokens.base;
+			const sendAmount = request.amount.toString();
+			// min_return is not provided in the interface, so use amount as min_return for now
+			msg = {
+				swap: {
+					min_return: sendAmount,
+					to: sender
+				}
+			};
+			funds = [{ denom: sendToken.address, amount: sendAmount }];
+		} else {
+			// LIMIT order
+			if (!request.price) throw new Error('Limit orders require a price');
+			const price = request.price.toString();
+			const orderSide = isBuy ? 'quote' : 'base';
+			const sendToken = isBuy ? market.tokens.quote : market.tokens.base;
+			const sendAmount = request.amount.toString();
+			msg = {
+				order: [
+					[[orderSide, { fixed: price }, sendAmount]],
+					null
+				]
+			};
+			funds = [{ denom: sendToken.address, amount: sendAmount }];
+		}
+
+		const result = await this.cosmClient.execute(
+			sender,
+			contractAddress,
+			msg,
+			'auto',
+			undefined,
+			funds
+		);
+
+		const response: FinCreateOrderResponse = {
+			transactionHash: result.transactionHash,
+			raw: result
+		};
+		return response;
 	}
 
 	/**
