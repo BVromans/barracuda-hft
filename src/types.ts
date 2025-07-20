@@ -176,31 +176,114 @@ export interface Ticker {
 	raw: Raw;
 }
 
-export interface BaseBalance {
+/**
+ * Represents a balance of a token
+ */
+interface BaseBalance {
+	/**
+	 * Free balance of the token
+	 */
 	free: Amount;
+
+	/**
+	 * Locked in orders balance of the token
+	 */
 	lockedInOrders: Amount;
-	unsettled: Amount;
+
+	/**
+	 * Locked in pools balance of the token
+	 */
+	lockedInPools: Amount;
+
+	/**
+	 * Total balance of the token
+	 */
 	total: Amount;
-	quotation?: {
-		token: Token;
-		conversionRate: Amount;
 	}
+
+	/**
+	 * Represents a balance of a token with a quotation
+	 */
+interface BaseBalanceWithQuotation extends BaseBalance {
+	/**
+	 * Quotation of the token
+	 */
+	quotation: {
+		/**
+		 * Token of the quotation
+		 */
+		token: Token;
+
+		/**
+		 * Conversion rate of the token
+		 */
+		conversionRate: Amount;
+	};
+	}
+
+	/**
+	 * Represents a balance of a token
+	 */
+interface BaseTokenBalance {
+	/**
+	 * Balance of the token
+	 */
+	token: BaseBalance;
+
+	/**
+	 * Balance of the native token
+	 */
+	nativeToken: BaseBalanceWithQuotation;
+
+	/**
+	 * Balance of the beacon token
+	 */
+	beaconToken: BaseBalanceWithQuotation;
 }
 
-export interface BaseTokenBalance {
-	token?: BaseBalance;
-	nativeToken?: BaseBalance;
-	beaconToken?: BaseBalance;
-}
-
-export interface TokenBalance {
+	/**
+	 * Represents a balance of a token
+	 */
+interface TokenBalance {
+	/**
+	 * Token of the balance
+	 */
 	token: Token;
+
+	/**
+	 * Balances of the token
+	 */
 	balances: BaseTokenBalance;
 }
 
-export interface Balances {
+	/**
+	 * Represents a total balance of a token
+	 */
+interface TotalBalances {
+	/**
+	 * Balance of the native token
+	 */
+	nativeToken: BaseBalance;
+
+	/**
+	 * Balance of the beacon token
+	 */
+	beaconToken: BaseBalance;
+}
+
+	/**
+	 * Represents a balance of a token
+	 */
+interface Balances {
+	/**
+	 * Balances of the tokens
+	 */
 	tokens: Map<TokenAddress, TokenBalance>;
-	total: BaseTokenBalance;
+
+	/**
+	 * Total balances of the wallet
+	 */
+	total: TotalBalances;
 }
 
 ///////////////////////////////////////////////////
