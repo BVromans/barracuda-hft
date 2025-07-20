@@ -582,11 +582,6 @@ export interface FinGetTransactionResponse extends Transaction {}
  */
 export interface FinGetOrderRequest {
 	/**
-	 * Order ID
-	 */
-	id: string;
-
-	/**
 	 * Market address
 	 */
 	marketAddress?: MarketAddress;
@@ -600,12 +595,68 @@ export interface FinGetOrderRequest {
 	 * Owner address (wallet that owns the order)
 	 */
 	ownerAddress: string;
+
+	/**
+	 * Order side (base/quote)
+	 */
+	side: 'base' | 'quote';
+
+	/**
+	 * Order price
+	 */
+	price: {
+		fixed?: string;
+		oracle?: number;
+	};
 }
 
 /**
  * Get order response
  */
-export interface FinGetOrderResponse extends OrderBookOrder {}
+export interface FinGetOrderResponse {
+	/**
+	 * The account which placed the order
+	 */
+	owner: string;
+
+	/**
+	 * The side of the order
+	 */
+	side: 'base' | 'quote';
+
+	/**
+	 * The quote price of this order
+	 */
+	price: {
+		fixed?: string;
+		oracle?: number;
+	};
+
+	/**
+	 * The rate at which this order would execute at the current moment in time
+	 */
+	rate: string;
+
+	/**
+	 * The last time this order was touched (created, incremented or reduced) in an Order execution
+	 */
+	updated_at: string;
+
+	/**
+	 * Offer amount at updated_at time
+	 */
+	offer: string;
+
+	/**
+	 * The remaining offer amount
+	 */
+	remaining: string;
+
+	/**
+	 * Amount of filled order awaiting withdrawal
+	 */
+	filled: string;
+}
 
 /**
  * Get orders request
@@ -627,19 +678,19 @@ export interface FinGetOrdersRequest {
 	marketSymbol?: MarketSymbol;
 
 	/**
-	 * Order status filter (optional)
+	 * Order side filter (optional)
 	 */
-	status?: OrderStatus;
+	side?: 'base' | 'quote';
 
 	/**
-	 * Order IDs filter (optional)
-	 */
-	ids?: string[];
-
-	/**
-	 * Limit number of orders to return (optional)
+	 * Limit number of orders to return (optional, max 30)
 	 */
 	limit?: Integer;
+
+	/**
+	 * Offset for pagination (optional)
+	 */
+	offset?: Integer;
 }
 
 /**
@@ -649,7 +700,7 @@ export interface FinGetOrdersResponse {
 	/**
 	 * List of orders
 	 */
-	orders: OrderBookOrder[];
+	orders: FinGetOrderResponse[];
 }
 
 /**
@@ -696,14 +747,7 @@ export interface FinCreateOrderRequest {
  * Create order response
  */
 export interface FinCreateOrderResponse {
-  /**
-   * The transaction hash of the order creation
-   */
-  transactionHash: string;
-  /**
-   * The full raw transaction result returned by the blockchain client
-   */
-  raw: any;
+	
 }
 
 /**
@@ -739,7 +783,7 @@ export interface FinCreateOrdersResponse {
 	 * List of created orders
 	 */
 	orders: OrderBookOrder[];
-	
+
 	/**
 	 * Transaction details
 	 */
@@ -779,12 +823,12 @@ export interface FinCancelOrderResponse {
 	 * Order ID that was cancelled
 	 */
 	orderId: string;
-	
+
 	/**
 	 * Status of the cancelled order
 	 */
 	status: OrderStatus;
-	
+
 	/**
 	 * Transaction details
 	 */
@@ -824,12 +868,12 @@ export interface FinCancelOrdersResponse {
 	 * Order IDs that were cancelled
 	 */
 	orderIds: string[];
-	
+
 	/**
 	 * Status of the cancelled orders
 	 */
 	status: OrderStatus;
-	
+
 	/**
 	 * Transaction details
 	 */
@@ -869,7 +913,7 @@ export interface FinWithdrawResponse {
 	 * Whether the withdrawal was successful
 	 */
 	success: boolean;
-	
+
 	/**
 	 * Transaction details
 	 */
