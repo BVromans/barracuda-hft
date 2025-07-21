@@ -1,9 +1,10 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
 import { Rujira } from "../src/rujira";
 import { BIG_NUMBER_0, FEE_PAYMENT_TOKEN, SystemStatus, TransactionStatus } from "../src/types";
 
 let rujira: Rujira;
 
+let testsTimeout: number;
 let rpcEndpoint: string;
 let walletPrivateKey: string;
 let walletMnemonic: string;
@@ -17,6 +18,7 @@ let quoteTokenAmount: string;
 
 beforeAll(async () => {
 	const requiredEnvironmentVariables = [
+		'TESTS_TIMEOUT',
 		'RPC_ENDPOINT',
 		'WALLET_PRIVATE_KEY',
 		'WALLET_MNEMONIC',
@@ -35,6 +37,7 @@ beforeAll(async () => {
 			throw new Error(`Missing required environment variables: ${missingEnvironmentVariables.join(', ')}`);
 		}
 
+		testsTimeout = Number(process.env.TESTS_TIMEOUT!);
 		rpcEndpoint = process.env.RPC_ENDPOINT!;
 		walletPrivateKey = process.env.WALLET_PRIVATE_KEY!;
 		walletMnemonic = process.env.WALLET_MNEMONIC!;
@@ -50,13 +53,22 @@ beforeAll(async () => {
 			rpcEndpoint: rpcEndpoint,
 			walletPrivateKey: walletPrivateKey,
 			walletMnemonic: walletMnemonic,
+			restEndpoint: '' // TODO: add rest endpoint!!!
 		});
 
 		await rujira.initialize({});
+
+		jest.setTimeout(testsTimeout);
+
+		await cleanUp();
 });
 
 afterAll(async () => {
+	await cleanUp();
 });
+
+const cleanUp = async () => {
+};
 
 describe("Rujira", () => {
 	describe("Fin", () => {
