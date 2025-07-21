@@ -515,7 +515,7 @@ export class Fin {
 	})
 	async getAllMarkets(request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
 		const GRAPHQL_ENDPOINT = 'https://api.rujira.network/api/graphiql';
-
+		
 		const MARKETS_QUERY = `
 			query {
 				rujira {
@@ -597,10 +597,31 @@ export class Fin {
 							}
 							price
 						}
+
+						# Orderbook
+						book {
+							center
+							spread
+							bids {
+								price
+								total
+								side
+								value
+								virtualTotal
+								virtualValue
+							}
+							asks {
+								price
+								total
+								side
+								value
+								virtualTotal
+								virtualValue
+							}
+						}
 					}
 				}
-			}
-		`;
+			}`;
 
 		try {
 			const response = await fetch(GRAPHQL_ENDPOINT, {
@@ -615,7 +636,7 @@ export class Fin {
 
 			const json: any = await response.json();
 			const { data, errors } = json;
-
+			
 			if (errors) {
 				throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
 			}
@@ -670,7 +691,8 @@ export class Fin {
 						oracleBase: pair.oracleBase,
 						oracleQuote: pair.oracleQuote,
 						assetBase: pair.assetBase,
-						assetQuote: pair.assetQuote
+						assetQuote: pair.assetQuote,
+						book: pair.book
 					}
 				};
 
@@ -678,11 +700,11 @@ export class Fin {
 				if (pair.assetBase.price?.current && pair.assetQuote.price?.current) {
 					const basePrice = new Decimal(pair.assetBase.price.current);
 					const quotePrice = new Decimal(pair.assetQuote.price.current);
-
+					
 					if (quotePrice.gt(0)) {
 						const baseQuotePrice = basePrice.div(quotePrice);
 						const quoteBasePrice = quotePrice.div(basePrice);
-
+						
 						market.price = {
 							baseQuote: baseQuotePrice,
 							quoteBase: quoteBasePrice
@@ -713,35 +735,55 @@ export class Fin {
 			throw new Error("Either market address or market name must be provided");
 		}
 
-		if (request.marketSymbol && !request.marketAddress) {
-			request.marketAddress = this.marketsBySymbol.get(request.marketSymbol)?.address;
+		let market: Market;
+		if (request.marketAddress) {
+			market = await this.getMarket({ address: request.marketAddress });
+		} else {
+			market = await this.getMarket({ symbol: request.marketSymbol });
 		}
 
-		if (!request.marketAddress) {
-			throw new Error("Market address must be provided");
+		const book = market.raw?.book;
+		if (!book) {
+			throw new Error('Orderbook data not found for this market. Try refreshing the markets cache.');
 		}
 
-		const market = await this.getMarket({
-			address: request.marketAddress
+		const parseOrder = (entry: any): OrderBookOrder => ({
+			price: new Decimal(entry.price),
+			amount: new Decimal(entry.total),
+			raw: entry
 		});
 
-		const rawOrderBook = await this.cosmClient.queryContractSmart(request.marketAddress, {
-			order_book: {
-				limit: request.limit
-			} as any
-		});
+		const asks: OrderBookOrder[] = (book.asks || []).map(parseOrder);
+		const bids: OrderBookOrder[] = (book.bids || []).map(parseOrder);
+
+		const limitedAsks = typeof request.limit === 'number' ? asks.slice(0, request.limit) : asks;
+		const limitedBids = typeof request.limit === 'number' ? bids.slice(0, request.limit) : bids;
+
+		const bestAsk: OrderBookOrder = limitedAsks.length > 0 ? limitedAsks[0] : {
+			price: new Decimal(0),
+			amount: new Decimal(0),
+			raw: null
+		};
+		const bestBid: OrderBookOrder = limitedBids.length > 0 ? limitedBids[0] : {
+			price: new Decimal(0),
+			amount: new Decimal(0),
+			raw: null
+		};
+		const middlePrice: OrderBookMiddlePrice = (limitedAsks.length > 0 && limitedBids.length > 0)
+			? bestAsk.price.plus(bestBid.price).div(2)
+			: new Decimal(0);
 
 		const orderBook: OrderBook = {
-			market: market!,
+			market,
 			book: {
-				asks: undefined as unknown as OrderBookOrder[],
-				bids: undefined as unknown as OrderBookOrder[],
-				bestBid: undefined as unknown as OrderBookOrder,
-				bestAsk: undefined as unknown as OrderBookOrder,
-				middlePrice: undefined as unknown as OrderBookMiddlePrice,
+				asks: limitedAsks,
+				bids: limitedBids,
+				bestAsk,
+				bestBid,
+				middlePrice
 			},
-			raw: rawOrderBook
-		} as OrderBook;
+			raw: book
+		};
 
 		return orderBook;
 	}
