@@ -24,10 +24,10 @@ import {
 	FinCancelOrderResponse,
 	FinCancelOrdersRequest,
 	FinCancelOrdersResponse,
-	FinCreateOrderRequest,
-	FinCreateOrderResponse,
-	FinCreateOrdersRequest,
-	FinCreateOrdersResponse,
+	FinCreateOrderRequest as FinPlaceOrderRequest,
+	FinCreateOrderResponse as FinPlaceOrderResponse,
+	FinCreateOrdersRequest as FinPlaceOrdersRequest,
+	FinCreateOrdersResponse as FinPlaceOrdersResponse,
 	FinGetBalancesRequest,
 	FinGetBalancesResponse,
 	FinGetMarketRequest,
@@ -883,9 +883,9 @@ export class Fin {
 	}
 
 	/**
-	 * Create order (MARKET or LIMIT)
+	 * Place order (MARKET or LIMIT), supports both BUY and SELL sides
 	 */
-	async createOrder(request: FinCreateOrderRequest): Promise<FinCreateOrderResponse> {
+	async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
 		const market = await this.getMarket({
 			address: request.marketAddress,
 			symbol: request.marketSymbol
@@ -936,7 +936,7 @@ export class Fin {
 			funds
 		);
 
-		const response: FinCreateOrderResponse = {
+		const response: FinPlaceOrderResponse = {
 			transactionHash: result.transactionHash,
 			raw: result
 		};
@@ -944,9 +944,9 @@ export class Fin {
 	}
 
 	/**
-	 * Create orders
+	 * Place orders
 	 */
-	async createOrders(request: FinCreateOrdersRequest): Promise<FinCreateOrdersResponse> {
+	async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse> {
 		throw new Error("Not implemented");
 	}
 
