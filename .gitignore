@@ -4,6 +4,7 @@ dist
 .bun
 debug.log
 *.iml
+*.yaml
 *.json
 *.log
 *.txt

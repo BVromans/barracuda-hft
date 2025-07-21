@@ -858,6 +858,11 @@ export interface FinCancelOrdersRequest {
 	 * Order IDs
 	 */
 	orderIds: string[];
+
+	/**
+	 * If true, cancel all orders for the owner in the market
+	 */
+	cancelAll?: boolean;
 }
 
 /**

@@ -62,7 +62,8 @@ import {
 	RPCEndpoint,
 	WalletMnemonic,
 	WalletPrivateKey,
-	FinGetStatusRequest
+	FinGetStatusRequest,
+	OrderStatus
 } from "./types";
 import Decimal from 'decimal.js';
 import { GasPrice } from "@cosmjs/stargate";
@@ -908,17 +909,93 @@ export class Fin {
 	}
 
 	/**
-	 * Cancel order
+	 * Cancel order (calls cancelOrders with a single orderId)
 	 */
 	async cancelOrder(request: FinCancelOrderRequest): Promise<FinCancelOrderResponse> {
-		throw new Error("Not implemented");
+		const resp = await this.cancelOrders({
+			ownerAddress: request.ownerAddress,
+			marketAddress: request.marketAddress,
+			marketSymbol: request.marketSymbol,
+			orderIds: [request.orderId],
+			cancelAll: false
+		});
+		return {
+			orderId: request.orderId,
+			status: resp.status,
+			transaction: resp.transaction
+		};
 	}
 
 	/**
-	 * Cancel orders
+	 * Cancel orders (supports cancelAll and multiple orderIds)
 	 */
 	async cancelOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
-		throw new Error("Not implemented");
+		// 1. Get the market address
+		const market = await this.getMarket({
+			address: request.marketAddress,
+			symbol: request.marketSymbol
+		});
+		const contractAddress = market.address;
+
+		// 2. Query user orders
+		const ordersResult = await this.cosmClient.queryContractSmart(contractAddress, {
+			orders: { owner: request.ownerAddress, limit: 100 }
+		});
+		const orders = ordersResult.orders || [];
+
+		// 3. Determine which orders to cancel
+		let ordersToCancel: any[] = [];
+		if (request.cancelAll) {
+			ordersToCancel = orders;
+		} else {
+			ordersToCancel = orders.filter((o: any) => {
+				if (o.id && request.orderIds.includes(o.id)) return true;
+				if (o.price && o.price.fixed && o.side) {
+					const syntheticId = `${o.side}:${o.price.fixed}`;
+					return request.orderIds.includes(syntheticId);
+				}
+				return false;
+			});
+		}
+		if (ordersToCancel.length === 0) {
+			throw new Error('No orders found to cancel');
+		}
+
+		// 4. Build the cancellation message for all orders
+		const cancelMsgs = ordersToCancel.map((order: any) => [order.side, { fixed: order.price.fixed }, '0']);
+		const executeMsg = {
+			order: [cancelMsgs, null]
+		};
+
+		// 5. Execute the cancellation transaction
+		const [{ address }] = await this.wallet.getAccounts();
+		const result = await this.cosmClient.execute(
+			address,
+			contractAddress,
+			executeMsg,
+			'auto'
+		);
+
+		// 6. Return the response
+		return {
+			orderIds: ordersToCancel.map((o: any) => o.id || `${o.side}:${o.price.fixed}`),
+			status: OrderStatus.CANCELLED,
+			transaction: {
+				hash: result.transactionHash,
+				status: TransactionStatus.SUCCESS,
+				fee: {
+					amount: result.gasUsed ? new Decimal(result.gasUsed.toString()) : new Decimal(0),
+					token: {
+						address: 'native',
+						symbol: 'RUJI',
+						name: 'Rujira',
+						decimals: 6,
+						raw: {}
+					}
+				},
+				raw: result
+			}
+		};
 	}
 
 	/**
