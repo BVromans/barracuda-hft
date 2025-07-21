@@ -67,10 +67,11 @@ import {
 	BaseBalance,
 	BaseBalanceWithQuotation,
 	BaseTokenBalance,
-	Balances
+	Balances,
+	DEFAULT_GAS_PRICE,
+	DEFAULT_WALLET_PREFIX
 } from "./types";
 import Decimal from 'decimal.js';
-import { GasPrice } from "@cosmjs/stargate";
 
 /**
  * LRU cache
@@ -89,16 +90,6 @@ const cacheAdapter = useAdapter(lruCache);
 cacheManager.setOptions(<CacheManagerOptions>{
 	adapter: cacheAdapter,
 });
-
-/**
- * Default wallet prefix
- */
-const DEFAULT_WALLET_PREFIX = 'thor';
-
-/**
- * Default gas price
- */
-const DEFAULT_GAS_PRICE = GasPrice.fromString('0.02rune');
 
 /**
  * Rujira client

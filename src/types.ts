@@ -2,6 +2,7 @@ import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
 import BN from "bn.js";
+import { GasPrice } from '@cosmjs/stargate';
 
 export const DECIMAL_0 = new Decimal(0);
 export const DECIMAL_1 = new Decimal(1);
@@ -11,6 +12,10 @@ export const BIG_NUMBER_0 = new BN(0);
 export const BIG_NUMBER_1 = new BN(1);
 export const BIG_NUMBER_100 = new BN(100);
 export const BIG_NUMBER_NaN = new BN(NaN);
+
+export const DEFAULT_WALLET_PREFIX = 'thor';
+
+export const DEFAULT_GAS_PRICE = GasPrice.fromString('0.02rune');
 
 export const NATIVE_TOKEN = {
 	address: undefined as unknown as string,
@@ -127,62 +132,218 @@ export type OrderBookMiddlePrice = Amount;
 export type TickerPrice = Amount;
 export type TickerTimestamp = Timestamp;
 
+/**
+ * Represents a token
+ */
 export interface Token {
+	/**
+	 * Address of the token
+	 */
 	address: TokenAddress;
+
+	/**
+	 * Symbol of the token
+	 */
 	symbol: TokenSymbol;
+
+	/**
+	 * Name of the token
+	 */
 	name: TokenName;
+
+	/**
+	 * Number of decimal places
+	 */
 	decimals: TokenDecimals;
+
+	/**
+	 * Raw data
+	 */
 	raw: Raw;
 }
 
+/**
+ * Represents a transaction
+ */
 export interface Transaction {
+	/**
+	 * Hash of the transaction
+	 */
 	hash: TransactionHash;
+
+	/**
+	 * Status of the transaction
+	 */
 	status: TransactionStatus;
+
+	/**
+	 * Fee of the transaction
+	 */
 	fee: {
+		/**
+		 * Amount of the fee
+		 */
 		amount: FeeAmount;
+
+		/**
+		 * Token of the fee
+		 */
 		token: FeeToken;
 	};
+
+	/**
+	 * Raw data
+	 */
 	raw: Raw;
 }
 
+/**
+ * Represents a market
+ */
 export interface Market {
+	/**
+	 * Address of the market
+	 */
 	address: MarketAddress;
+
+	/**
+	 * Symbol of the market
+	 */
 	symbol: MarketSymbol;
+
+	/**
+	 * Tokens of the market
+	 */
 	tokens: {
+		/**
+		 * Base token of the market
+		 */
 		base: Token;
+
+		/**
+		 * Quote token of the market
+		 */
 		quote: Token;
 	};
+
+	/**
+	 * Number of decimal places
+	 */
 	decimals: MarketDecimals;
+
+	/**
+	 * Price of the market
+	 */
 	price?: {
+		/**
+		 * Price of the market in base/quote
+		 */
 		baseQuote: MarketPrice;
+
+		/**
+		 * Price of the market in quote/base
+		 */
 		quoteBase: MarketPrice;
 	}
+
+	/**
+	 * Status of the market
+	 */
 	status: MarketStatus;
+
+	/**
+	 * Raw data
+	 */
 	raw: Raw;
 }
 
+/**
+ * Represents an order book order
+ */
 export interface OrderBookOrder {
+	/**
+	 * Price of the order
+	 */
 	price: OrderBookOrderPrice;
+
+	/**
+	 * Amount of the order
+	 */
 	amount: OrderBookOrderAmount;
+
+	/**
+	 * Raw data
+	 */
 	raw: Raw;
 }
 
+/**
+ * Represents an order book
+ */
 export interface OrderBook {
+	/**
+	 * Market of the order book
+	 */
 	market: Market;
+
+	/**
+	 * Book of the order book
+	 */
 	book: {
+		/**
+		 * Bids of the order book
+		 */
 		bids: OrderBookOrder[];
+
+		/**
+		 * Asks of the order book
+		 */
 		asks: OrderBookOrder[];
+
+		/**
+		 * Best bid of the order book
+		 */
 		bestBid: OrderBookOrder;
+
+		/**
+		 * Best ask of the order book
+		 */
 		bestAsk: OrderBookOrder;
+
+		/**
+		 * Middle price of the order book
+		 */
 		middlePrice: OrderBookMiddlePrice;
 	}
+
+	/**
+	 * Raw data
+	 */
 	raw: Raw;
 }
 
+/**
+ * Represents a ticker
+ */
 export interface Ticker {
+	/**
+	 * Market of the ticker
+	 */
 	market: Market;
+
+	/**
+	 * Price of the ticker
+	 */
 	price: TickerPrice;
+
+	/**
+	 * Timestamp of the ticker
+	 */
 	timestamp: TickerTimestamp;
+
+	/**
+	 * Raw data
+	 */
 	raw: Raw;
 }
 
