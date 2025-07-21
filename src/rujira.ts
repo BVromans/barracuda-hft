@@ -608,28 +608,6 @@ export class Fin {
 							}
 							price
 						}
-
-						# Orderbook
-						book {
-							center
-							spread
-							bids {
-								price
-								total
-								side
-								value
-								virtualTotal
-								virtualValue
-							}
-							asks {
-								price
-								total
-								side
-								value
-								virtualTotal
-								virtualValue
-							}
-						}
 					}
 				}
 			}`;
@@ -739,7 +717,7 @@ export class Fin {
 	}
 
 	/**
-	 * Get order book
+	 * Get order book (always fetches latest from CosmWasm contract, not cache)
 	 */
 	async getOrderBook(request: FinGetOrderBookRequest): Promise<FinGetOrderBookResponse> {
 		if (!request.marketAddress && !request.marketSymbol) {
@@ -753,10 +731,12 @@ export class Fin {
 			market = await this.getMarket({ symbol: request.marketSymbol });
 		}
 
-		const book = market.raw?.book;
-		if (!book) {
-			throw new Error('Orderbook data not found for this market. Try refreshing the markets cache.');
-		}
+		// Always fetch the latest orderbook from the contract
+		const rawOrderBook = await this.cosmClient.queryContractSmart(market.address, {
+			order_book: {
+				limit: request.limit
+			}
+		});
 
 		const parseOrder = (entry: any): OrderBookOrder => ({
 			price: new Decimal(entry.price),
@@ -764,8 +744,8 @@ export class Fin {
 			raw: entry
 		});
 
-		const asks: OrderBookOrder[] = (book.asks || []).map(parseOrder);
-		const bids: OrderBookOrder[] = (book.bids || []).map(parseOrder);
+		const asks: OrderBookOrder[] = (rawOrderBook.asks || []).map(parseOrder);
+		const bids: OrderBookOrder[] = (rawOrderBook.bids || []).map(parseOrder);
 
 		const limitedAsks = typeof request.limit === 'number' ? asks.slice(0, request.limit) : asks;
 		const limitedBids = typeof request.limit === 'number' ? bids.slice(0, request.limit) : bids;
@@ -793,7 +773,7 @@ export class Fin {
 				bestBid,
 				middlePrice
 			},
-			raw: book
+			raw: rawOrderBook
 		};
 
 		return orderBook;
