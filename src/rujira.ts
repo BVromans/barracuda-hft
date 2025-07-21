@@ -1,5 +1,5 @@
-import { CosmWasmClient, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
+import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
 import { stringToPath, Bip39, EnglishMnemonic, Slip10, Slip10Curve } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
 import cacheManager, { Cacheable, CacheManagerOptions } from "@type-cacheable/core";
@@ -16,7 +16,6 @@ import {
 	SystemStatus,
 	Token,
 	TokenAddress,
-	TokenDecimals,
 	TokenSymbol,
 	Transaction,
 	TransactionStatus,
@@ -72,7 +71,6 @@ import {
 } from "./types";
 import Decimal from 'decimal.js';
 import { GasPrice } from "@cosmjs/stargate";
-import { DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
 
 /**
  * LRU cache
