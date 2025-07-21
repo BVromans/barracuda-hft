@@ -1,6 +1,16 @@
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
+import BN from "bn.js";
+
+export const DECIMAL_0 = new Decimal(0);
+export const DECIMAL_1 = new Decimal(1);
+export const DECIMAL_100 = new Decimal(100);
+export const DECIMAL_NaN = new Decimal(NaN);
+export const BIG_NUMBER_0 = new BN(0);
+export const BIG_NUMBER_1 = new BN(1);
+export const BIG_NUMBER_100 = new BN(100);
+export const BIG_NUMBER_NaN = new BN(NaN);
 
 export const NATIVE_TOKEN = {
 	address: undefined as unknown as string,
@@ -405,6 +415,10 @@ export interface FinGetTokenResponse {
 	 */
 	decimals: TokenDecimals;
 
+	/**
+	 * Raw data
+	 */
+	raw: Raw;
 }
 
 /**

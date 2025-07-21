@@ -104,7 +104,7 @@ export class Rujira {
 	/**
 	 * Fin client
 	 */
-	private readonly fin: Fin;
+	readonly fin: Fin;
 
 	/**
 	 * RPC endpoint
