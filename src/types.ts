@@ -189,7 +189,7 @@ export interface Ticker {
 /**
  * Represents a balance of a token
  */
-interface BaseBalance {
+export interface BaseBalance {
 	/**
 	 * Free balance of the token
 	 */
@@ -209,12 +209,12 @@ interface BaseBalance {
 	 * Total balance of the token
 	 */
 	total: Amount;
-	}
+}
 
-	/**
-	 * Represents a balance of a token with a quotation
-	 */
-interface BaseBalanceWithQuotation extends BaseBalance {
+/**
+ * Represents a balance of a token with a quotation
+ */
+export interface BaseBalanceWithQuotation extends BaseBalance {
 	/**
 	 * Quotation of the token
 	 */
@@ -229,12 +229,12 @@ interface BaseBalanceWithQuotation extends BaseBalance {
 		 */
 		conversionRate: Amount;
 	};
-	}
+}
 
-	/**
-	 * Represents a balance of a token
-	 */
-interface BaseTokenBalance {
+/**
+ * Represents a balance of a token
+ */
+export interface BaseTokenBalance {
 	/**
 	 * Balance of the token
 	 */
@@ -251,10 +251,10 @@ interface BaseTokenBalance {
 	beaconToken: BaseBalanceWithQuotation;
 }
 
-	/**
-	 * Represents a balance of a token
-	 */
-interface TokenBalance {
+/**
+ * Represents a balance of a token
+ */
+export interface TokenBalance {
 	/**
 	 * Token of the balance
 	 */
@@ -266,10 +266,10 @@ interface TokenBalance {
 	balances: BaseTokenBalance;
 }
 
-	/**
-	 * Represents a total balance of a token
-	 */
-interface TotalBalances {
+/**
+ * Represents a total balance of a token
+ */
+export interface TotalBalances {
 	/**
 	 * Balance of the native token
 	 */
@@ -281,10 +281,10 @@ interface TotalBalances {
 	beaconToken: BaseBalance;
 }
 
-	/**
-	 * Represents a balance of a token
-	 */
-interface Balances {
+/**
+ * Represents a balance of a token
+ */
+export interface Balances {
 	/**
 	 * Balances of the tokens
 	 */
@@ -316,6 +316,11 @@ export interface RujiraConstructorOptions {
    * Wallet private key
    */
   walletPrivateKey: WalletPrivateKey;
+
+  /**
+   * REST endpoint for bank queries
+   */
+  restEndpoint: string;
 }
 
 /**
@@ -337,6 +342,11 @@ export interface FinConstructorOptions {
    * Wallet mnemonic
    */
   walletMnemonic: WalletMnemonic;
+
+  /**
+   * REST endpoint for bank queries
+   */
+  restEndpoint: string;
 }
 
 /**
