@@ -6,6 +6,7 @@ let rujira: Rujira;
 
 let testsTimeout: number;
 let rpcEndpoint: string;
+let restEndpoint: string;
 let walletPrivateKey: string;
 let walletMnemonic: string;
 let transactionHash: string;
@@ -39,6 +40,7 @@ beforeAll(async () => {
 
 		testsTimeout = Number(process.env.TESTS_TIMEOUT!);
 		rpcEndpoint = process.env.RPC_ENDPOINT!;
+		restEndpoint = process.env.REST_ENDPOINT!;
 		walletPrivateKey = process.env.WALLET_PRIVATE_KEY!;
 		walletMnemonic = process.env.WALLET_MNEMONIC!;
 		transactionHash = process.env.TRANSACTION_HASH!;
@@ -53,7 +55,7 @@ beforeAll(async () => {
 			rpcEndpoint: rpcEndpoint,
 			walletPrivateKey: walletPrivateKey,
 			walletMnemonic: walletMnemonic,
-			restEndpoint: '' // TODO: add rest endpoint!!!
+			restEndpoint: restEndpoint,
 		});
 
 		await rujira.initialize({});

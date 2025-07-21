@@ -326,8 +326,7 @@ export interface RujiraConstructorOptions {
 /**
  * Rujira initialize options
  */
-export interface RujiraInitializeOptions {
-}
+export interface RujiraInitializeOptions {}
 
 /**
  * Fin constructor options
