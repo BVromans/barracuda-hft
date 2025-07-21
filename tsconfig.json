@@ -11,8 +11,7 @@
 		"rootDir": ".",
 		"skipLibCheck": true,
 		"types": ["bun-types"],
-		"experimentalDecorators": true,
-		"emitDecoratorMetadata": true
+		"experimentalDecorators": true
 	},
 	"include": ["src", "integration", "tests", "temporary/playground"],
 	"exclude": ["node_modules", "dist"]
