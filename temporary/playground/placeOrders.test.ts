@@ -7,7 +7,8 @@ import {
   FinCreateOrdersResponse as FinPlaceOrdersResponse,
   OrderSide,
   OrderType,
-  Order
+  Order,
+  BIG_NUMBER_0
 } from '../../src/types';
 import { Fin } from '../../src/rujira';
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
@@ -49,18 +50,19 @@ describe('Fin Real Order Placement', () => {
       side: OrderSide.BUY,
       type: OrderType.LIMIT,
       price: new Decimal(FIN_ORDER_PRICE_FIXED),
-      amount: new Decimal('1')
-    };
+      amount: undefined as any
+    } as FinPlaceOrderRequest;
     try {
-      const result: any = await fin.placeOrder(orderRequest);
+      const result = await fin.placeOrder(orderRequest);
       expect(result).toBeDefined();
-      expect(result.market).toBeDefined();
-      expect(result.amount).toBeDefined();
-      expect(result.side).toBe(OrderSide.BUY);
-      expect(result.type).toBe(OrderType.LIMIT);
-      expect(result.price).toBeDefined();
-      expect(result.amount.toString()).toBe('1');
-      expect(result.owner).toBe(FIN_ORDER_OWNER);
+      expect(result.order).toBeDefined();
+      expect(result.order.owner).toBe(FIN_ORDER_OWNER);
+      expect(result.order.side).toBe(OrderSide.BUY);
+      expect(result.order.type).toBe(OrderType.LIMIT);
+      expect(result.order.price).toBeDefined();
+      expect(result.order.amount).toBeDefined();
+      expect(result.order.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+      expect(result.transaction).toBeDefined();
     } catch (err: any) {
       console.error('Error creating single order:', err?.response || err);
       throw err;
@@ -90,24 +92,22 @@ describe('Fin Real Order Placement', () => {
       ]
     };
     try {
-      const result: FinPlaceOrdersResponse | null = await fin.placeOrders(ordersRequest);
-      expect(result).not.toBeNull();
-      if (result) {
-        expect(result.orders.size).toBe(2);
-        const ordersArr = Array.from(result.orders.values());
-        expect(ordersArr[0]).toBeDefined();
-        expect(ordersArr[1]).toBeDefined();
-        expect([OrderSide.BUY, OrderSide.SELL]).toContain(ordersArr[0].side);
-        expect([OrderSide.BUY, OrderSide.SELL]).toContain(ordersArr[1].side);
-        expect([OrderType.LIMIT]).toContain(ordersArr[0].type);
-        expect([OrderType.LIMIT]).toContain(ordersArr[1].type);
-        expect(ordersArr[0].price).toBeDefined();
-        expect(ordersArr[1].price).toBeDefined();
-        expect(ordersArr[0].amount).toBeDefined();
-        expect(ordersArr[1].amount).toBeDefined();
-        expect(ordersArr[0].owner).toBe(FIN_ORDER_OWNER);
-        expect(ordersArr[1].owner).toBe(FIN_ORDER_OWNER);
-      }
+      const result: FinPlaceOrdersResponse = await fin.placeOrders(ordersRequest);
+      expect(result).toBeDefined();
+      expect(result.orders.size).toBe(ordersRequest.orders.length);
+      const ordersArr = Array.from(result.orders.values());
+      expect(ordersArr[0]).toBeDefined();
+      expect(ordersArr[1]).toBeDefined();
+      expect([OrderSide.BUY, OrderSide.SELL]).toContain(ordersArr[0].side);
+      expect([OrderSide.BUY, OrderSide.SELL]).toContain(ordersArr[1].side);
+      expect([OrderType.LIMIT]).toContain(ordersArr[0].type);
+      expect([OrderType.LIMIT]).toContain(ordersArr[1].type);
+      expect(ordersArr[0].price).toBeDefined();
+      expect(ordersArr[1].price).toBeDefined();
+      expect(ordersArr[0].amount).toBeDefined();
+      expect(ordersArr[1].amount).toBeDefined();
+      expect(ordersArr[0].owner).toBe(FIN_ORDER_OWNER);
+      expect(ordersArr[1].owner).toBe(FIN_ORDER_OWNER);
     } catch (err: any) {
       console.error('Error creating multiple orders:', err?.response || err);
       throw err;

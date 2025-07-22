@@ -104,6 +104,12 @@ export class Rujira {
 	readonly fin: Fin;
 
 	/**
+	 * Wallet
+	 * // TODO check if we should expose this or not!!!
+	 */
+	public wallet: Wallet;
+
+	/**
 	 * RPC endpoint
 	 */
 	private readonly rpcEndpoint: URL;
@@ -122,11 +128,6 @@ export class Rujira {
 	 * Wallet mnemonic
 	 */
 	private readonly walletMnemonic?: WalletMnemonic;
-
-	/**
-	 * Wallet
-	 */
-	private wallet: Wallet;
 
 	/**
 	 * Cosm client
@@ -1063,7 +1064,7 @@ export class Fin {
 	 * @param request - The order request
 	 * @returns The response for the created order
 	 */
-async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse | null> {
+async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
     // Basic validation
     if (!request.ownerAddress || (!request.marketAddress && !request.marketSymbol) || !request.side || !request.type || !request.amount) {
         console.error('[placeOrder] Missing required fields');
@@ -1088,7 +1089,7 @@ async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse |
  * @param request - The request for multiple orders
  * @returns The response for the created orders or null if failed
  */
-async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse | null> {
+async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse> {
     if (!request.orders?.length) {
         console.error('[placeOrders] No orders provided');
         return null;

@@ -955,7 +955,15 @@ export interface FinCreateOrderRequest {
  * Create order response
  */
 export interface FinCreateOrderResponse {
-	
+	/**
+	 * Order that was created
+	 */
+	order: Order;
+
+	/**
+	 * Transaction details
+	 */
+	transaction: Transaction;
 }
 
 /**

@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
 import { Rujira } from "../src/rujira";
-import { BIG_NUMBER_0, FEE_PAYMENT_TOKEN, MarketStatus, SystemStatus, TransactionStatus } from "../src/types";
+import { BIG_NUMBER_0, FEE_PAYMENT_TOKEN, MarketStatus, SystemStatus, TransactionStatus, Wallet } from "../src/types";
 
 let rujira: Rujira;
 
@@ -10,6 +10,7 @@ let rpcEndpoint: string;
 let restEndpoint: string;
 let walletPrivateKey: string;
 let walletMnemonic: string;
+let wallet: Wallet;
 let transactionHash: string;
 let marketSymbol: string;
 let marketAddress: string;
@@ -66,6 +67,8 @@ beforeAll(async () => {
 		});
 
 		await rujira.initialize({});
+
+		wallet = rujira.wallet;
 
 		jest.setTimeout(testsTimeout);
 
