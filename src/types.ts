@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
@@ -52,18 +54,13 @@ export enum SystemStatus {
 	DOWN = 'down',
 }
 
-export enum AppChain {
-	ETHEREUM = 'ethereum',
-	RUJIRA = 'rujira',
-	THORCHAIN = 'thorchain',
-}
-
 export enum Network {
 	MAINNET = 'mainnet',
 	TESTNET = 'testnet'
 }
 
 export enum TransactionStatus {
+	PENDING = 'pending',
 	SUCCESS = 'success',
 	FAILED = 'failed'
 }
@@ -95,42 +92,55 @@ export enum OrderStatus {
 
 export type Boolean = boolean;
 export type Raw = any;
+export type Id = string;
 export type Address = string;
+export type Symbol = string;
+export type Name = string;
 export type Mnemonic = string;
 export type PrivateKey = string;
 export type Integer = number;
 export type Amount = Decimal;
+export type Percentage = Decimal;
 export type Hash = string;
 export type Timestamp = number;
 export type URL = string;
 export type ErrorMessage = string;
-
-export type RPCEndpoint = URL;
 
 export type WalletAddress = Address;
 export type WalletMnemonic = Mnemonic;
 export type WalletPrivateKey = PrivateKey;
 
 export type TokenAddress = Address;
-export type TokenSymbol = string;
-export type TokenName = string;
-export type TokenDecimals = number;
+export type TokenSymbol = Symbol;
+export type TokenName = Name;
+export type TokenDecimals = Integer;
 
 export type FeeAmount = Amount;
 export type FeeToken = Token;
 
 export type TransactionHash = Hash;
-export type TransactionConfirmation = Boolean;
 
 export type MarketAddress = Address;
-export type MarketSymbol = string;
+export type MarketSymbol = Symbol;
 export type MarketDecimals = Integer;
 export type MarketPrice = Amount;
+
 export type OrderBookOrderPrice = Amount;
 export type OrderBookOrderAmount = Amount;
 export type OrderBookMiddlePrice = Amount;
+
 export type TickerPrice = Amount;
 export type TickerTimestamp = Timestamp;
+
+export type OrderId = Id;
+export type OrderPrice = Amount;
+export type OrderAmount = Amount;
+export type OrderFilledAmount = Amount;
+export type OrderFilledPercentage = Percentage;
+export type OrderCreationTimestamp = Timestamp;
+export type OrderUpdateTimestamp = Timestamp;
+
+export type Wallet = DirectSecp256k1Wallet;
 
 /**
  * Represents a token
@@ -388,7 +398,12 @@ export interface BaseBalanceWithQuotation extends BaseBalance {
 		/**
 		 * Conversion rate of the token
 		 */
-		conversionRate: Amount;
+		tokenToQuote: Amount;
+
+		/**
+		 * Conversion rate of the quote
+		 */
+		quoteToToken: Amount;
 	};
 }
 
@@ -457,6 +472,76 @@ export interface Balances {
 	total: TotalBalances;
 }
 
+/**
+ * Represents an order
+ */
+export interface Order {
+	/**
+	 * ID of the order
+	 */
+	id?: OrderId;
+
+	/**
+	 * Market of the order
+	 */
+	market: Market;
+
+	/**
+		* The account which placed the order
+		*/
+	owner: WalletAddress;
+
+	/**
+	 * Type of the order
+	 */
+	type: OrderType;
+
+	/**
+		* The side of the order
+		*/
+	side: OrderSide;
+
+	/**
+	 * Price of the order
+	 */
+	price: OrderPrice;
+
+	/**
+	 * Amount of the order
+	 */
+	amount: OrderAmount;
+
+	/**
+	 * Amount of filled order awaiting withdrawal
+	 */
+	filledAmount: OrderFilledAmount;
+
+	/**
+	 * Filled percentage of the order
+	 */
+	filledPercentage: OrderFilledPercentage;
+
+	/**
+	 * Status of the order
+	 */
+	status: OrderStatus;
+
+	/**
+	 * Timestamp of the order
+	 */
+	creationTimestamp?: OrderCreationTimestamp;
+
+	/**
+	 * Update timestamp of the order
+	 */
+	updateTimestamp?: OrderUpdateTimestamp;
+
+	/**
+	 * Raw data
+	 */
+	raw: Raw;
+}
+
 ///////////////////////////////////////////////////
 
 /**
@@ -466,22 +551,22 @@ export interface RujiraConstructorOptions {
   /**
    * RPC endpoint
    */
-  rpcEndpoint: RPCEndpoint;
+  rpcEndpoint: URL;
 
-  /**
-   * Wallet mnemonic
-   */
-  walletMnemonic: WalletMnemonic;
+	/**
+	 * REST endpoint for bank queries
+	 */
+	restEndpoint: URL;
 
-  /**
-   * Wallet private key
-   */
-  walletPrivateKey: WalletPrivateKey;
+	/**
+	 * Wallet mnemonic
+	 */
+	walletMnemonic?: WalletMnemonic;
 
-  /**
-   * REST endpoint for bank queries
-   */
-  restEndpoint: string;
+	/**
+	 * Wallet private key
+	 */
+	walletPrivateKey?: WalletPrivateKey;
 }
 
 /**
@@ -494,19 +579,9 @@ export interface RujiraInitializeOptions {}
  */
 export interface FinConstructorOptions {
   /**
-   * RPC endpoint
-   */
-  rpcEndpoint: RPCEndpoint;
-
-  /**
-   * Wallet mnemonic
-   */
-  walletMnemonic: WalletMnemonic;
-
-  /**
    * REST endpoint for bank queries
    */
-  restEndpoint: string;
+  restEndpoint: URL;
 }
 
 /**
@@ -564,32 +639,7 @@ export interface FinGetTokenRequest {
 /**
  * Get token response
  */
-export interface FinGetTokenResponse {
-	/**
-	 * Contract address of the token
-	 */
-	address: TokenAddress;
-
-	/**
-	 * Symbol of the token
-	 */
-	symbol: TokenSymbol;
-
-	/**
-	 * Name of the token
-	 */
-	name: TokenName;
-
-	/**
-	 * Number of decimal places
-	 */
-	decimals: TokenDecimals;
-
-	/**
-	 * Raw data
-	 */
-	raw: Raw;
-}
+export interface FinGetTokenResponse extends Token {}
 
 /**
  * Get tokens request (if no addresses or symbols are provided, all tokens will be returned)
@@ -609,7 +659,7 @@ export interface FinGetTokensRequest {
 /**
  * Get tokens response
  */
-export type FinGetTokensResponse = Map<TokenAddress, Token>;
+export interface FinGetTokensResponse extends Map<TokenAddress, Token> {}
 
 /**
  * Get all tokens request
@@ -686,9 +736,9 @@ export interface FinGetOrderBookRequest {
 	marketSymbol?: MarketSymbol;
 
 	/**
-	 * Limit
+	 * Maximum number of orders to return
 	 */
-	limit?: Integer;
+	maximumNumberOfOrders?: Integer;
 }
 
 /**
@@ -733,7 +783,7 @@ export interface FinGetBalancesRequest {
 	/**
 	 * Token symbols to filter balances
 	 */
-	tokenSymbols: TokenSymbol[];
+	tokenSymbols?: TokenSymbol[];
 }
 
 /**
@@ -753,7 +803,7 @@ export interface FinGetTransactionRequest {
 	/**
 	 * Wait for confirmation
 	 */
-	waitForConfirmation?: boolean;
+	waitForConfirmation?: Boolean;
 }
 
 /**
@@ -766,6 +816,48 @@ export interface FinGetTransactionResponse extends Transaction {}
  */
 export interface FinGetOrderRequest {
 	/**
+	 * Owner address (wallet that owns the order)
+	 */
+	ownerAddress: WalletAddress;
+
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+	
+	/**
+	 * Order type
+	 */
+	orderType?: OrderType;
+
+	/**
+	 * Order side
+	 */
+	orderSide?: OrderSide;
+	
+	/**
+	 * Order status
+	 */
+	orderStatus?: OrderStatus;
+}
+
+export interface FinGetOrderResponse extends Order {}
+
+/**
+ * Get orders request
+ */
+export interface FinGetOrdersRequest {
+	/**
+		 * Owner address (wallet that owns the order)
+		 */
+	ownerAddress: WalletAddress;
+
+	/**
 	 * Market address
 	 */
 	marketAddress?: MarketAddress;
@@ -776,116 +868,30 @@ export interface FinGetOrderRequest {
 	marketSymbol?: MarketSymbol;
 
 	/**
-	 * Owner address (wallet that owns the order)
+	 * Order type
 	 */
-	ownerAddress: string;
+	orderType?: OrderType;
 
 	/**
-	 * Order side (base/quote)
+	 * Order side
 	 */
-	side: 'base' | 'quote';
+	orderSide?: OrderSide;
 
 	/**
-	 * Order price
+	 * Order status
 	 */
-	price: {
-		fixed?: string;
-		oracle?: number;
-	};
-}
-
-/**
- * Get order response
- */
-export interface FinGetOrderResponse {
-	/**
-	 * The account which placed the order
-	 */
-	owner: string;
+	orderStatus?: OrderStatus;
 
 	/**
-	 * The side of the order
+	 * Maximum number of orders to return
 	 */
-	side: 'base' | 'quote';
-
-	/**
-	 * The quote price of this order
-	 */
-	price: {
-		fixed?: string;
-		oracle?: number;
-	};
-
-	/**
-	 * The rate at which this order would execute at the current moment in time
-	 */
-	rate: string;
-
-	/**
-	 * The last time this order was touched (created, incremented or reduced) in an Order execution
-	 */
-	updated_at: string;
-
-	/**
-	 * Offer amount at updated_at time
-	 */
-	offer: string;
-
-	/**
-	 * The remaining offer amount
-	 */
-	remaining: string;
-
-	/**
-	 * Amount of filled order awaiting withdrawal
-	 */
-	filled: string;
-}
-
-/**
- * Get orders request
- */
-export interface FinGetOrdersRequest {
-	/**
-	 * Owner address (wallet that owns the orders)
-	 */
-	ownerAddress: string;
-
-	/**
-	 * Market address (optional filter)
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name (optional filter)
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Order side filter (optional)
-	 */
-	side?: 'base' | 'quote';
-
-	/**
-	 * Limit number of orders to return (optional, max 30)
-	 */
-	limit?: Integer;
-
-	/**
-	 * Offset for pagination (optional)
-	 */
-	offset?: Integer;
+	maximumNumberOfOrders?: Integer;
 }
 
 /**
  * Get orders response
  */
-export interface FinGetOrdersResponse {
-	/**
-	 * List of orders
-	 */
-	orders: FinGetOrderResponse[];
-}
+export interface FinGetOrdersResponse extends Map<OrderId, Order> {}
 
 /**
  * Create order request
@@ -894,7 +900,12 @@ export interface FinCreateOrderRequest {
 	/**
 	 * Owner address (wallet that will create the order)
 	 */
-	ownerAddress: string;
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
 
 	/**
 	 * Market address
@@ -905,6 +916,11 @@ export interface FinCreateOrderRequest {
 	 * Market name
 	 */
 	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
 
 	/**
 	 * Order side (buy/sell)
@@ -917,21 +933,29 @@ export interface FinCreateOrderRequest {
 	type: OrderType;
 
 	/**
-	 * Order price (required for limit orders)
-	 */
-	price?: Amount;
-
-	/**
 	 * Order amount
 	 */
-	amount: Amount;
+	amount: OrderAmount;
+
+	/**
+	 * Order price (required for limit orders)
+	 */
+	price: OrderPrice;
 }
 
 /**
  * Create order response
  */
 export interface FinCreateOrderResponse {
-	
+	/**
+	 * Order that was created
+	 */
+	order: Order;
+
+	/**
+	 * Transaction details
+	 */
+	transaction: Transaction;
 }
 
 /**
@@ -941,22 +965,17 @@ export interface FinCreateOrdersRequest {
 	/**
 	 * Owner address (wallet that will create the orders)
 	 */
-	ownerAddress: string;
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
 
 	/**
 	 * List of orders to create
 	 */
 	orders: FinCreateOrderRequest[];
-
-	/**
-	 * Gas limit for the transaction (optional)
-	 */
-	gasLimit?: Integer;
-
-	/**
-	 * Gas price for the transaction (optional)
-	 */
-	gasPrice?: Amount;
 }
 
 /**
@@ -966,12 +985,12 @@ export interface FinCreateOrdersResponse {
 	/**
 	 * List of created orders
 	 */
-	orders: OrderBookOrder[];
+	orders: Map<OrderId, Order>;
 
 	/**
 	 * Transaction details
 	 */
-	transaction: Transaction;
+	transactions: Map<TransactionHash, Transaction>;
 }
 
 /**
@@ -979,9 +998,24 @@ export interface FinCreateOrdersResponse {
  */
 export interface FinCancelOrderRequest {
 	/**
+	 * Order ID
+	 */
+	orderId?: OrderId;
+
+	/**
+	 * Order
+	 */
+	order?: Order;
+
+	/**
 	 * Owner address (wallet that will cancel the order)
 	 */
-	ownerAddress: string;
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
 
 	/**
 	 * Market address
@@ -994,9 +1028,9 @@ export interface FinCancelOrderRequest {
 	marketSymbol?: MarketSymbol;
 
 	/**
-	 * Order ID
+	 * Market
 	 */
-	orderId: string;
+	market?: Market;
 }
 
 /**
@@ -1004,14 +1038,9 @@ export interface FinCancelOrderRequest {
  */
 export interface FinCancelOrderResponse {
 	/**
-	 * Order ID that was cancelled
+	 * Order that was cancelled
 	 */
-	orderId: string;
-
-	/**
-	 * Status of the cancelled order
-	 */
-	status: OrderStatus;
+	order: Order;
 
 	/**
 	 * Transaction details
@@ -1024,9 +1053,24 @@ export interface FinCancelOrderResponse {
  */
 export interface FinCancelOrdersRequest {
 	/**
+	 * Order IDs
+	 */
+	orderIds?: OrderId[];
+
+	/**
+	 * Orders
+	 */
+	orders?: Order[];
+
+	/**
 	 * Owner address (wallet that will cancel the orders)
 	 */
-	ownerAddress: string;
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
 
 	/**
 	 * Market address
@@ -1039,14 +1083,9 @@ export interface FinCancelOrdersRequest {
 	marketSymbol?: MarketSymbol;
 
 	/**
-	 * Order IDs
+	 * Market
 	 */
-	orderIds: string[];
-
-	/**
-	 * If true, cancel all orders for the owner in the market
-	 */
-	cancelAll?: boolean;
+	market?: Market;
 }
 
 /**
@@ -1054,19 +1093,14 @@ export interface FinCancelOrdersRequest {
  */
 export interface FinCancelOrdersResponse {
 	/**
-	 * Order IDs that were cancelled
+	 * List of cancelled orders
 	 */
-	orderIds: string[];
-
-	/**
-	 * Status of the cancelled orders
-	 */
-	status: OrderStatus;
+	orders: Map<OrderId, Order>;
 
 	/**
 	 * Transaction details
 	 */
-	transaction: Transaction;
+	transactions: Map<TransactionHash, Transaction>;
 }
 
 /**
@@ -1076,7 +1110,12 @@ export interface FinWithdrawRequest {
 	/**
 	 * Owner address (wallet that will withdraw)
 	 */
-	ownerAddress: string;
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
 
 	/**
 	 * Market address
@@ -1089,20 +1128,15 @@ export interface FinWithdrawRequest {
 	marketSymbol?: MarketSymbol;
 
 	/**
-	 * Order IDs to withdraw (optional - if not provided, withdraws all filled orders)
+	 * Market
 	 */
-	orderIds?: string[];
+	market?: Market;
 }
 
 /**
  * Withdraw from market response
  */
 export interface FinWithdrawResponse {
-	/**
-	 * Whether the withdrawal was successful
-	 */
-	success: boolean;
-
 	/**
 	 * Transaction details
 	 */

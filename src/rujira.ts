@@ -52,13 +52,13 @@ import {
 	FinWithdrawResponse,
 	RujiraConstructorOptions,
 	RujiraInitializeOptions,
+	URL,
 	FinConstructorOptions,
 	FinInitializeOptions,
 	FinGetAllTokensRequest,
 	FinGetAllTokensResponse,
 	FinGetAllMarketsRequest,
 	FinGetAllMarketsResponse,
-	RPCEndpoint,
 	WalletMnemonic,
 	WalletPrivateKey,
 	FinGetStatusRequest,
@@ -69,7 +69,8 @@ import {
 	BaseTokenBalance,
 	Balances,
 	DEFAULT_GAS_PRICE,
-	DEFAULT_WALLET_PREFIX
+	DEFAULT_WALLET_PREFIX,
+	Wallet
 } from "./types";
 import Decimal from 'decimal.js';
 
@@ -103,22 +104,27 @@ export class Rujira {
 	/**
 	 * RPC endpoint
 	 */
-	private readonly rpcEndpoint: RPCEndpoint;
+	private readonly rpcEndpoint: URL;
+
+	/**
+	 * REST endpoint for bank queries
+	 */
+	private readonly restEndpoint: URL;
 
 	/**
 	 * Wallet private key
 	 */
-	private readonly walletPrivateKey: WalletPrivateKey;
+	private readonly walletPrivateKey?: WalletPrivateKey;
 
 	/**
 	 * Wallet mnemonic
 	 */
-	private readonly walletMnemonic: WalletMnemonic;
+	private readonly walletMnemonic?: WalletMnemonic;
 
 	/**
 	 * Wallet
 	 */
-	private wallet: DirectSecp256k1Wallet;
+	private wallet: Wallet;
 
 	/**
 	 * Cosm client
@@ -131,20 +137,29 @@ export class Rujira {
 	 */
 	constructor(options: RujiraConstructorOptions) {
 		this.rpcEndpoint = options.rpcEndpoint;
+		this.restEndpoint = options.restEndpoint;
 		this.walletMnemonic = options.walletMnemonic;
 		this.walletPrivateKey = options.walletPrivateKey;
 
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
-		this.wallet = undefined as unknown as DirectSecp256k1Wallet;
+		this.wallet = undefined as unknown as Wallet;
 
-		this.fin = new Fin(options as FinConstructorOptions);
+		this.fin = new Fin({
+			restEndpoint: this.restEndpoint
+		} as FinConstructorOptions);
 	}
 
 	/**
 	 * Initialize the client
 	 */
 	public async initialize(_options: RujiraInitializeOptions) {
-		this.wallet = await this.createWalletFromMnemonic(this.walletMnemonic);
+		if (this.walletMnemonic) {
+			this.wallet = await this.createWalletFromMnemonic(this.walletMnemonic);
+		} else if (this.walletPrivateKey) {
+			this.wallet = await this.createWalletFromPrivateKey(this.walletPrivateKey);
+		} else {
+			throw new Error('No wallet provided');
+		}
 		
 		this.cosmClient = await SigningCosmWasmClient.connectWithSigner(
 			this.rpcEndpoint,
@@ -186,7 +201,7 @@ export class Rujira {
 	 * @param privateKey - The private key to create the wallet from
 	 * @returns The wallet
 	 */
-	private async createWalletFromPrivateKey(privateKey: string): Promise<DirectSecp256k1Wallet> {
+	private async createWalletFromPrivateKey(privateKey: string): Promise<Wallet> {
 		return await DirectSecp256k1Wallet.fromKey(
 			fromBase64(privateKey),
 			DEFAULT_WALLET_PREFIX
@@ -198,7 +213,7 @@ export class Rujira {
 	 * @param mnemonic - The mnemonic to create the wallet from
 	 * @returns The wallet
 	 */
-	private async createWalletFromMnemonic(mnemonic: string): Promise<DirectSecp256k1Wallet> {
+	private async createWalletFromMnemonic(mnemonic: string): Promise<Wallet> {
 		const privateKey = await this.deriveWalletPrivateKeyFromMnemonic(mnemonic);
 
 		return await this.createWalletFromPrivateKey(privateKey);
@@ -212,7 +227,7 @@ export class Fin {
 	/**
 	 * Wallet
 	 */
-	private wallet: DirectSecp256k1Wallet;
+	private wallet: Wallet;
 
 	/**
 	 * Cosm client
@@ -248,14 +263,15 @@ export class Fin {
 	 * Constructor
 	 */
 	constructor(options: FinConstructorOptions) {
-		this.wallet = undefined as unknown as DirectSecp256k1Wallet;
+		this.restEndpoint = options.restEndpoint;
+
+		this.wallet = undefined as unknown as Wallet;
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 
 		this.tokensByAddress = new Map();
 		this.tokensBySymbol = new Map();
 		this.marketsByAddress = new Map();
 		this.marketsBySymbol = new Map();
-		this.restEndpoint = options.restEndpoint;
 	}
 
 	/**
@@ -723,7 +739,7 @@ export class Fin {
 		// Always fetch the latest orderbook from the contract
 		const rawOrderBook = await this.cosmClient.queryContractSmart(market.address, {
 			order_book: {
-				limit: request.limit
+				limit: request.maximumNumberOfOrders
 			}
 		});
 
@@ -736,8 +752,8 @@ export class Fin {
 		const asks: OrderBookOrder[] = (rawOrderBook.asks || []).map(parseOrder);
 		const bids: OrderBookOrder[] = (rawOrderBook.bids || []).map(parseOrder);
 
-		const limitedAsks = typeof request.limit === 'number' ? asks.slice(0, request.limit) : asks;
-		const limitedBids = typeof request.limit === 'number' ? bids.slice(0, request.limit) : bids;
+		const limitedAsks = typeof request.maximumNumberOfOrders === 'number' ? asks.slice(0, request.maximumNumberOfOrders) : asks;
+		const limitedBids = typeof request.maximumNumberOfOrders === 'number' ? bids.slice(0, request.maximumNumberOfOrders) : bids;
 
 		const bestAsk: OrderBookOrder = limitedAsks.length > 0 ? limitedAsks[0] : {
 			price: new Decimal(0),
@@ -902,14 +918,16 @@ export class Fin {
 				...baseBalance,
 				quotation: {
 					token: nativeTokenObj || token,
-					conversionRate: conversionRateNative
+					tokenToQuote: conversionRateNative,
+					quoteToToken: conversionRateNative ? new Decimal(1).div(conversionRateNative) : new Decimal(0)
 				}
 			};
 			const baseBalanceWithBeaconQuotation: BaseBalanceWithQuotation = {
 				...baseBalance,
 				quotation: {
 					token: beaconTokenObj || token,
-					conversionRate: conversionRateBeacon
+					tokenToQuote: conversionRateBeacon,
+					quoteToToken: conversionRateBeacon ? new Decimal(1).div(conversionRateBeacon) : new Decimal(0)
 				}
 			};
 
@@ -972,10 +990,10 @@ export class Fin {
 		if (!request.ownerAddress) {
 			throw new Error("Owner address is required");
 		}
-		if (!request.side) {
+		if (!request.orderSide) {
 			throw new Error("Order side is required");
 		}
-		if (!request.price) {
+		if (!request.orderPrice) {
 			throw new Error("Order price is required");
 		}
 
@@ -989,8 +1007,8 @@ export class Fin {
 		const queryMsg = {
 			order: [
 				request.ownerAddress,
-				request.side,
-				request.price
+				request.orderSide,
+				request.orderPrice
 			]
 		};
 
@@ -1026,7 +1044,7 @@ export class Fin {
 		const queryMsg: any = {
 			orders: {
 				owner: request.ownerAddress,
-				limit: request.limit || 30,
+				limit: request.maximumNumberOfOrders || 30,
 				offset: request.offset || 0
 			}
 		};
@@ -1219,12 +1237,12 @@ export class Fin {
 		const userOrders = await this.getOrders({
 			ownerAddress: sender,
 			marketAddress: contractAddress,
-			limit: 50 // Get more orders to ensure we don't miss any
+			maximumNumberOfOrders: 50 // Get more orders to ensure we don't miss any
 		});
 
 		// 3. Filter for filled orders (orders with filled > 0)
 		const filledOrders = userOrders.orders.filter(order => 
-			parseInt(order.filled) > 0
+			parseInt(order.filledAmount) > 0
 		);
 
 		if (filledOrders.length === 0) {
@@ -1241,8 +1259,8 @@ export class Fin {
 
 		console.log(`📋 Withdrawing ${filledOrders.length} filled orders:`);
 		filledOrders.forEach((order, index) => {
-			const filledPercent = ((parseInt(order.filled) / parseInt(order.offer)) * 100).toFixed(1);
-			console.log(`   ${index + 1}. ${order.side.toUpperCase()} @ ${order.price.fixed || `Oracle ${order.price.oracle}`} - ${order.filled} filled (${filledPercent}%)`);
+			const filledPercent = ((parseInt(order.filledAmount) / parseInt(order.offer)) * 100).toFixed(1);
+			console.log(`   ${index + 1}. ${order.side.toUpperCase()} @ ${order.price.fixed || `Oracle ${order.price.oracle}`} - ${order.filledAmount} filled (${filledPercent}%)`);
 		});
 
 		const msg = {
