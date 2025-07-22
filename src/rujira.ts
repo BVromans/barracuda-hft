@@ -1068,7 +1068,7 @@ async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> 
     // Basic validation
     if (!request.ownerAddress || (!request.marketAddress && !request.marketSymbol) || !request.side || !request.type || !request.amount) {
         console.error('[placeOrder] Missing required fields');
-        return null;
+        throw new Error('Missing required fields');
     }
 
     const batchRequest: FinPlaceOrdersRequest = {
@@ -1078,7 +1078,7 @@ async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> 
     const response = await this.placeOrders(batchRequest);
     if (!response?.orders || response.orders.size === 0) {
         console.error('[placeOrder] No order was created');
-        return null;
+        throw new Error('No order was created');
     }
     return Array.from(response.orders.values())[0];
 }
@@ -1092,7 +1092,7 @@ async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> 
 async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse> {
     if (!request.orders?.length) {
         console.error('[placeOrders] No orders provided');
-        return null;
+        throw new Error('No orders provided');
     }
 
     const placedOrders: FinPlaceOrderRequest[] = [];
@@ -1107,7 +1107,7 @@ async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersRespons
     }
     if (!placedOrders.length) {
         console.error('[placeOrders] No orders were successfully placed');
-        return null;
+        throw new Error('No orders were successfully placed');
     }
 
     // Fetch the latest orders for the user to build the response
