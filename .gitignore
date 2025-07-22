@@ -9,5 +9,9 @@ debug.log
 *.log
 *.txt
 logs/
-src/utils/
+
+resources/configuration/development.yml
+resources/configuration/staging.yml
+resources/configuration/production.yml
+
 temporary/unversioned/**
