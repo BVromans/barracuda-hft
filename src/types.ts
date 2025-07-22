@@ -274,7 +274,7 @@ export interface OrderBookOrder {
 	/**
 	 * Price of the order
 	 */
-	orderId: string;
+	orderId?: OrderId;
 
 	/**
 	 * Price of the order
