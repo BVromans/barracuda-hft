@@ -9,115 +9,108 @@ import {
   OrderType,
   Order
 } from '../../src/types';
+import { Fin } from '../../src/rujira';
+import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
+import { fromBase64 } from "@cosmjs/encoding";
+import { DEFAULT_WALLET_PREFIX } from '../../src/types';
 
-// Mock Fin client
-class MockFin {
-  async initialize() {
-    // No-op for mock
-  }
+const FIN_RPC_ENDPOINT = process.env.FIN_RPC_ENDPOINT!;
+const FIN_CONTRACT_ADDRESS = process.env.FIN_CONTRACT_ADDRESS!;
+const TEAM_RUJIRA_WALLET_PRIVATE_KEY = process.env.TEAM_RUJIRA_WALLET_PRIVATE_KEY!;
+const FIN_ORDER_OWNER = process.env.FIN_ORDER_OWNER!;
+const FIN_ORDER_PRICE_FIXED = process.env.FIN_ORDER_PRICE_FIXED!;
 
-  async placeOrder(orderRequest: any) {
-    // Return a fake order object
-    return {
-      market: { symbol: orderRequest.marketSymbol },
-      amount: orderRequest.amount,
-      side: orderRequest.side,
-      type: orderRequest.type,
-      price: orderRequest.price,
-      owner: orderRequest.ownerAddress,
-    };
-  }
+let fin: Fin;
 
-  async placeOrders(ordersRequest: any) {
-    // Return a fake response with two orders
-    const orders = new Map();
-    ordersRequest.orders.forEach((order: any, idx: number) => {
-      orders.set(`order${idx + 1}`, {
-        market: { symbol: order.marketSymbol },
-        amount: order.amount,
-        side: order.side,
-        type: order.type,
-        price: order.price,
-        owner: order.ownerAddress,
-      });
-    });
-    return {
-      orders,
-      transactions: new Map(),
-    };
-  }
-}
-
-const DUMMY_MARKET_SYMBOL = process.env.MARKET_SYMBOL || 'RUJI/USDC';
-const DUMMY_OWNER_ADDRESS = process.env.OWNER_ADDRESS || 'thor1...';
-
-let fin: any;
-
-describe('Fin Order Placement', () => {
-  beforeAll(async () => {
-    fin = new MockFin();
-    await fin.initialize();
+beforeAll(async () => {
+  fin = new Fin({
+    restEndpoint: FIN_RPC_ENDPOINT
   });
+  const wallet = await DirectSecp256k1Wallet.fromKey(
+    fromBase64(TEAM_RUJIRA_WALLET_PRIVATE_KEY),
+    DEFAULT_WALLET_PREFIX
+  );
+  const cosmClient = await SigningCosmWasmClient.connectWithSigner(
+    FIN_RPC_ENDPOINT,
+    wallet
+  );
+  await fin.initialize({
+    wallet,
+    cosmClient
+  });
+});
 
-  it('should place a single order', async () => {
+describe('Fin Real Order Placement', () => {
+  it('should place a single real order', async () => {
     const orderRequest: FinPlaceOrderRequest = {
-      ownerAddress: DUMMY_OWNER_ADDRESS,
-      marketSymbol: DUMMY_MARKET_SYMBOL,
+      ownerAddress: FIN_ORDER_OWNER,
+      marketAddress: FIN_CONTRACT_ADDRESS,
       side: OrderSide.BUY,
       type: OrderType.LIMIT,
-      price: new Decimal('0.01'),
+      price: new Decimal(FIN_ORDER_PRICE_FIXED),
       amount: new Decimal('1')
     };
-    const result: any = await fin.placeOrder(orderRequest);
-    expect(result).toBeDefined();
-    expect(result.market).toBeDefined();
-    expect(result.amount).toBeDefined();
-    expect(result.side).toBe(OrderSide.BUY);
-    expect(result.type).toBe(OrderType.LIMIT);
-    expect(result.price).toBeDefined();
-    expect(result.amount.toString()).toBe('1');
-    expect(result.owner).toBe(DUMMY_OWNER_ADDRESS);
+    try {
+      const result: any = await fin.placeOrder(orderRequest);
+      expect(result).toBeDefined();
+      expect(result.market).toBeDefined();
+      expect(result.amount).toBeDefined();
+      expect(result.side).toBe(OrderSide.BUY);
+      expect(result.type).toBe(OrderType.LIMIT);
+      expect(result.price).toBeDefined();
+      expect(result.amount.toString()).toBe('1');
+      expect(result.owner).toBe(FIN_ORDER_OWNER);
+    } catch (err: any) {
+      console.error('Error creating single order:', err?.response || err);
+      throw err;
+    }
   });
 
-  it('should place multiple orders', async () => {
+  it('should place multiple real orders', async () => {
     const ordersRequest: FinPlaceOrdersRequest = {
-      ownerAddress: DUMMY_OWNER_ADDRESS,
+      ownerAddress: FIN_ORDER_OWNER,
       orders: [
         {
-          ownerAddress: DUMMY_OWNER_ADDRESS,
-          marketSymbol: DUMMY_MARKET_SYMBOL,
+          ownerAddress: FIN_ORDER_OWNER,
+          marketAddress: FIN_CONTRACT_ADDRESS,
           side: OrderSide.BUY,
           type: OrderType.LIMIT,
-          price: new Decimal('0.02'),
-          amount: new Decimal('2')
+          price: new Decimal(FIN_ORDER_PRICE_FIXED),
+          amount: new Decimal('1')
         },
         {
-          ownerAddress: DUMMY_OWNER_ADDRESS,
-          marketSymbol: DUMMY_MARKET_SYMBOL,
+          ownerAddress: FIN_ORDER_OWNER,
+          marketAddress: FIN_CONTRACT_ADDRESS,
           side: OrderSide.SELL,
           type: OrderType.LIMIT,
-          price: new Decimal('0.03'),
-          amount: new Decimal('3')
+          price: new Decimal(FIN_ORDER_PRICE_FIXED),
+          amount: new Decimal('2')
         }
       ]
     };
-    const result: FinPlaceOrdersResponse | null = await fin.placeOrders(ordersRequest);
-    expect(result).not.toBeNull();
-    if (result) {
-      expect(result.orders.size).toBe(2);
-      const ordersArr = Array.from(result.orders.values());
-      expect(ordersArr[0]).toBeDefined();
-      expect(ordersArr[1]).toBeDefined();
-      expect([OrderSide.BUY, OrderSide.SELL]).toContain(ordersArr[0].side);
-      expect([OrderSide.BUY, OrderSide.SELL]).toContain(ordersArr[1].side);
-      expect([OrderType.LIMIT]).toContain(ordersArr[0].type);
-      expect([OrderType.LIMIT]).toContain(ordersArr[1].type);
-      expect(ordersArr[0].price).toBeDefined();
-      expect(ordersArr[1].price).toBeDefined();
-      expect(ordersArr[0].amount).toBeDefined();
-      expect(ordersArr[1].amount).toBeDefined();
-      expect(ordersArr[0].owner).toBe(DUMMY_OWNER_ADDRESS);
-      expect(ordersArr[1].owner).toBe(DUMMY_OWNER_ADDRESS);
+    try {
+      const result: FinPlaceOrdersResponse | null = await fin.placeOrders(ordersRequest);
+      expect(result).not.toBeNull();
+      if (result) {
+        expect(result.orders.size).toBe(2);
+        const ordersArr = Array.from(result.orders.values());
+        expect(ordersArr[0]).toBeDefined();
+        expect(ordersArr[1]).toBeDefined();
+        expect([OrderSide.BUY, OrderSide.SELL]).toContain(ordersArr[0].side);
+        expect([OrderSide.BUY, OrderSide.SELL]).toContain(ordersArr[1].side);
+        expect([OrderType.LIMIT]).toContain(ordersArr[0].type);
+        expect([OrderType.LIMIT]).toContain(ordersArr[1].type);
+        expect(ordersArr[0].price).toBeDefined();
+        expect(ordersArr[1].price).toBeDefined();
+        expect(ordersArr[0].amount).toBeDefined();
+        expect(ordersArr[1].amount).toBeDefined();
+        expect(ordersArr[0].owner).toBe(FIN_ORDER_OWNER);
+        expect(ordersArr[1].owner).toBe(FIN_ORDER_OWNER);
+      }
+    } catch (err: any) {
+      console.error('Error creating multiple orders:', err?.response || err);
+      throw err;
     }
   });
 }); 
