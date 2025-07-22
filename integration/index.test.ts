@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
 import { Rujira } from "../src/rujira";
 import { BIG_NUMBER_0, FEE_PAYMENT_TOKEN, SystemStatus, TransactionStatus } from "../src/types";
@@ -158,6 +159,27 @@ describe("Rujira", () => {
 				expect(quoteToken.name).toBeDefined();
 				expect(quoteToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(quoteToken.raw).toBeDefined();
+			});
+		});
+
+		describe("orderbook", () => {
+			it("should be able to get the order book for a market", async () => {
+				const marketSymbol = `${baseTokenSymbol}/${quoteTokenSymbol}`;
+				const result = await rujira.fin.getOrderBook({
+					marketSymbol: marketSymbol,
+					maximumNumberOfOrders: 10,
+				});
+
+				expect(result).toBeDefined();
+				expect(result.market).toBeDefined();
+				expect(result.market.symbol).toBe(marketSymbol);
+				expect(result.book).toBeDefined();
+				expect(Array.isArray(result.book.asks)).toBe(true);
+				expect(Array.isArray(result.book.bids)).toBe(true);
+				expect(result.book.bestAsk).toBeDefined();
+				expect(result.book.bestBid).toBeDefined();
+				expect(result.book.middlePrice).toBeDefined();
+				expect(result.raw).toBeDefined();
 			});
 		});
 	});
