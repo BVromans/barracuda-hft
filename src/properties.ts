@@ -1,3 +1,5 @@
+import { Map } from './types';
+
 /**
  * Singleton class for properties
  */
@@ -40,11 +42,11 @@ class Properties {
 	}
 
 	public get(key: string): any {
-		return this.properties.get(key);
+		return this.properties.getIn(key);
 	}
 
 	public set(key: string, value: any): void {
-		this.properties.set(key, value);
+		this.properties.setIn(key, value);
 	}
 }
 

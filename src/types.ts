@@ -6,6 +6,10 @@ import Decimal from 'decimal.js';
 import BN from "bn.js";
 import { GasPrice } from '@cosmjs/stargate';
 
+/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-ts-comment */
+// @ts-ignore
+import { List as ExtendableList, Map as MutableMap } from 'extendable-immutable';
+
 export const DECIMAL_0 = new Decimal(0);
 export const DECIMAL_1 = new Decimal(1);
 export const DECIMAL_100 = new Decimal(100);
@@ -16,8 +20,6 @@ export const BIG_NUMBER_100 = new BN(100);
 export const BIG_NUMBER_NaN = new BN(NaN);
 
 export const DEFAULT_WALLET_PREFIX = 'thor';
-
-export const DEFAULT_GAS_PRICE = GasPrice.fromString('0.02rune');
 
 export const NATIVE_TOKEN = {
 	address: undefined as unknown as string,
@@ -42,6 +44,8 @@ export const BEACON_TOKEN = {
 	decimals: undefined as unknown as number,
 	raw: undefined as unknown as Raw
 } as Token;
+
+export const DEFAULT_GAS_PRICE = GasPrice.fromString(`0.02${FEE_PAYMENT_TOKEN.symbol.toLowerCase()}`);
 
 export enum Chain {
 	ETHEREUM = 'ethereum',
@@ -141,6 +145,73 @@ export type OrderCreationTimestamp = Timestamp;
 export type OrderUpdateTimestamp = Timestamp;
 
 export type Wallet = DirectSecp256k1Wallet;
+
+/**
+ *
+ */
+export class List<T> extends ExtendableList<T> {
+
+	/**
+	 *
+	 * @param args
+	 */
+	constructor(...args: T[]) {
+		super(...args);
+
+		// @ts-ignore
+		return this.asMutable();
+	}
+}
+
+/**
+ *
+ */
+export class Map<K, V> extends MutableMap<K, V> {
+
+	/**
+	 *
+	 * @param args
+	 */
+	constructor(...args: [K, V][]) {
+		super(...args);
+
+		// @ts-ignore
+		return this.asMutable();
+	}
+
+	/**
+	 *
+	 * @param key
+	 */
+	getIn<T>(key: K) {
+		if (key == null) {
+			return null;
+		}
+
+		if (key.constructor === Array) {
+			return super.getIn(key);
+		}
+
+		return super.getIn(key.toString().split('.')) as T;
+	}
+
+	/**
+	 *
+	 * @param key
+	 * @param value
+	 */
+	setIn(key: K, value: V) {
+		if (key == null) {
+			throw Error(`Invalid key ("${key}").`);
+		}
+
+		if (key.constructor === Array) {
+			return super.setIn(key, value);
+		}
+
+		return super.setIn(key.toString().split('.'), value);
+	}
+}
 
 /**
  * Represents a token
@@ -308,27 +379,27 @@ export interface OrderBook {
 		/**
 		 * Bids of the order book
 		 */
-		bids: OrderBookOrder[];
+		bids: List<OrderBookOrder>;
 
 		/**
 		 * Asks of the order book
 		 */
-		asks: OrderBookOrder[];
+		asks: List<OrderBookOrder>;
 
 		/**
 		 * Best bid of the order book
 		 */
-		bestBid: OrderBookOrder;
+		bestBid?: OrderBookOrder;
 
 		/**
 		 * Best ask of the order book
 		 */
-		bestAsk: OrderBookOrder;
+		bestAsk?: OrderBookOrder;
 
 		/**
 		 * Middle price of the order book
 		 */
-		middlePrice: OrderBookMiddlePrice;
+		middlePrice?: OrderBookMiddlePrice;
 	}
 
 	/**
@@ -651,12 +722,12 @@ export interface FinGetTokensRequest {
 	/**
 	 * Token addresses
 	 */
-	addresses?: TokenAddress[];
+	addresses?: List<TokenAddress> | TokenAddress[];
 
 	/**
 	 * Token symbols
 	 */
-	symbols?: TokenSymbol[];
+	symbols?: List<TokenSymbol> | TokenSymbol[];
 }
 
 /**
@@ -701,12 +772,12 @@ export interface FinGetMarketsRequest {
 	/**
 	 * Market address
 	 */
-	addresses?: MarketAddress[];
+	addresses?: List<MarketAddress> | MarketAddress[];
 
 	/**
 	 * Market name
 	 */
-	symbols?: MarketSymbol[];
+	symbols?: List<MarketSymbol> | MarketSymbol[];
 }
 
 /**
@@ -781,12 +852,12 @@ export interface FinGetBalancesRequest {
 	/**
 	 * Token addresses to filter balances (optional)
 	 */
-	tokenAddresses?: TokenAddress[];
+	tokenAddresses?: List<TokenAddress> | TokenAddress[];
 
 	/**
 	 * Token symbols to filter balances
 	 */
-	tokenSymbols?: TokenSymbol[];
+	tokenSymbols?: List<TokenSymbol> | TokenSymbol[];
 }
 
 /**
@@ -983,7 +1054,7 @@ export interface FinCreateOrdersRequest {
 	/**
 	 * List of orders to create
 	 */
-	orders: FinCreateOrderRequest[];
+	orders: List<FinCreateOrderRequest> | FinCreateOrderRequest[];
 }
 
 /**
@@ -1069,12 +1140,12 @@ export interface FinCancelOrdersRequest {
 	/**
 	 * Order IDs
 	 */
-	orderIds?: OrderId[];
+	orderIds?: List<OrderId> | OrderId[];
 
 	/**
 	 * Orders
 	 */
-	orders?: Order[];
+	orders?: List<Order> | Order[];
 
 	/**
 	 * Owner address (wallet that will cancel the orders)
