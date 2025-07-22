@@ -211,6 +211,15 @@ export class Map<K, V> extends MutableMap<K, V> {
 
 		return super.setIn(key.toString().split('.'), value);
 	}
+
+	/**
+	 * Merge another map into this one
+	 * @param other
+	 * @returns
+	 */
+	mergeDeep(other: Map<K, V>): Map<K, V> {
+		return super.mergeDeep(other) as Map<K, V>;
+	}
 }
 
 /**
