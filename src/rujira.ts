@@ -1317,85 +1317,73 @@ async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersRespons
 	}
 
 	/**
-	 * Withdraw from market
+	 * Withdraw from market (withdraw filled orders for a user in a market)
 	 */
 	async withdrawFromMarket(request: FinWithdrawRequest): Promise<FinWithdrawResponse> {
-		// 1. Resolve the market
-		const market = await this.getMarket({
-			address: request.marketAddress,
-			symbol: request.marketSymbol
-		});
-
-		const sender = request.ownerAddress;
-		const contractAddress = market.address;
-
-		// 2. Get user's orders to build withdraw targets
-		const userOrders = await this.getOrders({
-			ownerAddress: sender,
-			marketAddress: contractAddress,
-			maximumNumberOfOrders: 50 // Get more orders to ensure we don't miss any
-		});
-
-		// 3. Filter for filled orders (orders with filled > 0)
-		const filledOrders = userOrders.orders.filter(order =>
-			parseInt(order.filledAmount) > 0
-		);
-
-		if (filledOrders.length === 0) {
-			throw new Error("No filled orders found to withdraw");
+		if (!request.ownerAddress) {
+			throw new Error('ownerAddress is required');
+		}
+		if (!request.marketAddress && !request.marketSymbol) {
+			throw new Error('marketAddress or marketSymbol is required');
 		}
 
-		// 4. Build order targets for withdrawal
-		// For withdrawal, we use amount "0" to withdraw all filled amounts
-		const orderTargets = filledOrders.map(order => [
-			order.side,
-			order.price,
-			"0" // Withdraw all filled amount
-		]);
+		// Resolve market address
+		let contractAddress: string;
+		if (request.marketAddress) {
+			contractAddress = request.marketAddress;
+		} else {
+			const market = await this.getMarket({ symbol: request.marketSymbol });
+			contractAddress = market.address;
+		}
 
-		console.log(`📋 Withdrawing ${filledOrders.length} filled orders:`);
-		filledOrders.forEach((order, index) => {
-			const filledPercent = ((parseInt(order.filledAmount) / parseInt(order.offer)) * 100).toFixed(1);
-			console.log(`   ${index + 1}. ${order.side.toUpperCase()} @ ${order.price.fixed || `Oracle ${order.price.oracle}`} - ${order.filledAmount} filled (${filledPercent}%)`);
+		// Query all orders for the user in this market
+		const ordersResult = await this.cosmClient.queryContractSmart(contractAddress, {
+			orders: { owner: request.ownerAddress, limit: 1000 }
+		});
+		const orders = ordersResult.orders || [];
+
+		// Find filled orders (filled > 0)
+		const filledOrders = orders.filter((order: any) => {
+			return order.filled && order.filled !== '0';
 		});
 
-		const msg = {
-			order: [orderTargets, null]
+		if (filledOrders.length === 0) {
+			throw new Error('No filled orders to withdraw');
+		}
+
+		// Withdraw from each filled order (batch not supported, so withdraw one by one)
+		let lastTxResult: any = null;
+		for (const order of filledOrders) {
+			const withdrawMsg = {
+				order: [
+					[order.side, { fixed: order.price.fixed }, '0']
+				],
+			};
+			lastTxResult = await this.cosmClient.execute(
+				request.ownerAddress,
+				contractAddress,
+				withdrawMsg,
+				'auto'
+			);
+			console.debug(`Withdrawn from order: ${order.side} @ ${order.price.fixed}`);
+		}
+
+		return {
+			transaction: {
+				hash: lastTxResult.transactionHash,
+				status: lastTxResult.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
+				fee: {
+					amount: new Decimal(lastTxResult.gasUsed || 0), // This is not the real fee, but best available
+					token: {
+						address: '',
+						symbol: '',
+						name: '',
+						decimals: 0,
+						raw: {}
+					}
+				},
+				raw: lastTxResult
+			}
 		};
-
-		// 5. Execute the transaction
-		const result = await this.cosmClient.execute(
-			sender,
-			contractAddress,
-			msg,
-			'auto',
-			undefined,
-			[] // No funds needed for withdrawal
-		);
-
-		// 6. Create transaction object for response
-		const transaction: Transaction = {
-			hash: result.transactionHash,
-			status: TransactionStatus.SUCCESS, // Assuming success if no error thrown
-			fee: {
-				amount: new Decimal((result.gasUsed || 0).toString()),
-				token: {
-					address: '',
-					symbol: 'RUNE',
-					name: 'RUNE',
-					decimals: 8,
-					raw: {}
-				}
-			},
-			raw: result
-		};
-
-		// 7. Return response
-		const response: FinWithdrawResponse = {
-			success: true,
-			transaction: transaction
-		};
-
-		return response;
 	}
 }
