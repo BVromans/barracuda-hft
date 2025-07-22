@@ -783,68 +783,59 @@ export class Fin {
 		if (!walletAddress) throw new Error('walletAddress is required');
 
 		// 1. Get all tokens and markets
-		const tokensMap = await this.getAllTokens({} as FinGetAllTokensRequest);
-		const marketsMap = await this.getAllMarkets({} as FinGetAllMarketsRequest);
+		const allTokensMap = await this.getAllTokens({} as FinGetAllTokensRequest);
+		const allMarketsMap = await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
 		// 2. Filter tokens if requested
-		let tokens: Token[] = Array.from(tokensMap.values());
+		let filteredTokens: Token[] = Array.from(allTokensMap.values());
 		if (request.tokenAddresses && request.tokenAddresses.length > 0) {
-			tokens = tokens.filter(t => request.tokenAddresses!.includes(t.address));
+			filteredTokens = filteredTokens.filter(token => request.tokenAddresses!.includes(token.address));
 		}
 		if (request.tokenSymbols && request.tokenSymbols.length > 0) {
-			tokens = tokens.filter(t => request.tokenSymbols!.includes(t.symbol));
+			filteredTokens = filteredTokens.filter(token => request.tokenSymbols!.includes(token.symbol));
 		}
 
 		// 3. Query free balances (bank module)
 		const freeBalances: Record<string, Decimal> = {};
-		try {
-			const url = this.restEndpoint.replace(/\/$/, '');
-			const bankRes = await fetch(`${url}/cosmos/bank/v1beta1/balances/${walletAddress}`);
-			if (bankRes.ok) {
-				const data = await bankRes.json();
-				if (data && typeof data === 'object' && Array.isArray((data as any).balances)) {
-					for (const bal of (data as any).balances) {
-						if (typeof bal.denom === 'string' && typeof bal.amount === 'string') {
-							freeBalances[bal.denom] = new Decimal(bal.amount);
-						}
+		const bankResponse = await fetch(`${this.restEndpoint}/cosmos/bank/v1beta1/balances/${walletAddress}`);
+		if (bankResponse.ok) {
+			const responseData = await bankResponse.json();
+			if (responseData && typeof responseData === 'object' && Array.isArray((responseData as any).balances)) {
+				for (const balanceEntry of (responseData as any).balances) {
+					if (typeof balanceEntry.denom === 'string' && typeof balanceEntry.amount === 'string') {
+						freeBalances[balanceEntry.denom] = new Decimal(balanceEntry.amount);
 					}
 				}
 			}
-		} catch (e) {
-			
 		}
 
 		// 4. For each market, get locked in orders and withdrawable
 		const lockedInOrders: Record<string, Decimal> = {};
 		const withdrawable: Record<string, Decimal> = {};
-		for (const market of marketsMap.values()) {
+		for (const market of allMarketsMap.values()) {
 			const contractAddress = market.address;
-			try {
-				const ordersRes = await this.cosmClient.queryContractSmart(contractAddress, {
-					orders: { owner: walletAddress, limit: 100 }
-				});
-				const orders = ordersRes.orders || [];
-				for (const order of orders) {
-					const side = order.side;
-					const baseAddr = market.tokens.base.address;
-					const quoteAddr = market.tokens.quote.address;
-					if (order.remaining && order.remaining !== '0') {
-						const addr = side === 'base' ? baseAddr : quoteAddr;
-						lockedInOrders[addr] = (lockedInOrders[addr] || new Decimal(0)).plus(new Decimal(order.remaining));
-					}
-					if (order.filled && order.filled !== '0') {
-						const addr = side === 'base' ? quoteAddr : baseAddr; // opposite asset
-						withdrawable[addr] = (withdrawable[addr] || new Decimal(0)).plus(new Decimal(order.filled));
-					}
+			const ordersResponse = await this.cosmClient.queryContractSmart(contractAddress, {
+				orders: { owner: walletAddress, limit: 100 }
+			});
+			const orders = ordersResponse.orders || [];
+			for (const order of orders) {
+				const orderSide = order.side;
+				const baseTokenAddress = market.tokens.base.address;
+				const quoteTokenAddress = market.tokens.quote.address;
+				if (order.remaining && order.remaining !== '0') {
+					const lockedTokenAddress = orderSide === 'base' ? baseTokenAddress : quoteTokenAddress;
+					lockedInOrders[lockedTokenAddress] = (lockedInOrders[lockedTokenAddress] || new Decimal(0)).plus(new Decimal(order.remaining));
 				}
-			} catch (e) {
-				// ignore errors for missing contracts
+				if (order.filled && order.filled !== '0') {
+					const withdrawTokenAddress = orderSide === 'base' ? quoteTokenAddress : baseTokenAddress; // opposite asset
+					withdrawable[withdrawTokenAddress] = (withdrawable[withdrawTokenAddress] || new Decimal(0)).plus(new Decimal(order.filled));
+				}
 			}
 		}
 
 		// 5. Build TokenBalance for each token
 		const tokensMapOut = new Map<TokenAddress, TokenBalance>();
-		for (const token of tokens) {
+		for (const token of filteredTokens) {
 			const free = freeBalances[token.address] || new Decimal(0);
 			const locked = lockedInOrders[token.address] || new Decimal(0);
 			const withdraw = withdrawable[token.address] || new Decimal(0);
@@ -859,15 +850,15 @@ export class Fin {
 			};
 
 			// Find native and beacon tokens
-			const nativeTokenObj = tokens.find(t => t.symbol.toUpperCase() === 'RUNE');
-			const beaconTokenObj = tokens.find(t => t.symbol.toUpperCase() === 'USDC');
+			const nativeTokenObject = filteredTokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'RUNE');
+			const beaconTokenObject = filteredTokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'USDC');
 
 			// Find market price for native (RUNE)
 			let conversionRateNative = new Decimal(0);
-			if (nativeTokenObj && token.address !== nativeTokenObj.address) {
-				const market = Array.from(marketsMap.values()).find(m =>
-					(m.tokens.base.address === token.address && m.tokens.quote.address === nativeTokenObj.address) ||
-					(m.tokens.quote.address === token.address && m.tokens.base.address === nativeTokenObj.address)
+			if (nativeTokenObject && token.address !== nativeTokenObject.address) {
+				const market = Array.from(allMarketsMap.values()).find(marketObj =>
+					(marketObj.tokens.base.address === token.address && marketObj.tokens.quote.address === nativeTokenObject.address) ||
+					(marketObj.tokens.quote.address === token.address && marketObj.tokens.base.address === nativeTokenObject.address)
 				);
 				if (market && market.price) {
 					if (market.tokens.base.address === token.address) {
@@ -876,16 +867,16 @@ export class Fin {
 						conversionRateNative = market.price.quoteBase;
 					}
 				}
-			} else if (nativeTokenObj && token.address === nativeTokenObj.address) {
+			} else if (nativeTokenObject && token.address === nativeTokenObject.address) {
 				conversionRateNative = new Decimal(1);
 			}
 
 			// Find market price for beacon (USDC)
 			let conversionRateBeacon = new Decimal(0);
-			if (beaconTokenObj && token.address !== beaconTokenObj.address) {
-				const market = Array.from(marketsMap.values()).find(m =>
-					(m.tokens.base.address === token.address && m.tokens.quote.address === beaconTokenObj.address) ||
-					(m.tokens.quote.address === token.address && m.tokens.base.address === beaconTokenObj.address)
+			if (beaconTokenObject && token.address !== beaconTokenObject.address) {
+				const market = Array.from(allMarketsMap.values()).find(marketObj =>
+					(marketObj.tokens.base.address === token.address && marketObj.tokens.quote.address === beaconTokenObject.address) ||
+					(marketObj.tokens.quote.address === token.address && marketObj.tokens.base.address === beaconTokenObject.address)
 				);
 				if (market && market.price) {
 					if (market.tokens.base.address === token.address) {
@@ -894,21 +885,21 @@ export class Fin {
 						conversionRateBeacon = market.price.quoteBase;
 					}
 				}
-			} else if (beaconTokenObj && token.address === beaconTokenObj.address) {
+			} else if (beaconTokenObject && token.address === beaconTokenObject.address) {
 				conversionRateBeacon = new Decimal(1);
 			}
 
 			const baseBalanceWithNativeQuotation: BaseBalanceWithQuotation = {
 				...baseBalance,
 				quotation: {
-					token: nativeTokenObj || token,
+					token: nativeTokenObject || token,
 					conversionRate: conversionRateNative
 				}
 			};
 			const baseBalanceWithBeaconQuotation: BaseBalanceWithQuotation = {
 				...baseBalance,
 				quotation: {
-					token: beaconTokenObj || token,
+					token: beaconTokenObject || token,
 					conversionRate: conversionRateBeacon
 				}
 			};
@@ -926,8 +917,8 @@ export class Fin {
 		}
 
 		// 6. Build total balances (nativeToken, beaconToken) dynamically
-		const nativeToken = tokens.find(t => t.symbol.toUpperCase() === 'RUNE');
-		const beaconToken = tokens.find(t => t.symbol.toUpperCase() === 'USDC');
+		const nativeToken = filteredTokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'RUNE');
+		const beaconToken = filteredTokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'USDC');
 
 		const totalNative: BaseBalance = nativeToken ? {
 			free: freeBalances[nativeToken.address] || new Decimal(0),
