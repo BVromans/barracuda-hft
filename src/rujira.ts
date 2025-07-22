@@ -23,10 +23,10 @@ import {
 	FinCancelOrderResponse,
 	FinCancelOrdersRequest,
 	FinCancelOrdersResponse,
-	FinCreateOrderRequest as FinPlaceOrderRequest,
+  FinCreateOrderRequest as FinPlaceOrderRequest,
 	FinCreateOrderResponse as FinPlaceOrderResponse,
-	FinCreateOrdersRequest as FinPlaceOrdersRequest,
-	FinCreateOrdersResponse as FinPlaceOrdersResponse,
+  FinCreateOrdersRequest as FinPlaceOrdersRequest,
+  FinCreateOrdersResponse as FinPlaceOrdersResponse,
 	FinGetBalancesRequest,
 	FinGetBalancesResponse,
 	FinGetMarketRequest,
@@ -70,7 +70,9 @@ import {
 	Balances,
 	DEFAULT_GAS_PRICE,
 	DEFAULT_WALLET_PREFIX,
-	Wallet
+	Wallet,
+	Order,
+	OrderType,
 } from "./types";
 import Decimal from 'decimal.js';
 
@@ -744,6 +746,7 @@ export class Fin {
 		});
 
 		const parseOrder = (entry: any): OrderBookOrder => ({
+			orderId: entry.id,
 			price: new Decimal(entry.price),
 			amount: new Decimal(entry.total),
 			raw: entry
@@ -756,11 +759,13 @@ export class Fin {
 		const limitedBids = typeof request.maximumNumberOfOrders === 'number' ? bids.slice(0, request.maximumNumberOfOrders) : bids;
 
 		const bestAsk: OrderBookOrder = limitedAsks.length > 0 ? limitedAsks[0] : {
+			orderId: '',
 			price: new Decimal(0),
 			amount: new Decimal(0),
 			raw: null
 		};
 		const bestBid: OrderBookOrder = limitedBids.length > 0 ? limitedBids[0] : {
+			orderId: '',
 			price: new Decimal(0),
 			amount: new Decimal(0),
 			raw: null
@@ -1035,14 +1040,13 @@ export class Fin {
 		const queryMsg: any = {
 			orders: {
 				owner: request.ownerAddress,
-				limit: request.maximumNumberOfOrders || 30,
-				offset: request.offset || 0
+				limit: request.maximumNumberOfOrders || 30
 			}
 		};
 
 		// Add side filter if provided
-		if (request.side) {
-			queryMsg.orders.side = request.side;
+		if (request.orderSide) {
+			queryMsg.orders.side = request.orderSide;
 		}
 
 		try {
@@ -1053,73 +1057,118 @@ export class Fin {
 		}
 	}
 
+	
 	/**
-	 * Place order (MARKET or LIMIT), supports both BUY and SELL sides
+	 * Place a single order (wrapper for createOrders)
+	 * @param request - The order request
+	 * @returns The response for the created order
 	 */
-	async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
-		const market = await this.getMarket({
-			address: request.marketAddress,
-			symbol: request.marketSymbol
-		});
+async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse | null> {
+    // Basic validation
+    if (!request.ownerAddress || (!request.marketAddress && !request.marketSymbol) || !request.side || !request.type || !request.amount) {
+        console.error('[placeOrder] Missing required fields');
+        return null;
+    }
 
-		const isBuy = request.side === 'buy';
-		const isMarket = request.type === 'market';
-		const sender = request.ownerAddress;
-		const contractAddress = market.address;
+    const batchRequest: FinPlaceOrdersRequest = {
+        ownerAddress: request.ownerAddress,
+        orders: [request]
+    };
+    const response = await this.placeOrders(batchRequest);
+    if (!response?.orders || response.orders.size === 0) {
+        console.error('[placeOrder] No order was created');
+        return null;
+    }
+    return Array.from(response.orders.values())[0];
+}
 
-		let msg: any;
-		let funds: any[] = [];
 
-		if (isMarket) {
-			// MARKET order
-			const sendToken = isBuy ? market.tokens.quote : market.tokens.base;
-			const sendAmount = request.amount.toString();
-			// min_return is not provided in the interface, so use amount as min_return for now
-			msg = {
-				swap: {
-					min_return: sendAmount,
-					to: sender
-				}
-			};
-			funds = [{ denom: sendToken.address, amount: sendAmount }];
-		} else {
-			// LIMIT order
-			if (!request.price) throw new Error('Limit orders require a price');
-			const price = request.price.toString();
-			const orderSide = isBuy ? 'quote' : 'base';
-			const sendToken = isBuy ? market.tokens.quote : market.tokens.base;
-			const sendAmount = request.amount.toString();
-			msg = {
-				order: [
-					[[orderSide, { fixed: price }, sendAmount]],
-					null
-				]
-			};
-			funds = [{ denom: sendToken.address, amount: sendAmount }];
-		}
+/**
+ * Place multiple orders 
+ * @param request - The request for multiple orders
+ * @returns The response for the created orders or null if failed
+ */
+async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse | null> {
+    if (!request.orders?.length) {
+        console.error('[placeOrders] No orders provided');
+        return null;
+    }
 
-		const result = await this.cosmClient.execute(
-			sender,
-			contractAddress,
-			msg,
-			'auto',
-			undefined,
-			funds
-		);
+    const placedOrders: FinPlaceOrderRequest[] = [];
+    for (const order of request.orders) {
+        try {
+            const result = await this.placeOrder(order);
+            if (result) placedOrders.push(order);
+            else console.error(`[placeOrders] Failed to place order for ${order.ownerAddress}`);
+        } catch (err) {
+            console.error(`[placeOrders] Error placing order for ${order.ownerAddress}:`, err);
+        }
+    }
+    if (!placedOrders.length) {
+        console.error('[placeOrders] No orders were successfully placed');
+        return null;
+    }
 
-		const response: FinPlaceOrderResponse = {
-			transactionHash: result.transactionHash,
-			raw: result
-		};
-		return response;
-	}
+    // Fetch the latest orders for the user to build the response
+    const allOrders: Map<string, Order> = new Map();
+    for (const order of placedOrders) {
+        try {
+            const ordersResp = await this.getOrders({
+                ownerAddress: order.ownerAddress || '',
+                marketAddress: order.marketAddress,
+                marketSymbol: order.marketSymbol,
+                maximumNumberOfOrders: 50
+            });
+            const matched =  Array.from(ordersResp.values()).find((o: any) => {
+                if (order.type === 'limit' && order.price)
+                    return o.side === (order.side === 'buy' ? 'quote' : 'base') && o.price.fixed === order.price.toString();
+                return o.side === (order.side === 'buy' ? 'quote' : 'base');
+            });
+            if (matched) {
+                allOrders.set(matched.owner + '-' + matched.side + '-' + matched.price || matched.price.toString(), {
+									id: matched.owner + '-' + matched.side + '-' + matched.price.toString(),
+									market: {} as Market, // Use the real Market if available
+									owner: matched.owner,
+									type: matched.type || OrderType.LIMIT, // Or another default
+									side: matched.side,
+									price: matched.price ? new Decimal(matched.price) : new Decimal(0),
+									amount: new Decimal(matched.amount),
+									filledAmount: new Decimal(0),
+									filledPercentage: new Decimal(0),
+									status: OrderStatus.OPEN,
+									raw: matched,
+                });
+            }
+        } catch (err) {
+            console.error('[placeOrders] Error fetching created orders:', err);
+        }
+    }
 
-	/**
-	 * Place orders
-	 */
-	async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse> {
-		throw new Error("Not implemented");
-	}
+    //Don't have a way to get transaction hash directly, so return a dummy Transaction object
+    return {
+        orders: allOrders ,
+        transactions: new Map<string, Transaction>([
+					[
+							'',
+							{
+								hash: '',
+								status: TransactionStatus.FAILED,
+								fee: {
+										amount: new Decimal(0),
+										token: {
+												address: 'native',
+												symbol: 'RUJI',
+												name: 'Rujira',
+												decimals: 6,
+												raw: {}
+										}
+								},
+								raw: {}
+							}
+					]
+			])
+    };
+}
 
 	/**
 	 * Cancel order (calls cancelOrders with a single orderId)
@@ -1129,18 +1178,18 @@ export class Fin {
 			ownerAddress: request.ownerAddress,
 			marketAddress: request.marketAddress,
 			marketSymbol: request.marketSymbol,
-			orderIds: [request.orderId],
+			orderIds: [request.orderId || ''],
 			cancelAll: false
 		});
 		return {
-			orderId: request.orderId,
+			order: resp.orders.get(request.orderId || '') || {} as Order,
 			status: resp.status,
-			transaction: resp.transaction
+			transaction: Array.from(resp.transactions.values())[0]
 		};
 	}
 
 	/**
-	 * Cancel orders (supports cancelAll and multiple orderIds)
+	 * Cancel orders (only cancels the specified orderIds or orders)
 	 */
 	async cancelOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
 		// 1. Get the market address
@@ -1152,23 +1201,26 @@ export class Fin {
 
 		// 2. Query user orders
 		const ordersResult = await this.cosmClient.queryContractSmart(contractAddress, {
-			orders: { owner: request.ownerAddress, limit: 100 }
+			orders: { owner: request.ownerAddress, limit: 1000 }
 		});
 		const orders = ordersResult.orders || [];
 
 		// 3. Determine which orders to cancel
 		let ordersToCancel: any[] = [];
-		if (request.cancelAll) {
-			ordersToCancel = orders;
-		} else {
-			ordersToCancel = orders.filter((o: any) => {
-				if (o.id && request.orderIds.includes(o.id)) return true;
-				if (o.price && o.price.fixed && o.side) {
-					const syntheticId = `${o.side}:${o.price.fixed}`;
-					return request.orderIds.includes(syntheticId);
+		if (request.orderIds && request.orderIds.length > 0) {
+			ordersToCancel = orders.filter((order: any) => {
+				if (order.id && request.orderIds!.includes(order.id)) return true;
+				if (order.price && order.price.fixed && order.side) {
+					const syntheticId = `${order.side}:${order.price.fixed}`;
+					return request.orderIds!.includes(syntheticId);
 				}
 				return false;
 			});
+		} else if (request.orders && request.orders.length > 0) {
+			const ids = request.orders.map((order: any) => order.id).filter(Boolean);
+			ordersToCancel = orders.filter((o: any) => ids.includes(o.id));
+		} else {
+			throw new Error('No orderIds or orders provided to cancelOrders');
 		}
 		if (ordersToCancel.length === 0) {
 			throw new Error('No orders found to cancel');
@@ -1190,25 +1242,78 @@ export class Fin {
 		);
 
 		// 6. Return the response
+		const cancelledOrdersMap = new Map<string, Order>();
+		for (const o of ordersToCancel) {
+			const id = o.id || `${o.side}:${o.price.fixed}`;
+			cancelledOrdersMap.set(id, {
+				id,
+				market: {} as Market,
+				owner: o.owner,
+				type: o.type || OrderType.LIMIT,
+				side: o.side,
+				price: o.price ? new Decimal(o.price) : new Decimal(0),
+				amount: new Decimal(o.amount),
+				filledAmount: new Decimal(o.filledAmount || 0),
+				filledPercentage: new Decimal(0),
+				status: OrderStatus.CANCELLED,
+				raw: o,
+			});
+		}
+		const transactionsMap = new Map<string, Transaction>([
+			[
+				result.transactionHash,
+				{
+					hash: result.transactionHash,
+					status: TransactionStatus.SUCCESS,
+					fee: {
+						amount: result.gasUsed ? new Decimal(result.gasUsed.toString()) : new Decimal(0),
+						token: {
+							address: 'native',
+							symbol: 'RUJI',
+							name: 'Rujira',
+							decimals: 6,
+							raw: {}
+						}
+					},
+					raw: result
+				}
+			]
+		]);
 		return {
-			orderIds: ordersToCancel.map((o: any) => o.id || `${o.side}:${o.price.fixed}`),
+			orders: cancelledOrdersMap,
 			status: OrderStatus.CANCELLED,
-			transaction: {
-				hash: result.transactionHash,
-				status: TransactionStatus.SUCCESS,
-				fee: {
-					amount: result.gasUsed ? new Decimal(result.gasUsed.toString()) : new Decimal(0),
-					token: {
-						address: 'native',
-						symbol: 'RUJI',
-						name: 'Rujira',
-						decimals: 6,
-						raw: {}
-					}
-				},
-				raw: result
-			}
+			transactions: transactionsMap
 		};
+	}
+
+	/**
+	 * Cancel all orders for an owner in a market
+	 */
+	async cancelAllOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
+		// 1. Get the market address
+		const market = await this.getMarket({
+			address: request.marketAddress,
+			symbol: request.marketSymbol
+		});
+		const contractAddress = market.address;
+
+		// 2. Query all user orders
+		const ordersMap = await this.getOrders({
+			ownerAddress: request.ownerAddress!,
+			marketAddress: contractAddress,
+			maximumNumberOfOrders: 1000
+		});
+		const allOrderIds = Array.from(ordersMap.keys()).filter((id): id is string => id !== undefined);
+		if (allOrderIds.length === 0) {
+			throw new Error('No orders found to cancel');
+		}
+
+		// 3. Call cancelOrders with all order IDs
+		return this.cancelOrders({
+			ownerAddress: request.ownerAddress,
+			marketAddress: contractAddress,
+			orderIds: allOrderIds
+		});
 	}
 
 	/**

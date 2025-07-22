@@ -274,6 +274,11 @@ export interface OrderBookOrder {
 	/**
 	 * Price of the order
 	 */
+	orderId: string;
+
+	/**
+	 * Price of the order
+	 */
 	price: OrderBookOrderPrice;
 
 	/**
@@ -541,8 +546,6 @@ export interface Order {
 	 */
 	raw: Raw;
 }
-
-///////////////////////////////////////////////////
 
 /**
  * Rujira constructor options
@@ -844,6 +847,11 @@ export interface FinGetOrderRequest {
 	 * Order status
 	 */
 	orderStatus?: OrderStatus;
+
+	/**
+	 * Order price
+	 */
+	orderPrice: OrderPrice;
 }
 
 export interface FinGetOrderResponse extends Order {}
@@ -947,15 +955,7 @@ export interface FinCreateOrderRequest {
  * Create order response
  */
 export interface FinCreateOrderResponse {
-	/**
-	 * Order that was created
-	 */
-	order: Order;
-
-	/**
-	 * Transaction details
-	 */
-	transaction: Transaction;
+	
 }
 
 /**
@@ -1037,6 +1037,12 @@ export interface FinCancelOrderRequest {
  * Cancel order response
  */
 export interface FinCancelOrderResponse {
+
+	/**
+	 * Status of the cancellation
+	 */
+	status: OrderStatus;
+
 	/**
 	 * Order that was cancelled
 	 */
@@ -1086,12 +1092,23 @@ export interface FinCancelOrdersRequest {
 	 * Market
 	 */
 	market?: Market;
+
+	/**
+	 * Cancel all orders
+	 */
+	cancelAll?: boolean;
 }
 
 /**
  * Cancel orders response
  */
 export interface FinCancelOrdersResponse {
+
+	/**
+	 * Status of the cancellation
+	 */
+	status: OrderStatus;
+
 	/**
 	 * List of cancelled orders
 	 */
