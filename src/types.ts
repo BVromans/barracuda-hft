@@ -6,9 +6,7 @@ import Decimal from 'decimal.js';
 import BN from "bn.js";
 import { GasPrice } from '@cosmjs/stargate';
 
-/* eslint-disable @typescript-eslint/no-explicit-any,@typescript-eslint/ban-ts-comment */
-// @ts-ignore
-import { List as ExtendableList, Map as MutableMap } from 'extendable-immutable';
+import { Map as ImmutableMap, List as ImmutableList } from 'immutable';
 
 export const DECIMAL_0 = new Decimal(0);
 export const DECIMAL_1 = new Decimal(1);
@@ -147,78 +145,145 @@ export type OrderUpdateTimestamp = Timestamp;
 export type Wallet = DirectSecp256k1Wallet;
 
 /**
- *
+ * Represents a list
  */
-export class List<T> extends ExtendableList<T> {
+export class List<T> {
+	/**
+	 * Inner list
+	 */
+	private inner: ImmutableList<T>;
 
 	/**
-	 *
-	 * @param args
+	 * Allow arbitrary lookups on `this`
 	 */
-	constructor(...args: T[]) {
-		super(...args);
+	[key: string]: any;
 
-		// @ts-ignore
-		return this.asMutable();
+	/**
+	 * Constructor
+	 * @param items
+	 */
+  constructor(items?: Iterable<T>) {
+		// start with a mutable List
+		this.inner = ImmutableList<T>(items).asMutable();
+
+		// return a proxy so that unknown props/methods go to inner
+		return new Proxy(this, {
+			get: (target, property: PropertyKey, receiver) => {
+				// 1) if it’s on our wrapper, use it
+				if (property in target) {
+					const value = Reflect.get(target, property, receiver);
+					const type = typeof value;
+
+					if (type === 'function') {
+						return (value as Function).bind(target);
+					}
+
+					return value;
+				}
+
+				// 2) otherwise forward to the inner list
+				const innerValue = (target.inner as any)[property];
+				const type = typeof innerValue;
+
+				if (type === 'function') {
+					return (...args: any[]) => {
+						const result = innerValue.apply(target.inner, args);
+						// if the result is a new List, make it mutable and swap in
+						if (ImmutableList.isList(result)) {
+							target.inner = (result as ImmutableList<T>).asMutable();
+
+							return receiver; // enable chaining
+						}
+						return result;
+					};
+				}
+				
+				return innerValue;
+			},
+
+			set: (target, property: PropertyKey, value: any) => {
+				// assign to our wrapper if it’s a known field
+				if (property in target) {
+					(target as any)[property] = value;
+				} else {
+					// else set on the inner list directly (rarely used)
+					(target.inner as any)[property] = value;
+				}
+
+				return true;
+			},
+		});
 	}
 }
 
 /**
- *
+ * Represents a map
  */
-export class Map<K, V> extends MutableMap<K, V> {
+export class Map<K, V> {
+	/**
+	 * Inner map
+	 */
+	private inner: ImmutableMap<K, V>;
 
 	/**
-	 *
-	 * @param args
+	 * Allow arbitrary lookups on `this`
 	 */
-	constructor(...args: [K, V][]) {
-		super(...args);
-
-		// @ts-ignore
-		return this.asMutable();
-	}
+	[key: string]: any;
 
 	/**
-	 *
-	 * @param key
+	 * Constructor
+	 * @param entries
 	 */
-	getIn<T>(key: K) {
-		if (key == null) {
-			return null;
-		}
+  constructor(entries?: Iterable<[K, V]>) {
+		// create a mutable instance of the ImmutableJS Map
+		this.inner = ImmutableMap<K, V>(entries).asMutable();
 
-		if (key.constructor === Array) {
-			return super.getIn(key);
-		}
+		// return a Proxy so that any unknown .foo() or .bar property is forwarded
+		return new Proxy(this, {
+			get: (target, property: PropertyKey, receiver) => {
+				// 1) if it exists on our wrapper, use it
+				if (property in target) {
+					const value = Reflect.get(target, property, receiver);
+					const type = typeof value;
 
-		return super.getIn(key.toString().split('.')) as T;
-	}
+					if (type === 'function') {
+						return (value as Function).bind(target);
+					}
 
-	/**
-	 *
-	 * @param key
-	 * @param value
-	 */
-	setIn(key: K, value: V) {
-		if (key == null) {
-			throw Error(`Invalid key ("${key}").`);
-		}
+					return value;
+				}
+				// 2) otherwise forward to the inner map
+				const innerValue = (target.inner as any)[property];
+				const type = typeof innerValue;
 
-		if (key.constructor === Array) {
-			return super.setIn(key, value);
-		}
+				if (type === 'function') {
+					return (...args: any[]) => {
+						const result = innerValue.apply(target.inner, args);
+						// if it returned a new map, keep it mutable and swap it in
+						if (ImmutableMap.isMap(result)) {
+							target.inner = (result as ImmutableMap<K, V>).asMutable();
 
-		return super.setIn(key.toString().split('.'), value);
-	}
+							return receiver; // allow chaining
+						}
 
-	/**
-	 * Merge another map into this one
-	 * @param other
-	 * @returns
-	 */
-	mergeDeep(other: Map<K, V>): Map<K, V> {
-		return super.mergeDeep(other) as Map<K, V>;
+						return result;
+					};
+				}
+				return innerValue;
+			},
+
+			set: (target, property: PropertyKey, value: any) => {
+				// assign to our wrapper if it’s a known property
+				if (property in target) {
+					(target as any)[property] = value;
+				} else {
+					// otherwise set it on the inner map
+					;(target.inner as any)[property] = value;
+				}
+
+				return true;
+			},
+		});
 	}
 }
 
