@@ -187,4 +187,7 @@ export class Properties {
 	}
 }
 
+/**
+ * Singleton instance of properties
+ */
 export const properties = await Properties.getInstance();
