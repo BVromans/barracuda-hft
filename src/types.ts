@@ -1051,7 +1051,7 @@ export interface FinGetOrdersResponse extends Map<OrderId, Order> {}
 /**
  * Create order request
  */
-export interface FinCreateOrderRequest {
+export interface FinPlaceOrderRequest {
 	/**
 	 * Owner address (wallet that will create the order)
 	 */
@@ -1101,7 +1101,7 @@ export interface FinCreateOrderRequest {
 /**
  * Create order response
  */
-export interface FinCreateOrderResponse {
+export interface FinPlaceOrderResponse {
 	/**
 	 * Order that was created
 	 */
@@ -1116,7 +1116,7 @@ export interface FinCreateOrderResponse {
 /**
  * Create orders request
  */
-export interface FinCreateOrdersRequest {
+export interface FinPlaceOrdersRequest {
 	/**
 	 * Owner address (wallet that will create the orders)
 	 */
@@ -1130,13 +1130,13 @@ export interface FinCreateOrdersRequest {
 	/**
 	 * List of orders to create
 	 */
-	orders: List<FinCreateOrderRequest> | FinCreateOrderRequest[];
+	orders: List<FinPlaceOrderRequest> | FinPlaceOrderRequest[];
 }
 
 /**
  * Create orders response
  */
-export interface FinCreateOrdersResponse {
+export interface FinPlaceOrdersResponse {
 	/**
 	 * List of created orders
 	 */

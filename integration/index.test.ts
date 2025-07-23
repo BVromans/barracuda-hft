@@ -5,9 +5,9 @@ import { BIG_NUMBER_0, FEE_PAYMENT_TOKEN, MarketStatus, SystemStatus, Transactio
 
 import { Decimal } from 'decimal.js';
 import {
-  FinCreateOrderRequest as FinPlaceOrderRequest,
-  FinCreateOrdersRequest as FinPlaceOrdersRequest,
-  FinCreateOrdersResponse as FinPlaceOrdersResponse,
+  FinPlaceOrderRequest as FinPlaceOrderRequest,
+  FinPlaceOrdersRequest as FinPlaceOrdersRequest,
+  FinPlaceOrdersResponse as FinPlaceOrdersResponse,
   OrderSide,
   OrderType,
 } from '../src/types';

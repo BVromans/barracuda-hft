@@ -2,9 +2,9 @@
 import { beforeAll, describe, expect, it } from 'bun:test';
 import { Decimal } from 'decimal.js';
 import {
-  FinCreateOrderRequest as FinPlaceOrderRequest,
-  FinCreateOrdersRequest as FinPlaceOrdersRequest,
-  FinCreateOrdersResponse as FinPlaceOrdersResponse,
+  FinPlaceOrderRequest as FinPlaceOrderRequest,
+  FinPlaceOrdersRequest as FinPlaceOrdersRequest,
+  FinPlaceOrdersResponse as FinPlaceOrdersResponse,
   OrderSide,
   OrderType,
   Order,
