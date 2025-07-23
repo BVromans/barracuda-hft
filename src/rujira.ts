@@ -881,25 +881,33 @@ export class Fin {
 	 * @returns The balances response
 	 */
 	async getBalances(request: FinGetBalancesRequest): Promise<FinGetBalancesResponse> {
-		const walletAddress = request.walletAddress;
+		let { walletAddress, tokenAddresses, tokenSymbols } = request;
+
+		walletAddress = walletAddress?.toLowerCase().trim();
+		tokenAddresses = tokenAddresses?.map((address: TokenAddress) => address.toLowerCase().trim());
+		tokenSymbols = tokenSymbols?.map((symbol: TokenSymbol) => symbol.toLowerCase().trim());
+
 		if (!walletAddress) throw new Error('walletAddress is required');
 
+		if (Array.isArray(tokenAddresses)) {
+			tokenAddresses = new List<TokenAddress>(tokenAddresses);
+		}
+		if (Array.isArray(tokenSymbols)) {
+			tokenSymbols = new List<TokenSymbol>(tokenSymbols);
+		}
+
 		// 1. Get all tokens and markets
-		const allTokensMap = await this.getAllTokens({} as FinGetAllTokensRequest);
-		const allMarketsMap = await this.getAllMarkets({} as FinGetAllMarketsRequest);
+		let tokens = await this.getAllTokens({} as FinGetAllTokensRequest);
+		let markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
 		// 2. Filter tokens if requested
-		let filteredTokens: Token[] = Array.from(allTokensMap.values());
-		if (request.tokenAddresses && request.tokenAddresses.length > 0) {
-			filteredTokens = filteredTokens.filter(token => request.tokenAddresses!.includes(token.address));
-		}
-		if (request.tokenSymbols && request.tokenSymbols.length > 0) {
-			filteredTokens = filteredTokens.filter(token => request.tokenSymbols!.includes(token.symbol));
+		if (tokenAddresses || tokenSymbols) {
+			tokens = tokens.filter((token: Token) => tokenAddresses?.includes(token.address) || tokenSymbols?.includes(token.symbol));
 		}
 
 		// 3. Query free balances (bank module)
 		const freeBalances: Record<string, Decimal> = {};
-		const bankResponse = await fetch(`${this.restEndpoint}/cosmos/bank/v1beta1/balances/${walletAddress}`);
+		const bankResponse = await fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
 		if (bankResponse.ok) {
 			const responseData = await bankResponse.json();
 			if (responseData && typeof responseData === 'object' && Array.isArray((responseData as any).balances)) {
@@ -914,7 +922,7 @@ export class Fin {
 		// 4. For each market, get locked in orders and withdrawable
 		const lockedInOrders: Record<string, Decimal> = {};
 		const withdrawable: Record<string, Decimal> = {};
-		for (const market of allMarketsMap.values()) {
+		for (const market of markets.values()) {
 			const contractAddress = market.address;
 			const ordersResponse = await this.cosmClient.queryContractSmart(contractAddress, {
 				orders: { owner: walletAddress, limit: 100 }
@@ -937,7 +945,7 @@ export class Fin {
 
 		// 5. Build TokenBalance for each token
 		const tokensMapOut = new Map<TokenAddress, TokenBalance>();
-		for (const token of filteredTokens) {
+		for (const token of tokens) {
 			const free = freeBalances[token.address] || new Decimal(0);
 			const locked = lockedInOrders[token.address] || new Decimal(0);
 			const withdraw = withdrawable[token.address] || new Decimal(0);
@@ -952,15 +960,15 @@ export class Fin {
 			};
 
 			// Find native and beacon tokens
-			const nativeTokenObject = filteredTokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'RUNE');
-			const beaconTokenObject = filteredTokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'USDC');
+			const nativeTokenObject = tokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'RUNE');
+			const beaconTokenObject = tokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'USDC');
 
 			// Find market price for native (RUNE)
 			let conversionRateNative = new Decimal(0);
 			if (nativeTokenObject && token.address !== nativeTokenObject.address) {
-				const market = Array.from(allMarketsMap.values()).find(marketObj =>
-					(marketObj.tokens.base.address === token.address && marketObj.tokens.quote.address === nativeTokenObject.address) ||
-					(marketObj.tokens.quote.address === token.address && marketObj.tokens.base.address === nativeTokenObject.address)
+				const market = Array.from(markets.values()).find((market: Market) =>
+					(market.tokens.base.address === token.address && market.tokens.quote.address === nativeTokenObject.address) ||
+					(market.tokens.quote.address === token.address && market.tokens.base.address === nativeTokenObject.address)
 				);
 				if (market && market.price) {
 					if (market.tokens.base.address === token.address) {
@@ -976,7 +984,7 @@ export class Fin {
 			// Find market price for beacon (USDC)
 			let conversionRateBeacon = new Decimal(0);
 			if (beaconTokenObject && token.address !== beaconTokenObject.address) {
-				const market = Array.from(allMarketsMap.values()).find(marketObj =>
+				const market = Array.from(markets.values()).find(marketObj =>
 					(marketObj.tokens.base.address === token.address && marketObj.tokens.quote.address === beaconTokenObject.address) ||
 					(marketObj.tokens.quote.address === token.address && marketObj.tokens.base.address === beaconTokenObject.address)
 				);
@@ -1021,8 +1029,8 @@ export class Fin {
 		}
 
 		// 6. Build total balances (nativeToken, beaconToken) dynamically
-		const nativeToken = filteredTokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'RUNE');
-		const beaconToken = filteredTokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'USDC');
+		const nativeToken = tokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'RUNE');
+		const beaconToken = tokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'USDC');
 
 		const totalNative: BaseBalance = nativeToken ? {
 			free: freeBalances[nativeToken.address] || new Decimal(0),
