@@ -170,6 +170,7 @@ export class List<T> {
 		return new Proxy(this, {
 			get: (target, property: PropertyKey, receiver) => {
 				// 1) if it’s on our wrapper, use it
+				// noinspection DuplicatedCode
 				if (property in target) {
 					const value = Reflect.get(target, property, receiver);
 					const type = typeof value;
@@ -197,7 +198,7 @@ export class List<T> {
 						return result;
 					};
 				}
-				
+
 				return innerValue;
 			},
 
@@ -242,6 +243,7 @@ export class Map<K, V> {
 		return new Proxy(this, {
 			get: (target, property: PropertyKey, receiver) => {
 				// 1) if it exists on our wrapper, use it
+				// noinspection DuplicatedCode
 				if (property in target) {
 					const value = Reflect.get(target, property, receiver);
 					const type = typeof value;
@@ -977,7 +979,7 @@ export interface FinGetOrderRequest {
 	 * Market name
 	 */
 	marketSymbol?: MarketSymbol;
-	
+
 	/**
 	 * Order type
 	 */
@@ -987,7 +989,7 @@ export interface FinGetOrderRequest {
 	 * Order side
 	 */
 	orderSide?: OrderSide;
-	
+
 	/**
 	 * Order status
 	 */

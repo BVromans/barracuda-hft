@@ -171,7 +171,7 @@ export class Properties {
 	 * @param defaultValue
 	 * @returns
 	 */
-	public getAs<T>(key: string, defaultValue: T): T {
+	public getAs<T>(key: string, defaultValue?: T): T {
 		const value = this.getOrDefault<T>(key, defaultValue);
 
 		return value as T;

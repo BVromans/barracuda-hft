@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import { properties } from "./properties";
 
 /**
@@ -99,9 +101,9 @@ export function runWithRetryAndTimeout(options?: {
   timeoutMessage?: string;
 }): MethodDecorator {
   const {
-    maxRetries = properties.get('retry.all.maxNumberOfRetries'),
-    delayBetweenRetries = properties.get('retry.all.delayBetweenRetries'),
-    timeout = properties.get('timeout.all'),
+    maxRetries = properties.getAs<number>('retry.all.maxNumberOfRetries'),
+    delayBetweenRetries = properties.getAs<number>('retry.all.delayBetweenRetries'),
+    timeout = properties.getAs<number>('timeout.all'),
     timeoutMessage = 'Timeout exceeded.',
   } = options || {};
   return function (
