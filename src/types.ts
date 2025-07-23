@@ -145,6 +145,11 @@ export type OrderBookMiddlePrice = Amount;
 export type TickerPrice = Amount;
 export type TickerTimestamp = Timestamp;
 
+export type CandleTimestamp = Timestamp;
+export type CandlePrice = Amount;
+export type CandleVolume = Amount;
+export type CandleInterval = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w' | '1M' | '1y';
+
 export type OrderId = Id;
 export type OrderPrice = Amount;
 export type OrderAmount = Amount;
@@ -538,6 +543,47 @@ export interface Ticker {
 	 */
 	raw: Raw;
 }
+
+/**
+ * Represents a candle
+ */
+export interface Candle {
+	/**
+	 * Timestamp of the candle
+	 */
+	timestamp: CandleTimestamp;
+
+	/**
+	 * Open price of the candle
+	 */
+	open: CandlePrice;
+
+	/**
+	 * High price of the candle
+	 */
+	high: CandlePrice;
+
+	/**
+	 * Low price of the candle
+	 */
+	low: CandlePrice;
+
+	/**
+	 * Close price of the candle
+	 */
+	close: CandlePrice;
+
+	/**
+	 * Volume of the candle
+	 */
+	volume: CandleVolume;
+
+	/**
+	 * Raw data
+	 */
+	raw: Raw;
+}
+
 
 /**
  * Represents a balance of a token
@@ -944,6 +990,42 @@ export interface FinGetTickerResponse extends Ticker {
 }
 
 /**
+ * Get candles request
+ */
+export interface FinGetCandlesRequest {
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+		/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
+	 * Maximum number of candles to return
+	 */
+	maximumNumberOfCandles?: Integer;
+
+	/**
+	 * Candle interval
+	 */
+	interval?: CandleInterval;
+}
+
+/**
+ * Get candles response
+ */
+export interface FinGetCandlesResponse extends List<Candle> {
+}
+
+/**
  * Get balances request
  */
 export interface FinGetBalancesRequest {
@@ -1177,6 +1259,30 @@ export interface FinPlaceOrdersResponse {
 	 * Transaction details
 	 */
 	transactions: Map<TransactionHash, Transaction>;
+}
+
+/**
+ * Replace order request
+ */
+export interface FinReplaceOrderRequest extends FinPlaceOrderRequest {
+}
+
+/**
+ * Replace order response
+ */
+export interface FinReplaceOrderResponse extends FinPlaceOrderResponse {
+}
+
+/**
+ * Replace orders request
+ */
+export interface FinReplaceOrdersRequest extends FinPlaceOrdersRequest {
+}
+
+/**
+ * Replace orders response
+ */
+export interface FinReplaceOrdersResponse extends FinPlaceOrdersResponse {
 }
 
 /**

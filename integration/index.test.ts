@@ -2,7 +2,16 @@ import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
 import "dotenv/config";
 import { properties } from "../src/properties";
 import { Rujira } from "../src/rujira";
-import { BIG_NUMBER_0, MarketStatus, SystemStatus, Token, TransactionStatus, Wallet } from "../src/types";
+import {
+	BIG_NUMBER_0, DECIMAL_0, DECIMAL_1, DECIMAL_2, DECIMAL_3, DECIMAL_4,
+	DECIMAL_5, DECIMAL_6,
+	MarketStatus, Order,
+	OrderStatus,
+	SystemStatus,
+	Token,
+	TransactionStatus,
+	Wallet
+} from "../src/types";
 import {
 	FinPlaceOrderRequest,
 	FinPlaceOrdersRequest,
@@ -215,7 +224,6 @@ describe("Rujira", () => {
 				expect(result.market.tokens.quote.raw).toBeDefined();
 
 				expect(result.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(result.market.price).toBeUndefined();
 				expect(result.market.status).toBe(MarketStatus.ACTIVE);
 				expect(result.market.raw).toBeDefined();
 

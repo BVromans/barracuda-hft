@@ -75,6 +75,12 @@ import {
 	List,
 	BIG_NUMBER_INFINITY,
 	Ticker,
+	FinReplaceOrderRequest,
+	FinReplaceOrderResponse,
+	FinReplaceOrdersRequest,
+	FinReplaceOrdersResponse,
+	FinGetCandlesRequest,
+	FinGetCandlesResponse,
 } from "./types";
 import Decimal from 'decimal.js';
 import { properties } from "./properties";
@@ -826,6 +832,15 @@ export class Fin {
 	}
 
 	/**
+	 * Get candles
+	 * @param request - The request object
+	 * @returns The candles response
+	 */
+	async getCandles(request: FinGetCandlesRequest): Promise<FinGetCandlesResponse> {
+		throw new Error("Not implemented");
+	}
+
+	/**
 	 * Get balances for a wallet (free, locked in orders, withdrawable, totals)
 	 * @param request - The request object
 	 * @returns The balances response
@@ -1210,6 +1225,24 @@ for (const order of ordersArray) {
 					]
 			])
     };
+}
+
+/**
+ * Replace order
+ * @param request - The request object
+ * @returns The response for the replaced order
+ */
+async replaceOrder(request: FinReplaceOrderRequest): Promise<FinReplaceOrderResponse> {
+	throw new Error("Not implemented");
+}
+
+/**
+ * Replace multiple orders
+ * @param request - The request object
+ * @returns The response for the replaced orders
+ */
+async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersResponse> {
+	throw new Error("Not implemented");
 }
 
 	/**
