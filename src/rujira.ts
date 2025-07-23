@@ -73,6 +73,8 @@ import {
 	Wallet,
 	Order,
 	OrderType,
+	Map,
+	List,
 } from "./types";
 import Decimal from 'decimal.js';
 
