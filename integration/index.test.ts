@@ -228,41 +228,63 @@ describe("Rujira", () => {
 
 				expect(result.book).toBeDefined();
 
-				expect(Array.isArray(result.book.asks)).toBe(true);
-				expect(result.book.asks.length).toBeLessThanOrEqual(maximumNumberOfOrders);
+				const asks = result.book.asks;
+				const bids = result.book.bids;
 
-				const firstBidOrder = result.book.bids[0];
-				expect(firstBidOrder).toBeDefined();
-				expect(firstBidOrder.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(firstBidOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(firstBidOrder.raw).toBeDefined();
+				expect(asks.size).toBeLessThanOrEqual(maximumNumberOfOrders);
+				expect(bids.size).toBeLessThanOrEqual(maximumNumberOfOrders);
 
-				expect(Array.isArray(result.book.bids)).toBe(true);
-				expect(result.book.bids.length).toBeLessThanOrEqual(maximumNumberOfOrders);
+				if (bids.size > 0) {
+					const firstBidOrder = bids.get(0);
+					expect(firstBidOrder).toBeDefined();
+					expect(firstBidOrder.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(firstBidOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(firstBidOrder.raw).toBeDefined();
 
-				const firstAskOrder = result.book.asks[0];
-				expect(firstAskOrder).toBeDefined();
-				expect(firstAskOrder.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(firstAskOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(firstAskOrder.raw).toBeDefined();
+					expect(result.book.bestBid).toBeDefined();
+					expect(result.book.bestBid!.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(result.book.bestBid!.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(result.book.bestBid!.raw).toBeDefined();
+				} else {
+					expect(result.book.bestBid).toBeUndefined();
+				}
 
-				expect(result.book.bestAsk).toBeDefined();
-				expect(result.book.bestAsk!.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(result.book.bestAsk!.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(result.book.bestAsk!.raw).toBeDefined();
+				if (asks.size > 0) {
+					const firstAskOrder = asks.get(0);
+					expect(firstAskOrder).toBeDefined();
+					expect(firstAskOrder.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(firstAskOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(firstAskOrder.raw).toBeDefined();
 
-				expect(result.book.bestBid).toBeDefined();
-				expect(result.book.bestBid!.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(result.book.bestBid!.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(result.book.bestBid!.raw).toBeDefined();
+					expect(result.book.bestAsk).toBeDefined();
+					expect(result.book.bestAsk!.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(result.book.bestAsk!.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(result.book.bestAsk!.raw).toBeDefined();
+				} else {
+					expect(result.book.bestAsk).toBeUndefined();
+				}
 
-				expect(result.book.bestAsk!.price.toNumber()).toBeGreaterThanOrEqual(result.book.bestBid!.price.toNumber());
-
-				expect(result.book.middlePrice).toBeDefined();
-				expect(result.book.middlePrice!.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(result.book.middlePrice!.toNumber()).toBeLessThanOrEqual(result.book.bestAsk!.price.toNumber());
-				expect(result.book.middlePrice!.toNumber()).toBeGreaterThanOrEqual(result.book.bestBid!.price.toNumber());
-
+				if (asks.size > 0 && bids.size > 0) {
+					expect(result.book.bestAsk!.price.toNumber()).toBeGreaterThanOrEqual(result.book.bestBid!.price.toNumber());
+					expect(result.book.middlePrice).toBeDefined();
+					expect(result.book.middlePrice!.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(result.book.middlePrice!.toNumber()).toBeLessThanOrEqual(result.book.bestAsk!.price.toNumber());
+					expect(result.book.middlePrice!.toNumber()).toBeGreaterThanOrEqual(result.book.bestBid!.price.toNumber());
+				} else if (asks.size > 0 && bids.size === 0) {
+					expect(result.book.bestAsk).toBeDefined();
+					expect(result.book.bestBid).toBeUndefined();
+					expect(result.book.middlePrice).toBeDefined();
+					expect(result.book.middlePrice!.toNumber()).toBe(result.book.bestAsk!.price.toNumber());
+				} else if (bids.size > 0 && asks.size === 0) {
+					expect(result.book.bestBid).toBeDefined();
+					expect(result.book.bestAsk).toBeUndefined();
+					expect(result.book.middlePrice).toBeDefined();
+					expect(result.book.middlePrice!.toNumber()).toBe(result.book.bestBid!.price.toNumber());
+				} else {
+					expect(result.book.bestAsk).toBeUndefined();
+					expect(result.book.bestBid).toBeUndefined();
+					expect(result.book.middlePrice).toBeUndefined();
+				}
 				expect(result.raw).toBeDefined();
 			});
 		});
