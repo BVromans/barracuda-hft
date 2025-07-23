@@ -11,13 +11,17 @@ import { properties } from './properties';
 export const DECIMAL_0 = new Decimal(0);
 export const DECIMAL_1 = new Decimal(1);
 export const DECIMAL_100 = new Decimal(100);
+export const DECIMAL_INFINITY = new Decimal(Number.POSITIVE_INFINITY);
+export const DECIMAL_NEGATIVE_INFINITY = new Decimal(Number.NEGATIVE_INFINITY);
 export const DECIMAL_NaN = new Decimal(NaN);
 export const BIG_NUMBER_0 = new BN(0);
 export const BIG_NUMBER_1 = new BN(1);
 export const BIG_NUMBER_100 = new BN(100);
+export const BIG_NUMBER_INFINITY = new BN(Number.POSITIVE_INFINITY);
+export const BIG_NUMBER_NEGATIVE_INFINITY = new BN(Number.NEGATIVE_INFINITY);
 export const BIG_NUMBER_NaN = new BN(NaN);
 
-export const NATIVE_TOKEN = {
+const NATIVE_TOKEN = {
 	address: undefined as unknown as string,
 	symbol: 'RUJI',
 	name: 'RUJIRA',
@@ -25,7 +29,7 @@ export const NATIVE_TOKEN = {
 	raw: undefined as unknown as Raw
 } as Token;
 
-export const FEE_PAYMENT_TOKEN = {
+const FEE_PAYMENT_TOKEN = {
 	address: undefined as unknown as string,
 	symbol: 'RUNE',
 	name: 'RUNE',
@@ -33,7 +37,7 @@ export const FEE_PAYMENT_TOKEN = {
 	raw: undefined as unknown as Raw
 } as Token;
 
-export const BEACON_TOKEN = {
+const BEACON_TOKEN = {
 	address: undefined as unknown as string,
 	symbol: 'USDC',
 	name: 'USDC',
@@ -43,6 +47,9 @@ export const BEACON_TOKEN = {
 
 properties.set('wallet.prefix', 'thor');
 properties.set('rujira.gasPrice', GasPrice.fromString(`0.02${FEE_PAYMENT_TOKEN.symbol.toLowerCase()}`));
+properties.set('rujira.tokens.native', NATIVE_TOKEN);
+properties.set('rujira.tokens.beacon', BEACON_TOKEN);
+properties.set('rujira.tokens.feePayment', FEE_PAYMENT_TOKEN);
 
 export enum Chain {
 	ETHEREUM = 'ethereum',
@@ -422,21 +429,6 @@ export interface Market {
 	decimals: MarketDecimals;
 
 	/**
-	 * Price of the market
-	 */
-	price?: {
-		/**
-		 * Price of the market in base/quote
-		 */
-		baseQuote: MarketPrice;
-
-		/**
-		 * Price of the market in quote/base
-		 */
-		quoteBase: MarketPrice;
-	}
-
-	/**
 	 * Status of the market
 	 */
 	status: MarketStatus;
@@ -732,16 +724,6 @@ export interface Order {
  */
 export interface RujiraConstructorOptions {
 	/**
-	 * RPC endpoint
-	 */
-	rpcEndpoint: URL;
-
-	/**
-	 * REST endpoint for bank queries
-	 */
-	restEndpoint: URL;
-
-	/**
 	 * Wallet mnemonic
 	 */
 	walletMnemonic?: WalletMnemonic;
@@ -762,10 +744,6 @@ export interface RujiraInitializeOptions {
  * Fin constructor options
  */
 export interface FinConstructorOptions {
-	/**
-	 * REST endpoint for bank queries
-	 */
-	restEndpoint: URL;
 }
 
 /**

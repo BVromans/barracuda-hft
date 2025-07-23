@@ -126,6 +126,18 @@ export class Properties {
 	 * Define extra properties
 	 */
 	private defineExtraProperties(): void {
+		this.map.setIn('retry.default.maximumNumberOfRetries', 3);
+		this.map.setIn('retry.default.delayBetweenRetries', 1000);
+		this.map.setIn('retry.default.timeout', 30000);
+		this.map.setIn('retry.default.timeoutErrorMessage', 'Timeout exceeded.');
+
+		this.map.setIn('cache.default.ttlSeconds', 6 * 60 * 60);
+		this.map.setIn('cache.default.cacheKey', (request: any) => request.toString());
+
+		this.map.setIn('cache.rujira.fin.getAllTokens', 6 * 60 * 60);
+		this.map.setIn('cache.rujira.fin.getAllMarkets', 6 * 60 * 60);
+
+		this.map.setIn('constant.rujira.markets.active', 'LIVE');
 	}
 
 	/**

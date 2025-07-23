@@ -1,0 +1,25 @@
+rujira:
+  endpoints:
+    rpc: "https://thornode-mainnet-rpc.bryanlabs.net"
+    rest: "https://thornode.ninerealms.com/thorchain"
+    graphql: "https://api.rujira.network/api/graphiql"
+  wallet:
+    mnemonic: "<mnemonic>" # Optional, but required if privateKey is not provided
+    privateKey: "<privateKey>" # Optional, but required if mnemonic is not provided
+    publicKeys:
+      thor: "<thorPublicKey>" # Optional
+      ethereum: "<ethereumPublicKey>" # Optional
+  default:
+    cache:
+      ttlSeconds: 60
+    retry:
+      maximumNumberOfRetries: 3
+      delayBetweenRetries: 1_000
+      timeout: 30_000
+    orderBook:
+      maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
+tests:
+  unit:
+    timeout: 10_000 # 10 seconds
+  integration:
+    timeout: 60_000 # 60 seconds

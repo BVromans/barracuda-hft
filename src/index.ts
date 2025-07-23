@@ -1,12 +1,11 @@
+import { properties } from "./properties";
 import { Rujira } from "./rujira";
-import { RujiraConstructorOptions, RujiraInitializeOptions } from "./types";
+import { RujiraConstructorOptions, RujiraInitializeOptions, WalletMnemonic, WalletPrivateKey } from "./types";
 
 (async function run() {
 	const rujira = new Rujira({
-		rpcEndpoint: process.env.RPC_ENDPOINT!,
-		restEndpoint: process.env.REST_ENDPOINT!,
-		walletMnemonic: process.env.WALLET_MNEMONIC!,
-		walletPrivateKey: process.env.WALLET_PRIVATE_KEY!,
+		walletMnemonic: properties.getAs<WalletMnemonic | undefined>('rujira.wallet.mnemonic'),
+		walletPrivateKey: properties.getAs<WalletPrivateKey | undefined>('rujira.wallet.privateKey'),
 	} as RujiraConstructorOptions);
 
 	await rujira.initialize({} as RujiraInitializeOptions);

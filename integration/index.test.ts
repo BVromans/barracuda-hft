@@ -1,13 +1,14 @@
-import "dotenv/config";
 import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
+import "dotenv/config";
+import { properties } from "../src/properties";
 import { Rujira } from "../src/rujira";
-import { BIG_NUMBER_0, FEE_PAYMENT_TOKEN, MarketStatus, SystemStatus, TransactionStatus, Wallet } from "../src/types";
+import { BIG_NUMBER_0, MarketStatus, SystemStatus, Token, TransactionStatus, Wallet } from "../src/types";
 
 let rujira: Rujira;
 
-let testsTimeout: number;
-let rpcEndpoint: string;
-let restEndpoint: string;
+let feePaymentToken: Token;
+let nativeToken: Token;
+let beaconToken: Token;
 let walletPrivateKey: string;
 let walletMnemonic: string;
 let wallet: Wallet;
@@ -23,8 +24,6 @@ let quoteTokenAmount: string;
 
 beforeAll(async () => {
 	const requiredEnvironmentVariables = [
-		'TESTS_TIMEOUT',
-		'RPC_ENDPOINT',
 		'WALLET_PRIVATE_KEY',
 		'WALLET_MNEMONIC',
 		'TRANSACTION_HASH',
@@ -44,10 +43,9 @@ beforeAll(async () => {
 		throw new Error(`Missing required environment variables: ${missingEnvironmentVariables.join(', ')}`);
 	}
 
-
-	testsTimeout = Number(process.env.TESTS_TIMEOUT!);
-	rpcEndpoint = process.env.RPC_ENDPOINT!;
-	restEndpoint = process.env.REST_ENDPOINT!;
+	feePaymentToken = properties.getAs<Token>('rujira.tokens.feePayment');
+	nativeToken = properties.getAs<Token>('rujira.tokens.native');
+	beaconToken = properties.getAs<Token>('rujira.tokens.beacon');
 	walletPrivateKey = process.env.WALLET_PRIVATE_KEY!;
 	walletMnemonic = process.env.WALLET_MNEMONIC!;
 	transactionHash = process.env.TRANSACTION_HASH!;
@@ -61,17 +59,15 @@ beforeAll(async () => {
 	quoteTokenAmount = process.env.QUOTE_TOKEN_AMOUNT!;
 
 	rujira = new Rujira({
-		rpcEndpoint: rpcEndpoint,
 		walletPrivateKey: walletPrivateKey,
 		walletMnemonic: walletMnemonic,
-		restEndpoint: restEndpoint,
 	});
 
 	await rujira.initialize({});
 
 	wallet = rujira.wallet;
 
-	jest.setTimeout(testsTimeout);
+	jest.setTimeout(properties.getAs<number>('tests.integration.timeout'));
 
 	await cleanUp();
 });
@@ -108,10 +104,10 @@ describe("Rujira", () => {
 				expect(result.fee.amount).toBeDefined();
 				expect(result.fee.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.fee.token).toBeDefined();
-				expect(result.fee.token.address).toBe(FEE_PAYMENT_TOKEN.address);
-				expect(result.fee.token.symbol).toBe(FEE_PAYMENT_TOKEN.symbol);
-				expect(result.fee.token.name).toBe(FEE_PAYMENT_TOKEN.name);
-				expect(result.fee.token.decimals).toBe(FEE_PAYMENT_TOKEN.decimals);
+				expect(result.fee.token.address).toBe(feePaymentToken.address);
+				expect(result.fee.token.symbol).toBe(feePaymentToken.symbol);
+				expect(result.fee.token.name).toBe(feePaymentToken.name);
+				expect(result.fee.token.decimals).toBe(feePaymentToken.decimals);
 				expect(result.fee.token.raw).toBeDefined();
 				expect(result.raw).toBeDefined();
 			});
