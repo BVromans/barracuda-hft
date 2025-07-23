@@ -640,8 +640,8 @@ export interface Order {
 	market: Market;
 
 	/**
-		* The account which placed the order
-		*/
+	 * The account which placed the order
+	 */
 	owner: WalletAddress;
 
 	/**
@@ -650,8 +650,8 @@ export interface Order {
 	type: OrderType;
 
 	/**
-		* The side of the order
-		*/
+	 * The side of the order
+	 */
 	side: OrderSide;
 
 	/**
@@ -723,7 +723,8 @@ export interface RujiraConstructorOptions {
 /**
  * Rujira initialize options
  */
-export interface RujiraInitializeOptions {}
+export interface RujiraInitializeOptions {
+}
 
 /**
  * Fin constructor options
@@ -790,7 +791,8 @@ export interface FinGetTokenRequest {
 /**
  * Get token response
  */
-export interface FinGetTokenResponse extends Token {}
+export interface FinGetTokenResponse extends Token {
+}
 
 /**
  * Get tokens request (if no addresses or symbols are provided, all tokens will be returned)
@@ -810,17 +812,20 @@ export interface FinGetTokensRequest {
 /**
  * Get tokens response
  */
-export interface FinGetTokensResponse extends Map<TokenAddress, Token> {}
+export interface FinGetTokensResponse extends Map<TokenAddress, Token> {
+}
 
 /**
  * Get all tokens request
  */
-export interface FinGetAllTokensRequest {}
+export interface FinGetAllTokensRequest {
+}
 
 /**
  * Get all tokens response
  */
-export interface FinGetAllTokensResponse extends Map<TokenAddress, Token> {}
+export interface FinGetAllTokensResponse extends Map<TokenAddress, Token> {
+}
 
 /**
  * Get market request
@@ -840,7 +845,8 @@ export interface FinGetMarketRequest {
 /**
  * Get market response
  */
-export interface FinGetMarketResponse extends Market {}
+export interface FinGetMarketResponse extends Market {
+}
 
 /**
  * Get markets request
@@ -860,17 +866,20 @@ export interface FinGetMarketsRequest {
 /**
  * Get markets response
  */
-export interface FinGetMarketsResponse extends Map<MarketAddress, Market> {}
+export interface FinGetMarketsResponse extends Map<MarketAddress, Market> {
+}
 
 /**
  * Get all markets request
  */
-export interface FinGetAllMarketsRequest {}
+export interface FinGetAllMarketsRequest {
+}
 
 /**
  * Get all markets response
  */
-export interface FinGetAllMarketsResponse extends Map<MarketAddress, Market> {}
+export interface FinGetAllMarketsResponse extends Map<MarketAddress, Market> {
+}
 
 /**
  * Get order book request
@@ -895,7 +904,8 @@ export interface FinGetOrderBookRequest {
 /**
  * Get order book response
  */
-export interface FinGetOrderBookResponse extends OrderBook {}
+export interface FinGetOrderBookResponse extends OrderBook {
+}
 
 /**
  * Get ticker request
@@ -915,7 +925,8 @@ export interface FinGetTickerRequest {
 /**
  * Get ticker response
  */
-export interface FinGetTickerResponse extends Ticker {}
+export interface FinGetTickerResponse extends Ticker {
+}
 
 /**
  * Get balances request
@@ -940,7 +951,8 @@ export interface FinGetBalancesRequest {
 /**
  * Get balances response
  */
-export interface FinGetBalancesResponse extends Balances {}
+export interface FinGetBalancesResponse extends Balances {
+}
 
 /**
  * Get transaction request
@@ -960,7 +972,8 @@ export interface FinGetTransactionRequest {
 /**
  * Get transaction response
  */
-export interface FinGetTransactionResponse extends Transaction {}
+export interface FinGetTransactionResponse extends Transaction {
+}
 
 /**
  * Get order request
@@ -1002,15 +1015,16 @@ export interface FinGetOrderRequest {
 	orderPrice: OrderPrice;
 }
 
-export interface FinGetOrderResponse extends Order {}
+export interface FinGetOrderResponse extends Order {
+}
 
 /**
  * Get orders request
  */
 export interface FinGetOrdersRequest {
 	/**
-		 * Owner address (wallet that owns the order)
-		 */
+	 * Owner address (wallet that owns the order)
+	 */
 	ownerAddress: WalletAddress;
 
 	/**
@@ -1047,7 +1061,8 @@ export interface FinGetOrdersRequest {
 /**
  * Get orders response
  */
-export interface FinGetOrdersResponse extends Map<OrderId, Order> {}
+export interface FinGetOrdersResponse extends Map<OrderId, Order> {
+}
 
 /**
  * Create order request

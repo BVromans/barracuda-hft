@@ -103,11 +103,14 @@ export class Properties {
 		const parseEnvironmentVariableValue = (value?: string): any => {
 			if (!value) return value;
 
-			if (/^(true|false)$/i.test(value)) return value.toLowerCase()==='true';
+			if (/^(true|false)$/i.test(value)) return value.toLowerCase() === 'true';
 
 			if (!isNaN(Number(value))) return Number(value);
 
-			try { return JSON.parse(value); } catch {}
+			try {
+				return JSON.parse(value);
+			} catch {
+			}
 
 			return value;
 		}

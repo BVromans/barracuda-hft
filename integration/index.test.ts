@@ -38,42 +38,42 @@ beforeAll(async () => {
 		'QUOTE_TOKEN_AMOUNT',
 	];
 
-		const missingEnvironmentVariables = requiredEnvironmentVariables.filter(varName => !process.env[varName]);
+	const missingEnvironmentVariables = requiredEnvironmentVariables.filter(varName => !process.env[varName]);
 
-		if (missingEnvironmentVariables.length > 0) {
-			throw new Error(`Missing required environment variables: ${missingEnvironmentVariables.join(', ')}`);
-		}
+	if (missingEnvironmentVariables.length > 0) {
+		throw new Error(`Missing required environment variables: ${missingEnvironmentVariables.join(', ')}`);
+	}
 
 
-		testsTimeout = Number(process.env.TESTS_TIMEOUT!);
-		rpcEndpoint = process.env.RPC_ENDPOINT!;
-		restEndpoint = process.env.REST_ENDPOINT!;
-		walletPrivateKey = process.env.WALLET_PRIVATE_KEY!;
-		walletMnemonic = process.env.WALLET_MNEMONIC!;
-		transactionHash = process.env.TRANSACTION_HASH!;
-		marketSymbol = process.env.MARKET_SYMBOL!;
-		marketAddress = process.env.MARKET_ADDRESS!;
-		baseTokenAddress = process.env.BASE_TOKEN_ADDRESS!;
-		quoteTokenAddress = process.env.QUOTE_TOKEN_ADDRESS!;
-		baseTokenSymbol = process.env.BASE_TOKEN_SYMBOL!;
-		quoteTokenSymbol = process.env.QUOTE_TOKEN_SYMBOL!;
-		baseTokenAmount = process.env.BASE_TOKEN_AMOUNT!;
-		quoteTokenAmount = process.env.QUOTE_TOKEN_AMOUNT!;
+	testsTimeout = Number(process.env.TESTS_TIMEOUT!);
+	rpcEndpoint = process.env.RPC_ENDPOINT!;
+	restEndpoint = process.env.REST_ENDPOINT!;
+	walletPrivateKey = process.env.WALLET_PRIVATE_KEY!;
+	walletMnemonic = process.env.WALLET_MNEMONIC!;
+	transactionHash = process.env.TRANSACTION_HASH!;
+	marketSymbol = process.env.MARKET_SYMBOL!;
+	marketAddress = process.env.MARKET_ADDRESS!;
+	baseTokenAddress = process.env.BASE_TOKEN_ADDRESS!;
+	quoteTokenAddress = process.env.QUOTE_TOKEN_ADDRESS!;
+	baseTokenSymbol = process.env.BASE_TOKEN_SYMBOL!;
+	quoteTokenSymbol = process.env.QUOTE_TOKEN_SYMBOL!;
+	baseTokenAmount = process.env.BASE_TOKEN_AMOUNT!;
+	quoteTokenAmount = process.env.QUOTE_TOKEN_AMOUNT!;
 
-		rujira = new Rujira({
-			rpcEndpoint: rpcEndpoint,
-			walletPrivateKey: walletPrivateKey,
-			walletMnemonic: walletMnemonic,
-			restEndpoint: restEndpoint,
-		});
+	rujira = new Rujira({
+		rpcEndpoint: rpcEndpoint,
+		walletPrivateKey: walletPrivateKey,
+		walletMnemonic: walletMnemonic,
+		restEndpoint: restEndpoint,
+	});
 
-		await rujira.initialize({});
+	await rujira.initialize({});
 
-		wallet = rujira.wallet;
+	wallet = rujira.wallet;
 
-		jest.setTimeout(testsTimeout);
+	jest.setTimeout(testsTimeout);
 
-		await cleanUp();
+	await cleanUp();
 });
 
 afterAll(async () => {
