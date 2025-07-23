@@ -128,6 +128,7 @@ export function runWithRetryAndTimeout(options?: {
 				for (let attempt = 0; attempt < maxRetries; attempt++) {
 					try {
 						// Execute the original method with correct binding.
+						// noinspection UnnecessaryLocalVariableJS
 						const result = await originalMethod.apply(this, args);
 
 						return result;
