@@ -81,6 +81,8 @@ import {
 	FinReplaceOrdersResponse,
 	FinGetCandlesRequest,
 	FinGetCandlesResponse,
+	CandleInterval,
+	Candle,
 } from "./types";
 import Decimal from 'decimal.js';
 import { properties } from "./properties";
@@ -837,7 +839,40 @@ export class Fin {
 	 * @returns The candles response
 	 */
 	async getCandles(request: FinGetCandlesRequest): Promise<FinGetCandlesResponse> {
-		throw new Error("Not implemented");
+		let { marketAddress, marketSymbol, maximumNumberOfCandles, interval } = request;
+
+		marketAddress = marketAddress?.toLowerCase().trim();
+		marketSymbol = marketSymbol?.toLowerCase().trim();
+		maximumNumberOfCandles = maximumNumberOfCandles || properties.getAs<number>('rujira.default.candles.maximumNumberOfCandles') || BIG_NUMBER_INFINITY.toNumber();
+		interval = interval || properties.getAs<CandleInterval>('rujira.default.candles.interval') || '1m';
+
+		if (!marketAddress && !marketSymbol) {
+			throw new Error("Either market address or market name must be provided");
+		}
+
+		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+
+		// TODO: Check this query!!!
+		const rawCandles = await this.cosmClient.queryContractSmart(
+			market.address,
+			{
+				candles: { interval, limit: maximumNumberOfCandles }
+			}
+		);
+
+		const parseCandle = (entry: any): Candle => ({
+			timestamp: entry.timestamp,
+			open: entry.open,
+			high: entry.high,
+			low: entry.low,
+			close: entry.close,
+			volume: entry.volume,
+			raw: entry
+		});
+
+		const candles: List<Candle> = new List<Candle>(rawCandles.candles || []).map(parseCandle);
+
+		return candles;
 	}
 
 	/**

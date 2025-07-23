@@ -18,6 +18,9 @@ rujira:
       timeout: 30_000
     orderBook:
       maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
+    candles:
+      interval: "1m"
+      maximumNumberOfCandles: 100 # Optional, leaving empty or null will return all candles
 tests:
   unit:
     timeout: 10_000 # 10 seconds
