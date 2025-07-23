@@ -271,6 +271,7 @@ export class Map<K, V> {
 						return result;
 					};
 				}
+
 				return innerValue;
 			},
 

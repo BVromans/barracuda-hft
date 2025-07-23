@@ -3,20 +3,6 @@ import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
 import { Rujira } from "../src/rujira";
 import { BIG_NUMBER_0, FEE_PAYMENT_TOKEN, MarketStatus, SystemStatus, TransactionStatus, Wallet } from "../src/types";
 
-import { Decimal } from 'decimal.js';
-import {
-  FinPlaceOrderRequest as FinPlaceOrderRequest,
-  FinPlaceOrdersRequest as FinPlaceOrdersRequest,
-  FinPlaceOrdersResponse as FinPlaceOrdersResponse,
-  OrderSide,
-  OrderType,
-} from '../src/types';
-import { Fin } from '../src/rujira';
-import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
-import { fromBase64 } from "@cosmjs/encoding";
-import { DEFAULT_WALLET_PREFIX } from '../src/types';
-
 let rujira: Rujira;
 
 let testsTimeout: number;
@@ -53,7 +39,7 @@ beforeAll(async () => {
 	];
 
 		const missingEnvironmentVariables = requiredEnvironmentVariables.filter(varName => !process.env[varName]);
-		
+
 		if (missingEnvironmentVariables.length > 0) {
 			throw new Error(`Missing required environment variables: ${missingEnvironmentVariables.join(', ')}`);
 		}
@@ -137,6 +123,7 @@ describe("Rujira", () => {
 					address: baseTokenAddress,
 				});
 
+				// noinspection DuplicatedCode
 				expect(result).toBeDefined();
 				expect(result.address).toBe(baseTokenAddress);
 				expect(result.symbol).toBe(baseTokenSymbol);
@@ -150,6 +137,7 @@ describe("Rujira", () => {
 					symbol: baseTokenSymbol,
 				});
 
+				// noinspection DuplicatedCode
 				expect(result).toBeDefined();
 				expect(result.address).toBe(baseTokenAddress);
 				expect(result.symbol).toBe(baseTokenSymbol);
@@ -164,10 +152,10 @@ describe("Rujira", () => {
 				const result = await rujira.fin.getTokens({
 					addresses: addresses,
 				});
-				
+
 				expect(result).toBeDefined();
 				expect(result.size).toBe(addresses.length);
-				
+
 				const baseToken = result.get(baseTokenAddress)!;
 				expect(baseToken).toBeDefined();
 				expect(baseToken.address).toBe(baseTokenAddress);
@@ -189,7 +177,7 @@ describe("Rujira", () => {
 		describe("orderbook", () => {
 			it("should be able to get the order book for a market", async () => {
 				const maximumNumberOfOrders = 10;
-				
+
 				const result = await rujira.fin.getOrderBook({
 					marketAddress: marketAddress,
 					marketSymbol: undefined,
@@ -225,7 +213,7 @@ describe("Rujira", () => {
 
 				expect(Array.isArray(result.book.asks)).toBe(true);
 				expect(result.book.asks.length).toBeLessThanOrEqual(maximumNumberOfOrders);
-				
+
 				const firstBidOrder = result.book.bids[0];
 				expect(firstBidOrder).toBeDefined();
 				expect(firstBidOrder.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
@@ -262,9 +250,7 @@ describe("Rujira", () => {
 			});
 		});
 	});
-
-
-
+});
 
 // TODO fix and remove!!!
 // let fin: Fin;
@@ -448,5 +434,5 @@ describe("Rujira", () => {
 //       expect(typeof tx.raw).toBe('object');
 //     }
 //   });
-// }); 
+// });
 // });

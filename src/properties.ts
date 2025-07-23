@@ -177,6 +177,7 @@ export class Properties {
 		return value as T;
 	}
 
+	// noinspection JSUnusedGlobalSymbols
 	/**
 	 * Set a value
 	 * @param key

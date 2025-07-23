@@ -56,22 +56,22 @@ export const promiseAllInBatches = async <I, O>(
 	let results: any[] = [];
 
 	if (!batchSize) {
-    batchSize = items.length;
+	  batchSize = items.length;
 	}
 
 	while (position < items.length) {
-    const itemsForBatch = items.slice(position, position + batchSize);
-    results = [
-      ...results,
-      ...(await Promise.all(itemsForBatch.map((item) => task(item)))),
-    ];
-    position += batchSize;
+	  const itemsForBatch = items.slice(position, position + batchSize);
+	  results = [
+	    ...results,
+	    ...(await Promise.all(itemsForBatch.map((item) => task(item)))),
+	  ];
+	  position += batchSize;
 
-    if (position < items.length) {
-      if (delayBetweenBatches > 0) {
-        await sleep(delayBetweenBatches);
-      }
-    }
+	  if (position < items.length) {
+	    if (delayBetweenBatches > 0) {
+	      await sleep(delayBetweenBatches);
+	    }
+	  }
 	}
 
 	return results;
@@ -82,7 +82,7 @@ export function* splitInChunks<T>(
 	quantity: number,
 ): Generator<T[], void> {
 	for (let i = 0; i < target.length; i += quantity) {
-    yield target.slice(i, i + quantity);
+	  yield target.slice(i, i + quantity);
 	}
 }
 
@@ -101,70 +101,70 @@ export function runWithRetryAndTimeout(options?: {
 	timeoutMessage?: string;
 }): MethodDecorator {
 	const {
-    maxRetries = properties.getAs<number>('retry.all.maxNumberOfRetries'),
-    delayBetweenRetries = properties.getAs<number>('retry.all.delayBetweenRetries'),
-    timeout = properties.getAs<number>('timeout.all'),
-    timeoutMessage = 'Timeout exceeded.',
+	  maxRetries = properties.getAs<number>('retry.all.maxNumberOfRetries'),
+	  delayBetweenRetries = properties.getAs<number>('retry.all.delayBetweenRetries'),
+	  timeout = properties.getAs<number>('timeout.all'),
+	  timeoutMessage = 'Timeout exceeded.',
 	} = options || {};
 	return function (
-    target: Object,
-    propertyKey: string | symbol,
-    descriptor: PropertyDescriptor,
+	  target: Object,
+	  propertyKey: string | symbol,
+	  descriptor: PropertyDescriptor,
 	): PropertyDescriptor {
-    const originalMethod = descriptor.value;
-    if (typeof originalMethod !== 'function') {
-      throw new Error('Decorator can only be applied to methods');
-    }
+	  const originalMethod = descriptor.value;
+	  if (typeof originalMethod !== 'function') {
+	    throw new Error('Decorator can only be applied to methods');
+	  }
 
-    // Replace the original method with one that incorporates retry and timeout logic.
-    descriptor.value = async function (...args: any[]): Promise<any> {
-      const sleep = (ms: number): Promise<void> =>
-        new Promise<void>((resolve) => setTimeout(resolve, Math.floor(ms)));
+	  // Replace the original method with one that incorporates retry and timeout logic.
+	  descriptor.value = async function (...args: any[]): Promise<any> {
+	    const sleep = (ms: number): Promise<void> =>
+	      new Promise<void>((resolve) => setTimeout(resolve, Math.floor(ms)));
 
-      // Function that performs the retries.
-      const callWithRetries = async (): Promise<any> => {
-        const errors: Error[] = [];
+	    // Function that performs the retries.
+	    const callWithRetries = async (): Promise<any> => {
+	      const errors: Error[] = [];
 
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-          try {
-            // Execute the original method with correct binding.
-            const result = await originalMethod.apply(this, args);
-            return result;
-          } catch (error: any) {
-            errors.push(error);
-            console.debug(
-              `${(target as any).constructor.name}.${String(propertyKey)} => attempt ${attempt + 1} of ${maxRetries} failed`,
-            );
+	      for (let attempt = 0; attempt < maxRetries; attempt++) {
+	        try {
+	          // Execute the original method with correct binding.
+	          const result = await originalMethod.apply(this, args);
+	          return result;
+	        } catch (error: any) {
+	          errors.push(error);
+	          console.debug(
+	            `${(target as any).constructor.name}.${String(propertyKey)} => attempt ${attempt + 1} of ${maxRetries} failed`,
+	          );
 
-            // Wait before retrying if there are remaining attempts.
-            if (attempt < maxRetries - 1 && delayBetweenRetries > 0) {
-              await sleep(delayBetweenRetries * 1000);
-            }
-          }
-        }
-        // Aggregate all error messages.
-        const aggregatedErrors = errors.map((err) => err.message).join(';\n');
-        throw new Error(
-          `Failed to execute "${String(propertyKey)}" after ${maxRetries} retries. Errors:\n${aggregatedErrors}`,
-        );
-      };
+	          // Wait before retrying if there are remaining attempts.
+	          if (attempt < maxRetries - 1 && delayBetweenRetries > 0) {
+	            await sleep(delayBetweenRetries * 1000);
+	          }
+	        }
+	      }
+	      // Aggregate all error messages.
+	      const aggregatedErrors = errors.map((err) => err.message).join(';\n');
+	      throw new Error(
+	        `Failed to execute "${String(propertyKey)}" after ${maxRetries} retries. Errors:\n${aggregatedErrors}`,
+	      );
+	    };
 
-      // Race the retry logic against a timeout promise if timeout is set.
-      if (timeout > 0) {
-        return await Promise.race([
-          callWithRetries(),
-          new Promise((_, reject) =>
-            setTimeout(
-              () => reject(new Error(timeoutMessage)),
-              Math.floor(timeout * 1000),
-            ),
-          ),
-        ]);
-      } else {
-        return await callWithRetries();
-      }
-    };
+	    // Race the retry logic against a timeout promise if timeout is set.
+	    if (timeout > 0) {
+	      return await Promise.race([
+	        callWithRetries(),
+	        new Promise((_, reject) =>
+	          setTimeout(
+	            () => reject(new Error(timeoutMessage)),
+	            Math.floor(timeout * 1000),
+	          ),
+	        ),
+	      ]);
+	    } else {
+	      return await callWithRetries();
+	    }
+	  };
 
-    return descriptor;
+	  return descriptor;
 	};
 }
