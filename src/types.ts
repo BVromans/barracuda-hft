@@ -5,8 +5,8 @@ import { DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
 import BN from "bn.js";
 import { GasPrice } from '@cosmjs/stargate';
-
 import { Map as ImmutableMap, List as ImmutableList } from 'immutable';
+import { properties } from './properties';
 
 export const DECIMAL_0 = new Decimal(0);
 export const DECIMAL_1 = new Decimal(1);
@@ -16,8 +16,6 @@ export const BIG_NUMBER_0 = new BN(0);
 export const BIG_NUMBER_1 = new BN(1);
 export const BIG_NUMBER_100 = new BN(100);
 export const BIG_NUMBER_NaN = new BN(NaN);
-
-export const DEFAULT_WALLET_PREFIX = 'thor';
 
 export const NATIVE_TOKEN = {
 	address: undefined as unknown as string,
@@ -43,7 +41,8 @@ export const BEACON_TOKEN = {
 	raw: undefined as unknown as Raw
 } as Token;
 
-export const DEFAULT_GAS_PRICE = GasPrice.fromString(`0.02${FEE_PAYMENT_TOKEN.symbol.toLowerCase()}`);
+properties.set('wallet.prefix', 'thor');
+properties.set('rujira.gasPrice', GasPrice.fromString(`0.02${FEE_PAYMENT_TOKEN.symbol.toLowerCase()}`));
 
 export enum Chain {
 	ETHEREUM = 'ethereum',
@@ -287,6 +286,39 @@ export class Map<K, V> {
 				return true;
 			},
 		});
+	}
+
+	/**
+	 *
+	 * @param key
+	 */
+	getIn<T>(key: K): T {
+		if ((key as any).constructor === Array) {
+			return this.inner.getIn(key as Iterable<any>) as T;
+		} else if (typeof key === 'string') {
+			return this.inner.getIn(key.toString().trim().split('.')) as T;
+		}
+
+		throw Error(`Invalid key ("${key}").`);
+	}
+
+	/**
+	 *
+	 * @param key
+	 * @param value
+	 */
+	setIn<T,V>(key: T, value: V) {
+		if (key == null) {
+			throw Error(`Invalid key ("${key}").`);
+		}
+
+		if (key.constructor === Array) {
+			this.inner = this.inner.setIn(key, value);
+		} else if (typeof key === 'string') {
+			this.inner = this.inner.setIn(key.toString().trim().split('.'), value);
+		} else {
+			throw Error(`Invalid key ("${key}").`);
+		}
 	}
 }
 

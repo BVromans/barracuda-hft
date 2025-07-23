@@ -68,15 +68,17 @@ import {
 	BaseBalanceWithQuotation,
 	BaseTokenBalance,
 	Balances,
-	DEFAULT_GAS_PRICE,
-	DEFAULT_WALLET_PREFIX,
 	Wallet,
 	Order,
 	OrderType,
 	Map,
 	List,
+	FEE_PAYMENT_TOKEN,
 } from "./types";
 import Decimal from 'decimal.js';
+import { properties } from "./properties";
+import { GasPrice } from "@cosmjs/stargate";
+import { runWithRetryAndTimeout } from "./utils";
 
 /**
  * LRU cache
@@ -103,11 +105,10 @@ export class Rujira {
 	/**
 	 * Fin client
 	 */
-	readonly fin: Fin;
+	public readonly fin: Fin;
 
 	/**
 	 * Wallet
-	 * // TODO check if we should expose this or not!!!
 	 */
 	public wallet: Wallet;
 
@@ -136,7 +137,6 @@ export class Rujira {
 	 */
 	private cosmClient: SigningCosmWasmClient;
 
-
 	/**
 	 * Constructor
 	 */
@@ -146,8 +146,9 @@ export class Rujira {
 		this.walletMnemonic = options.walletMnemonic;
 		this.walletPrivateKey = options.walletPrivateKey;
 
-		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 		this.wallet = undefined as unknown as Wallet;
+
+		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 
 		this.fin = new Fin({
 			restEndpoint: this.restEndpoint
@@ -163,14 +164,14 @@ export class Rujira {
 		} else if (this.walletPrivateKey) {
 			this.wallet = await this.createWalletFromPrivateKey(this.walletPrivateKey);
 		} else {
-			throw new Error('No wallet provided');
+			throw new Error('No wallet credentials provided');
 		}
 
 		this.cosmClient = await SigningCosmWasmClient.connectWithSigner(
 			this.rpcEndpoint,
 			this.wallet,
 			{
-				gasPrice: DEFAULT_GAS_PRICE
+				gasPrice: properties.getAs<GasPrice>('rujira.gasPrice')
 			}
 		);
 
@@ -209,7 +210,7 @@ export class Rujira {
 	private async createWalletFromPrivateKey(privateKey: string): Promise<Wallet> {
 		return await DirectSecp256k1Wallet.fromKey(
 			fromBase64(privateKey),
-			DEFAULT_WALLET_PREFIX
+			properties.getAs<string>('wallet.prefix')
 		);
 	}
 
@@ -262,10 +263,11 @@ export class Fin {
 	/**
 	 * REST endpoint for bank queries
 	 */
-	private restEndpoint: string;
+	private restEndpoint: URL;
 
 	/**
 	 * Constructor
+	 * @param options - The constructor options
 	 */
 	constructor(options: FinConstructorOptions) {
 		this.restEndpoint = options.restEndpoint;
@@ -273,14 +275,15 @@ export class Fin {
 		this.wallet = undefined as unknown as Wallet;
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 
-		this.tokensByAddress = new Map();
-		this.tokensBySymbol = new Map();
-		this.marketsByAddress = new Map();
-		this.marketsBySymbol = new Map();
+		this.tokensByAddress = new Map<TokenAddress, Token>();
+		this.tokensBySymbol = new Map<TokenSymbol, Token>();
+		this.marketsByAddress = new Map<MarketAddress, Market>();
+		this.marketsBySymbol = new Map<MarketSymbol, Market>();
 	}
 
 	/**
 	 * Initialize the client
+	 * @param options - The initialize options
 	 */
 	async initialize(options: FinInitializeOptions): Promise<void> {
 		this.wallet = options.wallet;
@@ -325,58 +328,44 @@ export class Fin {
 
 	/**
 	 * Get transaction details by hash
+	 * @param request - The request object
+	 * @returns The transaction response
 	 */
+	@runWithRetryAndTimeout({})
 	async getTransaction(request: FinGetTransactionRequest): Promise<FinGetTransactionResponse> {
-		if (!request.hash?.trim()) {
+		let { hash, waitForConfirmation } = request;
+
+		if (!hash?.trim()) {
 			throw new Error("Transaction hash is required and cannot be empty");
 		}
 
-		const transactionHash = request.hash.trim();
-		let transaction = await this.cosmClient.getTx(transactionHash);
+		hash = hash.trim();
+
+		let transaction = await this.cosmClient.getTx(hash);
 
 		if (!transaction) {
-			throw new Error(`Transaction not found: ${transactionHash}`);
+			throw new Error(`Transaction not found: ${hash}`);
 		}
 
-		// Wait for confirmation if requested
-		if (request.waitForConfirmation) {
-			console.log(`⏳ Waiting for transaction ${transactionHash} to be confirmed...`);
-
-			const maxWaitTime = 30000; // 30 seconds timeout
-			const startTime = Date.now();
-
-			while (!transaction?.height) {
-				// Check timeout
-				if (Date.now() - startTime > maxWaitTime) {
-					throw new Error(`Transaction confirmation timeout after ${maxWaitTime / 1000}s: ${transactionHash}`);
-				}
-
-				await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-				transaction = await this.cosmClient.getTx(transactionHash);
-
-				if (!transaction) {
-					throw new Error(`Transaction not found while waiting for confirmation: ${transactionHash}`);
-				}
-			}
-
-			console.log(`✅ Transaction ${transactionHash} confirmed at block height ${transaction.height}`);
+		let status;
+		if (transaction.code === 0) {
+			status = TransactionStatus.SUCCESS;
+		} else if (transaction.code === 1) {
+			status = TransactionStatus.FAILED;
+		} else {
+			status = TransactionStatus.PENDING;
 		}
 
-		// Build response
-		const defaultFeeToken: Token = {
-			address: "native",
-			symbol: "RUJI",
-			name: "Rujira",
-			decimals: 6,
-			raw: {}
-		};
+		if (waitForConfirmation && status === TransactionStatus.PENDING) {
+			throw new Error(`Transaction is still pending: ${hash}`);
+		}
 
 		return {
 			hash: transaction.hash,
-			status: transaction.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
+			status: status,
 			fee: {
 				amount: transaction.gasUsed ? Decimal(transaction.gasUsed.toString()) : Decimal(0),
-				token: defaultFeeToken,
+				token: FEE_PAYMENT_TOKEN,
 			},
 			raw: transaction
 		};
@@ -384,32 +373,34 @@ export class Fin {
 
 	/**
 	 * Get token by address or symbol
+	 * @param request - The request object
+	 * @returns The token response
 	 */
 	async getToken(request: FinGetTokenRequest): Promise<FinGetTokenResponse> {
 		await this.getAllTokens({} as FinGetAllTokensRequest);
 
-		const address = request.address?.toLowerCase().trim();
-		const symbol = request.symbol?.toLowerCase().trim();
+		let { address, symbol } = request;
 
-		if ((!address || address.length === 0) && (!symbol || symbol.length === 0)) {
-			throw new Error("You must provide a non-empty address or symbol to getToken");
+		address = address?.toLowerCase().trim();
+		symbol = symbol?.toLowerCase().trim();
+
+		if (!address && !symbol) {
+			throw new Error("You must provide a non-empty address or symbol");
 		}
 
-		let token: Token | undefined;
 		if (address) {
-			token = this.tokensByAddress.get(address);
+			return this.tokensByAddress.get(address);
+		} else if (symbol) {
+			return this.tokensBySymbol.get(symbol);
 		}
-		if (!token && symbol) {
-			token = this.tokensBySymbol.get(symbol);
-		}
-		if (!token) {
-			throw new Error(`Token not found: ${address || symbol}`);
-		}
-		return token;
+
+		throw new Error(`Token not found: ${address || symbol}`);
 	}
 
 	/**
 	 * Get multiple tokens by addresses and/or symbols
+	 * @param request - The request object
+	 * @returns The tokens response
 	 */
 	async getTokens(request: FinGetTokensRequest): Promise<FinGetTokensResponse> {
 		await this.getAllTokens({} as FinGetAllTokensRequest);
@@ -438,6 +429,8 @@ export class Fin {
 
 	/**
 	 * Get all tokens
+	 * @param request - The request object
+	 * @returns The tokens response
 	 */
 	@Cacheable({
 		cacheKey: (request: FinGetAllTokensRequest) => request.toString(),
@@ -476,6 +469,8 @@ export class Fin {
 
 	/**
 	 * Get market by address or symbol
+	 * @param request - The request object
+	 * @returns The market response
 	 */
 	async getMarket(request: FinGetMarketRequest): Promise<FinGetMarketResponse> {
 		await this.getAllMarkets({} as FinGetAllMarketsRequest);
@@ -501,6 +496,8 @@ export class Fin {
 
 	/**
 	 * Get multiple markets by addresses and/or symbols
+	 * @param request - The request object
+	 * @returns The markets response
 	 */
 	async getMarkets(request: FinGetMarketsRequest): Promise<FinGetMarketsResponse> {
 		await this.getAllMarkets({} as FinGetAllMarketsRequest);
@@ -529,6 +526,8 @@ export class Fin {
 
 	/**
 	 * Get all markets
+	 * @param request - The request object
+	 * @returns The markets response
 	 */
 	@Cacheable({
 		cacheKey: (request: FinGetAllMarketsRequest) => request.toString(),
@@ -728,6 +727,8 @@ export class Fin {
 
 	/**
 	 * Get order book (always fetches latest from CosmWasm contract, not cache)
+	 * @param request - The request object
+	 * @returns The order book response
 	 */
 	async getOrderBook(request: FinGetOrderBookRequest): Promise<FinGetOrderBookResponse> {
 		if (!request.marketAddress && !request.marketSymbol) {
@@ -794,6 +795,8 @@ export class Fin {
 
 	/**
 	 * Get ticker
+	 * @param request - The request object
+	 * @returns The ticker response
 	 */
 	async getTicker(request: FinGetTickerRequest): Promise<FinGetTickerResponse> {
 		throw new Error("Not implemented");
@@ -801,6 +804,8 @@ export class Fin {
 
 	/**
 	 * Get balances for a wallet (free, locked in orders, withdrawable, totals)
+	 * @param request - The request object
+	 * @returns The balances response
 	 */
 	async getBalances(request: FinGetBalancesRequest): Promise<FinGetBalancesResponse> {
 		const walletAddress = request.walletAddress;
@@ -983,6 +988,8 @@ export class Fin {
 
 	/**
 	 * Get order
+	 * @param request - The request object
+	 * @returns The order response
 	 */
 	async getOrder(request: FinGetOrderRequest): Promise<FinGetOrderResponse> {
 		// Validate request
@@ -1021,6 +1028,8 @@ export class Fin {
 
 	/**
 	 * Get orders
+	 * @param request - The request object
+	 * @returns The orders response
 	 */
 	async getOrders(request: FinGetOrdersRequest): Promise<FinGetOrdersResponse> {
 		// Validate request
@@ -1063,7 +1072,7 @@ export class Fin {
 
 	/**
 	 * Place a single order (wrapper for createOrders)
-	 * @param request - The order request
+	 * @param request - The request object
 	 * @returns The response for the created order
 	 */
 async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
@@ -1088,7 +1097,7 @@ async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> 
 
 /**
  * Place multiple orders
- * @param request - The request for multiple orders
+ * @param request - The request object
  * @returns The response for the created orders or null if failed
  */
 async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse> {
@@ -1175,6 +1184,8 @@ async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersRespons
 
 	/**
 	 * Cancel order (calls cancelOrders with a single orderId)
+	 * @param request - The request object
+	 * @returns The response for the canceled order
 	 */
 	async cancelOrder(request: FinCancelOrderRequest): Promise<FinCancelOrderResponse> {
 		const resp = await this.cancelOrders({
@@ -1193,6 +1204,8 @@ async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersRespons
 
 	/**
 	 * Cancel orders (only cancels the specified orderIds or orders)
+	 * @param request - The request object
+	 * @returns The response for the canceled orders
 	 */
 	async cancelOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
 		// 1. Get the market address
@@ -1291,6 +1304,8 @@ async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersRespons
 
 	/**
 	 * Cancel all orders for an owner in a market
+	 * @param request - The request object
+	 * @returns The response for the canceled orders
 	 */
 	async cancelAllOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
 		// 1. Get the market address
@@ -1321,6 +1336,8 @@ async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersRespons
 
 	/**
 	 * Withdraw from market (withdraw filled orders for a user in a market)
+	 * @param request - The request object
+	 * @returns The response for the withdrawn orders
 	 */
 	async withdrawFromMarket(request: FinWithdrawRequest): Promise<FinWithdrawResponse> {
 		if (!request.ownerAddress) {

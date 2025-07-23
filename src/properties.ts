@@ -84,7 +84,7 @@ export class Properties {
 		const environment = process.env.ENVIRONMENT || configuration.getIn('environment');
 		if (environment) {
 			configuration.setIn('environment', environment);
-			configuration = configuration.mergeDeep(await loadYaml(configuration.getIn(`${environment}.yml`)));
+			configuration = configuration.mergeDeep(await loadYaml(configuration.getIn<string>(`${environment}.yml`)));
 		}
 
 		this.map.mergeDeep(configuration);

@@ -95,16 +95,16 @@ export function* splitInChunks<T>(
  * @param options.timeoutMessage     Error message in case of timeout (default: 'Timeout exceeded.')
  */
 export function runWithRetryAndTimeout(options?: {
-	maxRetries?: number;
+	maximumNumberOfRetries?: number;
 	delayBetweenRetries?: number;
 	timeout?: number;
-	timeoutMessage?: string;
+	timeoutErrorMessage?: string;
 }): MethodDecorator {
 	const {
-		maxRetries = properties.getAs<number>('retry.all.maxNumberOfRetries'),
+		maximumNumberOfRetries = properties.getAs<number>('retry.all.maxNumberOfRetries'),
 		delayBetweenRetries = properties.getAs<number>('retry.all.delayBetweenRetries'),
 		timeout = properties.getAs<number>('timeout.all'),
-		timeoutMessage = 'Timeout exceeded.',
+		timeoutErrorMessage = 'Timeout exceeded.',
 	} = options || {};
 	return function (
 		target: Object,
@@ -125,7 +125,7 @@ export function runWithRetryAndTimeout(options?: {
 			const callWithRetries = async (): Promise<any> => {
 				const errors: Error[] = [];
 
-				for (let attempt = 0; attempt < maxRetries; attempt++) {
+				for (let attempt = 0; attempt < maximumNumberOfRetries; attempt++) {
 					try {
 						// Execute the original method with correct binding.
 						// noinspection UnnecessaryLocalVariableJS
@@ -135,11 +135,11 @@ export function runWithRetryAndTimeout(options?: {
 					} catch (error: any) {
 						errors.push(error);
 						console.debug(
-							`${(target as any).constructor.name}.${String(propertyKey)} => attempt ${attempt + 1} of ${maxRetries} failed`,
+							`${(target as any).constructor.name}.${String(propertyKey)} => attempt ${attempt + 1} of ${maximumNumberOfRetries} failed`,
 						);
 
 						// Wait before retrying if there are remaining attempts.
-						if (attempt < maxRetries - 1 && delayBetweenRetries > 0) {
+						if (attempt < maximumNumberOfRetries - 1 && delayBetweenRetries > 0) {
 							await sleep(delayBetweenRetries * 1000);
 						}
 					}
@@ -147,7 +147,7 @@ export function runWithRetryAndTimeout(options?: {
 				// Aggregate all error messages.
 				const aggregatedErrors = errors.map((err) => err.message).join(';\n');
 				throw new Error(
-					`Failed to execute "${String(propertyKey)}" after ${maxRetries} retries. Errors:\n${aggregatedErrors}`,
+					`Failed to execute "${String(propertyKey)}" after ${maximumNumberOfRetries} retries. Errors:\n${aggregatedErrors}`,
 				);
 			};
 
@@ -157,7 +157,7 @@ export function runWithRetryAndTimeout(options?: {
 					callWithRetries(),
 					new Promise((_, reject) =>
 						setTimeout(
-							() => reject(new Error(timeoutMessage)),
+							() => reject(new Error(timeoutErrorMessage)),
 							Math.floor(timeout * 1000),
 						),
 					),
