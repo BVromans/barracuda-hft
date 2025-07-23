@@ -8,12 +8,12 @@ import { properties } from "./properties";
  * @param errorMessage
  */
 export const getNotNullOrThrowError = <R>(
-  value?: any,
-  errorMessage: string = 'Value is null or undefined',
+	value?: any,
+	errorMessage: string = 'Value is null or undefined',
 ): R => {
-  if (value === undefined || value === null) throw new Error(errorMessage);
+	if (value === undefined || value === null) throw new Error(errorMessage);
 
-  return value as R;
+	return value as R;
 };
 
 /**
@@ -22,9 +22,9 @@ export const getNotNullOrThrowError = <R>(
  * @param defaultValue
  */
 export const getOrDefault = <R>(value: any, defaultValue: R): R => {
-  if (value === undefined || value === null) return defaultValue;
+	if (value === undefined || value === null) return defaultValue;
 
-  return value as R;
+	return value as R;
 };
 
 /**
@@ -32,7 +32,7 @@ export const getOrDefault = <R>(value: any, defaultValue: R): R => {
  * @param milliseconds
  */
 export const sleep = (milliseconds: number) =>
-  new Promise((callback) => setTimeout(callback, milliseconds));
+	new Promise((callback) => setTimeout(callback, milliseconds));
 
 /**
  * Same as Promise.all(items.map(item => task(item))), but it waits for
@@ -47,19 +47,19 @@ export const sleep = (milliseconds: number) =>
  * @returns {B[]}
  */
 export const promiseAllInBatches = async <I, O>(
-  task: (item: I) => Promise<O>,
-  items: any[],
-  batchSize: number = properties.get('parallel.all.batchSize'),
-  delayBetweenBatches: number = properties.get('parallel.all.delayBetweenBatches'),
+	task: (item: I) => Promise<O>,
+	items: any[],
+	batchSize: number = properties.get('parallel.all.batchSize'),
+	delayBetweenBatches: number = properties.get('parallel.all.delayBetweenBatches'),
 ): Promise<O[]> => {
-  let position = 0;
-  let results: any[] = [];
+	let position = 0;
+	let results: any[] = [];
 
-  if (!batchSize) {
+	if (!batchSize) {
     batchSize = items.length;
-  }
+	}
 
-  while (position < items.length) {
+	while (position < items.length) {
     const itemsForBatch = items.slice(position, position + batchSize);
     results = [
       ...results,
@@ -72,18 +72,18 @@ export const promiseAllInBatches = async <I, O>(
         await sleep(delayBetweenBatches);
       }
     }
-  }
+	}
 
-  return results;
+	return results;
 };
 
 export function* splitInChunks<T>(
-  target: T[],
-  quantity: number,
+	target: T[],
+	quantity: number,
 ): Generator<T[], void> {
-  for (let i = 0; i < target.length; i += quantity) {
+	for (let i = 0; i < target.length; i += quantity) {
     yield target.slice(i, i + quantity);
-  }
+	}
 }
 
 /**
@@ -95,22 +95,22 @@ export function* splitInChunks<T>(
  * @param options.timeoutMessage     Error message in case of timeout (default: 'Timeout exceeded.')
  */
 export function runWithRetryAndTimeout(options?: {
-  maxRetries?: number;
-  delayBetweenRetries?: number;
-  timeout?: number;
-  timeoutMessage?: string;
+	maxRetries?: number;
+	delayBetweenRetries?: number;
+	timeout?: number;
+	timeoutMessage?: string;
 }): MethodDecorator {
-  const {
+	const {
     maxRetries = properties.getAs<number>('retry.all.maxNumberOfRetries'),
     delayBetweenRetries = properties.getAs<number>('retry.all.delayBetweenRetries'),
     timeout = properties.getAs<number>('timeout.all'),
     timeoutMessage = 'Timeout exceeded.',
-  } = options || {};
-  return function (
+	} = options || {};
+	return function (
     target: Object,
     propertyKey: string | symbol,
     descriptor: PropertyDescriptor,
-  ): PropertyDescriptor {
+	): PropertyDescriptor {
     const originalMethod = descriptor.value;
     if (typeof originalMethod !== 'function') {
       throw new Error('Decorator can only be applied to methods');
@@ -166,5 +166,5 @@ export function runWithRetryAndTimeout(options?: {
     };
 
     return descriptor;
-  };
+	};
 }

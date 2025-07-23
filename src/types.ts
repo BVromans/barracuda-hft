@@ -162,7 +162,7 @@ export class List<T> {
 	 * Constructor
 	 * @param items
 	 */
-  constructor(items?: Iterable<T>) {
+	constructor(items?: Iterable<T>) {
 		// start with a mutable List
 		this.inner = ImmutableList<T>(items).asMutable();
 
@@ -235,7 +235,7 @@ export class Map<K, V> {
 	 * Constructor
 	 * @param entries
 	 */
-  constructor(entries?: Iterable<[K, V]>) {
+	constructor(entries?: Iterable<[K, V]>) {
 		// create a mutable instance of the ImmutableJS Map
 		this.inner = ImmutableMap<K, V>(entries).asMutable();
 
@@ -698,10 +698,10 @@ export interface Order {
  * Rujira constructor options
  */
 export interface RujiraConstructorOptions {
-  /**
-   * RPC endpoint
-   */
-  rpcEndpoint: URL;
+	/**
+	 * RPC endpoint
+	 */
+	rpcEndpoint: URL;
 
 	/**
 	 * REST endpoint for bank queries
@@ -728,10 +728,10 @@ export interface RujiraInitializeOptions {}
  * Fin constructor options
  */
 export interface FinConstructorOptions {
-  /**
-   * REST endpoint for bank queries
-   */
-  restEndpoint: URL;
+	/**
+	 * REST endpoint for bank queries
+	 */
+	restEndpoint: URL;
 }
 
 /**
@@ -739,7 +739,7 @@ export interface FinConstructorOptions {
  */
 export interface FinInitializeOptions {
 
-  /**
+	/**
 	 * Wallet
 	 */
 	wallet: DirectSecp256k1Wallet;

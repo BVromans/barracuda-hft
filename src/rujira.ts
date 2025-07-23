@@ -23,10 +23,10 @@ import {
 	FinCancelOrderResponse,
 	FinCancelOrdersRequest,
 	FinCancelOrdersResponse,
-  FinCreateOrderRequest as FinPlaceOrderRequest,
+	FinCreateOrderRequest as FinPlaceOrderRequest,
 	FinCreateOrderResponse as FinPlaceOrderResponse,
-  FinCreateOrdersRequest as FinPlaceOrdersRequest,
-  FinCreateOrdersResponse as FinPlaceOrdersResponse,
+	FinCreateOrdersRequest as FinPlaceOrdersRequest,
+	FinCreateOrdersResponse as FinPlaceOrdersResponse,
 	FinGetBalancesRequest,
 	FinGetBalancesResponse,
 	FinGetMarketRequest,
@@ -1058,7 +1058,7 @@ export class Fin {
 		}
 	}
 
-	
+
 	/**
 	 * Place a single order (wrapper for createOrders)
 	 * @param request - The order request
@@ -1085,7 +1085,7 @@ async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> 
 
 
 /**
- * Place multiple orders 
+ * Place multiple orders
  * @param request - The request for multiple orders
  * @returns The response for the created orders or null if failed
  */
