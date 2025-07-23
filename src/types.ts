@@ -10,6 +10,11 @@ import { properties } from './properties';
 
 export const DECIMAL_0 = new Decimal(0);
 export const DECIMAL_1 = new Decimal(1);
+export const DECIMAL_2 = new Decimal(2);
+export const DECIMAL_3 = new Decimal(3);
+export const DECIMAL_4 = new Decimal(4);
+export const DECIMAL_5 = new Decimal(5);
+export const DECIMAL_6 = new Decimal(6);
 export const DECIMAL_100 = new Decimal(100);
 export const DECIMAL_INFINITY = new Decimal(Number.POSITIVE_INFINITY);
 export const DECIMAL_NEGATIVE_INFINITY = new Decimal(Number.NEGATIVE_INFINITY);

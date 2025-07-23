@@ -1114,7 +1114,7 @@ async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> 
         console.error('[placeOrder] No order was created');
         throw new Error('No order was created');
     }
-    return Array.from(response.orders.values())[0];
+    return (Array.from(response.orders.values()) as FinPlaceOrderResponse[])[0];
 }
 
 
@@ -1130,7 +1130,11 @@ async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersRespons
     }
 
     const placedOrders: FinPlaceOrderRequest[] = [];
-    for (const order of request.orders) {
+    const ordersArray = Array.isArray(request.orders)
+  ? request.orders
+  : (request.orders as any).toArray();
+
+for (const order of ordersArray) {
         try {
             const result = await this.placeOrder(order);
             if (result) placedOrders.push(order);
@@ -1158,21 +1162,24 @@ async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersRespons
                 if (order.type === 'limit' && order.price)
                     return o.side === (order.side === 'buy' ? 'quote' : 'base') && o.price.fixed === order.price.toString();
                 return o.side === (order.side === 'buy' ? 'quote' : 'base');
-            });
+            }) as any;
             if (matched) {
-                allOrders.set(matched.owner + '-' + matched.side + '-' + matched.price || matched.price.toString(), {
-									id: matched.owner + '-' + matched.side + '-' + matched.price.toString(),
-									market: {} as Market, // Use the real Market if available
-									owner: matched.owner,
-									type: matched.type || OrderType.LIMIT, // Or another default
-									side: matched.side,
-									price: matched.price ? new Decimal(matched.price) : new Decimal(0),
-									amount: new Decimal(matched.amount),
-									filledAmount: new Decimal(0),
-									filledPercentage: new Decimal(0),
-									status: OrderStatus.OPEN,
-									raw: matched,
-                });
+                allOrders.set(
+                    matched.owner + '-' + matched.side + '-' + matched.price || matched.price.toString(),
+                    {
+                        id: matched.owner + '-' + matched.side + '-' + matched.price.toString(),
+                        market: {} as Market,
+                        owner: matched.owner,
+                        type: matched.type || OrderType.LIMIT,
+                        side: matched.side,
+                        price: matched.price ? new Decimal(matched.price) : new Decimal(0),
+                        amount: new Decimal(matched.amount),
+                        filledAmount: new Decimal(0),
+                        filledPercentage: new Decimal(0),
+                        status: OrderStatus.OPEN,
+                        raw: matched,
+                    }
+                );
             }
         } catch (err) {
             console.error('[placeOrders] Error fetching created orders:', err);
@@ -1221,7 +1228,7 @@ async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersRespons
 		return {
 			order: resp.orders.get(request.orderId || '') || {} as Order,
 			status: resp.status,
-			transaction: Array.from(resp.transactions.values())[0]
+			transaction: (Array.from(resp.transactions.values()) as Transaction[])[0]
 		};
 	}
 
@@ -1282,20 +1289,20 @@ async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersRespons
 
 		// 6. Return the response
 		const cancelledOrdersMap = new Map<string, Order>();
-		for (const o of ordersToCancel) {
-			const id = o.id || `${o.side}:${o.price.fixed}`;
+		for (const order of ordersToCancel) {
+			const id = order.id || `${order.side}:${order.price.fixed}`;
 			cancelledOrdersMap.set(id, {
 				id,
 				market: {} as Market,
-				owner: o.owner,
-				type: o.type || OrderType.LIMIT,
-				side: o.side,
-				price: o.price ? new Decimal(o.price) : new Decimal(0),
-				amount: new Decimal(o.amount),
-				filledAmount: new Decimal(o.filledAmount || 0),
+				owner: order.owner,
+				type: order.type || OrderType.LIMIT,
+				side: order.side,
+				price: order.price ? new Decimal(order.price) : new Decimal(0),
+				amount: new Decimal(order.amount),
+				filledAmount: new Decimal(order.filledAmount || 0),
 				filledPercentage: new Decimal(0),
 				status: OrderStatus.CANCELLED,
-				raw: o,
+				raw: order,
 			});
 		}
 		const transactionsMap = new Map<string, Transaction>([
@@ -1429,4 +1436,5 @@ async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersRespons
 			}
 		};
 	}
+
 }
