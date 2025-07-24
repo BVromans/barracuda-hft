@@ -414,6 +414,76 @@ describe("Rujira", () => {
 				expect(result.raw).toBeDefined();
 			});
 		});
+
+		describe("ticker", () => {
+			it("should be able to get a ticker by market address", async () => {
+				const result = await rujira.fin.getTicker({ marketAddress });
+
+				expect(result).toBeDefined();
+				expect(result.market).toBeDefined();
+				expect(result.market.address).toBe(marketAddress);
+				expect(result.market.symbol).toBe(marketSymbol);
+
+				expect(result.market.tokens.base.address).toBe(baseTokenAddress);
+				expect(result.market.tokens.base.symbol).toBe(baseTokenSymbol);
+				expect(result.market.tokens.base.name).toBe(baseTokenSymbol);
+				expect(result.market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.market.tokens.base.raw).toBeDefined();
+
+				expect(result.market.tokens.quote.address).toBe(quoteTokenAddress);
+				expect(result.market.tokens.quote.symbol).toBe(quoteTokenSymbol);
+				expect(result.market.tokens.quote.name).toBe(quoteTokenSymbol);
+				expect(result.market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.market.tokens.quote.raw).toBeDefined();
+
+				expect(result.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.market.status).toBe(MarketStatus.ACTIVE);
+				expect(result.market.raw).toBeDefined();
+
+				expect(result.price).toBeDefined();
+				expect(result.price.constructor.name).toBe("Decimal");
+				expect(result.price.toNumber()).toBeGreaterThanOrEqual(0);
+
+				expect(result.timestamp).toBeDefined();
+				expect(result.timestamp).toBeGreaterThan(0);
+
+				expect(result.raw).toBeDefined();
+			});
+
+			it("should be able to get a ticker by market symbol", async () => {
+				const result = await rujira.fin.getTicker({ marketSymbol });
+
+				expect(result).toBeDefined();
+				expect(result.market).toBeDefined();
+				expect(result.market.address).toBe(marketAddress);
+				expect(result.market.symbol).toBe(marketSymbol);
+
+				expect(result.market.tokens.base.address).toBe(baseTokenAddress);
+				expect(result.market.tokens.base.symbol).toBe(baseTokenSymbol);
+				expect(result.market.tokens.base.name).toBe(baseTokenSymbol);
+				expect(result.market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.market.tokens.base.raw).toBeDefined();
+
+				expect(result.market.tokens.quote.address).toBe(quoteTokenAddress);
+				expect(result.market.tokens.quote.symbol).toBe(quoteTokenSymbol);
+				expect(result.market.tokens.quote.name).toBe(quoteTokenSymbol);
+				expect(result.market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.market.tokens.quote.raw).toBeDefined();
+
+				expect(result.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.market.status).toBe(MarketStatus.ACTIVE);
+				expect(result.market.raw).toBeDefined();
+
+				expect(result.price).toBeDefined();
+				expect(result.price.constructor.name).toBe("Decimal");
+				expect(result.price.toNumber()).toBeGreaterThanOrEqual(0);
+
+				expect(result.timestamp).toBeDefined();
+				expect(result.timestamp).toBeGreaterThan(0);
+
+				expect(result.raw).toBeDefined();
+			});
+		});
 	});
 });
 
