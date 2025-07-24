@@ -145,11 +145,15 @@ export class Map<K, V> implements ImmutableMapInterface<K, V> {
 	 *
 	 * @param key
 	 */
-	getIn<T>(key: K): T {
+	deepGet<T>(key: K, defaultValue?: T): T {
 		if ((key as any).constructor === Array) {
 			return this.inner.getIn(key as Iterable<any>) as T;
 		} else if (typeof key === 'string') {
 			return this.inner.getIn(key.toString().trim().split('.')) as T;
+		}
+
+		if (defaultValue) {
+			return defaultValue;
 		}
 
 		throw Error(`Invalid key ("${key}").`);
@@ -160,7 +164,7 @@ export class Map<K, V> implements ImmutableMapInterface<K, V> {
 	 * @param key
 	 * @param value
 	 */
-	setIn<T,V>(key: T, value: V) {
+	deepSet<T,V>(key: T, value: V) {
 		if (key == null) {
 			throw Error(`Invalid key ("${key}").`);
 		}
