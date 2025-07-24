@@ -142,14 +142,16 @@ export class Map<K, V> implements ImmutableMapInterface<K, V> {
 	}
 
 	/**
-	 *
+	 * Get a value from the map
 	 * @param key
+	 * @param defaultValue
+	 * @returns
 	 */
-	deepGet<T>(key: K, defaultValue?: T): T {
+	get<K,V>(key: K, defaultValue?: V): V {
 		if ((key as any).constructor === Array) {
-			return this.inner.getIn(key as Iterable<any>) as T;
+			return this.inner.getIn(key as Iterable<any>) as V;
 		} else if (typeof key === 'string') {
-			return this.inner.getIn(key.toString().trim().split('.')) as T;
+			return this.inner.getIn(key.toString().trim().split('.')) as V;
 		}
 
 		if (defaultValue) {
@@ -160,11 +162,12 @@ export class Map<K, V> implements ImmutableMapInterface<K, V> {
 	}
 
 	/**
-	 *
+	 * Set a value in the map
 	 * @param key
 	 * @param value
+	 * @returns
 	 */
-	deepSet<T,V>(key: T, value: V) {
+	set<K,V>(key: K, value: V): this {
 		if (key == null) {
 			throw Error(`Invalid key ("${key}").`);
 		}
@@ -176,5 +179,7 @@ export class Map<K, V> implements ImmutableMapInterface<K, V> {
 		} else {
 			throw Error(`Invalid key ("${key}").`);
 		}
+
+		return this;
 	}
 }
