@@ -8,7 +8,7 @@ import { GasPrice } from '@cosmjs/stargate';
 import { properties } from './properties';
 import { List, Map } from './extensions/immutablejs/types';
 
-export type { List, Map };
+export { List, Map };
 
 export const DECIMAL_0 = new Decimal(0);
 export const DECIMAL_100 = new Decimal(100);

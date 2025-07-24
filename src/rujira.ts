@@ -943,6 +943,7 @@ export class Fin {
 
 		const lockedInOrders = new Map<TokenAddress, Amount>();
 		const withdrawable = new Map<TokenAddress, Amount>();
+
 		for (const market of markets.values()) {
 			/*
 			Example response:
@@ -984,6 +985,7 @@ export class Fin {
 					"filled": string
 				}>;
 			};
+
 			for (const rawOrder of ordersResponse.orders) {
 				const baseTokenAddress = market.tokens.base.address;
 				const quoteTokenAddress = market.tokens.quote.address;
