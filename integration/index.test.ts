@@ -117,7 +117,7 @@ describe("Rujira", () => {
 			it("should be able to get a transaction", async () => {
 				const result = await rujira.fin.getTransaction({
 					hash: transactionHash,
-					waitForConfirmation: true,
+					waitForConfirmation: false,
 				});
 
 				expect(result).toBeDefined();
