@@ -941,8 +941,8 @@ export class Fin {
 			}
 		}
 
-		const lockedInOrders = new Map<TokenAddress, Amount>();
-		const withdrawable = new Map<TokenAddress, Amount>();
+		const lockedInOrdersMap = new Map<TokenAddress, Amount>();
+		const withdrawableMap = new Map<TokenAddress, Amount>();
 
 		for (const market of markets.values()) {
 			/*
@@ -992,21 +992,20 @@ export class Fin {
 
 				if (rawOrder.filled && Number(rawOrder.filled) > 0) {
 					const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
-					lockedInOrders.get(lockedTokenAddress, (lockedInOrders.get(lockedTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
+					lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.get(lockedTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
 				}
 				if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
 					const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // opposite asset
-					withdrawable.set(withdrawTokenAddress, (withdrawable.get(withdrawTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
+					withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.get(withdrawTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
 				}
 			}
 		}
 
-		// 5. Build TokenBalance for each token
-		const tokensMapOut = new Map<TokenAddress, TokenBalance>();
-		for (const token of tokens) {
-			const free = freeBalances[token.address] || new Decimal(0);
-			const locked = lockedInOrders[token.address] || new Decimal(0);
-			const withdraw = withdrawable[token.address] || new Decimal(0);
+		const tokensBalancesMap = new Map<TokenAddress, TokenBalance>();
+		for (const token of tokens.values()) {
+			const free = freeBalances.get(token.address, DECIMAL_0);
+			const locked = lockedInOrdersMap.get(token.address, DECIMAL_0);
+			const withdraw = withdrawableMap.get(token.address, DECIMAL_0);
 			const lockedInPools = new Decimal(0); // Not implemented
 			const total = free.plus(locked).plus(lockedInPools).plus(withdraw);
 
@@ -1080,7 +1079,7 @@ export class Fin {
 				beaconToken: baseBalanceWithBeaconQuotation
 			};
 
-			tokensMapOut.set(token.address, {
+			tokensBalancesMap.set(token.address, {
 				token,
 				balances: baseTokenBalance
 			});
@@ -1092,9 +1091,9 @@ export class Fin {
 
 		const totalNative: BaseBalance = nativeToken ? {
 			free: freeBalances[nativeToken.address] || new Decimal(0),
-			lockedInOrders: lockedInOrders[nativeToken.address] || new Decimal(0),
+			lockedInOrders: lockedInOrdersMap[nativeToken.address] || new Decimal(0),
 			lockedInPools: new Decimal(0),
-			total: (freeBalances[nativeToken.address] || new Decimal(0)).plus(lockedInOrders[nativeToken.address] || new Decimal(0))
+			total: (freeBalances[nativeToken.address] || new Decimal(0)).plus(lockedInOrdersMap[nativeToken.address] || new Decimal(0))
 		} : {
 			free: new Decimal(0),
 			lockedInOrders: new Decimal(0),
@@ -1104,9 +1103,9 @@ export class Fin {
 
 		const totalBeacon: BaseBalance = beaconToken ? {
 			free: freeBalances[beaconToken.address] || new Decimal(0),
-			lockedInOrders: lockedInOrders[beaconToken.address] || new Decimal(0),
+			lockedInOrders: lockedInOrdersMap[beaconToken.address] || new Decimal(0),
 			lockedInPools: new Decimal(0),
-			total: (freeBalances[beaconToken.address] || new Decimal(0)).plus(lockedInOrders[beaconToken.address] || new Decimal(0))
+			total: (freeBalances[beaconToken.address] || new Decimal(0)).plus(lockedInOrdersMap[beaconToken.address] || new Decimal(0))
 		} : {
 			free: new Decimal(0),
 			lockedInOrders: new Decimal(0),
@@ -1115,7 +1114,7 @@ export class Fin {
 		};
 
 		const balances: Balances = {
-			tokens: tokensMapOut,
+			tokens: tokensBalancesMap,
 			total: {
 				nativeToken: totalNative,
 				beaconToken: totalBeacon
