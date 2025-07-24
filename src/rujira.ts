@@ -990,7 +990,7 @@ export class Fin {
 
 				if (rawOrder.filled && Number(rawOrder.filled) > 0) {
 					const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
-					lockedInOrders.set(lockedTokenAddress, (lockedInOrders.get(lockedTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
+					lockedInOrders.get(lockedTokenAddress, (lockedInOrders.get(lockedTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
 				}
 				if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
 					const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // opposite asset
