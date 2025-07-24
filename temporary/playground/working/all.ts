@@ -26,11 +26,12 @@ let privateClient: SigningCosmWasmClient;
   );
 
   const contractsByCodeId = await getContractsByCodeId();
-  const contractsByCreator = await getContractsByCreator();
+  // const contractsByCreator = await getContractsByCreator();
 
   for (const contract of contractsByCodeId) {
-    await getContract(contract);
-    await getContractConfig(contract);
+    // await getContract(contract);
+    // await getContractConfig(contract);
+		await getOrders(contract, (await wallet.getAccounts())[0].address);
   }
 })();
 
@@ -85,6 +86,19 @@ async function getDenom(address: string) {
     denom: {}
   });
   console.log('\ngetDenom', address);
+  console.log(JSON.stringify(result, null, 2));
+  console.log('--------------------------------\n');
+  return result;
+}
+
+async function getOrders(marketAddress: string, walletAddress: string) {
+  const result = await privateClient.queryContractSmart(marketAddress, {
+    orders: {
+      owner: walletAddress,
+      limit: 100
+    }
+  });
+  console.log('\ngetOrders', marketAddress);
   console.log(JSON.stringify(result, null, 2));
   console.log('--------------------------------\n');
   return result;
