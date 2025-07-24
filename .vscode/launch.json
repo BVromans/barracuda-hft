@@ -49,10 +49,10 @@
 			"type": "bun",
 			"internalConsoleOptions": "neverOpen",
 			"request": "launch",
-			"name": "rujira-hft-bot:test:integration",
+			"name": "rujira-hft-bot:test:integration:index.test.ts",
 			"runtimeExecutable": "bun",
-			"runtimeArgs": ["run", "test:integration"],
-			"cwd": "${workspaceFolder}",
+			"runtimeArgs": ["run", "test:integration:index.test.ts"],
+			"cwd": "${workspaceFolder}/rujira-hft-bot/integration",
 			"stopOnEntry": false,
 			"watchMode": true
 		},

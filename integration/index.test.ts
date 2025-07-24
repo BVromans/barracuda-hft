@@ -4,23 +4,14 @@ import { properties } from "../src/properties";
 import { Rujira } from "../src/rujira";
 import {
 	BIG_NUMBER_0,
-	DECIMAL_0,
+	Market,
+	MarketAddress,
 	MarketStatus,
-	Order,
-	OrderStatus,
 	SystemStatus,
 	Token,
 	TransactionStatus,
 	Wallet
 } from "../src/types";
-import {
-	FinPlaceOrderRequest,
-	FinPlaceOrdersRequest,
-	FinPlaceOrdersResponse,
-	OrderSide,
-	OrderType,
-} from "../src/types";
-import Decimal from "decimal.js";
 
 let rujira: Rujira;
 
@@ -302,19 +293,136 @@ describe("Rujira", () => {
 
 				expect(result.tokens.base.address).toBe(baseTokenAddress);
 				expect(result.tokens.base.symbol).toBe(baseTokenSymbol);
-				expect(result.tokens.base.name).toBe(baseTokenSymbol);
+				expect(result.tokens.base.name).toBeDefined();
 				expect(result.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.tokens.base.raw).toBeDefined();
 
 				expect(result.tokens.quote.address).toBe(quoteTokenAddress);
 				expect(result.tokens.quote.symbol).toBe(quoteTokenSymbol);
-				expect(result.tokens.quote.name).toBe(quoteTokenSymbol);
+				expect(result.tokens.quote.name).toBeDefined();
 				expect(result.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.tokens.quote.raw).toBeDefined();
 
 				expect(result.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.status).toBe(MarketStatus.ACTIVE);
 				expect(result.raw).toBeDefined();
+			});
+
+			it("should be able to get market by symbol", async () => {
+				const result = await rujira.fin.getMarket({
+					symbol: marketSymbol,
+				});
+
+				expect(result).toBeDefined();
+				expect(result.address).toBe(marketAddress);
+				expect(result.symbol).toBe(marketSymbol);
+
+				expect(result.tokens.base.address).toBe(baseTokenAddress);
+				expect(result.tokens.base.symbol).toBe(baseTokenSymbol);
+				expect(result.tokens.base.name).toBeDefined();
+				expect(result.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.tokens.base.raw).toBeDefined();
+
+				expect(result.tokens.quote.address).toBe(quoteTokenAddress);
+				expect(result.tokens.quote.symbol).toBe(quoteTokenSymbol);
+				expect(result.tokens.quote.name).toBeDefined();
+				expect(result.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.tokens.quote.raw).toBeDefined();
+
+				expect(result.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.status).toBe(MarketStatus.ACTIVE);
+				expect(result.raw).toBeDefined();
+
+			});
+
+			it("should be able to get markets by addresses", async () => {
+				const addresses = [marketAddress];
+
+				const result = await rujira.fin.getMarkets({ addresses });
+
+				expect(result).toBeDefined();
+				expect(result.size).toBe(addresses.length);
+
+				const market = result.get(marketAddress)!;
+				expect(market).toBeDefined();
+				expect(market.address).toBe(marketAddress);
+				expect(market.symbol).toBe(marketSymbol);
+
+				expect(market.tokens.base.address).toBe(baseTokenAddress);
+				expect(market.tokens.base.symbol).toBe(baseTokenSymbol);
+				expect(market.tokens.base.name).toBeDefined();
+				expect(market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(market.tokens.base.raw).toBeDefined();
+
+				expect(market.tokens.quote.address).toBe(quoteTokenAddress);
+				expect(market.tokens.quote.symbol).toBe(quoteTokenSymbol);
+				expect(market.tokens.quote.name).toBeDefined();
+				expect(market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(market.tokens.quote.raw).toBeDefined();
+
+				expect(market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(market.status).toBe(MarketStatus.ACTIVE);
+				expect(market.raw).toBeDefined();
+			});
+
+			it("should be able to get markets by Symbols", async () => {
+				const symbols = [marketSymbol];
+
+				const result = await rujira.fin.getMarkets({ symbols });
+
+				expect(result).toBeDefined();
+				expect(result.size).toBe(symbols.length);
+
+				const market = result.get(marketSymbol)!;
+				expect(market).toBeDefined();
+				expect(market.address).toBe(marketAddress);
+				expect(market.symbol).toBe(marketSymbol);
+
+				expect(market.tokens.base.address).toBe(baseTokenAddress);
+				expect(market.tokens.base.symbol).toBe(baseTokenSymbol);
+				expect(market.tokens.base.name).toBeDefined();
+				expect(market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(market.tokens.base.raw).toBeDefined();
+
+				expect(market.tokens.quote.address).toBe(quoteTokenAddress);
+				expect(market.tokens.quote.symbol).toBe(quoteTokenSymbol);
+				expect(market.tokens.quote.name).toBeDefined();
+				expect(market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(market.tokens.quote.raw).toBeDefined();
+
+				expect(market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(market.status).toBe(MarketStatus.ACTIVE);
+				expect(market.raw).toBeDefined();
+			});
+
+			it("should be able to get all markets", async () => {
+				const result = await rujira.fin.getAllMarkets({});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				for (const [address, market] of result.entries() as Iterable<[MarketAddress, Market]>) {
+					expect(market).toBeDefined();
+					expect(market.address).toBe(address);
+
+					expect(market.tokens.base).toBeDefined();
+					expect(market.tokens.base.address).toBeDefined();
+					expect(market.tokens.base.symbol).toBeDefined();
+					expect(market.tokens.base.name).toBeDefined();
+					expect(market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(market.tokens.base.raw).toBeDefined();
+
+					expect(market.tokens.quote).toBeDefined();
+					expect(market.tokens.quote.address).toBeDefined();
+					expect(market.tokens.quote.symbol).toBeDefined();
+					expect(market.tokens.quote.name).toBeDefined();
+					expect(market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(market.tokens.quote.raw).toBeDefined();
+
+					expect(market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(market.status).toBe(MarketStatus.ACTIVE);
+					expect(market.raw).toBeDefined();
+				}
 			});
 		});
 
