@@ -14,7 +14,7 @@ import {
   Asset,
   FinContractConfig,
   Network,
-} from '../../src/types';
+} from '../../../src/types';
 
 // --- Network Configuration ---
 const NETWORKS: Record<Network, {
@@ -198,7 +198,7 @@ export class FinProtocolClient implements FinProtocolInterface {
       console.log(`🔗 Connecting to ${this.network} RPC...`);
       const networkConfig = NETWORKS[this.network];
       this.client = await CosmWasmClient.connect(networkConfig.rpc);
-      
+
       const chainId = await this.client.getChainId();
       console.log(`✅ Connected to chain: ${chainId}`);
     } catch (error) {
@@ -226,7 +226,7 @@ export class FinProtocolClient implements FinProtocolInterface {
   async getToken(identifier: string): Promise<Asset | null> {
     try {
       console.log(`🪙 Getting token info for: ${identifier}`);
-      
+
       // Check if identifier is a contract address
       if (identifier.startsWith('thor')) {
         // It's a contract address, get the market info first
@@ -236,26 +236,26 @@ export class FinProtocolClient implements FinProtocolInterface {
           return market.baseAsset;
         }
       }
-      
+
       // Check if identifier is a symbol
       const symbol = identifier.toUpperCase();
       const market = await this.getMarket(symbol);
       if (market) {
         return market.baseAsset;
       }
-      
+
       // Check if identifier is a denom
       if (ASSET_INFO[identifier]) {
         return ASSET_INFO[identifier];
       }
-      
+
       // Search by symbol in asset info
       for (const [denom, asset] of Object.entries(ASSET_INFO)) {
         if (asset.symbol.toUpperCase() === symbol) {
           return asset;
         }
       }
-      
+
       console.log(`❌ Token not found: ${identifier}`);
       return null;
     } catch (error) {
@@ -270,9 +270,9 @@ export class FinProtocolClient implements FinProtocolInterface {
   async getMarket(identifier: string): Promise<MarketInfo | null> {
     try {
       console.log(`📊 Getting market info for: ${identifier}`);
-      
+
       let contractInfo: any = null;
-      
+
       // Check if identifier is a contract address
       if (identifier.startsWith('thor')) {
         contractInfo = getContractInfoByAddress(identifier);
@@ -281,18 +281,18 @@ export class FinProtocolClient implements FinProtocolInterface {
       const symbol = identifier.toUpperCase();
       contractInfo = WORKING_FIN_CONTRACTS[symbol as keyof typeof WORKING_FIN_CONTRACTS];
       }
-      
+
       if (!contractInfo) {
         console.log(`❌ Market not found: ${identifier}`);
         return null;
       }
-      
+
       // Get contract config for additional info
       const { config } = await this.getContractConfig({ address: contractInfo.address });
-      
+
       // Create market info
       const marketInfo: MarketInfo = {
-        symbol: Object.keys(WORKING_FIN_CONTRACTS).find(key => 
+        symbol: Object.keys(WORKING_FIN_CONTRACTS).find(key =>
           WORKING_FIN_CONTRACTS[key as keyof typeof WORKING_FIN_CONTRACTS].address === contractInfo.address
         ) || identifier,
         address: contractInfo.address,
@@ -310,7 +310,7 @@ export class FinProtocolClient implements FinProtocolInterface {
         hasOracles: contractInfo.has_oracles || false,
         isActive: true // All our contracts are active
       };
-      
+
       console.log('✅ Market info retrieved successfully');
       return marketInfo;
     } catch (error) {
@@ -325,9 +325,9 @@ export class FinProtocolClient implements FinProtocolInterface {
   async getMarkets(identifiers?: string[]): Promise<Record<string, MarketInfo>> {
     try {
       console.log(`📊 Getting markets info...`);
-      
+
       const markets: Record<string, MarketInfo> = {};
-      
+
       if (!identifiers || identifiers.length === 0) {
         // Get all markets
         console.log('📋 Getting all available markets...');
@@ -355,7 +355,7 @@ export class FinProtocolClient implements FinProtocolInterface {
           }
         }
       }
-      
+
       console.log(`✅ Retrieved ${Object.keys(markets).length} markets`);
       return markets;
     } catch (error) {
@@ -369,11 +369,11 @@ export class FinProtocolClient implements FinProtocolInterface {
    */
   async getContractConfig(request: { address: string }): Promise<{ config: FinContractConfig }> {
     const { address } = request;
-    
+
     try {
       console.log(`📋 Getting config for: ${address}`);
       const rawConfig = await this.queryContractState(address, { config: {} });
-      
+
       if (!rawConfig) {
         throw new Error(`Failed to get config for contract ${address}`);
       }
@@ -406,16 +406,16 @@ export class FinProtocolClient implements FinProtocolInterface {
    */
   async getOrderbook(request: GetOrderbookRequest): Promise<GetOrderbookResponse> {
     const { address, limit = 10 } = request;
-    
+
     try {
       console.log(`📊 Getting orderbook (limit: ${limit}) for: ${address}`);
-      
+
       // Get contract config first
       const { config } = await this.getContractConfig({ address });
-      
+
       // Get raw orderbook data
       const rawBook = await this.queryContractState(address, { book: { limit } });
-      
+
       if (!rawBook) {
         throw new Error(`Failed to get orderbook for contract ${address}`);
       }
@@ -428,7 +428,7 @@ export class FinProtocolClient implements FinProtocolInterface {
         ...ASSET_INFO[config.denoms[0]],
         address: config.denoms[0]
       };
-      
+
       const quoteAsset: Asset = {
         ...ASSET_INFO[config.denoms[1]],
         address: config.denoms[1]
@@ -491,7 +491,7 @@ export class FinProtocolClient implements FinProtocolInterface {
       if (center && spread) {
         console.log(`📊 Center: ${center}, Spread: ${spread}`);
       }
-      
+
       return { orderbook };
     } catch (error) {
       console.error(`❌ Failed to get orderbook:`, error);
@@ -516,33 +516,33 @@ export class FinProtocolClient implements FinProtocolInterface {
   }> {
     try {
       console.log(`📈 Getting ticker for: ${address}`);
-      
+
       // Get orderbook data
       const { orderbook } = await this.getOrderbook({ address, limit: 1 });
-      
+
       // Calculate ticker values
       const bestBid = orderbook.bids.length > 0 ? orderbook.bids[0].price : new Decimal(0);
       const bestAsk = orderbook.asks.length > 0 ? orderbook.asks[0].price : new Decimal(0);
       const center = orderbook.center || bestBid.plus(bestAsk).div(2);
       const spread = orderbook.spread || bestAsk.minus(bestBid);
-      
+
       // For now, we'll use center as last price (in a real implementation, you'd get this from recent trades)
       const last = center;
-      
+
       // Calculate volume from orderbook (this is a simplified approach)
       const bidVolume = orderbook.bids.reduce((sum, bid) => sum.plus(bid.total), new Decimal(0));
       const askVolume = orderbook.asks.reduce((sum, ask) => sum.plus(ask.total), new Decimal(0));
       const volume = bidVolume.plus(askVolume);
-      
+
       // For high/low, we'd need historical data, so we'll use current spread for now
       const high = bestAsk;
       const low = bestBid;
-      
+
       // Change would need historical data, so we'll set to 0 for now
       const change = new Decimal(0);
-      
+
       const symbol = `${orderbook.pair.assetBase.symbol}/${orderbook.pair.assetQuote.symbol}`;
-      
+
       const ticker = {
         symbol,
         last,
@@ -558,7 +558,7 @@ export class FinProtocolClient implements FinProtocolInterface {
 
       console.log('✅ Ticker retrieved successfully');
       console.log(`📈 ${symbol}: Last ${last}, Bid ${bestBid}, Ask ${bestAsk}, Spread ${spread}`);
-      
+
       return ticker;
     } catch (error) {
       console.error(`❌ Failed to get ticker:`, error);
@@ -571,7 +571,7 @@ export class FinProtocolClient implements FinProtocolInterface {
    */
   async getAllTickers(): Promise<Record<string, any>> {
     const tickers: Record<string, any> = {};
-    
+
     for (const [pairName, contractInfo] of Object.entries(WORKING_FIN_CONTRACTS)) {
       try {
         const ticker = await this.getTicker(contractInfo.address);
@@ -581,7 +581,7 @@ export class FinProtocolClient implements FinProtocolInterface {
         tickers[pairName] = { error: 'Failed to fetch' };
       }
     }
-    
+
     return tickers;
   }
 
@@ -653,39 +653,39 @@ export function getAvailableTokens(): Asset[] {
 async function example() {
   try {
     console.log('🚀 Starting FIN Protocol Client Example...\n');
-    
+
     const client = await createFinProtocolClient();
-    
+
     // 1. Get token information
     console.log('\n1️⃣ Getting token info...');
     const lqdyToken = await client.getToken('LQDY');
     console.log('LQDY Token:', lqdyToken);
-    
+
     const btcToken = await client.getToken('btc-btc');
     console.log('BTC Token:', btcToken);
-    
+
     // 2. Get market information
     console.log('\n2️⃣ Getting market info...');
     const lqdyBtcMarket = await client.getMarket('LQDY/BTC');
     console.log('LQDY/BTC Market:', lqdyBtcMarket);
-    
+
     const marketByAddress = await client.getMarket('thor1t76lvqjq7avt6kxnul4pt0zaq6y06fhkw29wxs5rm4kt873s6y9sdp8rxf');
     console.log('Market by address:', marketByAddress);
-    
+
     // 3. Get multiple markets
     console.log('\n3️⃣ Getting multiple markets...');
     const specificMarkets = await client.getMarkets(['LQDY/BTC', 'LQDY/USDC']);
     console.log('Specific markets:', Object.keys(specificMarkets));
-    
+
     const allMarkets = await client.getMarkets();
     console.log('All markets:', Object.keys(allMarkets));
-    
+
     // 4. Get ticker for LQDY/BTC
     const lqdyBtcAddress = WORKING_FIN_CONTRACTS["LQDY/BTC"].address;
     console.log('\n4️⃣ Getting LQDY/BTC ticker...');
     const ticker = await client.getTicker(lqdyBtcAddress);
     console.log('Ticker:', ticker);
-    
+
     // 5. Get orderbook for LQDY/USDC
     const lqdyUsdcAddress = WORKING_FIN_CONTRACTS["LQDY/USDC"].address;
     console.log('\n5️⃣ Getting LQDY/USDC orderbook...');
@@ -697,14 +697,14 @@ async function example() {
       spread: orderbook.orderbook.spread?.toString(),
       center: orderbook.orderbook.center?.toString()
     });
-    
+
     // 6. Get all tickers
     console.log('\n6️⃣ Getting all tickers...');
     const allTickers = await client.getAllTickers();
     console.log('All tickers:', allTickers);
-    
+
     console.log('\n✅ Example completed successfully!');
-    
+
   } catch (error) {
     console.error('❌ Error in example:', error);
   }
@@ -721,4 +721,4 @@ export {
 // Run example if executed directly
 if (typeof process !== 'undefined' && process.versions && process.versions.node) {
   example();
-} 
+}

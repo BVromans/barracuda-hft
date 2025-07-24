@@ -58,10 +58,10 @@ dotenvConfig({ path: ".env" });
 
 async function main() {
   console.log('🚀 Starting Rujira Bow playground...');
-  
+
   const RPC_ENDPOINT = process.env.RPC_ENDPOINT || "";
-  const MNEMONIC = process.env.MNEMONIC || "";
-  const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
+  const MNEMONIC = process.env.TEAM_RUJIRA_WALLET_MNEMONIC || "";
+  const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "thor1s8rxcvg83cwar87ehv4c866auxujkfj3k4wjkxkaren7vmvn9nass80ekp";
 
   console.log('📡 Connecting to RPC endpoint:', RPC_ENDPOINT);
   console.log('🔑 Using mnemonic (first 3 words):', MNEMONIC.split(' ').slice(0, 3).join(' ') + '...');
@@ -83,7 +83,7 @@ async function main() {
       strategy: { denom: "btc-btc", amount: "1000000" },
     });
     console.log("✅ Strategy query result:", JSON.stringify(strategy, null, 2));
-    
+
     // Parse the strategy data
     if (strategy.xyk && strategy.xyk.length >= 2) {
       const [poolConfig, poolState] = strategy.xyk;
@@ -106,16 +106,16 @@ async function main() {
     const strategy = await client.query<BowStrategyResponse>({
       strategy: { denom: "btc-btc", amount: "1000000" },
     });
-    
+
     if (strategy.xyk && strategy.xyk.length >= 2) {
       const [poolConfig, poolState] = strategy.xyk;
-      
+
       // Parse the base (X) and quote (Y) amounts
       const baseAmount = parseInt(poolState.x);
       const quoteAmount = parseInt(poolState.y);
       const kConstant = parseInt(poolState.k);
       const totalShares = parseInt(poolState.shares);
-      
+
       console.log('\n📈 Base Side Analysis:');
       console.log(`- Base Token: ${poolConfig.x} (RUJI)`);
       console.log(`- Quote Token: ${poolConfig.y} (USDC)`);
@@ -123,41 +123,41 @@ async function main() {
       console.log(`- Quote Liquidity: ${quoteAmount.toLocaleString()} units`);
       console.log(`- Base/Quote Ratio: ${(baseAmount / quoteAmount).toFixed(6)}`);
       console.log(`- Quote/Base Ratio: ${(quoteAmount / baseAmount).toFixed(6)}`);
-      
+
       // Calculate market cap and value metrics
       const basePercentage = ((baseAmount / (baseAmount + quoteAmount)) * 100).toFixed(2);
       const quotePercentage = ((quoteAmount / (baseAmount + quoteAmount)) * 100).toFixed(2);
-      
+
       console.log('\n💰 Liquidity Distribution:');
       console.log(`- Base Side: ${basePercentage}% of total liquidity`);
       console.log(`- Quote Side: ${quotePercentage}% of total liquidity`);
-      
+
       // Calculate price impact for different trade sizes
       console.log('\n📊 Price Impact Analysis:');
       const tradeSizes = [1000, 10000, 100000, 1000000];
-      
+
       for (const tradeSize of tradeSizes) {
         // Simple price impact calculation for XYK
         const newBaseAmount = baseAmount + tradeSize;
         const newQuoteAmount = kConstant / newBaseAmount;
         const priceImpact = ((quoteAmount - newQuoteAmount) / quoteAmount) * 100;
-        
+
         console.log(`- ${tradeSize.toLocaleString()} base units: ${priceImpact.toFixed(4)}% price impact`);
       }
-      
+
       // Calculate impermanent loss scenarios
       console.log('\n⚠️ Impermanent Loss Scenarios:');
       const priceChanges = [0.5, 1.0, 1.5, 2.0, 3.0];
-      
+
       for (const priceChange of priceChanges) {
         const newQuoteAmount = quoteAmount * priceChange;
         const newK = baseAmount * newQuoteAmount;
         const newBaseAmount = Math.sqrt(newK);
         const impermanentLoss = ((baseAmount + newQuoteAmount) / (baseAmount + quoteAmount) - 1) * 100;
-        
+
         console.log(`- ${priceChange}x price change: ${impermanentLoss.toFixed(4)}% IL`);
       }
-      
+
       console.log('\n🔧 Pool Health Metrics:');
       console.log(`- K Constant: ${kConstant.toLocaleString()}`);
       console.log(`- Total Shares: ${totalShares.toLocaleString()}`);
@@ -171,23 +171,23 @@ async function main() {
   console.log('\n💱 Querying quote for RUJI...');
   try {
     const quote = await client.query<BowQuoteResponse>({
-      quote: { 
-        denom: "ruji", 
-        amount: "1000000", 
-        offer_denom: "usdc", 
-        offer_amount: "1000000", 
-        ask_denom: "usdc", 
-        ask_amount: "1000000" 
+      quote: {
+        denom: "ruji",
+        amount: "1000000",
+        offer_denom: "usdc",
+        offer_amount: "1000000",
+        ask_denom: "usdc",
+        ask_amount: "1000000"
       },
     });
     console.log("✅ Quote query result:", JSON.stringify(quote, null, 2));
-    
+
     // Parse the quote data
     console.log('\n💰 Quote Analysis:');
     console.log(`- Price: ${quote.price} USDC per RUJI`);
     console.log(`- Size: ${quote.size}`);
     console.log(`- Data: ${quote.data} (base64 encoded pool state)`);
-    
+
     // Decode the base64 data if needed
     try {
       const decodedData = Buffer.from(quote.data, 'base64').toString('utf-8');
@@ -202,17 +202,17 @@ async function main() {
   console.log('\n🔄 Testing BASE token (alias for RUJI)...');
   try {
     const baseTokenQuote = await client.query<BowQuoteResponse>({
-      quote: { 
-        denom: "base", 
-        amount: "1000000", 
-        offer_denom: "usdc", 
-        offer_amount: "1000000", 
-        ask_denom: "usdc", 
-        ask_amount: "1000000" 
+      quote: {
+        denom: "base",
+        amount: "1000000",
+        offer_denom: "usdc",
+        offer_amount: "1000000",
+        ask_denom: "usdc",
+        ask_amount: "1000000"
       },
     });
     console.log("✅ BASE token quote result:", JSON.stringify(baseTokenQuote, null, 2));
-    
+
     console.log('\n💰 BASE Token Analysis:');
     console.log(`- Price: ${baseTokenQuote.price} USDC per BASE token`);
     console.log(`- Size: ${baseTokenQuote.size}`);
@@ -286,52 +286,52 @@ function analyzeFinBasePrices(finData: any[], decimals: number) {
     return;
   }
   console.log(`\n🔬 Rujira Fin Market Analysis (2 tokens, divisor: 1e${decimals}):`);
-  
+
   // Market statistics
   let totalPairs = 0;
   let stablePairs = 0;
   let volatilePairs = 0;
   let highValuePairs = 0;
-  
+
   for (const [i, entry] of finData.entries()) {
     const book = entry.book;
     if (!book || !book.pair) continue;
-    
+
     const baseRaw = book.pair.assetBase.price.current;
     const quoteRaw = book.pair.assetQuote.price.current;
     const base = Number(baseRaw) / 10 ** decimals;
     const quote = Number(quoteRaw) / 10 ** decimals;
     const price = quote !== 0 ? base / quote : 0;
-    
+
     // Market analysis
     const isStable = Math.abs(price - 1) < 0.01; // Within 1% of 1.0
     const isVolatile = price > 10 || price < 0.1; // Very high or very low ratio
     const isHighValue = base > 1000000 || quote > 1000000; // High absolute values
-    
+
     if (isStable) stablePairs++;
     if (isVolatile) volatilePairs++;
     if (isHighValue) highValuePairs++;
     totalPairs++;
-    
+
     // Market category
     let marketCategory = "Normal";
     if (isStable) marketCategory = "Stable";
     else if (isVolatile) marketCategory = "Volatile";
     else if (isHighValue) marketCategory = "High-Value";
-    
+
     // Price trend indicator
     let trendIndicator = "";
     if (price > 1.5) trendIndicator = "📈 Bullish (Base Strong)";
     else if (price < 0.5) trendIndicator = "📉 Bearish (Base Weak)";
     else if (Math.abs(price - 1) < 0.1) trendIndicator = "➡️ Sideways (Stable)";
     else trendIndicator = "🔄 Mixed";
-    
+
     console.log(`\n📊 Pair #${i + 1} - ${marketCategory} Market:`);
     console.log(`- Base Asset Price: ${base.toLocaleString()} (raw: ${baseRaw})`);
     console.log(`- Quote Asset Price: ${quote.toLocaleString()} (raw: ${quoteRaw})`);
     console.log(`- Market Ratio: ${price.toFixed(6)} (1 Base = ${price.toFixed(6)} Quote)`);
     console.log(`- Trend: ${trendIndicator}`);
-    
+
     // Market insights
     if (isStable) {
       console.log(`- 💰 Market Type: Stable Pair (likely stablecoins or pegged assets)`);
@@ -342,7 +342,7 @@ function analyzeFinBasePrices(finData: any[], decimals: number) {
     } else {
       console.log(`- 📊 Market Type: Standard Trading Pair`);
     }
-    
+
     // Trading insights
     if (price > 1) {
       console.log(`- 💡 Trading Insight: Base is ${price.toFixed(2)}x more valuable than Quote`);
@@ -351,10 +351,10 @@ function analyzeFinBasePrices(finData: any[], decimals: number) {
     } else {
       console.log(`- 💡 Trading Insight: Assets are at parity`);
     }
-    
+
     console.log('─'.repeat(50));
   }
-  
+
   // Market summary
   console.log(`\n📈 Quick Market Summary:`);
   console.log(`- Total Tokens Analyzed: ${totalPairs}`);
@@ -374,17 +374,17 @@ main().catch((error) => {
   if (error.message.includes('mnemonic')) {
     console.error('\n💡 Tip: Make sure your mnemonic has 12, 15, 18, 21, or 24 words');
   }
-  
+
   if (error.message.includes('connection') || error.message.includes('rpc')) {
     console.error('\n💡 Tip: Check if the RPC endpoint is correct and accessible');
   }
-  
+
   if (error.message.includes('526') || error.message.includes('Bad status')) {
     console.error('\n💡 Tip: RPC endpoint is not accessible. Try:');
     console.error('   - Check your internet connection');
     console.error('   - Try a different RPC endpoint (e.g., https://rpc-testnet.cosmos.network)');
     console.error('   - The endpoint might be down or blocked');
   }
-  
+
   process.exit(1);
 });

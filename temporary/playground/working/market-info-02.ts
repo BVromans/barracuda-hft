@@ -124,41 +124,41 @@ function analyzeFinMarket(finData: any[], decimals: number) {
     return;
   }
   console.log(`\n🔬 Rujira Fin Market Analysis (2 tokens, divisor: 1e${decimals}):`);
-  
+
   for (const [i, entry] of finData.entries()) {
     const book = entry.book;
     if (!book || !book.pair) continue;
-    
+
     const baseRaw = book.pair.assetBase.price.current;
     const quoteRaw = book.pair.assetQuote.price.current;
     const base = Number(baseRaw) / 10 ** decimals;
     const quote = Number(quoteRaw) / 10 ** decimals;
     const price = quote !== 0 ? base / quote : 0;
-    
+
     // Market analysis
     const isStable = Math.abs(price - 1) < 0.01;
     const isVolatile = price > 10 || price < 0.1;
     const isHighValue = base > 1000000 || quote > 1000000;
-    
+
     // Market category
     let marketCategory = "Normal";
     if (isStable) marketCategory = "Stable";
     else if (isVolatile) marketCategory = "Volatile";
     else if (isHighValue) marketCategory = "High-Value";
-    
+
     // Price trend indicator
     let trendIndicator = "";
     if (price > 1.5) trendIndicator = "📈 Bullish (Base Strong)";
     else if (price < 0.5) trendIndicator = "📉 Bearish (Base Weak)";
     else if (Math.abs(price - 1) < 0.1) trendIndicator = "➡️ Sideways (Stable)";
     else trendIndicator = "🔄 Mixed";
-    
+
     console.log(`\n📊 Token #${i + 1} - ${marketCategory} Market:`);
     console.log(`- Base Asset Price: ${base.toLocaleString()} (raw: ${baseRaw})`);
     console.log(`- Quote Asset Price: ${quote.toLocaleString()} (raw: ${quoteRaw})`);
     console.log(`- Market Ratio: ${price.toFixed(6)} (1 Base = ${price.toFixed(6)} Quote)`);
     console.log(`- Trend: ${trendIndicator}`);
-    
+
     // Market insights
     if (isStable) {
       console.log(`- 💰 Market Type: Stable Pair (likely stablecoins or pegged assets)`);
@@ -169,7 +169,7 @@ function analyzeFinMarket(finData: any[], decimals: number) {
     } else {
       console.log(`- 📊 Market Type: Standard Trading Pair`);
     }
-    
+
     // Trading insights
     if (price > 1) {
       console.log(`- 💡 Trading Insight: Base is ${price.toFixed(2)}x more valuable than Quote`);
@@ -178,10 +178,10 @@ function analyzeFinMarket(finData: any[], decimals: number) {
     } else {
       console.log(`- 💡 Trading Insight: Assets are at parity`);
     }
-    
+
     console.log('─'.repeat(50));
   }
-  
+
   console.log(`\n📈 Quick Market Summary:`);
   console.log(`- Total Tokens Analyzed: ${finData.length}`);
   console.log(`- Analysis shows base/quote price relationships`);
@@ -191,15 +191,15 @@ function analyzeFinMarket(finData: any[], decimals: number) {
 async function main() {
   // Run Fin market analysis first
   analyzeFinMarket(sampleFinData, finDecimals);
-  
+
   console.log('🚀 Starting Rujira Playground...');
-  
+
   // Run Fin market analysis first
   analyzeFinMarket(sampleFinData, finDecimals);
-  
+
   const RPC_ENDPOINT = process.env.RPC_ENDPOINT || "";
-  const MNEMONIC = process.env.MNEMONIC || "";
-  const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
+  const MNEMONIC = process.env.TEAM_RUJIRA_WALLET_MNEMONIC || "";
+  const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "thor1s8rxcvg83cwar87ehv4c866auxujkfj3k4wjkxkaren7vmvn9nass80ekp";
 
   console.log('📡 Connecting to RPC endpoint:', RPC_ENDPOINT);
   console.log('🔑 Using mnemonic (first 3 words):', MNEMONIC.split(' ').slice(0, 3).join(' ') + '...');
@@ -228,7 +228,7 @@ async function main() {
 
   // Test Rujira queries
   console.log('\n📊 Testing Rujira queries...');
-  
+
   try {
     const strategyQuery = await client.query<any>({
       strategy: { denom: "ruji", amount: "1000000" },
@@ -240,13 +240,13 @@ async function main() {
 
   try {
     const quoteQuery = await client.query<any>({
-      quote: { 
-        denom: "ruji", 
-        amount: "1000000", 
-        offer_denom: "usdc", 
-        offer_amount: "1000000", 
-        ask_denom: "usdc", 
-        ask_amount: "1000000" 
+      quote: {
+        denom: "ruji",
+        amount: "1000000",
+        offer_denom: "usdc",
+        offer_amount: "1000000",
+        ask_denom: "usdc",
+        ask_amount: "1000000"
       },
     });
     console.log("✅ Quote query:", JSON.stringify(quoteQuery, null, 2));
@@ -256,7 +256,7 @@ async function main() {
 
   // Test with USDC token
   console.log('\n📊 Testing with USDC token...');
-  
+
   try {
     const strategyQuery = await client.query<any>({
       strategy: { denom: "usdc", amount: "1000000" },
@@ -268,13 +268,13 @@ async function main() {
 
   try {
     const quoteQuery = await client.query<any>({
-      quote: { 
-        denom: "usdc", 
-        amount: "1000000", 
-        offer_denom: "ruji", 
-        offer_amount: "1000000", 
-        ask_denom: "ruji", 
-        ask_amount: "1000000" 
+      quote: {
+        denom: "usdc",
+        amount: "1000000",
+        offer_denom: "ruji",
+        offer_amount: "1000000",
+        ask_denom: "ruji",
+        ask_amount: "1000000"
       },
     });
     console.log("✅ USDC Quote:", JSON.stringify(quoteQuery, null, 2));
@@ -284,7 +284,7 @@ async function main() {
 
   // === BASE Analysis for ruji ↔ usdc ===
   console.log('\n🔍 BASE Analysis for ruji ↔ usdc pair...');
-  
+
   try {
     // Test BASE query for RUJI
     const baseQuery = await client.query<any>({
@@ -309,7 +309,7 @@ async function main() {
   console.log('\n📊 BASE Price Analysis for ruji ↔ usdc:');
   try {
     const basePriceQuery = await client.query<any>({
-      base_price: { 
+      base_price: {
         base_denom: "ruji",
         quote_denom: "usdc"
       },
@@ -323,7 +323,7 @@ async function main() {
   console.log('\n💧 BASE Liquidity Analysis:');
   try {
     const baseLiquidityQuery = await client.query<any>({
-      base_liquidity: { 
+      base_liquidity: {
         denom: "ruji"
       },
     });
@@ -359,17 +359,17 @@ main().catch((error) => {
   if (error.message.includes('mnemonic')) {
     console.error('\n💡 Tip: Make sure your mnemonic has 12, 15, 18, 21, or 24 words');
   }
-  
+
   if (error.message.includes('connection') || error.message.includes('rpc')) {
     console.error('\n💡 Tip: Check if the RPC endpoint is correct and accessible');
   }
-  
+
   if (error.message.includes('526') || error.message.includes('Bad status')) {
     console.error('\n💡 Tip: RPC endpoint is not accessible. Try:');
     console.error('   - Check your internet connection');
     console.error('   - Try a different RPC endpoint');
     console.error('   - The endpoint might be down or blocked');
   }
-  
+
   process.exit(1);
-}); 
+});

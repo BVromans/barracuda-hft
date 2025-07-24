@@ -7,17 +7,17 @@ import path from "path";
 import "dotenv/config";
 
 const {
-  FIN_CONTRACT_ADDRESS = '',
-  TEAM_RUJIRA_WALLET_PRIVATE_KEY = '',
-  FIN_RPC_ENDPOINT = '',
-  TEAM_RUJIRA_WALLET_PUBLIC_KEY_THOR = '',
+  FIN_CONTRACT_ADDRESS = 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a',
+  TEAM_RUJIRA_WALLET_PRIVATE_KEY = process.env.TEAM_RUJIRA_WALLET_PRIVATE_KEY,
+  FIN_RPC_ENDPOINT = process.env.RPC_ENDPOINT,
+  TEAM_RUJIRA_WALLET_PUBLIC_KEY_THOR = process.env.TEAM_RUJIRA_WALLET_PUBLIC_KEY_THOR,
   FIN_ORDER_SIDE = 'quote',
   FIN_ORDER_PRICE_FIXED = '0.000000000000000000',
 } = process.env;
 
 const CONTRACT_ADDRESS = FIN_CONTRACT_ADDRESS;
 const PRIVATE_KEY_BASE64 = TEAM_RUJIRA_WALLET_PRIVATE_KEY;
-const RPC_ENDPOINT = FIN_RPC_ENDPOINT;
+const RPC_ENDPOINT = FIN_RPC_ENDPOINT!;
 const OWNER = TEAM_RUJIRA_WALLET_PUBLIC_KEY_THOR;
 const SIDE: 'base' | 'quote' = FIN_ORDER_SIDE as 'base' | 'quote';
 const PRICE_FIXED = FIN_ORDER_PRICE_FIXED;
@@ -108,4 +108,4 @@ async function main() {
 main().catch((err) => {
   console.error('❌ Error running playground:', err);
   process.exit(1);
-}); 
+});

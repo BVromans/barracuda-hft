@@ -9,12 +9,11 @@ import {
   OrderType,
   Order,
   BIG_NUMBER_0
-} from '../../src/types';
-import { Fin } from '../../src/rujira';
+} from '../../../src/types';
+import { Fin } from '../../../src/rujira';
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
 import { fromBase64 } from "@cosmjs/encoding";
-import { DEFAULT_WALLET_PREFIX } from '../../src/types';
 
 const FIN_RPC_ENDPOINT = process.env.FIN_RPC_ENDPOINT!;
 const FIN_CONTRACT_ADDRESS = process.env.FIN_CONTRACT_ADDRESS!;
@@ -30,7 +29,7 @@ beforeAll(async () => {
   });
   const wallet = await DirectSecp256k1Wallet.fromKey(
     fromBase64(TEAM_RUJIRA_WALLET_PRIVATE_KEY),
-    DEFAULT_WALLET_PREFIX
+    'thor'
   );
   const cosmClient = await SigningCosmWasmClient.connectWithSigner(
     FIN_RPC_ENDPOINT,
@@ -95,7 +94,7 @@ describe('Fin Real Order Placement', () => {
       const result: FinPlaceOrdersResponse = await fin.placeOrders(ordersRequest);
       expect(result).toBeDefined();
       expect(result.orders.size).toBe(ordersRequest.orders.length);
-      const ordersArr = Array.from(result.orders.values());
+      const ordersArr = Array.from(result.orders.values()) as Order[];
       expect(ordersArr[0]).toBeDefined();
       expect(ordersArr[1]).toBeDefined();
       expect([OrderSide.BUY, OrderSide.SELL]).toContain(ordersArr[0].side);
@@ -113,4 +112,4 @@ describe('Fin Real Order Placement', () => {
       throw err;
     }
   });
-}); 
+});

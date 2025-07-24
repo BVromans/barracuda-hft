@@ -19,7 +19,7 @@ import { fromBase64 } from '@cosmjs/encoding';
   // 6 decimals for both tokens
   const rujiAmount = '10000'; // 0.01 RUJI (6 decimals)
   const usdcAmount = '8694';  // 0.008694 USDC (6 decimals)
-  const minReturn = '9980';   // Allow for a small slippage (0.00998 RUJI)
+  const minReturn = '9000';   // Allow for a small slippage (0.00998 RUJI)
 
   const result = await client.execute(
     process.env.TEAM_RUJIRA_WALLET_PUBLIC_KEY_THOR!,
@@ -36,4 +36,4 @@ import { fromBase64 } from '@cosmjs/encoding';
   );
 
   console.log('Transaction hash:', result.transactionHash);
-})(); 
+})();
