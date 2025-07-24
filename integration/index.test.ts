@@ -135,6 +135,32 @@ describe("Rujira", () => {
 				expect(result.fee.token.raw).toBeDefined();
 				expect(result.raw).toBeDefined();
 			});
+
+			it("should validate a confirmed transaction with waitForConfirmation", async () => {
+				const result = await rujira.fin.getTransaction({
+					hash: transactionHash,
+					waitForConfirmation: true,
+				});
+
+				expect(result).toBeDefined();
+				expect(result.hash).toBe(transactionHash);
+				expect(result.status).toBe(TransactionStatus.SUCCESS);
+
+				expect(result.fee).toBeDefined();
+				expect(result.fee.amount).toBeDefined();
+				expect(result.fee.amount.constructor.name).toBe("Decimal");
+				expect(result.fee.amount.toNumber()).toBeGreaterThan(0);
+
+				expect(result.fee.token).toBeDefined();
+				expect(result.fee.token.address).toBe(feePaymentToken.address);
+				expect(result.fee.token.symbol).toBe(feePaymentToken.symbol);
+				expect(result.fee.token.name).toBe(feePaymentToken.name);
+				expect(result.fee.token.decimals).toBe(feePaymentToken.decimals);
+				expect(result.fee.token.raw).toBeDefined();
+
+				expect(result.raw).toBeDefined();
+				expect(result.raw.hash).toBe(transactionHash);
+			});
 		});
 
 		describe("tokens", () => {
@@ -185,6 +211,51 @@ describe("Rujira", () => {
 				expect(baseToken.raw).toBeDefined();
 
 				const quoteToken = result.get(quoteTokenAddress)!;
+				expect(quoteToken).toBeDefined();
+				expect(quoteToken.address).toBe(quoteTokenAddress);
+				expect(quoteToken.symbol).toBe(quoteTokenSymbol);
+				expect(quoteToken.name).toBeDefined();
+				expect(quoteToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(quoteToken.raw).toBeDefined();
+			});
+
+			it("should be able to get tokens by symbols", async () => {
+				const symbols = [baseTokenSymbol, quoteTokenSymbol];
+				const result = await rujira.fin.getTokens({ symbols });
+				expect(result).toBeDefined();
+				expect(result.size).toBe(symbols.length);
+
+				const baseToken = (result.get(baseTokenSymbol.toLowerCase()) || Array.from(result.values()).find(t => (t as Token).symbol === baseTokenSymbol)) as Token;
+				const quoteToken = (result.get(quoteTokenSymbol.toLowerCase()) || Array.from(result.values()).find(t => (t as Token).symbol === quoteTokenSymbol)) as Token;
+
+				expect(baseToken).toBeDefined();
+				expect(baseToken.symbol).toBe(baseTokenSymbol);
+				expect(baseToken.name).toBeDefined();
+				expect(baseToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(baseToken.raw).toBeDefined();
+
+				expect(quoteToken).toBeDefined();
+				expect(quoteToken.symbol).toBe(quoteTokenSymbol);
+				expect(quoteToken.name).toBeDefined();
+				expect(quoteToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(quoteToken.raw).toBeDefined();
+			});
+
+			it("should be able to get all tokens and validate base and quote tokens", async () => {
+				const result = await rujira.fin.getAllTokens({});
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(1);
+
+				const baseToken = result.get(baseTokenAddress);
+				const quoteToken = result.get(quoteTokenAddress);
+
+				expect(baseToken).toBeDefined();
+				expect(baseToken.address).toBe(baseTokenAddress);
+				expect(baseToken.symbol).toBe(baseTokenSymbol);
+				expect(baseToken.name).toBeDefined();
+				expect(baseToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(baseToken.raw).toBeDefined();
+
 				expect(quoteToken).toBeDefined();
 				expect(quoteToken.address).toBe(quoteTokenAddress);
 				expect(quoteToken.symbol).toBe(quoteTokenSymbol);
