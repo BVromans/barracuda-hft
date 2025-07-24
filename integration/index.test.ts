@@ -268,6 +268,35 @@ describe("Rujira", () => {
 			});
 		});
 
+		describe("markets", () => {
+			it("should be able to get a market by address", async () => {
+				const result = await rujira.fin.getMarket({
+					address: marketAddress,
+				});
+
+				expect(result).toBeDefined();
+
+				expect(result.address).toBe(marketAddress);
+				expect(result.symbol).toBe(marketSymbol);
+
+				expect(result.tokens.base.address).toBe(baseTokenAddress);
+				expect(result.tokens.base.symbol).toBe(baseTokenSymbol);
+				expect(result.tokens.base.name).toBe(baseTokenSymbol);
+				expect(result.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.tokens.base.raw).toBeDefined();
+
+				expect(result.tokens.quote.address).toBe(quoteTokenAddress);
+				expect(result.tokens.quote.symbol).toBe(quoteTokenSymbol);
+				expect(result.tokens.quote.name).toBe(quoteTokenSymbol);
+				expect(result.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.tokens.quote.raw).toBeDefined();
+
+				expect(result.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.status).toBe(MarketStatus.ACTIVE);
+				expect(result.raw).toBeDefined();
+			});
+		});
+
 		describe("orderbook", () => {
 			it("should be able to get the order book for a market", async () => {
 				const maximumNumberOfOrders = 10;
