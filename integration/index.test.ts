@@ -249,8 +249,11 @@ describe("Rujira", () => {
 				expect(result).toBeDefined();
 				expect(result.size).toBeGreaterThan(1);
 
-				const baseToken = result.get(baseTokenAddress);
-				const quoteToken = result.get(quoteTokenAddress);
+				const baseToken = result.find((token: Token) => token.address === baseTokenAddress);
+				const quoteToken = result.find((token: Token) => token.address === quoteTokenAddress);
+				const nativeTokenObj = result.find((token: Token) => token.symbol === nativeToken.symbol);
+				const beaconTokenObj = result.find((token: Token) => token.symbol === beaconToken.symbol);
+				const feePaymentTokenObj = result.find((token: Token) => token.symbol === feePaymentToken.symbol);
 
 				expect(baseToken).toBeDefined();
 				expect(baseToken.address).toBe(baseTokenAddress);
@@ -265,6 +268,24 @@ describe("Rujira", () => {
 				expect(quoteToken.name).toBeDefined();
 				expect(quoteToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(quoteToken.raw).toBeDefined();
+
+				expect(nativeTokenObj).toBeDefined();
+				expect(nativeTokenObj.symbol).toBe(nativeToken.symbol);
+				expect(nativeTokenObj.name).toBeDefined();
+				expect(nativeTokenObj.decimals).toBeGreaterThan(0);
+				expect(nativeTokenObj.raw).toBeDefined();
+
+				expect(beaconTokenObj).toBeDefined();
+				expect(beaconTokenObj.symbol).toBe(beaconToken.symbol);
+				expect(beaconTokenObj.name).toBeDefined();
+				expect(beaconTokenObj.decimals).toBeGreaterThan(0);
+				expect(beaconTokenObj.raw).toBeDefined();
+
+				expect(feePaymentTokenObj).toBeDefined();
+				expect(feePaymentTokenObj.symbol).toBe(feePaymentToken.symbol);
+				expect(feePaymentTokenObj.name).toBeDefined();
+				expect(feePaymentTokenObj.decimals).toBeGreaterThan(0);
+				expect(feePaymentTokenObj.raw).toBeDefined();
 			});
 		});
 
