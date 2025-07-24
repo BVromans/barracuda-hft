@@ -4,7 +4,7 @@ import { Map as ImmutableMapInterface, List as ImmutableListInterface } from './
 /**
  * Represents a list
  */
-export class List<T> implements ImmutableListInterface<T> {
+export class List<T> {
 	/**
 	 * Inner list
 	 */
@@ -77,11 +77,16 @@ export class List<T> implements ImmutableListInterface<T> {
 /**
  * Represents a map
  */
-export class Map<K, V> implements ImmutableMapInterface<K, V> {
+export class Map<K, V> {
 	/**
 	 * Inner map
 	 */
 	private inner: ImmutableMap<K, V>;
+
+	/**
+	 * Allow arbitrary lookups on `this`
+	 */
+	[key: string]: any;
 
 	/**
 	 * Constructor
@@ -141,45 +146,45 @@ export class Map<K, V> implements ImmutableMapInterface<K, V> {
 		});
 	}
 
-	/**
-	 * Get a value from the map
-	 * @param key
-	 * @param defaultValue
-	 * @returns
-	 */
-	get<K,V>(key: K, defaultValue?: V): V {
-		if ((key as any).constructor === Array) {
-			return this.inner.getIn(key as Iterable<any>) as V;
-		} else if (typeof key === 'string') {
-			return this.inner.getIn(key.toString().trim().split('.')) as V;
-		}
+	// /**
+	//  * Get a value from the map
+	//  * @param key
+	//  * @param defaultValue
+	//  * @returns
+	//  */
+	// get<K,V>(key: K, defaultValue?: V): V {
+	// 	if ((key as any).constructor === Array) {
+	// 		return this.inner.getIn(key as Iterable<any>) as V;
+	// 	} else if (typeof key === 'string') {
+	// 		return this.inner.getIn(key.toString().trim().split('.')) as V;
+	// 	}
 
-		if (defaultValue) {
-			return defaultValue;
-		}
+	// 	if (defaultValue) {
+	// 		return defaultValue;
+	// 	}
 
-		throw Error(`Invalid key ("${key}").`);
-	}
+	// 	throw Error(`Invalid key ("${key}").`);
+	// }
 
-	/**
-	 * Set a value in the map
-	 * @param key
-	 * @param value
-	 * @returns
-	 */
-	set<K,V>(key: K, value: V): this {
-		if (key == null) {
-			throw Error(`Invalid key ("${key}").`);
-		}
+	// /**
+	//  * Set a value in the map
+	//  * @param key
+	//  * @param value
+	//  * @returns
+	//  */
+	// set<K,V>(key: K, value: V): this {
+	// 	if (key == null) {
+	// 		throw Error(`Invalid key ("${key}").`);
+	// 	}
 
-		if (key.constructor === Array) {
-			this.inner = this.inner.setIn(key, value);
-		} else if (typeof key === 'string') {
-			this.inner = this.inner.setIn(key.toString().trim().split('.'), value);
-		} else {
-			throw Error(`Invalid key ("${key}").`);
-		}
+	// 	if (key.constructor === Array) {
+	// 		this.inner = this.inner.setIn(key, value);
+	// 	} else if (typeof key === 'string') {
+	// 		this.inner = this.inner.setIn(key.toString().trim().split('.'), value);
+	// 	} else {
+	// 		throw Error(`Invalid key ("${key}").`);
+	// 	}
 
-		return this;
-	}
+	// 	return this;
+	// }
 }
