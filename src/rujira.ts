@@ -83,6 +83,9 @@ import {
 	FinGetCandlesResponse,
 	CandleInterval,
 	Candle,
+	Amount,
+	Integer,
+	DECIMAL_0,
 } from "./types";
 import Decimal from 'decimal.js';
 import { properties } from "./properties";
@@ -870,6 +873,7 @@ export class Fin {
 			raw: entry
 		});
 
+		// noinspection UnnecessaryLocalVariableJS
 		const candles: List<Candle> = new List<Candle>(rawCandles.candles || []).map(parseCandle);
 
 		return candles;
@@ -896,49 +900,101 @@ export class Fin {
 			tokenSymbols = new List<TokenSymbol>(tokenSymbols);
 		}
 
-		// 1. Get all tokens and markets
 		let tokens = await this.getAllTokens({} as FinGetAllTokensRequest);
 		let markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
-		// 2. Filter tokens if requested
 		if (tokenAddresses || tokenSymbols) {
 			tokens = tokens.filter((token: Token) => tokenAddresses?.includes(token.address) || tokenSymbols?.includes(token.symbol));
 		}
 
-		// 3. Query free balances (bank module)
-		const freeBalances: Record<string, Decimal> = {};
-		const bankResponse = await fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
-		if (bankResponse.ok) {
-			const responseData = await bankResponse.json();
-			if (responseData && typeof responseData === 'object' && Array.isArray((responseData as any).balances)) {
-				for (const balanceEntry of (responseData as any).balances) {
-					if (typeof balanceEntry.denom === 'string' && typeof balanceEntry.amount === 'string') {
-						freeBalances[balanceEntry.denom] = new Decimal(balanceEntry.amount);
+		const freeBalances = new Map<TokenAddress, Amount>();
+		const freeBalanceResponse = await fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
+		if (freeBalanceResponse.ok) {
+			/*
+			Example response:
+				{
+					"balances": [
+						{
+							"denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+							"amount": "90505921"
+						}
+					],
+					"pagination": {
+						"next_key": null,
+						"total": "6"
 					}
 				}
+			*/
+			const freeBalanceResponseData = (await freeBalanceResponse.json()) as {
+				balances: Array<{
+					denom: string;
+					amount: string;
+				}>;
+				pagination: {
+					next_key: string | null;
+					total: string;
+				};
+			};
+
+			for (const rawBalance of freeBalanceResponseData.balances) {
+				freeBalances.set(rawBalance.denom.toLowerCase().trim(), new Decimal(rawBalance.amount));
 			}
 		}
 
-		// 4. For each market, get locked in orders and withdrawable
-		const lockedInOrders: Record<string, Decimal> = {};
-		const withdrawable: Record<string, Decimal> = {};
+		const lockedInOrders = new Map<TokenAddress, Amount>();
+		const withdrawable = new Map<TokenAddress, Amount>();
 		for (const market of markets.values()) {
-			const contractAddress = market.address;
-			const ordersResponse = await this.cosmClient.queryContractSmart(contractAddress, {
-				orders: { owner: walletAddress, limit: 100 }
-			});
-			const orders = ordersResponse.orders || [];
-			for (const order of orders) {
-				const orderSide = order.side;
+			/*
+			Example response:
+				{
+					"orders": [
+						{
+							"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
+							"side": "base",
+							"price": {
+								"fixed": "0.219169"
+							},
+							"rate": "0.219169",
+							"updated_at": "1752680298782095574",
+							"offer": "10000000",
+							"remaining": "10000000",
+							"filled": "0"
+						}
+					]
+				}
+			*/
+			const ordersResponse = await this.cosmClient.queryContractSmart(
+				market.address, {
+					orders: {
+						owner: walletAddress,
+						limit: properties.getOrDefault<Integer>('rujira.default.orders.maximumNumberOfOrders', BIG_NUMBER_INFINITY.toNumber())
+					}
+				}
+			) as {
+				orders: Array<{
+					owner: string,
+					"side": string,
+					"price": {
+						"fixed": string
+					},
+					"rate": string,
+					"updated_at": string,
+					"offer": string,
+					"remaining": string,
+					"filled": string
+				}>;
+			};
+			for (const rawOrder of ordersResponse.orders) {
 				const baseTokenAddress = market.tokens.base.address;
 				const quoteTokenAddress = market.tokens.quote.address;
-				if (order.remaining && order.remaining !== '0') {
-					const lockedTokenAddress = orderSide === 'base' ? baseTokenAddress : quoteTokenAddress;
-					lockedInOrders[lockedTokenAddress] = (lockedInOrders[lockedTokenAddress] || new Decimal(0)).plus(new Decimal(order.remaining));
+
+				if (rawOrder.filled && Number(rawOrder.filled) > 0) {
+					const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
+					lockedInOrders.set(lockedTokenAddress, (lockedInOrders.get(lockedTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
 				}
-				if (order.filled && order.filled !== '0') {
-					const withdrawTokenAddress = orderSide === 'base' ? quoteTokenAddress : baseTokenAddress; // opposite asset
-					withdrawable[withdrawTokenAddress] = (withdrawable[withdrawTokenAddress] || new Decimal(0)).plus(new Decimal(order.filled));
+				if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
+					const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // opposite asset
+					withdrawable.set(withdrawTokenAddress, (withdrawable.get(withdrawTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
 				}
 			}
 		}

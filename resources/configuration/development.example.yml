@@ -1,7 +1,7 @@
 rujira:
   endpoints:
     rpc: "https://thornode-mainnet-rpc.bryanlabs.net"
-    rest: "https://thornode.ninerealms.com/cosmos"
+    rest: "https://thornode.ninerealms.com"
     graphql: "https://api.rujira.network/api/graphiql"
   wallet:
     mnemonic: "<mnemonic>" # Optional, but required if privateKey is not provided
@@ -21,6 +21,8 @@ rujira:
     candles:
       interval: "1m"
       maximumNumberOfCandles: 100 # Optional, leaving empty or null will return all candles
+    orders:
+      maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
 tests:
   unit:
     timeout: 10_000 # 10 seconds
