@@ -4,7 +4,8 @@ import { Map as ImmutableMapInterface, List as ImmutableListInterface } from './
 /**
  * Represents a list
  */
-export class List<T> {
+// @ts-ignore
+export class List<T> implements ImmutableListInterface<T> {
 	/**
 	 * Inner list
 	 */
@@ -26,7 +27,7 @@ export class List<T> {
 		// return a proxy so that unknown props/methods go to inner
 		return new Proxy(this, {
 			get: (target, property: PropertyKey, receiver) => {
-				// 1) if it’s on our wrapper, use it
+				// if it’s on our wrapper, use it
 				// noinspection DuplicatedCode
 				if (property in target) {
 					const value = Reflect.get(target, property, receiver);
@@ -39,7 +40,7 @@ export class List<T> {
 					return value;
 				}
 
-				// 2) otherwise forward to the inner list
+				// otherwise forward to the inner list
 				const innerValue = (target.inner as any)[property];
 				const type = typeof innerValue;
 
@@ -77,7 +78,8 @@ export class List<T> {
 /**
  * Represents a map
  */
-export class Map<K, V> {
+// @ts-ignore
+export class Map<K, V> implements ImmutableMapInterface<K, V> {
 	/**
 	 * Inner map
 	 */
@@ -99,9 +101,16 @@ export class Map<K, V> {
 		// return a Proxy so that any unknown .foo() or .bar property is forwarded
 		return new Proxy(this, {
 			get: (target, property: PropertyKey, receiver) => {
-				// 1) if it exists on our wrapper, use it
+				// if it exists on our wrapper, use it
 				// noinspection DuplicatedCode
 				if (property in target) {
+					if (property === 'get') {
+						return target.deepGet;
+					}
+					if (property === 'set') {
+						return target.deepSet;
+					}
+
 					const value = Reflect.get(target, property, receiver);
 					const type = typeof value;
 
@@ -111,7 +120,7 @@ export class Map<K, V> {
 
 					return value;
 				}
-				// 2) otherwise forward to the inner map
+				// otherwise forward to the inner map
 				const innerValue = (target.inner as any)[property];
 				const type = typeof innerValue;
 
@@ -146,45 +155,45 @@ export class Map<K, V> {
 		});
 	}
 
-	// /**
-	//  * Get a value from the map
-	//  * @param key
-	//  * @param defaultValue
-	//  * @returns
-	//  */
-	// get<K,V>(key: K, defaultValue?: V): V {
-	// 	if ((key as any).constructor === Array) {
-	// 		return this.inner.getIn(key as Iterable<any>) as V;
-	// 	} else if (typeof key === 'string') {
-	// 		return this.inner.getIn(key.toString().trim().split('.')) as V;
-	// 	}
+	/**
+	 * Get a value from the map
+	 * @param key
+	 * @param defaultValue
+	 * @returns
+	 */
+	private deepGet<K,V>(key: K, defaultValue?: V): V {
+		if ((key as any).constructor === Array) {
+			return this.inner.getIn(key as Iterable<any>) as V;
+		} else if (typeof key === 'string') {
+			return this.inner.getIn(key.toString().trim().split('.')) as V;
+		}
 
-	// 	if (defaultValue) {
-	// 		return defaultValue;
-	// 	}
+		if (defaultValue) {
+			return defaultValue;
+		}
 
-	// 	throw Error(`Invalid key ("${key}").`);
-	// }
+		throw Error(`Invalid key ("${key}").`);
+	}
 
-	// /**
-	//  * Set a value in the map
-	//  * @param key
-	//  * @param value
-	//  * @returns
-	//  */
-	// set<K,V>(key: K, value: V): this {
-	// 	if (key == null) {
-	// 		throw Error(`Invalid key ("${key}").`);
-	// 	}
+	/**
+	 * Set a value in the map
+	 * @param key
+	 * @param value
+	 * @returns
+	 */
+	private deepSet<K,V>(key: K, value: V): this {
+		if (key == null) {
+			throw Error(`Invalid key ("${key}").`);
+		}
 
-	// 	if (key.constructor === Array) {
-	// 		this.inner = this.inner.setIn(key, value);
-	// 	} else if (typeof key === 'string') {
-	// 		this.inner = this.inner.setIn(key.toString().trim().split('.'), value);
-	// 	} else {
-	// 		throw Error(`Invalid key ("${key}").`);
-	// 	}
+		if (key.constructor === Array) {
+			this.inner = this.inner.setIn(key, value);
+		} else if (typeof key === 'string') {
+			this.inner = this.inner.setIn(key.toString().trim().split('.'), value);
+		} else {
+			throw Error(`Invalid key ("${key}").`);
+		}
 
-	// 	return this;
-	// }
+		return this;
+	}
 }
