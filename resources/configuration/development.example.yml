@@ -1,7 +1,7 @@
 rujira:
   endpoints:
     rpc: "https://thornode-mainnet-rpc.bryanlabs.net"
-    rest: "https://thornode.ninerealms.com/thorchain"
+    rest: "https://thornode.ninerealms.com/cosmos"
     graphql: "https://api.rujira.network/api/graphiql"
   wallet:
     mnemonic: "<mnemonic>" # Optional, but required if privateKey is not provided

@@ -115,7 +115,7 @@ describe("Rujira", () => {
 			});
 		});
 		describe("transactions", () => {
-			it("should be able to get a transaction", async () => {
+			it("should be able to get a transaction without waiting confirmation", async () => {
 				const result = await rujira.fin.getTransaction({
 					hash: transactionHash,
 					waitForConfirmation: false,
@@ -136,7 +136,7 @@ describe("Rujira", () => {
 				expect(result.raw).toBeDefined();
 			});
 
-			it("should validate a confirmed transaction with waitForConfirmation", async () => {
+			it("should validate a confirmed transaction waiting confirmation", async () => {
 				const result = await rujira.fin.getTransaction({
 					hash: transactionHash,
 					waitForConfirmation: true,
@@ -221,12 +221,14 @@ describe("Rujira", () => {
 
 			it("should be able to get tokens by symbols", async () => {
 				const symbols = [baseTokenSymbol, quoteTokenSymbol];
+
 				const result = await rujira.fin.getTokens({ symbols });
+
 				expect(result).toBeDefined();
 				expect(result.size).toBe(symbols.length);
 
-				const baseToken = (result.get(baseTokenSymbol.toLowerCase()) || Array.from(result.values()).find(t => (t as Token).symbol === baseTokenSymbol)) as Token;
-				const quoteToken = (result.get(quoteTokenSymbol.toLowerCase()) || Array.from(result.values()).find(t => (t as Token).symbol === quoteTokenSymbol)) as Token;
+				const baseToken = result.find((token: Token) => token.symbol === baseTokenSymbol);
+				const quoteToken = result.find((token: Token) => token.symbol === quoteTokenSymbol);
 
 				expect(baseToken).toBeDefined();
 				expect(baseToken.symbol).toBe(baseTokenSymbol);
@@ -243,6 +245,7 @@ describe("Rujira", () => {
 
 			it("should be able to get all tokens and validate base and quote tokens", async () => {
 				const result = await rujira.fin.getAllTokens({});
+
 				expect(result).toBeDefined();
 				expect(result.size).toBeGreaterThan(1);
 
