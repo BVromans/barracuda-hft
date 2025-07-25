@@ -2,15 +2,18 @@ import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
 import "dotenv/config";
 import { properties } from "../src/properties";
 import { Rujira } from "../src/rujira";
+import { getNotNullOrThrowError } from "../src/utils";
 import {
 	BIG_NUMBER_0,
 	Candle,
 	DECIMAL_0,
+	List,
 	Market,
 	MarketAddress,
 	MarketStatus,
 	SystemStatus,
 	Token,
+	TokenAddress,
 	TransactionStatus,
 	Wallet
 } from "../src/types";
@@ -241,8 +244,14 @@ describe("Rujira", () => {
 				expect(result).toBeDefined();
 				expect(result.size).toBe(symbols.length);
 
-				const baseToken = result.find((token: Token) => token.symbol === firstMarketBaseTokenSymbol);
-				const quoteToken = result.find((token: Token) => token.symbol === firstMarketQuoteTokenSymbol);
+				const baseToken = getNotNullOrThrowError<Token>(
+					result.values().find((token: Token) => token.symbol === firstMarketBaseTokenSymbol),
+					`Token with symbol ${firstMarketBaseTokenSymbol} not found`
+				);
+				const quoteToken = getNotNullOrThrowError<Token>(
+					result.values().find((token: Token) => token.symbol === firstMarketQuoteTokenSymbol),
+					`Token with symbol ${firstMarketQuoteTokenSymbol} not found`
+				);
 
 				expect(baseToken).toBeDefined();
 				expect(baseToken.symbol).toBe(firstMarketBaseTokenSymbol);
@@ -263,11 +272,26 @@ describe("Rujira", () => {
 				expect(result).toBeDefined();
 				expect(result.size).toBeGreaterThan(1);
 
-				const baseToken = result.find((token: Token) => token.address === firstMarketBaseTokenAddress);
-				const quoteToken = result.find((token: Token) => token.address === firstMarketQuoteTokenAddress);
-				const nativeTokenObj = result.find((token: Token) => token.symbol === nativeToken.symbol);
-				const beaconTokenObj = result.find((token: Token) => token.symbol === beaconToken.symbol);
-				const feePaymentTokenObj = result.find((token: Token) => token.symbol === feePaymentToken.symbol);
+				const baseToken = getNotNullOrThrowError<Token>(
+					result.find((token: Token) => token.address === firstMarketBaseTokenAddress),
+					`Token with address ${firstMarketBaseTokenAddress} not found`
+				);
+				const quoteToken = getNotNullOrThrowError<Token>(
+					result.values().find((token: Token) => token.address === firstMarketQuoteTokenAddress),
+					`Token with address ${firstMarketQuoteTokenAddress} not found`
+				);
+				const nativeTokenObj = getNotNullOrThrowError<Token>(
+					result.values().find((token: Token) => token.symbol === nativeToken.symbol),
+					`Native token with symbol ${nativeToken.symbol} not found`
+				);
+				const beaconTokenObj = getNotNullOrThrowError<Token>(
+					result.values().find((token: Token) => token.symbol === beaconToken.symbol),
+					`Beacon token with symbol ${beaconToken.symbol} not found`
+				);
+				const feePaymentTokenObj = getNotNullOrThrowError<Token>(
+					result.values().find((token: Token) => token.symbol === feePaymentToken.symbol),
+					`Fee payment token with symbol ${feePaymentToken.symbol} not found`
+				);
 
 				expect(baseToken).toBeDefined();
 				expect(baseToken.address).toBe(firstMarketBaseTokenAddress);
@@ -417,7 +441,10 @@ describe("Rujira", () => {
 				expect(result).toBeDefined();
 				expect(result.size).toBe(symbols.length);
 
-				const firstMarket = result.find((market: Market) => market.symbol === firstMarketSymbol)!;
+				const firstMarket = getNotNullOrThrowError<Market>(
+					result.values().find((market: Market) => market.symbol === firstMarketSymbol),
+					`Market with symbol ${firstMarketSymbol} not found`
+				);
 				expect(firstMarket).toBeDefined();
 				expect(firstMarket.address).toBe(firstMarketAddress);
 				expect(firstMarket.symbol).toBe(firstMarketSymbol);
@@ -438,7 +465,10 @@ describe("Rujira", () => {
 				expect(firstMarket.status).toBe(MarketStatus.ACTIVE);
 				expect(firstMarket.raw).toBeDefined();
 
-				const secondMarket = result.find((market: Market) => market.symbol === secondMarketSymbol)!;
+				const secondMarket = getNotNullOrThrowError<Market>(
+					result.values().find((market: Market) => market.symbol === secondMarketSymbol),
+					`Market with symbol ${secondMarketSymbol} not found`
+				);
 				expect(secondMarket).toBeDefined();
 				expect(secondMarket.address).toBe(secondMarketAddress);
 				expect(secondMarket.symbol).toBe(secondMarketSymbol);
@@ -702,9 +732,9 @@ describe("Rujira", () => {
 			it("should be able to get candles by market address", async () => {
 				const result = await rujira.fin.getCandles({ marketAddress: firstMarketAddress });
 				expect(result).toBeDefined();
-				expect(result.size).toBeGreaterThan(0);
+				expect((result as List<Candle>).size).toBeGreaterThan(0);
 
-				result.forEach((candle: Candle) => {
+				(result as List<Candle>).forEach((candle: Candle) => {
 					expect(candle).toBeDefined();
 					expect(candle.timestamp).toBeGreaterThan(0);
 					expect(candle.open.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
@@ -719,9 +749,9 @@ describe("Rujira", () => {
 			it("should be able to get candles by market symbol", async () => {
 				const result = await rujira.fin.getCandles({ marketSymbol: firstMarketSymbol });
 				expect(result).toBeDefined();
-				expect(result.size).toBeGreaterThan(0);
+				expect((result as List<Candle>).size).toBeGreaterThan(0);
 
-				result.forEach((candle: Candle) => {
+				(result as List<Candle>).forEach((candle: Candle) => {
 					expect(candle).toBeDefined();
 					expect(candle.timestamp).toBeGreaterThan(0);
 					expect(candle.open.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
@@ -731,6 +761,45 @@ describe("Rujira", () => {
 					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(candle.raw).toBeDefined();
 				});
+			});
+		});
+
+		describe("balances", () => {
+			it("should be able to get balances for a wallet", async () => {
+				const result = await rujira.fin.getBalances({ walletAddress: ownerAddress });
+
+				expect(result).toBeDefined();
+				expect(result.tokens).toBeDefined();
+				expect(result.total).toBeDefined();
+
+				const baseTokenBalance = result.tokens.get(firstMarketBaseTokenAddress);
+				expect(baseTokenBalance).toBeDefined();
+				expect(baseTokenBalance.token).toBeDefined();
+				expect(baseTokenBalance.token.address).toBe(firstMarketBaseTokenAddress);
+
+				const balances = baseTokenBalance.balances;
+				expect(balances).toBeDefined();
+
+				["token", "nativeToken", "beaconToken"].forEach(balanceType => {
+					const balance = balances[balanceType];
+					expect(balance).toBeDefined();
+					expect(balance.free.toNumber()).toBeGreaterThanOrEqual(0);
+					expect(balance.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(0);
+					expect(balance.lockedInPools.toNumber()).toBeGreaterThanOrEqual(0);
+					expect(balance.withdrawable.toNumber()).toBeGreaterThanOrEqual(0);
+					expect(balance.total.toNumber()).toBeGreaterThanOrEqual(0);
+					if (balanceType !== "token") {
+						expect(balance.quotation).toBeDefined();
+						expect(balance.quotation.token).toBeDefined();
+						expect(balance.quotation.tokenToQuote.toNumber()).toBeGreaterThanOrEqual(0);
+						expect(balance.quotation.quoteToToken.toNumber()).toBeGreaterThanOrEqual(0);
+					}
+				});
+
+				expect(result.total.nativeToken).toBeDefined();
+				expect(result.total.nativeToken.total.toNumber()).toBeGreaterThanOrEqual(0);
+				expect(result.total.beaconToken).toBeDefined();
+				expect(result.total.beaconToken.total.toNumber()).toBeGreaterThanOrEqual(0);
 			});
 		});
 	});
