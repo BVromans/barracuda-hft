@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
 import "dotenv/config";
 import { properties } from "../src/properties";
 import { Rujira } from "../src/rujira";
-import { getNotNullOrThrowError } from "../src/utils";
 import {
 	BIG_NUMBER_0,
 	Candle,
@@ -11,19 +10,18 @@ import {
 	Market,
 	MarketAddress,
 	MarketStatus,
+	Order,
+	OrderSide,
+	OrderStatus,
+	OrderType,
 	SystemStatus,
 	Token,
-	TokenAddress,
 	TokenBalance,
-	TransactionStatus,
-	Wallet,
-	Order,
-	OrderStatus,
 	Transaction,
-	OrderType,
-	OrderSide
+	TransactionStatus,
+	Wallet
 } from "../src/types";
-import Decimal from "decimal.js";
+import { getNotNullOrThrowError } from "../src/utils";
 
 let rujira: Rujira;
 
