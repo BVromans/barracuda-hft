@@ -271,10 +271,10 @@ export class Fin {
 		this.wallet = undefined as unknown as Wallet;
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 
-		this.tokensByAddress = new Map<TokenAddress, Token>();
-		this.tokensBySymbol = new Map<TokenSymbol, Token>();
-		this.marketsByAddress = new Map<MarketAddress, Market>();
-		this.marketsBySymbol = new Map<MarketSymbol, Market>();
+		this.tokensByAddress = Map<TokenAddress, Token>();
+		this.tokensBySymbol = Map<TokenSymbol, Token>();
+		this.marketsByAddress = Map<MarketAddress, Market>();
+		this.marketsBySymbol = Map<MarketSymbol, Market>();
 	}
 
 	/**
@@ -405,7 +405,7 @@ export class Fin {
 
 		if (addresses) {
 			if (Array.isArray(addresses)) {
-				addresses = new List<TokenAddress>(addresses);
+				addresses = List<TokenAddress>(addresses);
 			}
 
 			addresses = addresses
@@ -415,7 +415,7 @@ export class Fin {
 
 		if (symbols) {
 			if (Array.isArray(symbols)) {
-				symbols = new List<TokenSymbol>(symbols);
+				symbols = List<TokenSymbol>(symbols);
 			}
 
 			symbols = symbols
@@ -430,7 +430,7 @@ export class Fin {
 		addresses = addresses as List<TokenAddress>;
 		symbols = symbols as List<TokenSymbol>;
 
-		const tokens = new Map<TokenAddress, Token>();
+		const tokens = Map<TokenAddress, Token>();
 
 		addresses.forEach((address: TokenAddress) => {
 			const token = this.tokensByAddress.get(address);
@@ -460,7 +460,7 @@ export class Fin {
 		// Get all markets first (this already contains all token data)
 		const markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
-		const tokens = new Map<TokenAddress, Token>();
+		const tokens = Map<TokenAddress, Token>();
 
 		// Extract all unique tokens from the markets
 		for (const market of markets.values()) {
@@ -522,7 +522,7 @@ export class Fin {
 
 		if (addresses) {
 			if (Array.isArray(addresses)) {
-				addresses = new List<MarketAddress>(addresses);
+				addresses = List<MarketAddress>(addresses);
 			}
 
 			addresses = addresses
@@ -532,7 +532,7 @@ export class Fin {
 
 		if (symbols) {
 			if (Array.isArray(symbols)) {
-				symbols = new List<MarketSymbol>(symbols);
+				symbols = List<MarketSymbol>(symbols);
 			}
 
 			symbols = symbols
@@ -547,7 +547,7 @@ export class Fin {
 		addresses = addresses as List<MarketAddress>;
 		symbols = symbols as List<MarketSymbol>;
 
-		const markets = new Map<MarketAddress, Market>();
+		const markets = Map<MarketAddress, Market>();
 
 		addresses.forEach((address: MarketAddress) => {
 			const market = this.marketsByAddress.get(address);
@@ -679,7 +679,7 @@ export class Fin {
 		}
 
 		const rawPairs = data?.rujira?.fin || [];
-		const markets = new Map<MarketAddress, Market>();
+		const markets = Map<MarketAddress, Market>();
 
 		for (const pair of rawPairs) {
 			// Only include LIVE markets
@@ -768,8 +768,8 @@ export class Fin {
 			raw: entry
 		});
 
-		let asks: List<OrderBookOrder> = new List<OrderBookOrder>(rawOrderBook.asks || []).map(parseOrder);
-		let bids: List<OrderBookOrder> = new List<OrderBookOrder>(rawOrderBook.bids || []).map(parseOrder);
+		let asks: List<OrderBookOrder> = List<OrderBookOrder>(rawOrderBook.asks || []).map(parseOrder);
+		let bids: List<OrderBookOrder> = List<OrderBookOrder>(rawOrderBook.bids || []).map(parseOrder);
 
 		asks = maximumNumberOfOrders ? asks.slice(0, maximumNumberOfOrders) : asks;
 		bids = maximumNumberOfOrders ? bids.slice(0, maximumNumberOfOrders) : bids;
@@ -874,7 +874,7 @@ export class Fin {
 		});
 
 		// noinspection UnnecessaryLocalVariableJS
-		const candles: List<Candle> = new List<Candle>(rawCandles.candles || []).map(parseCandle);
+		const candles: List<Candle> = List<Candle>(rawCandles.candles || []).map(parseCandle);
 
 		return candles;
 	}
@@ -894,10 +894,10 @@ export class Fin {
 		if (!walletAddress) throw new Error('walletAddress is required');
 
 		if (Array.isArray(tokenAddresses)) {
-			tokenAddresses = new List<TokenAddress>(tokenAddresses);
+			tokenAddresses = List<TokenAddress>(tokenAddresses);
 		}
 		if (Array.isArray(tokenSymbols)) {
-			tokenSymbols = new List<TokenSymbol>(tokenSymbols);
+			tokenSymbols = List<TokenSymbol>(tokenSymbols);
 		}
 
 		let tokens = await this.getAllTokens({} as FinGetAllTokensRequest);
@@ -907,7 +907,7 @@ export class Fin {
 			tokens = tokens.filter((token: Token) => tokenAddresses?.includes(token.address) || tokenSymbols?.includes(token.symbol));
 		}
 
-		const freeBalances = new Map<TokenAddress, Amount>();
+		const freeBalances = Map<TokenAddress, Amount>();
 		const freeBalanceResponse = await fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
 		if (freeBalanceResponse.ok) {
 			/*
@@ -941,8 +941,8 @@ export class Fin {
 			}
 		}
 
-		const lockedInOrdersMap = new Map<TokenAddress, Amount>();
-		const withdrawableMap = new Map<TokenAddress, Amount>();
+		const lockedInOrdersMap = Map<TokenAddress, Amount>();
+		const withdrawableMap = Map<TokenAddress, Amount>();
 
 		for (const market of markets.values()) {
 			/*
@@ -1001,7 +1001,7 @@ export class Fin {
 			}
 		}
 
-		const tokensBalancesMap = new Map<TokenAddress, TokenBalance>();
+		const tokensBalancesMap = Map<TokenAddress, TokenBalance>();
 		for (const token of tokens.values()) {
 			const free = freeBalances.get(token.address, DECIMAL_0);
 			const locked = lockedInOrdersMap.get(token.address, DECIMAL_0);
@@ -1264,7 +1264,7 @@ for (const order of ordersArray) {
     }
 
     // Fetch the latest orders for the user to build the response
-    const allOrders: Map<string, Order> = new Map();
+    const allOrders: Map<string, Order> = Map();
     for (const order of placedOrders) {
         try {
             const ordersResp = await this.getOrders({
@@ -1304,7 +1304,7 @@ for (const order of ordersArray) {
     //Don't have a way to get transaction hash directly, so return a dummy Transaction object
     return {
         orders: allOrders ,
-        transactions: new Map<string, Transaction>([
+        transactions: Map<string, Transaction>([
 					[
 							'',
 							{
@@ -1421,7 +1421,7 @@ async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersR
 		);
 
 		// 6. Return the response
-		const cancelledOrdersMap = new Map<string, Order>();
+		const cancelledOrdersMap = Map<string, Order>();
 		for (const order of ordersToCancel) {
 			const id = order.id || `${order.side}:${order.price.fixed}`;
 			cancelledOrdersMap.set(id, {
@@ -1438,7 +1438,7 @@ async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersR
 				raw: order,
 			});
 		}
-		const transactionsMap = new Map<string, Transaction>([
+		const transactionsMap = Map<string, Transaction>([
 			[
 				result.transactionHash,
 				{
