@@ -2,10 +2,18 @@
 
 set -ex
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../"
+
 mkdir -p resources/references/rujira
 
 git submodule update --init -- ./resources/references/rujira/contracts ./resources/references/rujira/api ./resources/references/rujira/ui
 git submodule update -- ./resources/references/rujira/contracts ./resources/references/rujira/api ./resources/references/rujira/ui
+
+cd "$ROOT/resources/references/rujira/api"
+git pull
+
+cd "$ROOT/resources/references/rujira/ui"
+git pull
 
 bun install
 
