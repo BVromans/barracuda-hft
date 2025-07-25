@@ -73,7 +73,6 @@ import {
 	OrderType,
 	Map,
 	List,
-	BIG_NUMBER_INFINITY,
 	Ticker,
 	FinReplaceOrderRequest,
 	FinReplaceOrderResponse,
@@ -86,6 +85,7 @@ import {
 	Amount,
 	Integer,
 	DECIMAL_0,
+	DECIMAL_INFINITY,
 } from "./types";
 import Decimal from 'decimal.js';
 import { properties } from "./properties";
@@ -743,7 +743,7 @@ export class Fin {
 
 		marketAddress = marketAddress?.toLowerCase().trim();
 		marketSymbol = marketSymbol?.toLowerCase().trim();
-		maximumNumberOfOrders = maximumNumberOfOrders || properties.getAs<number>('rujira.default.orderBook.maximumNumberOfOrders') || BIG_NUMBER_INFINITY.toNumber();
+		maximumNumberOfOrders = maximumNumberOfOrders || properties.getAs<number>('rujira.default.orderBook.maximumNumberOfOrders') || DECIMAL_INFINITY.toNumber();
 
 		if (!marketAddress && !marketSymbol) {
 			throw new Error("Either market address or market name must be provided");
@@ -846,7 +846,7 @@ export class Fin {
 
 		marketAddress = marketAddress?.toLowerCase().trim();
 		marketSymbol = marketSymbol?.toLowerCase().trim();
-		maximumNumberOfCandles = maximumNumberOfCandles || properties.getAs<number>('rujira.default.candles.maximumNumberOfCandles') || BIG_NUMBER_INFINITY.toNumber();
+		maximumNumberOfCandles = maximumNumberOfCandles || properties.getAs<number>('rujira.default.candles.maximumNumberOfCandles') || DECIMAL_INFINITY.toNumber();
 		interval = interval || properties.getAs<CandleInterval>('rujira.default.candles.interval') || '1m';
 
 		if (!marketAddress && !marketSymbol) {
@@ -968,7 +968,7 @@ export class Fin {
 				market.address, {
 					orders: {
 						owner: walletAddress,
-						limit: properties.getOrDefault<Integer>('rujira.default.orders.maximumNumberOfOrders', BIG_NUMBER_INFINITY.toNumber())
+						limit: properties.getOrDefault<Integer>('rujira.default.orders.maximumNumberOfOrders', DECIMAL_INFINITY.toNumber())
 					}
 				}
 			) as {
@@ -1571,9 +1571,8 @@ async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersR
 					}
 				},
 				raw: lastTxResult
-			}
+			},
+			raw: lastTxResult
 		};
 	}
-
-
 }
