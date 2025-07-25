@@ -1276,8 +1276,14 @@ export interface FinWithdrawRequest {
  * Withdraw from market response
  */
 export interface FinWithdrawResponse {
+
 	/**
 	 * Transaction details
 	 */
 	transaction: Transaction;
+
+	/**
+	 * Raw response
+	 */
+	raw: Raw;
 }
