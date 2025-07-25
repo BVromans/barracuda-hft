@@ -264,6 +264,14 @@ export interface Market {
 	 * Raw data
 	 */
 	raw: Raw;
+
+	/**
+	 * Price of the market
+	 */
+	price?: {
+    baseQuote: Decimal;
+    quoteBase: Decimal;
+};
 }
 
 /**

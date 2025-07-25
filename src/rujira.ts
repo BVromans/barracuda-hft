@@ -1013,17 +1013,18 @@ export class Fin {
 				free,
 				lockedInOrders: locked,
 				lockedInPools,
+				withdrawable: withdraw,
 				total
 			};
 
 			// Find native and beacon tokens
-			const nativeTokenObject = tokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'RUNE');
-			const beaconTokenObject = tokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'USDC');
+			const nativeTokenObject = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'RUNE');
+			const beaconTokenObject = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'USDC');
 
 			// Find market price for native (RUNE)
 			let conversionRateNative = new Decimal(0);
 			if (nativeTokenObject && token.address !== nativeTokenObject.address) {
-				const market = Array.from(markets.values()).find((market: Market) =>
+				const market = Array.from(markets.values() as Iterable<Market>).find((market: Market) =>
 					(market.tokens.base.address === token.address && market.tokens.quote.address === nativeTokenObject.address) ||
 					(market.tokens.quote.address === token.address && market.tokens.base.address === nativeTokenObject.address)
 				);
@@ -1041,7 +1042,7 @@ export class Fin {
 			// Find market price for beacon (USDC)
 			let conversionRateBeacon = new Decimal(0);
 			if (beaconTokenObject && token.address !== beaconTokenObject.address) {
-				const market = Array.from(markets.values()).find(marketObj =>
+				const market = Array.from(markets.values() as Iterable<Market>).find((marketObj: Market) =>
 					(marketObj.tokens.base.address === token.address && marketObj.tokens.quote.address === beaconTokenObject.address) ||
 					(marketObj.tokens.quote.address === token.address && marketObj.tokens.base.address === beaconTokenObject.address)
 				);
@@ -1086,18 +1087,20 @@ export class Fin {
 		}
 
 		// 6. Build total balances (nativeToken, beaconToken) dynamically
-		const nativeToken = tokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'RUNE');
-		const beaconToken = tokens.find(tokenObj => tokenObj.symbol.toUpperCase() === 'USDC');
+		const nativeToken = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'RUNE');
+		const beaconToken = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'USDC');
 
 		const totalNative: BaseBalance = nativeToken ? {
 			free: freeBalances[nativeToken.address] || new Decimal(0),
 			lockedInOrders: lockedInOrdersMap[nativeToken.address] || new Decimal(0),
 			lockedInPools: new Decimal(0),
+			withdrawable: new Decimal(0),
 			total: (freeBalances[nativeToken.address] || new Decimal(0)).plus(lockedInOrdersMap[nativeToken.address] || new Decimal(0))
 		} : {
 			free: new Decimal(0),
 			lockedInOrders: new Decimal(0),
 			lockedInPools: new Decimal(0),
+			withdrawable: new Decimal(0),
 			total: new Decimal(0)
 		};
 
@@ -1105,11 +1108,13 @@ export class Fin {
 			free: freeBalances[beaconToken.address] || new Decimal(0),
 			lockedInOrders: lockedInOrdersMap[beaconToken.address] || new Decimal(0),
 			lockedInPools: new Decimal(0),
+			withdrawable: new Decimal(0),
 			total: (freeBalances[beaconToken.address] || new Decimal(0)).plus(lockedInOrdersMap[beaconToken.address] || new Decimal(0))
 		} : {
 			free: new Decimal(0),
 			lockedInOrders: new Decimal(0),
 			lockedInPools: new Decimal(0),
+			withdrawable: new Decimal(0),
 			total: new Decimal(0)
 		};
 
