@@ -14,6 +14,7 @@ import {
 	SystemStatus,
 	Token,
 	TokenAddress,
+	TokenBalance,
 	TransactionStatus,
 	Wallet,
 	Order,
@@ -768,6 +769,146 @@ describe("Rujira", () => {
 					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(candle.raw).toBeDefined();
 				});
+			});
+		});
+
+		describe("balances", () => {
+			it("should be able to get balances for a wallet", async () => {
+				const result = await rujira.fin.getBalances({ walletAddress: ownerAddress });
+
+				expect(result).toBeDefined();
+				expect(result.tokens).toBeDefined();
+				expect(result.total).toBeDefined();
+
+				expect(result.tokens.size).toBeGreaterThan(0);
+
+				for (const [tokenAddress, tokenBalance] of result.tokens.entries()) {
+					expect(tokenBalance).toBeDefined();
+					expect(tokenBalance.token).toBeDefined();
+					expect(tokenBalance.balances).toBeDefined();
+
+					expect(tokenBalance.token.address).toBe(tokenAddress);
+					expect(tokenBalance.token.symbol).toBeDefined();
+					expect(tokenBalance.token.name).toBeDefined();
+					expect(tokenBalance.token.decimals).toBeGreaterThan(0);
+					expect(tokenBalance.token.raw).toBeDefined();
+
+					const baseTokenBalance = tokenBalance.balances;
+					expect(baseTokenBalance.token).toBeDefined();
+					expect(baseTokenBalance.nativeToken).toBeDefined();
+					expect(baseTokenBalance.beaconToken).toBeDefined();
+
+					const tokenBalanceData = baseTokenBalance.token;
+					expect(tokenBalanceData.free).toBeDefined();
+					expect(tokenBalanceData.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(tokenBalanceData.lockedInOrders).toBeDefined();
+					expect(tokenBalanceData.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(tokenBalanceData.lockedInPools).toBeDefined();
+					expect(tokenBalanceData.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(tokenBalanceData.withdrawable).toBeDefined();
+					expect(tokenBalanceData.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(tokenBalanceData.total).toBeDefined();
+					expect(tokenBalanceData.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+					const nativeTokenBalance = baseTokenBalance.nativeToken;
+					expect(nativeTokenBalance.free).toBeDefined();
+					expect(nativeTokenBalance.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(nativeTokenBalance.lockedInOrders).toBeDefined();
+					expect(nativeTokenBalance.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(nativeTokenBalance.lockedInPools).toBeDefined();
+					expect(nativeTokenBalance.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(nativeTokenBalance.withdrawable).toBeDefined();
+					expect(nativeTokenBalance.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(nativeTokenBalance.total).toBeDefined();
+					expect(nativeTokenBalance.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(nativeTokenBalance.quotation).toBeDefined();
+					expect(nativeTokenBalance.quotation.token).toBeDefined();
+					expect(nativeTokenBalance.quotation.token.address).toBeDefined();
+					expect(nativeTokenBalance.quotation.token.symbol).toBeDefined();
+					expect(nativeTokenBalance.quotation.token.name).toBeDefined();
+					expect(nativeTokenBalance.quotation.token.decimals).toBeGreaterThan(0);
+					expect(nativeTokenBalance.quotation.token.raw).toBeDefined();
+					expect(nativeTokenBalance.quotation.tokenToQuote).toBeDefined();
+					expect(nativeTokenBalance.quotation.tokenToQuote.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(nativeTokenBalance.quotation.quoteToToken).toBeDefined();
+					expect(nativeTokenBalance.quotation.quoteToToken.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+					const beaconTokenBalance = baseTokenBalance.beaconToken;
+					expect(beaconTokenBalance.free).toBeDefined();
+					expect(beaconTokenBalance.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(beaconTokenBalance.lockedInOrders).toBeDefined();
+					expect(beaconTokenBalance.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(beaconTokenBalance.lockedInPools).toBeDefined();
+					expect(beaconTokenBalance.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(beaconTokenBalance.withdrawable).toBeDefined();
+					expect(beaconTokenBalance.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(beaconTokenBalance.total).toBeDefined();
+					expect(beaconTokenBalance.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(beaconTokenBalance.quotation).toBeDefined();
+					expect(beaconTokenBalance.quotation.token).toBeDefined();
+					expect(beaconTokenBalance.quotation.token.address).toBeDefined();
+					expect(beaconTokenBalance.quotation.token.symbol).toBeDefined();
+					expect(beaconTokenBalance.quotation.token.name).toBeDefined();
+					expect(beaconTokenBalance.quotation.token.decimals).toBeGreaterThan(0);
+					expect(beaconTokenBalance.quotation.token.raw).toBeDefined();
+					expect(beaconTokenBalance.quotation.tokenToQuote).toBeDefined();
+					expect(beaconTokenBalance.quotation.tokenToQuote.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(beaconTokenBalance.quotation.quoteToToken).toBeDefined();
+					expect(beaconTokenBalance.quotation.quoteToToken.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				}
+
+				expect(result.total.nativeToken).toBeDefined();
+				expect(result.total.beaconToken).toBeDefined();
+
+				const totalNativeToken = result.total.nativeToken;
+				expect(totalNativeToken.free).toBeDefined();
+				expect(totalNativeToken.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(totalNativeToken.lockedInOrders).toBeDefined();
+				expect(totalNativeToken.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(totalNativeToken.lockedInPools).toBeDefined();
+				expect(totalNativeToken.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(totalNativeToken.withdrawable).toBeDefined();
+				expect(totalNativeToken.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(totalNativeToken.total).toBeDefined();
+				expect(totalNativeToken.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+				const totalBeaconToken = result.total.beaconToken;
+				expect(totalBeaconToken.free).toBeDefined();
+				expect(totalBeaconToken.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(totalBeaconToken.lockedInOrders).toBeDefined();
+				expect(totalBeaconToken.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(totalBeaconToken.lockedInPools).toBeDefined();
+				expect(totalBeaconToken.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(totalBeaconToken.withdrawable).toBeDefined();
+				expect(totalBeaconToken.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(totalBeaconToken.total).toBeDefined();
+				expect(totalBeaconToken.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+				const baseTokenBalance = result.tokens.get(firstMarketBaseTokenAddress);
+				expect(baseTokenBalance).toBeDefined();
+				expect(baseTokenBalance.token.address).toBe(firstMarketBaseTokenAddress);
+
+				const quoteTokenBalance = result.tokens.get(firstMarketQuoteTokenAddress);
+				expect(quoteTokenBalance).toBeDefined();
+				expect(quoteTokenBalance.token.address).toBe(firstMarketQuoteTokenAddress);
+
+				const nativeTokenBalance = getNotNullOrThrowError<TokenBalance>(
+					result.tokens.values().find((tokenBalance: TokenBalance) => tokenBalance.token.symbol === nativeToken.symbol),
+					`Native token with symbol ${nativeToken.symbol} not found in balances`
+				);
+				expect(nativeTokenBalance.token.symbol).toBe(nativeToken.symbol);
+
+				const beaconTokenBalance = getNotNullOrThrowError<TokenBalance>(
+					result.tokens.values().find((tokenBalance: TokenBalance) => tokenBalance.token.symbol === beaconToken.symbol),
+					`Beacon token with symbol ${beaconToken.symbol} not found in balances`
+				);
+				expect(beaconTokenBalance.token.symbol).toBe(beaconToken.symbol);
+
+				const feePaymentTokenBalance = getNotNullOrThrowError<TokenBalance>(
+					result.tokens.values().find((tokenBalance: TokenBalance) => tokenBalance.token.symbol === feePaymentToken.symbol),
+					`Fee payment token with symbol ${feePaymentToken.symbol} not found in balances`
+				);
+				expect(feePaymentTokenBalance.token.symbol).toBe(feePaymentToken.symbol);
 			});
 		});
 	});
