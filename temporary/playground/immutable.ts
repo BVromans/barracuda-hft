@@ -1,6 +1,6 @@
-import { List, Map } from '../../src/extensions/immutablejs/types';
+import { MList, MMap, List, Map } from '../../src/types';
 
-const map: Map<string, number> = Map<string, number>({ 'a': 1, 'b': 2, 'c': 3 });
+const map: Map<string, number> = MMap<string, number>({ 'a': 1, 'b': 2, 'c': 3 });
 
 map.set('d', 4);
 map.set('e', 5);
@@ -26,7 +26,7 @@ console.log(map.getIn(['h', 'i']));
 console.log(map.get('h.j'));
 
 
-const list: List<number> = List<number>([1, 2, 3]);
+const list: List<number> = MList<number>([1, 2, 3]);
 
 list.push(4);
 list.push(5);

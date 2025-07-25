@@ -1,7 +1,7 @@
-import { promises as fs } from 'fs';
+import { readFileSync } from 'fs';
 import * as path from 'path';
 import { parse } from 'yaml';
-import { Map } from './types';
+import { Map } from 'immutable';
 
 /**
  * Centralized, singleton application properties/configuration.
@@ -21,7 +21,7 @@ export class Properties {
 	 * Constructor
 	 */
 	private constructor() {
-		this.map = new Map();
+		this.map = Map<string, any>().asMutable();
 	}
 
 	/**
@@ -52,9 +52,9 @@ export class Properties {
 	 * Initial load
 	 */
 	private initialLoad(): void {
-		this.map.setIn('paths.root', process.cwd());
-		this.map.setIn('paths.resources', path.join(this.get<string>('paths.root'), 'resources'));
-		this.map.setIn('paths.resources.configuration', path.join(this.get<string>('paths.resources'), 'configuration'));
+		this.map.set('paths.root', process.cwd());
+		this.map.set('paths.resources', path.join(this.get<string>('paths.root'), 'resources'));
+		this.map.set('paths.resources.configuration', path.join(this.get<string>('paths.resources'), 'configuration'));
 	}
 
 	/**
@@ -69,22 +69,21 @@ export class Properties {
 	private async loadFromConfigurationFiles(): Promise<void> {
 		const configurationFolder = this.get<string>('paths.resources.configuration');
 
-		let configuration: Map<string, any> = new Map<string, any>();
+		let configuration: Map<string, any> = Map<string, any>().asMutable();
 
-		const loadYaml = async (file: string): Promise<Map<string, any>> => {
-			const content = await fs.readFile(path.join(configurationFolder, file), 'utf8');
+		const loadYaml = (file: string): Map<string, any> => {
+			const content = readFileSync(path.join(configurationFolder, file), 'utf8');
 
-			return new Map<string, any>(parse(content));
+			return Map<string, any>(parse(content)).asMutable();
 		};
 
-		configuration = configuration.mergeDeep(await loadYaml('main.yaml'));
-		configuration = configuration.mergeDeep(await loadYaml('common.yaml'));
+		configuration = configuration.mergeDeep(loadYaml('main.yml'));
+		configuration = configuration.mergeDeep(loadYaml('common.yml'));
 
 		// override env if set
-		const environment = process.env.ENVIRONMENT || configuration.getIn('environment');
+		const environment = process.env.ENVIRONMENT || configuration.get('environment');
 		if (environment) {
-			configuration.setIn('environment', environment);
-			configuration = configuration.mergeDeep(await loadYaml(configuration.getIn<string>(`${environment}.yml`)));
+			configuration = configuration.mergeDeep(loadYaml(`${environment}.yml`));
 		}
 
 		this.map.mergeDeep(configuration);
@@ -118,7 +117,7 @@ export class Properties {
 		for (let [key, value] of Object.entries(process.env)) {
 			key = key.toLowerCase();
 
-			this.map.setIn(key, parseEnvironmentVariableValue(value));
+			this.map.set(key, parseEnvironmentVariableValue(value));
 		}
 	}
 
@@ -126,18 +125,18 @@ export class Properties {
 	 * Define extra properties
 	 */
 	private defineExtraProperties(): void {
-		this.map.setIn('retry.default.maximumNumberOfRetries', 3);
-		this.map.setIn('retry.default.delayBetweenRetries', 1000);
-		this.map.setIn('retry.default.timeout', 30000);
-		this.map.setIn('retry.default.timeoutErrorMessage', 'Timeout exceeded.');
+		this.map.set('retry.default.maximumNumberOfRetries', 3);
+		this.map.set('retry.default.delayBetweenRetries', 1000);
+		this.map.set('retry.default.timeout', 30000);
+		this.map.set('retry.default.timeoutErrorMessage', 'Timeout exceeded.');
 
-		this.map.setIn('cache.default.ttlSeconds', 6 * 60 * 60);
-		this.map.setIn('cache.default.cacheKey', (request: any) => request.toString());
+		this.map.set('cache.default.ttlSeconds', 6 * 60 * 60);
+		this.map.set('cache.default.cacheKey', (request: any) => request.toString());
 
-		this.map.setIn('cache.rujira.fin.getAllTokens', 6 * 60 * 60);
-		this.map.setIn('cache.rujira.fin.getAllMarkets', 6 * 60 * 60);
+		this.map.set('cache.rujira.fin.getAllTokens', 6 * 60 * 60);
+		this.map.set('cache.rujira.fin.getAllMarkets', 6 * 60 * 60);
 
-		this.map.setIn('constant.rujira.markets.active', 'LIVE');
+		this.map.set('constant.rujira.markets.active', 'LIVE');
 	}
 
 	/**
@@ -146,7 +145,7 @@ export class Properties {
 	 * @returns
 	 */
 	public get<T = any>(key: string): T {
-		const value = this.getOrDefault<T>(key);
+		const value = this.getOrDefault(key);
 
 		if (value === undefined) {
 			throw new Error(`Property "${key}" not found.`);
@@ -162,7 +161,7 @@ export class Properties {
 	 * @returns
 	 */
 	public getOrDefault<T = any>(key: string, defaultValue?: T): T | undefined {
-		let result: T | undefined = this.map.getIn(key);
+		let result: T | undefined = this.map.get(key);
 
 		if (result) {
 			return result;
@@ -170,7 +169,7 @@ export class Properties {
 
 		const modifiedKey = key.toLowerCase().replace(/\./g, '_');
 
-		result = this.map.getIn(modifiedKey);
+		result = this.map.get(modifiedKey);
 
 		if (result) {
 			return result;
@@ -199,7 +198,7 @@ export class Properties {
 	 * @param value
 	 */
 	public set(key: string, value: any): void {
-		this.map.setIn(key, value);
+		this.map.set(key, value);
 	}
 }
 
