@@ -6,9 +6,10 @@ import Decimal from 'decimal.js';
 import BN from "bn.js";
 import { GasPrice } from '@cosmjs/stargate';
 import { properties } from './properties';
-import { List, Map } from './extensions/immutablejs/types';
+import { List, Map } from 'immutable';
+import { MList, MMap } from './extensions/immutablejs/types';
 
-export { List, Map };
+export { List, Map, MList, MMap };
 
 export const DECIMAL_0 = new Decimal(0);
 export const DECIMAL_100 = new Decimal(100);

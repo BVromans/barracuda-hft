@@ -410,7 +410,7 @@ export class Fin {
 
 			addresses = addresses
 				.map((address: TokenAddress) => address?.toLowerCase().trim())
-				.filter((address: TokenAddress) => address) as List<TokenAddress>;
+				.filter((address: TokenAddress) => address);
 		}
 
 		if (symbols) {
@@ -420,15 +420,15 @@ export class Fin {
 
 			symbols = symbols
 				.map((symbol: TokenSymbol) => symbol?.toLowerCase().trim())
-				.filter((symbol: TokenSymbol) => symbol) as List<TokenSymbol>;
+				.filter((symbol: TokenSymbol) => symbol);
 		}
 
 		if (!addresses?.size && !symbols?.size) {
 			throw new Error("You must provide at least one non-empty address or symbol");
 		}
 
-		addresses = addresses as List<TokenAddress>;
-		symbols = symbols as List<TokenSymbol>;
+		addresses = addresses;
+		symbols = symbols;
 
 		const tokens = Map<TokenAddress, Token>();
 
@@ -527,7 +527,7 @@ export class Fin {
 
 			addresses = addresses
 				.map((address: MarketAddress) => address?.toLowerCase().trim())
-				.filter((address: MarketAddress) => address) as List<MarketAddress>;
+				.filter((address: MarketAddress) => address);
 		}
 
 		if (symbols) {
@@ -537,15 +537,15 @@ export class Fin {
 
 			symbols = symbols
 				.map((symbol: MarketSymbol) => symbol?.toLowerCase().trim())
-				.filter((symbol: MarketSymbol) => symbol) as List<MarketSymbol>;
+				.filter((symbol: MarketSymbol) => symbol);
 		}
 
 		if (!addresses?.size && !symbols?.size) {
 			throw new Error("You must provide at least one non-empty address or symbol");
 		}
 
-		addresses = addresses as List<MarketAddress>;
-		symbols = symbols as List<MarketSymbol>;
+		addresses = addresses;
+		symbols = symbols;
 
 		const markets = Map<MarketAddress, Market>();
 

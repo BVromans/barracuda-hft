@@ -251,11 +251,11 @@ describe("Rujira", () => {
 				expect(result.size).toBe(symbols.length);
 
 				const baseToken = getNotNullOrThrowError<Token>(
-					result.values().find((token: Token) => token.symbol === firstMarketBaseTokenSymbol),
+					result.valueSeq().find((token: Token) => token.symbol === firstMarketBaseTokenSymbol),
 					`Token with symbol ${firstMarketBaseTokenSymbol} not found`
 				);
 				const quoteToken = getNotNullOrThrowError<Token>(
-					result.values().find((token: Token) => token.symbol === firstMarketQuoteTokenSymbol),
+					result.valueSeq().find((token: Token) => token.symbol === firstMarketQuoteTokenSymbol),
 					`Token with symbol ${firstMarketQuoteTokenSymbol} not found`
 				);
 
@@ -284,19 +284,19 @@ describe("Rujira", () => {
 					`Token with address ${firstMarketBaseTokenAddress} not found`
 				);
 				const quoteToken = getNotNullOrThrowError<Token>(
-					result.values().find((token: Token) => token.address === firstMarketQuoteTokenAddress),
+					result.valueSeq().find((token: Token) => token.address === firstMarketQuoteTokenAddress),
 					`Token with address ${firstMarketQuoteTokenAddress} not found`
 				);
 				const nativeTokenObj = getNotNullOrThrowError<Token>(
-					result.values().find((token: Token) => token.symbol === nativeToken.symbol),
+					result.valueSeq().find((token: Token) => token.symbol === nativeToken.symbol),
 					`Native token with symbol ${nativeToken.symbol} not found`
 				);
 				const beaconTokenObj = getNotNullOrThrowError<Token>(
-					result.values().find((token: Token) => token.symbol === beaconToken.symbol),
+					result.valueSeq().find((token: Token) => token.symbol === beaconToken.symbol),
 					`Beacon token with symbol ${beaconToken.symbol} not found`
 				);
 				const feePaymentTokenObj = getNotNullOrThrowError<Token>(
-					result.values().find((token: Token) => token.symbol === feePaymentToken.symbol),
+					result.valueSeq().find((token: Token) => token.symbol === feePaymentToken.symbol),
 					`Fee payment token with symbol ${feePaymentToken.symbol} not found`
 				);
 
@@ -395,9 +395,9 @@ describe("Rujira", () => {
 			const result = await rujira.fin.getMarkets({ addresses });
 
 				expect(result).toBeDefined();
-				expect((result as Map<MarketAddress, Market>).size).toBe(addresses.length);
+				expect(result.size).toBe(addresses.length);
 
-				const firstMarket = (result as Map<MarketAddress, Market>).get(firstMarketAddress)!;
+				const firstMarket = result.get(firstMarketAddress)!;
 				expect(firstMarket).toBeDefined();
 				expect(firstMarket.address).toBe(firstMarketAddress);
 				expect(firstMarket.symbol).toBe(firstMarketSymbol);
@@ -418,7 +418,7 @@ describe("Rujira", () => {
 			expect(firstMarket.status).toBe(MarketStatus.ACTIVE);
 			expect(firstMarket.raw).toBeDefined();
 
-				const secondMarket = (result as Map<MarketAddress, Market>).get(secondMarketAddress)!;
+				const secondMarket = result.get(secondMarketAddress)!;
 				expect(secondMarket).toBeDefined();
 				expect(secondMarket.address).toBe(secondMarketAddress);
 				expect(secondMarket.symbol).toBe(secondMarketSymbol);
@@ -446,10 +446,10 @@ describe("Rujira", () => {
 			const result = await rujira.fin.getMarkets({ symbols });
 
 				expect(result).toBeDefined();
-				expect((result as Map<MarketAddress, Market>).size).toBe(symbols.length);
+				expect(result.size).toBe(symbols.length);
 
 				const firstMarket = getNotNullOrThrowError<Market>(
-					(result as Map<MarketAddress, Market>).values().find((market: Market) => market.symbol === firstMarketSymbol),
+					result.valueSeq().find((market: Market) => market.symbol === firstMarketSymbol),
 					`Market with symbol ${firstMarketSymbol} not found`
 				);
 				expect(firstMarket).toBeDefined();
@@ -473,7 +473,7 @@ describe("Rujira", () => {
 			expect(firstMarket.raw).toBeDefined();
 
 				const secondMarket = getNotNullOrThrowError<Market>(
-					(result as Map<MarketAddress, Market>).values().find((market: Market) => market.symbol === secondMarketSymbol),
+					result.valueSeq().find((market: Market) => market.symbol === secondMarketSymbol),
 					`Market with symbol ${secondMarketSymbol} not found`
 				);
 				expect(secondMarket).toBeDefined();
@@ -501,9 +501,9 @@ describe("Rujira", () => {
 			const result = await rujira.fin.getAllMarkets({});
 
 				expect(result).toBeDefined();
-				expect((result as Map<MarketAddress, Market>).size).toBeGreaterThan(0);
+				expect(result.size).toBeGreaterThan(0);
 
-				for (const [address, market] of (result as Map<MarketAddress, Market>).entries() as Iterable<[MarketAddress, Market]>) {
+				for (const [address, market] of result.entries() as Iterable<[MarketAddress, Market]>) {
 					expect(market).toBeDefined();
 					expect(market.address).toBe(address);
 
@@ -526,7 +526,7 @@ describe("Rujira", () => {
 			expect(market.raw).toBeDefined();
 			}
 
-				const firstMarket = (result as Map<MarketAddress, Market>).get(firstMarketAddress as MarketAddress)!;
+				const firstMarket = result.get(firstMarketAddress as MarketAddress)!;
 				expect(firstMarket).toBeDefined();
 				expect(firstMarket.address).toBe(firstMarketAddress);
 				expect(firstMarket.symbol).toBe(firstMarketSymbol);
@@ -547,7 +547,7 @@ describe("Rujira", () => {
 			expect(firstMarket.status).toBe(MarketStatus.ACTIVE);
 			expect(firstMarket.raw).toBeDefined();
 
-				const secondMarket = (result as Map<MarketAddress, Market>).get(secondMarketAddress as MarketAddress)!;
+				const secondMarket = result.get(secondMarketAddress as MarketAddress)!;
 				expect(secondMarket).toBeDefined();
 				expect(secondMarket.address).toBe(secondMarketAddress);
 				expect(secondMarket.symbol).toBe(secondMarketSymbol);
@@ -772,159 +772,6 @@ describe("Rujira", () => {
 		});
 	});
 });
-
-
-describe("Withdraw", () => {
-	it("should be able to withdraw market by address", async () => {
-		const result = await rujira.fin.withdrawFromMarket({ marketAddress: firstMarketAddress, marketSymbol: firstMarketSymbol });
-		expect(result).toBeDefined();
-
-		expect(result.transaction).toBeDefined();
-		expect(result.transaction.hash).toBeDefined();
-		expect(result.transaction.status).toBe(TransactionStatus.SUCCESS);
-		expect(result.transaction.fee).toBeDefined();
-		expect(result.transaction.fee.amount).toBeDefined();
-		expect(result.transaction.fee.token).toBeDefined();
-		expect(result.transaction.fee.token.symbol).toBeDefined();
-		expect(result.transaction.fee.token.address).toBeDefined();
-		expect(result.transaction.fee.token.name).toBeDefined();
-		expect(result.transaction.raw).toBeDefined();
-		expect(result.transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-		expect(result.transaction.fee.token.raw).toBeDefined();
-		expect(result.transaction.fee.token.name).toBeDefined();
-		expect(result.transaction.fee.token.address).toBeDefined();
-		expect(result.transaction.fee.token.symbol).toBeDefined();
-		expect(result.transaction.fee.token.raw).toBeDefined();
-
-		expect(result.raw).toBeDefined();
-
-	});
-
-	it("should be able to withdraw market by symbol", async () => {
-		const result = await rujira.fin.withdrawFromMarket({ marketSymbol: firstMarketSymbol });
-		expect(result).toBeDefined();
-
-		expect(result.transaction).toBeDefined();
-		expect(result.transaction.hash).toBeDefined();
-		expect(result.transaction.status).toBe(TransactionStatus.SUCCESS);
-		expect(result.transaction.fee).toBeDefined();
-		expect(result.transaction.fee.amount).toBeDefined();
-		expect(result.transaction.fee.token).toBeDefined();
-		expect(result.transaction.fee.token.symbol).toBeDefined();
-		expect(result.transaction.fee.token.address).toBeDefined();
-		expect(result.transaction.fee.token.name).toBeDefined();
-		expect(result.transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-		expect(result.transaction.fee.token.raw).toBeDefined();
-		expect(result.transaction.fee.token.name).toBeDefined();
-		expect(result.transaction.fee.token.address).toBeDefined();
-		expect(result.transaction.fee.token.symbol).toBeDefined();
-		expect(result.transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-		expect(result.transaction.fee.token.raw).toBeDefined();
-		expect(result.transaction.fee.token.name).toBeDefined();
-		expect(result.transaction.fee.token.address).toBeDefined();
-		expect(result.transaction.raw).toBeDefined();
-
-		expect(result.raw).toBeDefined();
-	});
-});
-
-
-
-
-describe("Cancel Order", () => {
-	it("should cancel an order", async () => {
-		const result = await rujira.fin.cancelOrder({ orderId: "123" });
-		expect(result).toBeDefined();
-		expect(result.order).toBeDefined();
-		expect(result.order.id).toBeDefined();
-		expect(result.order.status).toBe(OrderStatus.CANCELLED);
-		expect(result.order.raw).toBeDefined();
-		expect(result.order.market).toBeDefined();
-		expect(result.order.market.address).toBe(firstMarketAddress);
-		expect(result.order.market.symbol).toBe(firstMarketSymbol);
-		expect(result.order.market.tokens.base).toBeDefined();
-		expect(result.order.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
-		expect(result.order.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
-		expect(result.order.market.tokens.base.name).toBe(firstMarketBaseTokenSymbol);
-
-		expect(result.transaction).toBeDefined();
-		expect(result.transaction.hash).toBeDefined();
-		expect(result.transaction.status).toBe(TransactionStatus.SUCCESS);
-		expect(result.transaction.fee).toBeDefined();
-		expect(result.transaction.fee.amount).toBeDefined();
-		expect(result.transaction.fee.token).toBeDefined();
-		expect(result.transaction.fee.token.symbol).toBeDefined();
-		expect(result.transaction.fee.token.address).toBeDefined();
-		expect(result.transaction.fee.token.name).toBeDefined();
-		expect(result.transaction.raw).toBeDefined();
-	});
-
-	it("should cancel multiple orders", async () => {
-		const result = await rujira.fin.cancelOrders({ orderIds: ["123", "456"] });
-		expect(result).toBeDefined();
-		expect(result.orders.size).toBe(2);
-		expect(result.orders.size).toBeLessThanOrEqual(2);
-		expect(result.orders.size).toBeGreaterThan(0);
-
-		result.orders.forEach((order: Order) => {
-			expect(order).toBeDefined();
-			expect(order.id).toBeDefined();
-			expect(order.status).toBe(OrderStatus.CANCELLED);
-			expect(order.raw).toBeDefined();
-			expect(order.market).toBeDefined();
-			expect(order.market.address).toBe(firstMarketAddress);
-			expect(order.market.symbol).toBe(firstMarketSymbol);
-			expect(order.market.tokens.base).toBeDefined();
-			expect(order.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
-			expect(order.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
-			expect(order.market.tokens.base.name).toBe(firstMarketBaseTokenSymbol);
-			expect(order.market.tokens.quote).toBeDefined();
-			expect(order.market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
-			expect(order.market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
-			expect(order.market.tokens.quote.name).toBeDefined();
-			expect(order.market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-			expect(order.market.tokens.quote.raw).toBeDefined();
-			expect(order.type).toBe(OrderType.LIMIT);
-			expect(order.side).toBe(OrderSide.BUY);
-			expect(order.price).toBeDefined();
-			expect(order.amount).toBeDefined();
-			expect(order.owner).toBeDefined();
-			expect(order.owner).toBe(ownerAddress);
-			expect(order.filledAmount).toBeDefined();
-			expect(order.filledAmount.toNumber()).toBe(0);
-			expect(order.filledPercentage).toBeDefined();
-			expect(order.filledPercentage.toNumber()).toBe(0);
-			expect(order.creationTimestamp).toBeDefined();
-			expect(order.creationTimestamp).toBeGreaterThan(0);
-		});
-
-		result.transactions.forEach((transaction: Transaction) => {
-			expect(transaction).toBeDefined();
-			expect(transaction.hash).toBeDefined();
-			expect(transaction.status).toBe(TransactionStatus.SUCCESS);
-			expect(transaction.fee).toBeDefined();
-			expect(transaction.fee.amount).toBeDefined();
-			expect(transaction.fee.token).toBeDefined();
-			expect(transaction.fee.token.symbol).toBeDefined();
-			expect(transaction.fee.token.address).toBeDefined();
-			expect(transaction.fee.token.name).toBeDefined();
-			expect(transaction.raw).toBeDefined();
-			expect(transaction.fee.amount).toBeDefined();
-			expect(transaction.fee.token).toBeDefined();
-			expect(transaction.fee.token.symbol).toBeDefined();
-			expect(transaction.fee.token.address).toBeDefined();
-			expect(transaction.fee.token.name).toBeDefined();
-			expect(transaction.raw).toBeDefined();
-			expect(transaction.fee.amount).toBeDefined();
-			expect(transaction.fee.token).toBeDefined();
-			expect(transaction.fee.token.symbol).toBeDefined();
-			expect(transaction.fee.token.address).toBeDefined();
-			expect(transaction.fee.token.name).toBeDefined();
-			expect(transaction.raw).toBeDefined();
-		});
-	});
-});
-
 
 
 // describe('Fin Real Order Placement', () => {

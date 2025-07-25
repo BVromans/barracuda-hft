@@ -1,64 +1,92 @@
-import { Map, List } from 'immutable';
+import { Map, List, MapOf } from 'immutable';
 
-const originalConstructor = Map.prototype.constructor;
-
-/**
- * Constructor for the map
- * @param entries - The entries to initialize the map with
- * @returns The map
- */
-Map.prototype.constructor = function MapConstructor<K, V>(
-  entries?: Iterable<[K, V]> | { [key: string]: V } | Map<K, V>
-): Map<K, V> {
-  const map = originalConstructor(entries);
-
-	return map.asMutable();
-};
-
-const originalGet = Map.prototype.get;
 
 /**
- * Get a value from the map
- * @param key - The key to get the value from
- * @param notSetValue - The value to return if the key is not set
- * @returns The value from the map
+ * Enhanced List factory that returns mutable lists by default
+ * @param collection - The collection to initialize the list with
+ * @returns A mutable list
  */
-Map.prototype.get = function<K, V, NSV = any>(key: K, notSetValue?: NSV): V | NSV {
-	if (Array.isArray(key)) {
-		return originalGet.call(this, key, notSetValue);
-	}
+function MList<T>(collection?: Iterable<T> | ArrayLike<T>): List<T> {
+	let list = List(collection);
 
-	if (typeof key === 'string') {
-		const path = key.trim().split('.');
-		return originalGet.call(this, path, notSetValue);
-	}
+	list = list.asMutable();
 
-	return originalGet.call(this, key, notSetValue);
-};
+	return list;
+}
 
-const originalSet = Map.prototype.set;
+MList.isList = List.isList;
 
 /**
- * Set a value in the map
- * @param key - The key to set the value for
- * @param value - The value to set
- * @returns The map with the value set
+ * Enhanced Map factory that returns mutable maps by default
+ * @param collection - The collection to initialize the map with
+ * @returns A mutable map
  */
-Map.prototype.set = function<K, V>(key: K, value: V): Map<K, V> {
-	if (key == null) {
-		throw new Error(`Invalid key ("${key}").`);
-	}
+function MMap<K, V>(collection?: Iterable<readonly [K, V]>): Map<K, V>;
+function MMap<R extends { [key in PropertyKey]: unknown }>(obj: R): MapOf<R>;
+function MMap<V>(obj: { [key: string]: V }): Map<string, V>;
+function MMap<K extends string | symbol, V>(obj: { [P in K]?: V }): Map<K, V>;
+function MMap(entries?: any): Map<any, any> {
+	let map = Map(entries);
 
-	if (Array.isArray(key)) {
-		return originalSet.call(this, key, value);
-	}
+	map = map.asMutable();
 
-	if (typeof key === 'string') {
-		const path = key.trim().split('.');
-		return originalSet.call(this, path, value);
-	}
+	const originalGet = map.get as any;
+	const originalSet = map.set as any;
 
-	return originalSet.call(this, key, value);
-};
+	/**
+	 * Get a value from the map
+	 * @param key - The key to get the value from
+	 * @param notSetValue - The value to return if the key is not set
+	 * @returns The value from the map
+	 */
+	map.get = function<K, V, NSV = any>(key: K, notSetValue?: NSV): V | NSV {
+		if (Array.isArray(key)) {
+			return originalGet.call(this, key, notSetValue) as V | NSV;
+		}
 
-export { Map, List };
+		if (typeof key === 'string') {
+			const path = key.trim().split('.');
+			if (path.length === 1) {
+				return originalGet.call(this, path[0], notSetValue) as V | NSV;
+			}
+
+			return map.getIn(path, notSetValue) as V | NSV;
+		}
+
+		return originalGet.call(this, key, notSetValue) as V | NSV;
+	};
+
+	/**
+	 * Set a value in the map
+	 * @param key - The key to set the value for
+	 * @param value - The value to set
+	 * @returns The map with the value set
+	 */
+	// @ts-ignore
+	map.set = function<K, V>(key: K, value: V): Map<K, V> {
+		if (key == null) {
+			throw new Error(`Invalid key ("${key}").`);
+		}
+
+		if (Array.isArray(key)) {
+			return originalSet.call(this, key, value) as Map<K, V>;
+		}
+
+		if (typeof key === 'string') {
+			const path = key.trim().split('.');
+			if (path.length === 1) {
+				return originalSet.call(this, path[0], value) as Map<K, V>;
+			}
+
+			return map.setIn(path, value) as Map<K, V>;
+		}
+
+		return originalSet.call(this, key, value) as Map<K, V>;
+	};
+
+	return map;
+}
+
+MMap.isMap = Map.isMap;
+
+export { MMap, MList };
