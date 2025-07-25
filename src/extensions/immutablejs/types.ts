@@ -1,5 +1,24 @@
 import { Map, List, MapOf } from 'immutable';
 
+declare module 'immutable' {
+	interface List<T> {
+		/**
+		 * Like get(), but throws if the index is not set
+		 * @param index The index to look up
+		 * @param notSetValue The value to return if the index is not set
+		 */
+		getOrThrow(index: number, notSetValue?: T): T;
+	}
+
+  interface Map<K, V> {
+    /**
+     * Like get(), but throws if the key isn’t present.
+     * @param key The key to look up
+     * @param notSetValue The value to return if the key is not set
+     */
+    getOrThrow(key: K, notSetValue?: V): V;
+  }
+}
 
 /**
  * Enhanced List factory that returns mutable lists by default
@@ -10,6 +29,27 @@ function MList<T>(collection?: Iterable<T> | ArrayLike<T>): List<T> {
 	let list = List(collection);
 
 	list = list.asMutable();
+
+	const originalGet = list.get as any;
+
+	/**
+	 * Get a value from the list or throw if not found
+	 * @param index The index to look up
+	 * @param notSetValue The value to return if the index is not set
+	 */
+	list.getOrThrow = function<T, NSV = any>(index: number, notSetValue?: NSV): T | NSV {
+		const value = originalGet.call(this, index, notSetValue);
+
+		if (value === undefined || value === null) {
+			if (notSetValue === undefined) {
+				throw new Error(`Index "${index}" not found.`);
+			}
+
+			return notSetValue;
+		}
+
+		return value;
+	}
 
 	return list;
 }
@@ -54,6 +94,27 @@ function MMap(entries?: any): Map<any, any> {
 		}
 
 		return originalGet.call(this, key, notSetValue) as V | NSV;
+	};
+
+	/**
+	 * Get a value from the map or throw if not found
+	 * @param key - The key to get the value from
+	 * @param notSetValue - The value to return if the key is not set
+	 * @returns The value from the map
+	 */
+	// @ts-ignore
+	map.getOrThrow = function<K, V, NSV = any>(key: K, notSetValue?: NSV): V | NSV {
+		const value = map.get(key, notSetValue);
+
+		if (value === undefined || value === null) {
+			if (notSetValue === undefined) {
+				throw new Error(`Key "${key}" not found.`);
+			}
+
+			return notSetValue;
+		}
+
+		return value;
 	};
 
 	/**

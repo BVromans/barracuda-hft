@@ -90,7 +90,7 @@ import {
 import Decimal from 'decimal.js';
 import { properties } from "./properties";
 import { GasPrice } from "@cosmjs/stargate";
-import { runWithRetryAndTimeout } from "./utils";
+import { getNotNullOrThrowError, runWithRetryAndTimeout } from "./utils";
 
 /**
  * LRU cache
@@ -385,9 +385,9 @@ export class Fin {
 		}
 
 		if (address) {
-			return this.tokensByAddress.get(address);
+			return this.tokensByAddress.getOrThrow(address);
 		} else if (symbol) {
-			return this.tokensBySymbol.get(symbol);
+			return this.tokensBySymbol.getOrThrow(symbol);
 		}
 
 		throw new Error(`Token not found: ${address || symbol}`);
@@ -427,19 +427,19 @@ export class Fin {
 			throw new Error("You must provide at least one non-empty address or symbol");
 		}
 
-		addresses = addresses;
-		symbols = symbols;
+		addresses = getNotNullOrThrowError<List<TokenAddress>>(addresses);
+		symbols = getNotNullOrThrowError<List<TokenSymbol>>(symbols);
 
 		const tokens = Map<TokenAddress, Token>();
 
 		addresses.forEach((address: TokenAddress) => {
-			const token = this.tokensByAddress.get(address);
+			const token = this.tokensByAddress.getOrThrow(address);
 			if (!token) throw new Error(`Token not found: ${address}`);
 			tokens.set(token.address, token);
 		});
 
 		symbols.forEach((symbol: TokenSymbol) => {
-			const token = this.tokensBySymbol.get(symbol);
+			const token = this.tokensBySymbol.getOrThrow(symbol);
 			if (!token) throw new Error(`Token not found: ${symbol}`);
 			tokens.set(token.address, token);
 		});
@@ -502,9 +502,9 @@ export class Fin {
 		}
 
 		if (address) {
-			return this.marketsByAddress.get(address);
+			return this.marketsByAddress.getOrThrow(address);
 		} else if (symbol) {
-			return this.marketsBySymbol.get(symbol);
+			return this.marketsBySymbol.getOrThrow(symbol);
 		}
 
 		throw new Error(`Market not found: ${address || symbol}`);
@@ -544,19 +544,19 @@ export class Fin {
 			throw new Error("You must provide at least one non-empty address or symbol");
 		}
 
-		addresses = addresses;
-		symbols = symbols;
+		addresses = getNotNullOrThrowError<List<MarketAddress>>(addresses);
+		symbols = getNotNullOrThrowError<List<MarketSymbol>>(symbols);
 
 		const markets = Map<MarketAddress, Market>();
 
 		addresses.forEach((address: MarketAddress) => {
-			const market = this.marketsByAddress.get(address);
+			const market = this.marketsByAddress.getOrThrow(address);
 			if (!market) throw new Error(`Market not found: ${address}`);
 			markets.set(address, market);
 		});
 
 		symbols.forEach((symbol: MarketSymbol) => {
-			const market = this.marketsBySymbol.get(symbol);
+			const market = this.marketsBySymbol.getOrThrow(symbol);
 			if (!market) throw new Error(`Market not found: ${symbol}`);
 			markets.set(market.address, market);
 		});
@@ -774,8 +774,8 @@ export class Fin {
 		asks = maximumNumberOfOrders ? asks.slice(0, maximumNumberOfOrders) : asks;
 		bids = maximumNumberOfOrders ? bids.slice(0, maximumNumberOfOrders) : bids;
 
-		const bestAsk: OrderBookOrder = asks.size > 0 ? asks.get(0) : null;
-		const bestBid: OrderBookOrder = bids.size > 0 ? bids.get(0) : null;
+		const bestAsk: OrderBookOrder = asks.size > 0 ? asks.getOrThrow(0) : undefined as unknown as OrderBookOrder;
+		const bestBid: OrderBookOrder = bids.size > 0 ? bids.getOrThrow(0) : undefined as unknown as OrderBookOrder;
 
 		let middlePrice: OrderBookMiddlePrice | undefined;
 		if (asks.size > 0 && bids.size > 0) {
