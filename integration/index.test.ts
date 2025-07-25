@@ -884,28 +884,28 @@ describe("Rujira", () => {
 				expect(totalBeaconToken.total).toBeDefined();
 				expect(totalBeaconToken.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
-				const baseTokenBalance = result.tokens.get(firstMarketBaseTokenAddress);
+				const baseTokenBalance = result.tokens.getOrThrow(firstMarketBaseTokenAddress);
 				expect(baseTokenBalance).toBeDefined();
 				expect(baseTokenBalance.token.address).toBe(firstMarketBaseTokenAddress);
 
-				const quoteTokenBalance = result.tokens.get(firstMarketQuoteTokenAddress);
+				const quoteTokenBalance = result.tokens.getOrThrow(firstMarketQuoteTokenAddress);
 				expect(quoteTokenBalance).toBeDefined();
 				expect(quoteTokenBalance.token.address).toBe(firstMarketQuoteTokenAddress);
 
 				const nativeTokenBalance = getNotNullOrThrowError<TokenBalance>(
-					result.tokens.values().find((tokenBalance: TokenBalance) => tokenBalance.token.symbol === nativeToken.symbol),
+					result.tokens.valueSeq().find((tokenBalance: TokenBalance) => tokenBalance.token.symbol === nativeToken.symbol),
 					`Native token with symbol ${nativeToken.symbol} not found in balances`
 				);
 				expect(nativeTokenBalance.token.symbol).toBe(nativeToken.symbol);
 
 				const beaconTokenBalance = getNotNullOrThrowError<TokenBalance>(
-					result.tokens.values().find((tokenBalance: TokenBalance) => tokenBalance.token.symbol === beaconToken.symbol),
+					result.tokens.valueSeq().find((tokenBalance: TokenBalance) => tokenBalance.token.symbol === beaconToken.symbol),
 					`Beacon token with symbol ${beaconToken.symbol} not found in balances`
 				);
 				expect(beaconTokenBalance.token.symbol).toBe(beaconToken.symbol);
 
 				const feePaymentTokenBalance = getNotNullOrThrowError<TokenBalance>(
-					result.tokens.values().find((tokenBalance: TokenBalance) => tokenBalance.token.symbol === feePaymentToken.symbol),
+					result.tokens.valueSeq().find((tokenBalance: TokenBalance) => tokenBalance.token.symbol === feePaymentToken.symbol),
 					`Fee payment token with symbol ${feePaymentToken.symbol} not found in balances`
 				);
 				expect(feePaymentTokenBalance.token.symbol).toBe(feePaymentToken.symbol);
