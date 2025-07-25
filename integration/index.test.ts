@@ -16,8 +16,13 @@ import {
 	TokenAddress,
 	TransactionStatus,
 	Wallet,
-	Order
+	Order,
+	OrderStatus,
+	Transaction,
+	OrderType,
+	OrderSide
 } from "../src/types";
+import Decimal from "decimal.js";
 
 let rujira: Rujira;
 
@@ -767,6 +772,159 @@ describe("Rujira", () => {
 		});
 	});
 });
+
+
+describe("Withdraw", () => {
+	it("should be able to withdraw market by address", async () => {
+		const result = await rujira.fin.withdrawFromMarket({ marketAddress: firstMarketAddress, marketSymbol: firstMarketSymbol });
+		expect(result).toBeDefined();
+
+		expect(result.transaction).toBeDefined();
+		expect(result.transaction.hash).toBeDefined();
+		expect(result.transaction.status).toBe(TransactionStatus.SUCCESS);
+		expect(result.transaction.fee).toBeDefined();
+		expect(result.transaction.fee.amount).toBeDefined();
+		expect(result.transaction.fee.token).toBeDefined();
+		expect(result.transaction.fee.token.symbol).toBeDefined();
+		expect(result.transaction.fee.token.address).toBeDefined();
+		expect(result.transaction.fee.token.name).toBeDefined();
+		expect(result.transaction.raw).toBeDefined();
+		expect(result.transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		expect(result.transaction.fee.token.raw).toBeDefined();
+		expect(result.transaction.fee.token.name).toBeDefined();
+		expect(result.transaction.fee.token.address).toBeDefined();
+		expect(result.transaction.fee.token.symbol).toBeDefined();
+		expect(result.transaction.fee.token.raw).toBeDefined();
+
+		expect(result.raw).toBeDefined();
+
+	});
+
+	it("should be able to withdraw market by symbol", async () => {
+		const result = await rujira.fin.withdrawFromMarket({ marketSymbol: firstMarketSymbol });
+		expect(result).toBeDefined();
+
+		expect(result.transaction).toBeDefined();
+		expect(result.transaction.hash).toBeDefined();
+		expect(result.transaction.status).toBe(TransactionStatus.SUCCESS);
+		expect(result.transaction.fee).toBeDefined();
+		expect(result.transaction.fee.amount).toBeDefined();
+		expect(result.transaction.fee.token).toBeDefined();
+		expect(result.transaction.fee.token.symbol).toBeDefined();
+		expect(result.transaction.fee.token.address).toBeDefined();
+		expect(result.transaction.fee.token.name).toBeDefined();
+		expect(result.transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		expect(result.transaction.fee.token.raw).toBeDefined();
+		expect(result.transaction.fee.token.name).toBeDefined();
+		expect(result.transaction.fee.token.address).toBeDefined();
+		expect(result.transaction.fee.token.symbol).toBeDefined();
+		expect(result.transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		expect(result.transaction.fee.token.raw).toBeDefined();
+		expect(result.transaction.fee.token.name).toBeDefined();
+		expect(result.transaction.fee.token.address).toBeDefined();
+		expect(result.transaction.raw).toBeDefined();
+
+		expect(result.raw).toBeDefined();
+	});
+});
+
+
+
+
+describe("Cancel Order", () => {
+	it("should cancel an order", async () => {
+		const result = await rujira.fin.cancelOrder({ orderId: "123" });
+		expect(result).toBeDefined();
+		expect(result.order).toBeDefined();
+		expect(result.order.id).toBeDefined();
+		expect(result.order.status).toBe(OrderStatus.CANCELLED);
+		expect(result.order.raw).toBeDefined();
+		expect(result.order.market).toBeDefined();
+		expect(result.order.market.address).toBe(firstMarketAddress);
+		expect(result.order.market.symbol).toBe(firstMarketSymbol);
+		expect(result.order.market.tokens.base).toBeDefined();
+		expect(result.order.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
+		expect(result.order.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+		expect(result.order.market.tokens.base.name).toBe(firstMarketBaseTokenSymbol);
+
+		expect(result.transaction).toBeDefined();
+		expect(result.transaction.hash).toBeDefined();
+		expect(result.transaction.status).toBe(TransactionStatus.SUCCESS);
+		expect(result.transaction.fee).toBeDefined();
+		expect(result.transaction.fee.amount).toBeDefined();
+		expect(result.transaction.fee.token).toBeDefined();
+		expect(result.transaction.fee.token.symbol).toBeDefined();
+		expect(result.transaction.fee.token.address).toBeDefined();
+		expect(result.transaction.fee.token.name).toBeDefined();
+		expect(result.transaction.raw).toBeDefined();
+	});
+
+	it("should cancel multiple orders", async () => {
+		const result = await rujira.fin.cancelOrders({ orderIds: ["123", "456"] });
+		expect(result).toBeDefined();
+		expect(result.orders.size).toBe(2);
+		expect(result.orders.size).toBeLessThanOrEqual(2);
+		expect(result.orders.size).toBeGreaterThan(0);
+
+		result.orders.forEach((order: Order) => {
+			expect(order).toBeDefined();
+			expect(order.id).toBeDefined();
+			expect(order.status).toBe(OrderStatus.CANCELLED);
+			expect(order.raw).toBeDefined();
+			expect(order.market).toBeDefined();
+			expect(order.market.address).toBe(firstMarketAddress);
+			expect(order.market.symbol).toBe(firstMarketSymbol);
+			expect(order.market.tokens.base).toBeDefined();
+			expect(order.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
+			expect(order.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+			expect(order.market.tokens.base.name).toBe(firstMarketBaseTokenSymbol);
+			expect(order.market.tokens.quote).toBeDefined();
+			expect(order.market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
+			expect(order.market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
+			expect(order.market.tokens.quote.name).toBeDefined();
+			expect(order.market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+			expect(order.market.tokens.quote.raw).toBeDefined();
+			expect(order.type).toBe(OrderType.LIMIT);
+			expect(order.side).toBe(OrderSide.BUY);
+			expect(order.price).toBeDefined();
+			expect(order.amount).toBeDefined();
+			expect(order.owner).toBeDefined();
+			expect(order.owner).toBe(ownerAddress);
+			expect(order.filledAmount).toBeDefined();
+			expect(order.filledAmount.toNumber()).toBe(0);
+			expect(order.filledPercentage).toBeDefined();
+			expect(order.filledPercentage.toNumber()).toBe(0);
+			expect(order.creationTimestamp).toBeDefined();
+			expect(order.creationTimestamp).toBeGreaterThan(0);
+		});
+
+		result.transactions.forEach((transaction: Transaction) => {
+			expect(transaction).toBeDefined();
+			expect(transaction.hash).toBeDefined();
+			expect(transaction.status).toBe(TransactionStatus.SUCCESS);
+			expect(transaction.fee).toBeDefined();
+			expect(transaction.fee.amount).toBeDefined();
+			expect(transaction.fee.token).toBeDefined();
+			expect(transaction.fee.token.symbol).toBeDefined();
+			expect(transaction.fee.token.address).toBeDefined();
+			expect(transaction.fee.token.name).toBeDefined();
+			expect(transaction.raw).toBeDefined();
+			expect(transaction.fee.amount).toBeDefined();
+			expect(transaction.fee.token).toBeDefined();
+			expect(transaction.fee.token.symbol).toBeDefined();
+			expect(transaction.fee.token.address).toBeDefined();
+			expect(transaction.fee.token.name).toBeDefined();
+			expect(transaction.raw).toBeDefined();
+			expect(transaction.fee.amount).toBeDefined();
+			expect(transaction.fee.token).toBeDefined();
+			expect(transaction.fee.token.symbol).toBeDefined();
+			expect(transaction.fee.token.address).toBeDefined();
+			expect(transaction.fee.token.name).toBeDefined();
+			expect(transaction.raw).toBeDefined();
+		});
+	});
+});
+
 
 
 // describe('Fin Real Order Placement', () => {
