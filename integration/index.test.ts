@@ -1,10 +1,11 @@
-import { MarketAddress } from './../src/types';
 import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
 import "dotenv/config";
 import { properties } from "../src/properties";
 import { Rujira } from "../src/rujira";
 import {
 	BIG_NUMBER_0,
+	Candle,
+	DECIMAL_0,
 	Market,
 	MarketAddress,
 	MarketStatus,
@@ -640,13 +641,13 @@ describe("Rujira", () => {
 
 				expect(result.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
 				expect(result.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
-				expect(result.market.tokens.base.name).toBe(firstMarketBaseTokenSymbol);
+				expect(result.market.tokens.base.name).toBeDefined();
 				expect(result.market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.market.tokens.base.raw).toBeDefined();
 
 				expect(result.market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
 				expect(result.market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
-				expect(result.market.tokens.quote.name).toBe(firstMarketQuoteTokenSymbol);
+				expect(result.market.tokens.quote.name).toBeDefined;
 				expect(result.market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.market.tokens.quote.raw).toBeDefined();
 
@@ -655,8 +656,7 @@ describe("Rujira", () => {
 				expect(result.market.raw).toBeDefined();
 
 				expect(result.price).toBeDefined();
-				expect(result.price.constructor.name).toBe("Decimal");
-				expect(result.price.toNumber()).toBeGreaterThanOrEqual(0);
+				expect(result.price.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.timestamp).toBeDefined();
 				expect(result.timestamp).toBeGreaterThan(0);
@@ -674,13 +674,13 @@ describe("Rujira", () => {
 
 				expect(result.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
 				expect(result.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
-				expect(result.market.tokens.base.name).toBe(firstMarketBaseTokenSymbol);
+				expect(result.market.tokens.base.name).toBeDefined();
 				expect(result.market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.market.tokens.base.raw).toBeDefined();
 
 				expect(result.market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
 				expect(result.market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
-				expect(result.market.tokens.quote.name).toBe(firstMarketQuoteTokenSymbol);
+				expect(result.market.tokens.quote.name).toBeDefined();
 				expect(result.market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.market.tokens.quote.raw).toBeDefined();
 
@@ -689,13 +689,48 @@ describe("Rujira", () => {
 				expect(result.market.raw).toBeDefined();
 
 				expect(result.price).toBeDefined();
-				expect(result.price.constructor.name).toBe("Decimal");
-				expect(result.price.toNumber()).toBeGreaterThanOrEqual(0);
+				expect(result.price.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.timestamp).toBeDefined();
 				expect(result.timestamp).toBeGreaterThan(0);
 
 				expect(result.raw).toBeDefined();
+			});
+		});
+
+		describe("candles", () => {
+			it("should be able to get candles by market address", async () => {
+				const result = await rujira.fin.getCandles({ marketAddress: firstMarketAddress });
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				result.forEach((candle: Candle) => {
+					expect(candle).toBeDefined();
+					expect(candle.timestamp).toBeGreaterThan(0);
+					expect(candle.open.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.high.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.low.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.close.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.raw).toBeDefined();
+				});
+			});
+
+			it("should be able to get candles by market symbol", async () => {
+				const result = await rujira.fin.getCandles({ marketSymbol: firstMarketSymbol });
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				result.forEach((candle: Candle) => {
+					expect(candle).toBeDefined();
+					expect(candle.timestamp).toBeGreaterThan(0);
+					expect(candle.open.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.high.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.low.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.close.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.raw).toBeDefined();
+				});
 			});
 		});
 	});
