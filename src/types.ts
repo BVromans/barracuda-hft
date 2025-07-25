@@ -19,8 +19,6 @@ export const DECIMAL_NaN = new Decimal(NaN);
 export const BIG_NUMBER_0 = new BN(0);
 export const BIG_NUMBER_1 = new BN(1);
 export const BIG_NUMBER_100 = new BN(100);
-export const BIG_NUMBER_INFINITY = new BN(Number.POSITIVE_INFINITY);
-export const BIG_NUMBER_NEGATIVE_INFINITY = new BN(Number.NEGATIVE_INFINITY);
 export const BIG_NUMBER_NaN = new BN(NaN);
 
 const NATIVE_TOKEN = {
