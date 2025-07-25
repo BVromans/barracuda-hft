@@ -22,14 +22,21 @@ let walletPrivateKey: string;
 let walletMnemonic: string;
 let wallet: Wallet;
 let transactionHash: string;
-let marketSymbol: string;
-let marketAddress: string;
-let baseTokenAddress: string;
-let quoteTokenAddress: string;
-let baseTokenSymbol: string;
-let quoteTokenSymbol: string;
-let baseTokenAmount: string;
-let quoteTokenAmount: string;
+let firstMarketSymbol: string;
+let firstMarketAddress: string;
+let firstMarketBaseTokenAddress: string;
+let firstMarketQuoteTokenAddress: string;
+let firstMarketBaseTokenSymbol: string;
+let firstMarketQuoteTokenSymbol: string;
+let firstMarketBaseTokenAmount: string;
+let firstMarketQuoteTokenAmount: string;
+let secondMarketSymbol: string;
+let secondMarketAddress: string;
+let secondMarketBaseTokenAddress: string;
+let secondMarketQuoteTokenAddress: string;
+let secondMarketBaseTokenSymbol: string;
+let secondMarketQuoteTokenSymbol: string;
+let secondMarketBaseTokenAmount: string;
 let ownerAddress: string;
 let priceFixed: string;
 
@@ -38,14 +45,21 @@ beforeAll(async () => {
 		'WALLET_PRIVATE_KEY',
 		'WALLET_MNEMONIC',
 		'TRANSACTION_HASH',
-		'MARKET_SYMBOL',
-		'MARKET_ADDRESS',
-		'BASE_TOKEN_ADDRESS',
-		'QUOTE_TOKEN_ADDRESS',
-		'BASE_TOKEN_SYMBOL',
-		'QUOTE_TOKEN_SYMBOL',
-		'BASE_TOKEN_AMOUNT',
-		'QUOTE_TOKEN_AMOUNT',
+		'FIRST_MARKET_SYMBOL',
+		'FIRST_MARKET_ADDRESS',
+		'FIRST_MARKET_BASE_TOKEN_ADDRESS',
+		'FIRST_MARKET_QUOTE_TOKEN_ADDRESS',
+		'FIRST_MARKET_BASE_TOKEN_SYMBOL',
+		'FIRST_MARKET_QUOTE_TOKEN_SYMBOL',
+		'FIRST_MARKET_BASE_TOKEN_AMOUNT',
+		'FIRST_MARKET_QUOTE_TOKEN_AMOUNT',
+		'SECOND_MARKET_SYMBOL',
+		'SECOND_MARKET_ADDRESS',
+		'SECOND_MARKET_BASE_TOKEN_ADDRESS',
+		'SECOND_MARKET_QUOTE_TOKEN_ADDRESS',
+		'SECOND_MARKET_BASE_TOKEN_SYMBOL',
+		'SECOND_MARKET_QUOTE_TOKEN_SYMBOL',
+		'SECOND_MARKET_BASE_TOKEN_AMOUNT',
     'OWNER_ADDRESS',
     'PRICE_FIXED'
 	];
@@ -62,14 +76,21 @@ beforeAll(async () => {
 		walletPrivateKey = process.env.WALLET_PRIVATE_KEY!;
 		walletMnemonic = process.env.WALLET_MNEMONIC!;
 		transactionHash = process.env.TRANSACTION_HASH!;
-		marketSymbol = process.env.MARKET_SYMBOL!;
-		marketAddress = process.env.MARKET_ADDRESS!;
-		baseTokenAddress = process.env.BASE_TOKEN_ADDRESS!;
-		quoteTokenAddress = process.env.QUOTE_TOKEN_ADDRESS!;
-		baseTokenSymbol = process.env.BASE_TOKEN_SYMBOL!;
-		quoteTokenSymbol = process.env.QUOTE_TOKEN_SYMBOL!;
-		baseTokenAmount = process.env.BASE_TOKEN_AMOUNT!;
-		quoteTokenAmount = process.env.QUOTE_TOKEN_AMOUNT!;
+		firstMarketSymbol = process.env.FIRST_MARKET_SYMBOL!;
+		firstMarketAddress = process.env.FIRST_MARKET_ADDRESS!;
+		firstMarketBaseTokenAddress = process.env.FIRST_MARKET_BASE_TOKEN_ADDRESS!;
+		firstMarketQuoteTokenAddress = process.env.FIRST_MARKET_QUOTE_TOKEN_ADDRESS!;
+		firstMarketBaseTokenSymbol = process.env.FIRST_MARKET_BASE_TOKEN_SYMBOL!;
+		firstMarketQuoteTokenSymbol = process.env.FIRST_MARKET_QUOTE_TOKEN_SYMBOL!;
+		firstMarketBaseTokenAmount = process.env.FIRST_MARKET_BASE_TOKEN_AMOUNT!;
+		firstMarketQuoteTokenAmount = process.env.FIRST_MARKET_QUOTE_TOKEN_AMOUNT!;
+		secondMarketSymbol = process.env.SECOND_MARKET_SYMBOL!;
+		secondMarketAddress = process.env.SECOND_MARKET_ADDRESS!;
+		secondMarketBaseTokenAddress = process.env.SECOND_MARKET_BASE_TOKEN_ADDRESS!;
+		secondMarketQuoteTokenAddress = process.env.SECOND_MARKET_QUOTE_TOKEN_ADDRESS!;
+		secondMarketBaseTokenSymbol = process.env.SECOND_MARKET_BASE_TOKEN_SYMBOL!;
+		secondMarketQuoteTokenSymbol = process.env.SECOND_MARKET_QUOTE_TOKEN_SYMBOL!;
+		secondMarketBaseTokenAmount = process.env.SECOND_MARKET_BASE_TOKEN_AMOUNT!;
 		ownerAddress = process.env.OWNER_ADDRESS!;
 		priceFixed = process.env.PRICE_FIXED!;
 
@@ -157,34 +178,34 @@ describe("Rujira", () => {
 		describe("tokens", () => {
 			it("should be able to get a token by address", async () => {
 				const result = await rujira.fin.getToken({
-					address: baseTokenAddress,
+					address: firstMarketBaseTokenAddress,
 				});
 
 				// noinspection DuplicatedCode
 				expect(result).toBeDefined();
-				expect(result.address).toBe(baseTokenAddress);
-				expect(result.symbol).toBe(baseTokenSymbol);
-				expect(result.name).toBe(baseTokenSymbol);
+				expect(result.address).toBe(firstMarketBaseTokenAddress);
+				expect(result.symbol).toBe(firstMarketBaseTokenSymbol);
+				expect(result.name).toBe(firstMarketBaseTokenSymbol);
 				expect(result.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.raw).toBeDefined();
 			});
 
 			it("should be able to get a token by symbol", async () => {
 				const result = await rujira.fin.getToken({
-					symbol: baseTokenSymbol,
+					symbol: firstMarketBaseTokenSymbol,
 				});
 
 				// noinspection DuplicatedCode
 				expect(result).toBeDefined();
-				expect(result.address).toBe(baseTokenAddress);
-				expect(result.symbol).toBe(baseTokenSymbol);
-				expect(result.name).toBe(baseTokenSymbol);
+				expect(result.address).toBe(firstMarketBaseTokenAddress);
+				expect(result.symbol).toBe(firstMarketBaseTokenSymbol);
+				expect(result.name).toBe(firstMarketBaseTokenSymbol);
 				expect(result.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.raw).toBeDefined();
 			});
 
 			it("should be able to get tokens by addresses", async () => {
-				const addresses = [baseTokenAddress, quoteTokenAddress];
+				const addresses = [firstMarketBaseTokenAddress, firstMarketQuoteTokenAddress];
 
 				const result = await rujira.fin.getTokens({
 					addresses: addresses,
@@ -193,42 +214,42 @@ describe("Rujira", () => {
 				expect(result).toBeDefined();
 				expect(result.size).toBe(addresses.length);
 
-				const baseToken = result.get(baseTokenAddress)!;
+				const baseToken = result.get(firstMarketBaseTokenAddress)!;
 				expect(baseToken).toBeDefined();
-				expect(baseToken.address).toBe(baseTokenAddress);
-				expect(baseToken.symbol).toBe(baseTokenSymbol);
+				expect(baseToken.address).toBe(firstMarketBaseTokenAddress);
+				expect(baseToken.symbol).toBe(firstMarketBaseTokenSymbol);
 				expect(baseToken.name).toBeDefined();
 				expect(baseToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(baseToken.raw).toBeDefined();
 
-				const quoteToken = result.get(quoteTokenAddress)!;
+				const quoteToken = result.get(firstMarketQuoteTokenAddress)!;
 				expect(quoteToken).toBeDefined();
-				expect(quoteToken.address).toBe(quoteTokenAddress);
-				expect(quoteToken.symbol).toBe(quoteTokenSymbol);
+				expect(quoteToken.address).toBe(firstMarketQuoteTokenAddress);
+				expect(quoteToken.symbol).toBe(firstMarketQuoteTokenSymbol);
 				expect(quoteToken.name).toBeDefined();
 				expect(quoteToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(quoteToken.raw).toBeDefined();
 			});
 
 			it("should be able to get tokens by symbols", async () => {
-				const symbols = [baseTokenSymbol, quoteTokenSymbol];
+				const symbols = [firstMarketBaseTokenSymbol, firstMarketQuoteTokenSymbol];
 
 				const result = await rujira.fin.getTokens({ symbols });
 
 				expect(result).toBeDefined();
 				expect(result.size).toBe(symbols.length);
 
-				const baseToken = result.find((token: Token) => token.symbol === baseTokenSymbol);
-				const quoteToken = result.find((token: Token) => token.symbol === quoteTokenSymbol);
+				const baseToken = result.find((token: Token) => token.symbol === firstMarketBaseTokenSymbol);
+				const quoteToken = result.find((token: Token) => token.symbol === firstMarketQuoteTokenSymbol);
 
 				expect(baseToken).toBeDefined();
-				expect(baseToken.symbol).toBe(baseTokenSymbol);
+				expect(baseToken.symbol).toBe(firstMarketBaseTokenSymbol);
 				expect(baseToken.name).toBeDefined();
 				expect(baseToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(baseToken.raw).toBeDefined();
 
 				expect(quoteToken).toBeDefined();
-				expect(quoteToken.symbol).toBe(quoteTokenSymbol);
+				expect(quoteToken.symbol).toBe(firstMarketQuoteTokenSymbol);
 				expect(quoteToken.name).toBeDefined();
 				expect(quoteToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(quoteToken.raw).toBeDefined();
@@ -240,22 +261,22 @@ describe("Rujira", () => {
 				expect(result).toBeDefined();
 				expect(result.size).toBeGreaterThan(1);
 
-				const baseToken = result.find((token: Token) => token.address === baseTokenAddress);
-				const quoteToken = result.find((token: Token) => token.address === quoteTokenAddress);
+				const baseToken = result.find((token: Token) => token.address === firstMarketBaseTokenAddress);
+				const quoteToken = result.find((token: Token) => token.address === firstMarketQuoteTokenAddress);
 				const nativeTokenObj = result.find((token: Token) => token.symbol === nativeToken.symbol);
 				const beaconTokenObj = result.find((token: Token) => token.symbol === beaconToken.symbol);
 				const feePaymentTokenObj = result.find((token: Token) => token.symbol === feePaymentToken.symbol);
 
 				expect(baseToken).toBeDefined();
-				expect(baseToken.address).toBe(baseTokenAddress);
-				expect(baseToken.symbol).toBe(baseTokenSymbol);
+				expect(baseToken.address).toBe(firstMarketBaseTokenAddress);
+				expect(baseToken.symbol).toBe(firstMarketBaseTokenSymbol);
 				expect(baseToken.name).toBeDefined();
 				expect(baseToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(baseToken.raw).toBeDefined();
 
 				expect(quoteToken).toBeDefined();
-				expect(quoteToken.address).toBe(quoteTokenAddress);
-				expect(quoteToken.symbol).toBe(quoteTokenSymbol);
+				expect(quoteToken.address).toBe(firstMarketQuoteTokenAddress);
+				expect(quoteToken.symbol).toBe(firstMarketQuoteTokenSymbol);
 				expect(quoteToken.name).toBeDefined();
 				expect(quoteToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(quoteToken.raw).toBeDefined();
@@ -283,22 +304,22 @@ describe("Rujira", () => {
 		describe("markets", () => {
 			it("should be able to get a market by address", async () => {
 				const result = await rujira.fin.getMarket({
-					address: marketAddress,
+					address: firstMarketAddress,
 				});
 
 				expect(result).toBeDefined();
 
-				expect(result.address).toBe(marketAddress);
-				expect(result.symbol).toBe(marketSymbol);
+				expect(result.address).toBe(firstMarketAddress);
+				expect(result.symbol).toBe(firstMarketSymbol);
 
-				expect(result.tokens.base.address).toBe(baseTokenAddress);
-				expect(result.tokens.base.symbol).toBe(baseTokenSymbol);
+				expect(result.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+				expect(result.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
 				expect(result.tokens.base.name).toBeDefined();
 				expect(result.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.tokens.base.raw).toBeDefined();
 
-				expect(result.tokens.quote.address).toBe(quoteTokenAddress);
-				expect(result.tokens.quote.symbol).toBe(quoteTokenSymbol);
+				expect(result.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
+				expect(result.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
 				expect(result.tokens.quote.name).toBeDefined();
 				expect(result.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.tokens.quote.raw).toBeDefined();
@@ -310,21 +331,21 @@ describe("Rujira", () => {
 
 			it("should be able to get market by symbol", async () => {
 				const result = await rujira.fin.getMarket({
-					symbol: marketSymbol,
+					symbol: firstMarketSymbol,
 				});
 
 				expect(result).toBeDefined();
-				expect(result.address).toBe(marketAddress);
-				expect(result.symbol).toBe(marketSymbol);
+				expect(result.address).toBe(firstMarketAddress);
+				expect(result.symbol).toBe(firstMarketSymbol);
 
-				expect(result.tokens.base.address).toBe(baseTokenAddress);
-				expect(result.tokens.base.symbol).toBe(baseTokenSymbol);
+				expect(result.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+				expect(result.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
 				expect(result.tokens.base.name).toBeDefined();
 				expect(result.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.tokens.base.raw).toBeDefined();
 
-				expect(result.tokens.quote.address).toBe(quoteTokenAddress);
-				expect(result.tokens.quote.symbol).toBe(quoteTokenSymbol);
+				expect(result.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
+				expect(result.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
 				expect(result.tokens.quote.name).toBeDefined();
 				expect(result.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.tokens.quote.raw).toBeDefined();
@@ -336,26 +357,26 @@ describe("Rujira", () => {
 			});
 
 			it("should be able to get markets by addresses", async () => {
-				const addresses = [marketAddress];
+				const addresses = [firstMarketAddress];
 
 				const result = await rujira.fin.getMarkets({ addresses });
 
 				expect(result).toBeDefined();
 				expect(result.size).toBe(addresses.length);
 
-				const market = result.get(marketAddress)!;
+				const market = result.get(firstMarketAddress)!;
 				expect(market).toBeDefined();
-				expect(market.address).toBe(marketAddress);
-				expect(market.symbol).toBe(marketSymbol);
+				expect(market.address).toBe(firstMarketAddress);
+				expect(market.symbol).toBe(firstMarketSymbol);
 
-				expect(market.tokens.base.address).toBe(baseTokenAddress);
-				expect(market.tokens.base.symbol).toBe(baseTokenSymbol);
+				expect(market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+				expect(market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
 				expect(market.tokens.base.name).toBeDefined();
 				expect(market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(market.tokens.base.raw).toBeDefined();
 
-				expect(market.tokens.quote.address).toBe(quoteTokenAddress);
-				expect(market.tokens.quote.symbol).toBe(quoteTokenSymbol);
+				expect(market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
+				expect(market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
 				expect(market.tokens.quote.name).toBeDefined();
 				expect(market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(market.tokens.quote.raw).toBeDefined();
@@ -366,26 +387,26 @@ describe("Rujira", () => {
 			});
 
 			it("should be able to get markets by Symbols", async () => {
-				const symbols = [marketSymbol];
+				const symbols = [firstMarketSymbol];
 
 				const result = await rujira.fin.getMarkets({ symbols });
 
 				expect(result).toBeDefined();
 				expect(result.size).toBe(symbols.length);
 
-				const market = result.get(marketSymbol)!;
+				const market = result.find((market: Market) => market.symbol === firstMarketSymbol)!;
 				expect(market).toBeDefined();
-				expect(market.address).toBe(marketAddress);
-				expect(market.symbol).toBe(marketSymbol);
+				expect(market.address).toBe(firstMarketAddress);
+				expect(market.symbol).toBe(firstMarketSymbol);
 
-				expect(market.tokens.base.address).toBe(baseTokenAddress);
-				expect(market.tokens.base.symbol).toBe(baseTokenSymbol);
+				expect(market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+				expect(market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
 				expect(market.tokens.base.name).toBeDefined();
 				expect(market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(market.tokens.base.raw).toBeDefined();
 
-				expect(market.tokens.quote.address).toBe(quoteTokenAddress);
-				expect(market.tokens.quote.symbol).toBe(quoteTokenSymbol);
+				expect(market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
+				expect(market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
 				expect(market.tokens.quote.name).toBeDefined();
 				expect(market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(market.tokens.quote.raw).toBeDefined();
@@ -431,7 +452,7 @@ describe("Rujira", () => {
 				const maximumNumberOfOrders = 10;
 
 				const result = await rujira.fin.getOrderBook({
-					marketAddress: marketAddress,
+					marketAddress: firstMarketAddress,
 					marketSymbol: undefined,
 					maximumNumberOfOrders: maximumNumberOfOrders,
 				});
@@ -439,20 +460,20 @@ describe("Rujira", () => {
 				expect(result).toBeDefined();
 
 				expect(result.market).toBeDefined();
-				expect(result.market.address).toBe(marketAddress);
-				expect(result.market.symbol).toBe(marketSymbol);
+				expect(result.market.address).toBe(firstMarketAddress);
+				expect(result.market.symbol).toBe(firstMarketSymbol);
 
 				expect(result.market.tokens.base).toBeDefined();
-				expect(result.market.tokens.base.address).toBe(baseTokenAddress);
-				expect(result.market.tokens.base.symbol).toBe(baseTokenSymbol);
-				expect(result.market.tokens.base.name).toBe(baseTokenSymbol);
+				expect(result.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+				expect(result.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
+				expect(result.market.tokens.base.name).toBe(firstMarketBaseTokenSymbol);
 				expect(result.market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.market.tokens.base.raw).toBeDefined();
 
 				expect(result.market.tokens.quote).toBeDefined();
-				expect(result.market.tokens.quote.address).toBe(quoteTokenAddress);
-				expect(result.market.tokens.quote.symbol).toBe(quoteTokenSymbol);
-				expect(result.market.tokens.quote.name).toBe(quoteTokenSymbol);
+				expect(result.market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
+				expect(result.market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
+				expect(result.market.tokens.quote.name).toBe(firstMarketQuoteTokenSymbol);
 				expect(result.market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.market.tokens.quote.raw).toBeDefined();
 
@@ -525,22 +546,22 @@ describe("Rujira", () => {
 
 		describe("ticker", () => {
 			it("should be able to get a ticker by market address", async () => {
-				const result = await rujira.fin.getTicker({ marketAddress });
+				const result = await rujira.fin.getTicker({ marketAddress: firstMarketAddress });
 
 				expect(result).toBeDefined();
 				expect(result.market).toBeDefined();
-				expect(result.market.address).toBe(marketAddress);
-				expect(result.market.symbol).toBe(marketSymbol);
+				expect(result.market.address).toBe(firstMarketAddress);
+				expect(result.market.symbol).toBe(firstMarketSymbol);
 
-				expect(result.market.tokens.base.address).toBe(baseTokenAddress);
-				expect(result.market.tokens.base.symbol).toBe(baseTokenSymbol);
-				expect(result.market.tokens.base.name).toBe(baseTokenSymbol);
+				expect(result.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+				expect(result.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
+				expect(result.market.tokens.base.name).toBe(firstMarketBaseTokenSymbol);
 				expect(result.market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.market.tokens.base.raw).toBeDefined();
 
-				expect(result.market.tokens.quote.address).toBe(quoteTokenAddress);
-				expect(result.market.tokens.quote.symbol).toBe(quoteTokenSymbol);
-				expect(result.market.tokens.quote.name).toBe(quoteTokenSymbol);
+				expect(result.market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
+				expect(result.market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
+				expect(result.market.tokens.quote.name).toBe(firstMarketQuoteTokenSymbol);
 				expect(result.market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.market.tokens.quote.raw).toBeDefined();
 
@@ -559,22 +580,22 @@ describe("Rujira", () => {
 			});
 
 			it("should be able to get a ticker by market symbol", async () => {
-				const result = await rujira.fin.getTicker({ marketSymbol });
+				const result = await rujira.fin.getTicker({ marketSymbol: firstMarketSymbol });
 
 				expect(result).toBeDefined();
 				expect(result.market).toBeDefined();
-				expect(result.market.address).toBe(marketAddress);
-				expect(result.market.symbol).toBe(marketSymbol);
+				expect(result.market.address).toBe(firstMarketAddress);
+				expect(result.market.symbol).toBe(firstMarketSymbol);
 
-				expect(result.market.tokens.base.address).toBe(baseTokenAddress);
-				expect(result.market.tokens.base.symbol).toBe(baseTokenSymbol);
-				expect(result.market.tokens.base.name).toBe(baseTokenSymbol);
+				expect(result.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+				expect(result.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
+				expect(result.market.tokens.base.name).toBe(firstMarketBaseTokenSymbol);
 				expect(result.market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.market.tokens.base.raw).toBeDefined();
 
-				expect(result.market.tokens.quote.address).toBe(quoteTokenAddress);
-				expect(result.market.tokens.quote.symbol).toBe(quoteTokenSymbol);
-				expect(result.market.tokens.quote.name).toBe(quoteTokenSymbol);
+				expect(result.market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
+				expect(result.market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
+				expect(result.market.tokens.quote.name).toBe(firstMarketQuoteTokenSymbol);
 				expect(result.market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.market.tokens.quote.raw).toBeDefined();
 
