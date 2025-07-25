@@ -1276,10 +1276,6 @@ export interface FinWithdrawRequest {
  * Withdraw from market response
  */
 export interface FinWithdrawResponse {
-	/**
-	 * List of withdrawn orders
-	 */
-	withdrawnOrders?: Map<OrderId, Order>;
 
 	/**
 	 * Transaction details
@@ -1289,5 +1285,5 @@ export interface FinWithdrawResponse {
 	/**
 	 * Raw response
 	 */
-	raw?: Raw;
+	raw: Raw;
 }

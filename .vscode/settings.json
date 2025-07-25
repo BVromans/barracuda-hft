@@ -7,5 +7,7 @@
     "Rujira",
     "stargate",
     "THORCHAIN"
-  ]
+  ],
+  "editor.renderWhitespace": "all",
+	"editor.guides.indentation": true
 }
