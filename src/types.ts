@@ -1277,7 +1277,17 @@ export interface FinWithdrawRequest {
  */
 export interface FinWithdrawResponse {
 	/**
+	 * List of withdrawn orders
+	 */
+	withdrawnOrders?: Map<OrderId, Order>;
+
+	/**
 	 * Transaction details
 	 */
 	transaction: Transaction;
+
+	/**
+	 * Raw response
+	 */
+	raw?: Raw;
 }
