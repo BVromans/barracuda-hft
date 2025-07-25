@@ -2,15 +2,18 @@ import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
 import "dotenv/config";
 import { properties } from "../src/properties";
 import { Rujira } from "../src/rujira";
+import { getNotNullOrThrowError } from "../src/utils";
 import {
 	BIG_NUMBER_0,
 	Candle,
 	DECIMAL_0,
+	List,
 	Market,
 	MarketAddress,
 	MarketStatus,
 	SystemStatus,
 	Token,
+	TokenAddress,
 	TransactionStatus,
 	Wallet
 } from "../src/types";
@@ -214,9 +217,9 @@ describe("Rujira", () => {
 				});
 
 				expect(result).toBeDefined();
-				expect(result.size).toBe(addresses.length);
+				expect((result as Map<TokenAddress, Token>).size).toBe(addresses.length);
 
-				const baseToken = result.get(firstMarketBaseTokenAddress)!;
+				const baseToken = (result as Map<TokenAddress, Token>).get(firstMarketBaseTokenAddress)!;
 				expect(baseToken).toBeDefined();
 				expect(baseToken.address).toBe(firstMarketBaseTokenAddress);
 				expect(baseToken.symbol).toBe(firstMarketBaseTokenSymbol);
@@ -224,7 +227,7 @@ describe("Rujira", () => {
 				expect(baseToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(baseToken.raw).toBeDefined();
 
-				const quoteToken = result.get(firstMarketQuoteTokenAddress)!;
+				const quoteToken = (result as Map<TokenAddress, Token>).get(firstMarketQuoteTokenAddress)!;
 				expect(quoteToken).toBeDefined();
 				expect(quoteToken.address).toBe(firstMarketQuoteTokenAddress);
 				expect(quoteToken.symbol).toBe(firstMarketQuoteTokenSymbol);
@@ -239,10 +242,16 @@ describe("Rujira", () => {
 				const result = await rujira.fin.getTokens({ symbols });
 
 				expect(result).toBeDefined();
-				expect(result.size).toBe(symbols.length);
+				expect((result as Map<TokenAddress, Token>).size).toBe(symbols.length);
 
-				const baseToken = result.find((token: Token) => token.symbol === firstMarketBaseTokenSymbol);
-				const quoteToken = result.find((token: Token) => token.symbol === firstMarketQuoteTokenSymbol);
+				const baseToken = getNotNullOrThrowError<Token>(
+					(result as Map<TokenAddress, Token>).values().find((token: Token) => token.symbol === firstMarketBaseTokenSymbol),
+					`Token with symbol ${firstMarketBaseTokenSymbol} not found`
+				);
+				const quoteToken = getNotNullOrThrowError<Token>(
+					(result as Map<TokenAddress, Token>).values().find((token: Token) => token.symbol === firstMarketQuoteTokenSymbol),
+					`Token with symbol ${firstMarketQuoteTokenSymbol} not found`
+				);
 
 				expect(baseToken).toBeDefined();
 				expect(baseToken.symbol).toBe(firstMarketBaseTokenSymbol);
@@ -261,13 +270,28 @@ describe("Rujira", () => {
 				const result = await rujira.fin.getAllTokens({});
 
 				expect(result).toBeDefined();
-				expect(result.size).toBeGreaterThan(1);
+				expect((result as Map<TokenAddress, Token>).size).toBeGreaterThan(1);
 
-				const baseToken = result.find((token: Token) => token.address === firstMarketBaseTokenAddress);
-				const quoteToken = result.find((token: Token) => token.address === firstMarketQuoteTokenAddress);
-				const nativeTokenObj = result.find((token: Token) => token.symbol === nativeToken.symbol);
-				const beaconTokenObj = result.find((token: Token) => token.symbol === beaconToken.symbol);
-				const feePaymentTokenObj = result.find((token: Token) => token.symbol === feePaymentToken.symbol);
+				const baseToken = getNotNullOrThrowError<Token>(
+					(result as Map<TokenAddress, Token>).values().find((token: Token) => token.address === firstMarketBaseTokenAddress),
+					`Token with address ${firstMarketBaseTokenAddress} not found`
+				);
+				const quoteToken = getNotNullOrThrowError<Token>(
+					(result as Map<TokenAddress, Token>).values().find((token: Token) => token.address === firstMarketQuoteTokenAddress),
+					`Token with address ${firstMarketQuoteTokenAddress} not found`
+				);
+				const nativeTokenObj = getNotNullOrThrowError<Token>(
+					(result as Map<TokenAddress, Token>).values().find((token: Token) => token.symbol === nativeToken.symbol),
+					`Native token with symbol ${nativeToken.symbol} not found`
+				);
+				const beaconTokenObj = getNotNullOrThrowError<Token>(
+					(result as Map<TokenAddress, Token>).values().find((token: Token) => token.symbol === beaconToken.symbol),
+					`Beacon token with symbol ${beaconToken.symbol} not found`
+				);
+				const feePaymentTokenObj = getNotNullOrThrowError<Token>(
+					(result as Map<TokenAddress, Token>).values().find((token: Token) => token.symbol === feePaymentToken.symbol),
+					`Fee payment token with symbol ${feePaymentToken.symbol} not found`
+				);
 
 				expect(baseToken).toBeDefined();
 				expect(baseToken.address).toBe(firstMarketBaseTokenAddress);
@@ -364,9 +388,9 @@ describe("Rujira", () => {
 				const result = await rujira.fin.getMarkets({ addresses });
 
 				expect(result).toBeDefined();
-				expect(result.size).toBe(addresses.length);
+				expect((result as Map<MarketAddress, Market>).size).toBe(addresses.length);
 
-				const firstMarket = result.get(firstMarketAddress)!;
+				const firstMarket = (result as Map<MarketAddress, Market>).get(firstMarketAddress)!;
 				expect(firstMarket).toBeDefined();
 				expect(firstMarket.address).toBe(firstMarketAddress);
 				expect(firstMarket.symbol).toBe(firstMarketSymbol);
@@ -387,7 +411,7 @@ describe("Rujira", () => {
 				expect(firstMarket.status).toBe(MarketStatus.ACTIVE);
 				expect(firstMarket.raw).toBeDefined();
 
-				const secondMarket = result.get(secondMarketAddress)!;
+				const secondMarket = (result as Map<MarketAddress, Market>).get(secondMarketAddress)!;
 				expect(secondMarket).toBeDefined();
 				expect(secondMarket.address).toBe(secondMarketAddress);
 				expect(secondMarket.symbol).toBe(secondMarketSymbol);
@@ -415,9 +439,12 @@ describe("Rujira", () => {
 				const result = await rujira.fin.getMarkets({ symbols });
 
 				expect(result).toBeDefined();
-				expect(result.size).toBe(symbols.length);
+				expect((result as Map<MarketAddress, Market>).size).toBe(symbols.length);
 
-				const firstMarket = result.find((market: Market) => market.symbol === firstMarketSymbol)!;
+				const firstMarket = getNotNullOrThrowError<Market>(
+					(result as Map<MarketAddress, Market>).values().find((market: Market) => market.symbol === firstMarketSymbol),
+					`Market with symbol ${firstMarketSymbol} not found`
+				);
 				expect(firstMarket).toBeDefined();
 				expect(firstMarket.address).toBe(firstMarketAddress);
 				expect(firstMarket.symbol).toBe(firstMarketSymbol);
@@ -438,7 +465,10 @@ describe("Rujira", () => {
 				expect(firstMarket.status).toBe(MarketStatus.ACTIVE);
 				expect(firstMarket.raw).toBeDefined();
 
-				const secondMarket = result.find((market: Market) => market.symbol === secondMarketSymbol)!;
+				const secondMarket = getNotNullOrThrowError<Market>(
+					(result as Map<MarketAddress, Market>).values().find((market: Market) => market.symbol === secondMarketSymbol),
+					`Market with symbol ${secondMarketSymbol} not found`
+				);
 				expect(secondMarket).toBeDefined();
 				expect(secondMarket.address).toBe(secondMarketAddress);
 				expect(secondMarket.symbol).toBe(secondMarketSymbol);
@@ -464,9 +494,9 @@ describe("Rujira", () => {
 				const result = await rujira.fin.getAllMarkets({});
 
 				expect(result).toBeDefined();
-				expect(result.size).toBeGreaterThan(0);
+				expect((result as Map<MarketAddress, Market>).size).toBeGreaterThan(0);
 
-				for (const [address, market] of result.entries() as Iterable<[MarketAddress, Market]>) {
+				for (const [address, market] of (result as Map<MarketAddress, Market>).entries() as Iterable<[MarketAddress, Market]>) {
 					expect(market).toBeDefined();
 					expect(market.address).toBe(address);
 
@@ -489,7 +519,7 @@ describe("Rujira", () => {
 					expect(market.raw).toBeDefined();
 				}
 
-				const firstMarket = result.get(firstMarketAddress as MarketAddress)!;
+				const firstMarket = (result as Map<MarketAddress, Market>).get(firstMarketAddress as MarketAddress)!;
 				expect(firstMarket).toBeDefined();
 				expect(firstMarket.address).toBe(firstMarketAddress);
 				expect(firstMarket.symbol).toBe(firstMarketSymbol);
@@ -510,7 +540,7 @@ describe("Rujira", () => {
 				expect(firstMarket.status).toBe(MarketStatus.ACTIVE);
 				expect(firstMarket.raw).toBeDefined();
 
-				const secondMarket = result.get(secondMarketAddress as MarketAddress)!;
+				const secondMarket = (result as Map<MarketAddress, Market>).get(secondMarketAddress as MarketAddress)!;
 				expect(secondMarket).toBeDefined();
 				expect(secondMarket.address).toBe(secondMarketAddress);
 				expect(secondMarket.symbol).toBe(secondMarketSymbol);
@@ -702,9 +732,9 @@ describe("Rujira", () => {
 			it("should be able to get candles by market address", async () => {
 				const result = await rujira.fin.getCandles({ marketAddress: firstMarketAddress });
 				expect(result).toBeDefined();
-				expect(result.size).toBeGreaterThan(0);
+				expect((result as List<Candle>).size).toBeGreaterThan(0);
 
-				result.forEach((candle: Candle) => {
+				(result as List<Candle>).forEach((candle: Candle) => {
 					expect(candle).toBeDefined();
 					expect(candle.timestamp).toBeGreaterThan(0);
 					expect(candle.open.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
@@ -719,9 +749,9 @@ describe("Rujira", () => {
 			it("should be able to get candles by market symbol", async () => {
 				const result = await rujira.fin.getCandles({ marketSymbol: firstMarketSymbol });
 				expect(result).toBeDefined();
-				expect(result.size).toBeGreaterThan(0);
+				expect((result as List<Candle>).size).toBeGreaterThan(0);
 
-				result.forEach((candle: Candle) => {
+				(result as List<Candle>).forEach((candle: Candle) => {
 					expect(candle).toBeDefined();
 					expect(candle.timestamp).toBeGreaterThan(0);
 					expect(candle.open.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
