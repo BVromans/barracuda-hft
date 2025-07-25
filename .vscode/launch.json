@@ -60,56 +60,12 @@
 			"type": "bun",
 			"internalConsoleOptions": "neverOpen",
 			"request": "launch",
-			"name": "rujira-hft-bot:playground:01",
+			"name": "rujira-hft-bot:playground",
 			"runtimeExecutable": "bun",
-			"runtimeArgs": ["run", "playground:01"],
+			"runtimeArgs": ["run", "playground"],
 			"cwd": "${workspaceFolder}",
 			"stopOnEntry": false,
 			"watchMode": true
-		},
-		{
-			"type": "bun",
-			"internalConsoleOptions": "neverOpen",
-			"request": "launch",
-			"name": "rujira-hft-bot:playground:02",
-			"runtimeExecutable": "bun",
-			"runtimeArgs": ["run", "playground:02"],
-			"cwd": "${workspaceFolder}",
-			"stopOnEntry": false,
-			"watchMode": true
-		},
-		{
-			"type": "bun",
-			"internalConsoleOptions": "neverOpen",
-			"request": "launch",
-			"name": "rujira-hft-bot:playground:03",
-			"runtimeExecutable": "bun",
-			"runtimeArgs": ["run", "playground:03"],
-			"cwd": "${workspaceFolder}",
-			"stopOnEntry": false,
-			"watchMode": true
-		},
-		{
-			"type": "bun",
-			"internalConsoleOptions": "neverOpen",
-			"request": "launch",
-			"name": "rujira-hft-bot:playground:07",
-			"runtimeExecutable": "bun",
-			"runtimeArgs": ["run", "playground:07"],
-			"cwd": "${workspaceFolder}",
-			"stopOnEntry": false,
-			"watchMode": true
-		},
-		{
-			"type": "bun",
-			"internalConsoleOptions": "neverOpen",
-			"request": "launch",
-			"name": "rujira-hft-bot:playground:09",
-			"runtimeExecutable": "bun",
-			"runtimeArgs": ["run", "playground:09"],
-			"cwd": "${workspaceFolder}",
-			"stopOnEntry": false,
-			"watchMode": true
-		},
+		}
 	]
 }
