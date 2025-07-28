@@ -885,248 +885,250 @@ export class Fin {
 	 * @returns The balances response
 	 */
 	async getBalances(request: FinGetBalancesRequest): Promise<FinGetBalancesResponse> {
-		let { walletAddress, tokenAddresses, tokenSymbols } = request;
+		throw new Error('Not implemented');
 
-		walletAddress = walletAddress?.toLowerCase().trim();
-		tokenAddresses = tokenAddresses?.map((address: TokenAddress) => address.toLowerCase().trim());
-		tokenSymbols = tokenSymbols?.map((symbol: TokenSymbol) => symbol.toLowerCase().trim());
+		// let { walletAddress, tokenAddresses, tokenSymbols } = request;
 
-		if (!walletAddress) throw new Error('walletAddress is required');
+		// walletAddress = walletAddress?.toLowerCase().trim();
+		// tokenAddresses = tokenAddresses?.map((address: TokenAddress) => address.toLowerCase().trim());
+		// tokenSymbols = tokenSymbols?.map((symbol: TokenSymbol) => symbol.toLowerCase().trim());
 
-		if (Array.isArray(tokenAddresses)) {
-			tokenAddresses = List<TokenAddress>(tokenAddresses);
-		}
-		if (Array.isArray(tokenSymbols)) {
-			tokenSymbols = List<TokenSymbol>(tokenSymbols);
-		}
+		// if (!walletAddress) throw new Error('walletAddress is required');
 
-		let tokens = await this.getAllTokens({} as FinGetAllTokensRequest);
-		let markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
+		// if (Array.isArray(tokenAddresses)) {
+		// 	tokenAddresses = List<TokenAddress>(tokenAddresses);
+		// }
+		// if (Array.isArray(tokenSymbols)) {
+		// 	tokenSymbols = List<TokenSymbol>(tokenSymbols);
+		// }
 
-		if (tokenAddresses || tokenSymbols) {
-			tokens = tokens.filter((token: Token) => tokenAddresses?.includes(token.address) || tokenSymbols?.includes(token.symbol));
-		}
+		// let tokens = await this.getAllTokens({} as FinGetAllTokensRequest);
+		// let markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
-		const freeBalances = Map<TokenAddress, Amount>();
-		const freeBalanceResponse = await fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
-		if (freeBalanceResponse.ok) {
-			/*
-			Example response:
-				{
-					"balances": [
-						{
-							"denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-							"amount": "90505921"
-						}
-					],
-					"pagination": {
-						"next_key": null,
-						"total": "6"
-					}
-				}
-			*/
-			const freeBalanceResponseData = (await freeBalanceResponse.json()) as {
-				balances: Array<{
-					denom: string;
-					amount: string;
-				}>;
-				pagination: {
-					next_key: string | null;
-					total: string;
-				};
-			};
+		// if (tokenAddresses || tokenSymbols) {
+		// 	tokens = tokens.filter((token: Token) => tokenAddresses?.includes(token.address) || tokenSymbols?.includes(token.symbol));
+		// }
 
-			for (const rawBalance of freeBalanceResponseData.balances) {
-				freeBalances.set(rawBalance.denom.toLowerCase().trim(), new Decimal(rawBalance.amount));
-			}
-		}
+		// const freeBalances = Map<TokenAddress, Amount>();
+		// const freeBalanceResponse = await fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
+		// if (freeBalanceResponse.ok) {
+		// 	/*
+		// 	Example response:
+		// 		{
+		// 			"balances": [
+		// 				{
+		// 					"denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+		// 					"amount": "90505921"
+		// 				}
+		// 			],
+		// 			"pagination": {
+		// 				"next_key": null,
+		// 				"total": "6"
+		// 			}
+		// 		}
+		// 	*/
+		// 	const freeBalanceResponseData = (await freeBalanceResponse.json()) as {
+		// 		balances: Array<{
+		// 			denom: string;
+		// 			amount: string;
+		// 		}>;
+		// 		pagination: {
+		// 			next_key: string | null;
+		// 			total: string;
+		// 		};
+		// 	};
 
-		const lockedInOrdersMap = Map<TokenAddress, Amount>();
-		const withdrawableMap = Map<TokenAddress, Amount>();
+		// 	for (const rawBalance of freeBalanceResponseData.balances) {
+		// 		freeBalances.set(rawBalance.denom.toLowerCase().trim(), new Decimal(rawBalance.amount));
+		// 	}
+		// }
 
-		for (const market of markets.values()) {
-			/*
-			Example response:
-				{
-					"orders": [
-						{
-							"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
-							"side": "base",
-							"price": {
-								"fixed": "0.219169"
-							},
-							"rate": "0.219169",
-							"updated_at": "1752680298782095574",
-							"offer": "10000000",
-							"remaining": "10000000",
-							"filled": "0"
-						}
-					]
-				}
-			*/
-			const ordersResponse = await this.cosmClient.queryContractSmart(
-				market.address, {
-					orders: {
-						owner: walletAddress,
-						limit: properties.getOrDefault<Integer>('rujira.default.orders.maximumNumberOfOrders', DECIMAL_INFINITY.toNumber())
-					}
-				}
-			) as {
-				orders: Array<{
-					owner: string,
-					"side": string,
-					"price": {
-						"fixed": string
-					},
-					"rate": string,
-					"updated_at": string,
-					"offer": string,
-					"remaining": string,
-					"filled": string
-				}>;
-			};
+		// const lockedInOrdersMap = Map<TokenAddress, Amount>();
+		// const withdrawableMap = Map<TokenAddress, Amount>();
 
-			for (const rawOrder of ordersResponse.orders) {
-				const baseTokenAddress = market.tokens.base.address;
-				const quoteTokenAddress = market.tokens.quote.address;
+		// for (const market of markets.values()) {
+		// 	/*
+		// 	Example response:
+		// 		{
+		// 			"orders": [
+		// 				{
+		// 					"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
+		// 					"side": "base",
+		// 					"price": {
+		// 						"fixed": "0.219169"
+		// 					},
+		// 					"rate": "0.219169",
+		// 					"updated_at": "1752680298782095574",
+		// 					"offer": "10000000",
+		// 					"remaining": "10000000",
+		// 					"filled": "0"
+		// 				}
+		// 			]
+		// 		}
+		// 	*/
+		// 	const ordersResponse = await this.cosmClient.queryContractSmart(
+		// 		market.address, {
+		// 			orders: {
+		// 				owner: walletAddress,
+		// 				limit: properties.getOrDefault<Integer>('rujira.default.orders.maximumNumberOfOrders', DECIMAL_INFINITY.toNumber())
+		// 			}
+		// 		}
+		// 	) as {
+		// 		orders: Array<{
+		// 			owner: string,
+		// 			"side": string,
+		// 			"price": {
+		// 				"fixed": string
+		// 			},
+		// 			"rate": string,
+		// 			"updated_at": string,
+		// 			"offer": string,
+		// 			"remaining": string,
+		// 			"filled": string
+		// 		}>;
+		// 	};
 
-				if (rawOrder.filled && Number(rawOrder.filled) > 0) {
-					const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
-					lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.get(lockedTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
-				}
-				if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
-					const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // opposite asset
-					withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.get(withdrawTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
-				}
-			}
-		}
+		// 	for (const rawOrder of ordersResponse.orders) {
+		// 		const baseTokenAddress = market.tokens.base.address;
+		// 		const quoteTokenAddress = market.tokens.quote.address;
 
-		const tokensBalancesMap = Map<TokenAddress, TokenBalance>();
-		for (const token of tokens.values()) {
-			const free = freeBalances.get(token.address, DECIMAL_0);
-			const locked = lockedInOrdersMap.get(token.address, DECIMAL_0);
-			const withdraw = withdrawableMap.get(token.address, DECIMAL_0);
-			const lockedInPools = new Decimal(0); // Not implemented
-			const total = free.plus(locked).plus(lockedInPools).plus(withdraw);
+		// 		if (rawOrder.filled && Number(rawOrder.filled) > 0) {
+		// 			const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
+		// 			lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.get(lockedTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
+		// 		}
+		// 		if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
+		// 			const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // opposite asset
+		// 			withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.get(withdrawTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
+		// 		}
+		// 	}
+		// }
 
-			const baseBalance: BaseBalance = {
-				free,
-				lockedInOrders: locked,
-				lockedInPools,
-				withdrawable: withdraw,
-				total
-			};
+		// const tokensBalancesMap = Map<TokenAddress, TokenBalance>();
+		// for (const token of tokens.values()) {
+		// 	const free = freeBalances.get(token.address, DECIMAL_0);
+		// 	const locked = lockedInOrdersMap.get(token.address, DECIMAL_0);
+		// 	const withdraw = withdrawableMap.get(token.address, DECIMAL_0);
+		// 	const lockedInPools = new Decimal(0); // Not implemented
+		// 	const total = free.plus(locked).plus(lockedInPools).plus(withdraw);
 
-			// Find native and beacon tokens
-			const nativeTokenObject = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'RUNE');
-			const beaconTokenObject = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'USDC');
+		// 	const baseBalance: BaseBalance = {
+		// 		free,
+		// 		lockedInOrders: locked,
+		// 		lockedInPools,
+		// 		withdrawable: withdraw,
+		// 		total
+		// 	};
 
-			// Find market price for native (RUNE)
-			let conversionRateNative = new Decimal(0);
-			if (nativeTokenObject && token.address !== nativeTokenObject.address) {
-				const market = Array.from(markets.values() as Iterable<Market>).find((market: Market) =>
-					(market.tokens.base.address === token.address && market.tokens.quote.address === nativeTokenObject.address) ||
-					(market.tokens.quote.address === token.address && market.tokens.base.address === nativeTokenObject.address)
-				);
-				if (market && market.price) {
-					if (market.tokens.base.address === token.address) {
-						conversionRateNative = market.price.baseQuote;
-					} else {
-						conversionRateNative = market.price.quoteBase;
-					}
-				}
-			} else if (nativeTokenObject && token.address === nativeTokenObject.address) {
-				conversionRateNative = new Decimal(1);
-			}
+		// 	// Find native and beacon tokens
+		// 	const nativeTokenObject = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'RUNE');
+		// 	const beaconTokenObject = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'USDC');
 
-			// Find market price for beacon (USDC)
-			let conversionRateBeacon = new Decimal(0);
-			if (beaconTokenObject && token.address !== beaconTokenObject.address) {
-				const market = Array.from(markets.values() as Iterable<Market>).find((marketObj: Market) =>
-					(marketObj.tokens.base.address === token.address && marketObj.tokens.quote.address === beaconTokenObject.address) ||
-					(marketObj.tokens.quote.address === token.address && marketObj.tokens.base.address === beaconTokenObject.address)
-				);
-				if (market && market.price) {
-					if (market.tokens.base.address === token.address) {
-						conversionRateBeacon = market.price.baseQuote;
-					} else {
-						conversionRateBeacon = market.price.quoteBase;
-					}
-				}
-			} else if (beaconTokenObject && token.address === beaconTokenObject.address) {
-				conversionRateBeacon = new Decimal(1);
-			}
+		// 	// Find market price for native (RUNE)
+		// 	let conversionRateNative = new Decimal(0);
+		// 	if (nativeTokenObject && token.address !== nativeTokenObject.address) {
+		// 		const market = Array.from(markets.values() as Iterable<Market>).find((market: Market) =>
+		// 			(market.tokens.base.address === token.address && market.tokens.quote.address === nativeTokenObject.address) ||
+		// 			(market.tokens.quote.address === token.address && market.tokens.base.address === nativeTokenObject.address)
+		// 		);
+		// 		if (market && market.price) {
+		// 			if (market.tokens.base.address === token.address) {
+		// 				conversionRateNative = market.price.baseQuote;
+		// 			} else {
+		// 				conversionRateNative = market.price.quoteBase;
+		// 			}
+		// 		}
+		// 	} else if (nativeTokenObject && token.address === nativeTokenObject.address) {
+		// 		conversionRateNative = new Decimal(1);
+		// 	}
 
-			const baseBalanceWithNativeQuotation: BaseBalanceWithQuotation = {
-				...baseBalance,
-				quotation: {
-					token: nativeTokenObject || token,
-					tokenToQuote: conversionRateNative,
-					quoteToToken: conversionRateNative ? new Decimal(1).div(conversionRateNative) : new Decimal(0)
-				}
-			};
-			const baseBalanceWithBeaconQuotation: BaseBalanceWithQuotation = {
-				...baseBalance,
-				quotation: {
-					token: beaconTokenObject || token,
-					tokenToQuote: conversionRateBeacon,
-					quoteToToken: conversionRateBeacon ? new Decimal(1).div(conversionRateBeacon) : new Decimal(0)
-				}
-			};
+		// 	// Find market price for beacon (USDC)
+		// 	let conversionRateBeacon = new Decimal(0);
+		// 	if (beaconTokenObject && token.address !== beaconTokenObject.address) {
+		// 		const market = Array.from(markets.values() as Iterable<Market>).find((marketObj: Market) =>
+		// 			(marketObj.tokens.base.address === token.address && marketObj.tokens.quote.address === beaconTokenObject.address) ||
+		// 			(marketObj.tokens.quote.address === token.address && marketObj.tokens.base.address === beaconTokenObject.address)
+		// 		);
+		// 		if (market && market.price) {
+		// 			if (market.tokens.base.address === token.address) {
+		// 				conversionRateBeacon = market.price.baseQuote;
+		// 			} else {
+		// 				conversionRateBeacon = market.price.quoteBase;
+		// 			}
+		// 		}
+		// 	} else if (beaconTokenObject && token.address === beaconTokenObject.address) {
+		// 		conversionRateBeacon = new Decimal(1);
+		// 	}
 
-			const baseTokenBalance: BaseTokenBalance = {
-				token: baseBalance,
-				nativeToken: baseBalanceWithNativeQuotation,
-				beaconToken: baseBalanceWithBeaconQuotation
-			};
+		// 	const baseBalanceWithNativeQuotation: BaseBalanceWithQuotation = {
+		// 		...baseBalance,
+		// 		quotation: {
+		// 			token: nativeTokenObject || token,
+		// 			tokenToQuote: conversionRateNative,
+		// 			quoteToToken: conversionRateNative ? new Decimal(1).div(conversionRateNative) : new Decimal(0)
+		// 		}
+		// 	};
+		// 	const baseBalanceWithBeaconQuotation: BaseBalanceWithQuotation = {
+		// 		...baseBalance,
+		// 		quotation: {
+		// 			token: beaconTokenObject || token,
+		// 			tokenToQuote: conversionRateBeacon,
+		// 			quoteToToken: conversionRateBeacon ? new Decimal(1).div(conversionRateBeacon) : new Decimal(0)
+		// 		}
+		// 	};
 
-			tokensBalancesMap.set(token.address, {
-				token,
-				balances: baseTokenBalance
-			});
-		}
+		// 	const baseTokenBalance: BaseTokenBalance = {
+		// 		token: baseBalance,
+		// 		nativeToken: baseBalanceWithNativeQuotation,
+		// 		beaconToken: baseBalanceWithBeaconQuotation
+		// 	};
 
-		// 6. Build total balances (nativeToken, beaconToken) dynamically
-		const nativeToken = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'RUNE');
-		const beaconToken = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'USDC');
+		// 	tokensBalancesMap.set(token.address, {
+		// 		token,
+		// 		balances: baseTokenBalance
+		// 	});
+		// }
 
-		const totalNative: BaseBalance = nativeToken ? {
-			free: freeBalances[nativeToken.address] || new Decimal(0),
-			lockedInOrders: lockedInOrdersMap[nativeToken.address] || new Decimal(0),
-			lockedInPools: new Decimal(0),
-			withdrawable: new Decimal(0),
-			total: (freeBalances[nativeToken.address] || new Decimal(0)).plus(lockedInOrdersMap[nativeToken.address] || new Decimal(0))
-		} : {
-			free: new Decimal(0),
-			lockedInOrders: new Decimal(0),
-			lockedInPools: new Decimal(0),
-			withdrawable: new Decimal(0),
-			total: new Decimal(0)
-		};
+		// // 6. Build total balances (nativeToken, beaconToken) dynamically
+		// const nativeToken = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'RUNE');
+		// const beaconToken = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'USDC');
 
-		const totalBeacon: BaseBalance = beaconToken ? {
-			free: freeBalances[beaconToken.address] || new Decimal(0),
-			lockedInOrders: lockedInOrdersMap[beaconToken.address] || new Decimal(0),
-			lockedInPools: new Decimal(0),
-			withdrawable: new Decimal(0),
-			total: (freeBalances[beaconToken.address] || new Decimal(0)).plus(lockedInOrdersMap[beaconToken.address] || new Decimal(0))
-		} : {
-			free: new Decimal(0),
-			lockedInOrders: new Decimal(0),
-			lockedInPools: new Decimal(0),
-			withdrawable: new Decimal(0),
-			total: new Decimal(0)
-		};
+		// const totalNative: BaseBalance = nativeToken ? {
+		// 	free: freeBalances[nativeToken.address] || new Decimal(0),
+		// 	lockedInOrders: lockedInOrdersMap[nativeToken.address] || new Decimal(0),
+		// 	lockedInPools: new Decimal(0),
+		// 	withdrawable: new Decimal(0),
+		// 	total: (freeBalances[nativeToken.address] || new Decimal(0)).plus(lockedInOrdersMap[nativeToken.address] || new Decimal(0))
+		// } : {
+		// 	free: new Decimal(0),
+		// 	lockedInOrders: new Decimal(0),
+		// 	lockedInPools: new Decimal(0),
+		// 	withdrawable: new Decimal(0),
+		// 	total: new Decimal(0)
+		// };
 
-		const balances: Balances = {
-			tokens: tokensBalancesMap,
-			total: {
-				nativeToken: totalNative,
-				beaconToken: totalBeacon
-			}
-		};
+		// const totalBeacon: BaseBalance = beaconToken ? {
+		// 	free: freeBalances[beaconToken.address] || new Decimal(0),
+		// 	lockedInOrders: lockedInOrdersMap[beaconToken.address] || new Decimal(0),
+		// 	lockedInPools: new Decimal(0),
+		// 	withdrawable: new Decimal(0),
+		// 	total: (freeBalances[beaconToken.address] || new Decimal(0)).plus(lockedInOrdersMap[beaconToken.address] || new Decimal(0))
+		// } : {
+		// 	free: new Decimal(0),
+		// 	lockedInOrders: new Decimal(0),
+		// 	lockedInPools: new Decimal(0),
+		// 	withdrawable: new Decimal(0),
+		// 	total: new Decimal(0)
+		// };
 
-		return balances;
+		// const balances: Balances = {
+		// 	tokens: tokensBalancesMap,
+		// 	total: {
+		// 		nativeToken: totalNative,
+		// 		beaconToken: totalBeacon
+		// 	}
+		// };
+
+		// return balances;
 	}
 
 	/**
@@ -1135,38 +1137,40 @@ export class Fin {
 	 * @returns The order response
 	 */
 	async getOrder(request: FinGetOrderRequest): Promise<FinGetOrderResponse> {
-		// Validate request
-		if (!request.ownerAddress) {
-			throw new Error("Owner address is required");
-		}
-		if (!request.orderSide) {
-			throw new Error("Order side is required");
-		}
-		if (!request.orderPrice) {
-			throw new Error("Order price is required");
-		}
+		throw new Error('Not implemented');
 
-		// Resolve market
-		const market = await this.getMarket({
-			address: request.marketAddress,
-			symbol: request.marketSymbol
-		});
+		// // Validate request
+		// if (!request.ownerAddress) {
+		// 	throw new Error("Owner address is required");
+		// }
+		// if (!request.orderSide) {
+		// 	throw new Error("Order side is required");
+		// }
+		// if (!request.orderPrice) {
+		// 	throw new Error("Order price is required");
+		// }
 
-		// Build query message for specific order
-		const queryMsg = {
-			order: [
-				request.ownerAddress,
-				request.orderSide,
-				request.orderPrice
-			]
-		};
+		// // Resolve market
+		// const market = await this.getMarket({
+		// 	address: request.marketAddress,
+		// 	symbol: request.marketSymbol
+		// });
 
-		try {
-			const result = await this.cosmClient.queryContractSmart(market.address, queryMsg);
-			return result as FinGetOrderResponse;
-		} catch (error) {
-			throw new Error(`Failed to get order: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		}
+		// // Build query message for specific order
+		// const queryMsg = {
+		// 	order: [
+		// 		request.ownerAddress,
+		// 		request.orderSide,
+		// 		request.orderPrice
+		// 	]
+		// };
+
+		// try {
+		// 	const result = await this.cosmClient.queryContractSmart(market.address, queryMsg);
+		// 	return result as FinGetOrderResponse;
+		// } catch (error) {
+		// 	throw new Error(`Failed to get order: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		// }
 	}
 
 	/**
@@ -1175,41 +1179,43 @@ export class Fin {
 	 * @returns The orders response
 	 */
 	async getOrders(request: FinGetOrdersRequest): Promise<FinGetOrdersResponse> {
-		// Validate request
-		if (!request.ownerAddress) {
-			throw new Error("Owner address is required");
-		}
+		throw new Error('Not implemented');
 
-		// Resolve market if provided
-		let contractAddress: string;
-		if (request.marketAddress) {
-			contractAddress = request.marketAddress;
-		} else if (request.marketSymbol) {
-			const market = await this.getMarket({ symbol: request.marketSymbol });
-			contractAddress = market.address;
-		} else {
-			throw new Error("Either market address or market symbol must be provided");
-		}
+		// // Validate request
+		// if (!request.ownerAddress) {
+		// 	throw new Error("Owner address is required");
+		// }
 
-		// Build query message
-		const queryMsg: any = {
-			orders: {
-				owner: request.ownerAddress,
-				limit: request.maximumNumberOfOrders || 30
-			}
-		};
+		// // Resolve market if provided
+		// let contractAddress: string;
+		// if (request.marketAddress) {
+		// 	contractAddress = request.marketAddress;
+		// } else if (request.marketSymbol) {
+		// 	const market = await this.getMarket({ symbol: request.marketSymbol });
+		// 	contractAddress = market.address;
+		// } else {
+		// 	throw new Error("Either market address or market symbol must be provided");
+		// }
 
-		// Add side filter if provided
-		if (request.orderSide) {
-			queryMsg.orders.side = request.orderSide;
-		}
+		// // Build query message
+		// const queryMsg: any = {
+		// 	orders: {
+		// 		owner: request.ownerAddress,
+		// 		limit: request.maximumNumberOfOrders || 30
+		// 	}
+		// };
 
-		try {
-			const result = await this.cosmClient.queryContractSmart(contractAddress, queryMsg);
-			return result as FinGetOrdersResponse;
-		} catch (error) {
-			throw new Error(`Failed to get orders: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		}
+		// // Add side filter if provided
+		// if (request.orderSide) {
+		// 	queryMsg.orders.side = request.orderSide;
+		// }
+
+		// try {
+		// 	const result = await this.cosmClient.queryContractSmart(contractAddress, queryMsg);
+		// 	return result as FinGetOrdersResponse;
+		// } catch (error) {
+		// 	throw new Error(`Failed to get orders: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		// }
 	}
 
 
@@ -1218,137 +1224,141 @@ export class Fin {
 	 * @param request - The request object
 	 * @returns The response for the created order
 	 */
-async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
-    // Basic validation
-    if (!request.ownerAddress || (!request.marketAddress && !request.marketSymbol) || !request.side || !request.type || !request.amount) {
-        console.error('[placeOrder] Missing required fields');
-        throw new Error('Missing required fields');
-    }
+	async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
+		throw new Error('Not implemented');
 
-    const batchRequest: FinPlaceOrdersRequest = {
-        ownerAddress: request.ownerAddress,
-        orders: [request]
-    };
-    const response = await this.placeOrders(batchRequest);
-    if (!response?.orders || response.orders.size === 0) {
-        console.error('[placeOrder] No order was created');
-        throw new Error('No order was created');
-    }
-    return (Array.from(response.orders.values()) as FinPlaceOrderResponse[])[0];
-}
+			// // Basic validation
+			// if (!request.ownerAddress || (!request.marketAddress && !request.marketSymbol) || !request.side || !request.type || !request.amount) {
+			//     console.error('[placeOrder] Missing required fields');
+			//     throw new Error('Missing required fields');
+			// }
+
+			// const batchRequest: FinPlaceOrdersRequest = {
+			//     ownerAddress: request.ownerAddress,
+			//     orders: [request]
+			// };
+			// const response = await this.placeOrders(batchRequest);
+			// if (!response?.orders || response.orders.size === 0) {
+			//     console.error('[placeOrder] No order was created');
+			//     throw new Error('No order was created');
+			// }
+			// return (Array.from(response.orders.values()) as FinPlaceOrderResponse[])[0];
+	}
 
 
-/**
- * Place multiple orders
- * @param request - The request object
- * @returns The response for the created orders or null if failed
- */
-async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse> {
-    if (!request.orders?.length) {
-        console.error('[placeOrders] No orders provided');
-        throw new Error('No orders provided');
-    }
+	/**
+	 * Place multiple orders
+	 * @param request - The request object
+	 * @returns The response for the created orders or null if failed
+	 */
+	async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse> {
+		throw new Error('Not implemented');
 
-    const placedOrders: FinPlaceOrderRequest[] = [];
-    const ordersArray = Array.isArray(request.orders)
-  ? request.orders
-  : (request.orders as any).toArray();
+	// 		if (!request.orders?.length) {
+	// 				console.error('[placeOrders] No orders provided');
+	// 				throw new Error('No orders provided');
+	// 		}
 
-for (const order of ordersArray) {
-        try {
-            const result = await this.placeOrder(order);
-            if (result) placedOrders.push(order);
-            else console.error(`[placeOrders] Failed to place order for ${order.ownerAddress}`);
-        } catch (err) {
-            console.error(`[placeOrders] Error placing order for ${order.ownerAddress}:`, err);
-        }
-    }
-    if (!placedOrders.length) {
-        console.error('[placeOrders] No orders were successfully placed');
-        throw new Error('No orders were successfully placed');
-    }
+	// 		const placedOrders: FinPlaceOrderRequest[] = [];
+	// 		const ordersArray = Array.isArray(request.orders)
+	// 	? request.orders
+	// 	: (request.orders as any).toArray();
 
-    // Fetch the latest orders for the user to build the response
-    const allOrders: Map<string, Order> = Map();
-    for (const order of placedOrders) {
-        try {
-            const ordersResp = await this.getOrders({
-                ownerAddress: order.ownerAddress || '',
-                marketAddress: order.marketAddress,
-                marketSymbol: order.marketSymbol,
-                maximumNumberOfOrders: 50
-            });
-            const matched =  Array.from(ordersResp.values()).find((o: any) => {
-                if (order.type === 'limit' && order.price)
-                    return o.side === (order.side === 'buy' ? 'quote' : 'base') && o.price.fixed === order.price.toString();
-                return o.side === (order.side === 'buy' ? 'quote' : 'base');
-            }) as any;
-            if (matched) {
-                allOrders.set(
-                    matched.owner + '-' + matched.side + '-' + matched.price || matched.price.toString(),
-                    {
-                        id: matched.owner + '-' + matched.side + '-' + matched.price.toString(),
-                        market: {} as Market,
-                        owner: matched.owner,
-                        type: matched.type || OrderType.LIMIT,
-                        side: matched.side,
-                        price: matched.price ? new Decimal(matched.price) : new Decimal(0),
-                        amount: new Decimal(matched.amount),
-                        filledAmount: new Decimal(0),
-                        filledPercentage: new Decimal(0),
-                        status: OrderStatus.OPEN,
-                        raw: matched,
-                    }
-                );
-            }
-        } catch (err) {
-            console.error('[placeOrders] Error fetching created orders:', err);
-        }
-    }
+	// for (const order of ordersArray) {
+	// 				try {
+	// 						const result = await this.placeOrder(order);
+	// 						if (result) placedOrders.push(order);
+	// 						else console.error(`[placeOrders] Failed to place order for ${order.ownerAddress}`);
+	// 				} catch (err) {
+	// 						console.error(`[placeOrders] Error placing order for ${order.ownerAddress}:`, err);
+	// 				}
+	// 		}
+	// 		if (!placedOrders.length) {
+	// 				console.error('[placeOrders] No orders were successfully placed');
+	// 				throw new Error('No orders were successfully placed');
+	// 		}
 
-    //Don't have a way to get transaction hash directly, so return a dummy Transaction object
-    return {
-        orders: allOrders ,
-        transactions: Map<string, Transaction>([
-					[
-							'',
-							{
-								hash: '',
-								status: TransactionStatus.FAILED,
-								fee: {
-										amount: new Decimal(0),
-										token: {
-												address: 'native',
-												symbol: 'RUJI',
-												name: 'Rujira',
-												decimals: 6,
-												raw: {}
-										}
-								},
-								raw: {}
-							}
-					]
-			])
-    };
-}
+	// 		// Fetch the latest orders for the user to build the response
+	// 		const allOrders: Map<string, Order> = Map();
+	// 		for (const order of placedOrders) {
+	// 				try {
+	// 						const ordersResp = await this.getOrders({
+	// 								ownerAddress: order.ownerAddress || '',
+	// 								marketAddress: order.marketAddress,
+	// 								marketSymbol: order.marketSymbol,
+	// 								maximumNumberOfOrders: 50
+	// 						});
+	// 						const matched =  Array.from(ordersResp.values()).find((o: any) => {
+	// 								if (order.type === 'limit' && order.price)
+	// 										return o.side === (order.side === 'buy' ? 'quote' : 'base') && o.price.fixed === order.price.toString();
+	// 								return o.side === (order.side === 'buy' ? 'quote' : 'base');
+	// 						}) as any;
+	// 						if (matched) {
+	// 								allOrders.set(
+	// 										matched.owner + '-' + matched.side + '-' + matched.price || matched.price.toString(),
+	// 										{
+	// 												id: matched.owner + '-' + matched.side + '-' + matched.price.toString(),
+	// 												market: {} as Market,
+	// 												owner: matched.owner,
+	// 												type: matched.type || OrderType.LIMIT,
+	// 												side: matched.side,
+	// 												price: matched.price ? new Decimal(matched.price) : new Decimal(0),
+	// 												amount: new Decimal(matched.amount),
+	// 												filledAmount: new Decimal(0),
+	// 												filledPercentage: new Decimal(0),
+	// 												status: OrderStatus.OPEN,
+	// 												raw: matched,
+	// 										}
+	// 								);
+	// 						}
+	// 				} catch (err) {
+	// 						console.error('[placeOrders] Error fetching created orders:', err);
+	// 				}
+	// 		}
 
-/**
- * Replace order
- * @param request - The request object
- * @returns The response for the replaced order
- */
-async replaceOrder(request: FinReplaceOrderRequest): Promise<FinReplaceOrderResponse> {
-	throw new Error("Not implemented");
-}
+	// 		//Don't have a way to get transaction hash directly, so return a dummy Transaction object
+	// 		return {
+	// 				orders: allOrders ,
+	// 				transactions: Map<string, Transaction>([
+	// 					[
+	// 							'',
+	// 							{
+	// 								hash: '',
+	// 								status: TransactionStatus.FAILED,
+	// 								fee: {
+	// 										amount: new Decimal(0),
+	// 										token: {
+	// 												address: 'native',
+	// 												symbol: 'RUJI',
+	// 												name: 'Rujira',
+	// 												decimals: 6,
+	// 												raw: {}
+	// 										}
+	// 								},
+	// 								raw: {}
+	// 							}
+	// 					]
+	// 			])
+	// 		};
+	}
 
-/**
- * Replace multiple orders
- * @param request - The request object
- * @returns The response for the replaced orders
- */
-async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersResponse> {
-	throw new Error("Not implemented");
-}
+	/**
+	 * Replace order
+	 * @param request - The request object
+	 * @returns The response for the replaced order
+	 */
+	async replaceOrder(request: FinReplaceOrderRequest): Promise<FinReplaceOrderResponse> {
+		throw new Error("Not implemented");
+	}
+
+	/**
+	 * Replace multiple orders
+	 * @param request - The request object
+	 * @returns The response for the replaced orders
+	 */
+	async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersResponse> {
+		throw new Error("Not implemented");
+	}
 
 	/**
 	 * Cancel order (calls cancelOrders with a single orderId)
@@ -1356,18 +1366,20 @@ async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersR
 	 * @returns The response for the canceled order
 	 */
 	async cancelOrder(request: FinCancelOrderRequest): Promise<FinCancelOrderResponse> {
-		const resp = await this.cancelOrders({
-			ownerAddress: request.ownerAddress,
-			marketAddress: request.marketAddress,
-			marketSymbol: request.marketSymbol,
-			orderIds: [request.orderId || ''],
-			cancelAll: false
-		});
-		return {
-			order: resp.orders.get(request.orderId || '') || {} as Order,
-			status: resp.status,
-			transaction: (Array.from(resp.transactions.values()) as Transaction[])[0]
-		};
+		throw new Error("Not implemented");
+
+		// const resp = await this.cancelOrders({
+		// 	ownerAddress: request.ownerAddress,
+		// 	marketAddress: request.marketAddress,
+		// 	marketSymbol: request.marketSymbol,
+		// 	orderIds: [request.orderId || ''],
+		// 	cancelAll: false
+		// });
+		// return {
+		// 	order: resp.orders.get(request.orderId || '') || {} as Order,
+		// 	status: resp.status,
+		// 	transaction: (Array.from(resp.transactions.values()) as Transaction[])[0]
+		// };
 	}
 
 	/**
@@ -1376,98 +1388,100 @@ async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersR
 	 * @returns The response for the canceled orders
 	 */
 	async cancelOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
-		// 1. Get the market address
-		const market = await this.getMarket({
-			address: request.marketAddress,
-			symbol: request.marketSymbol
-		});
-		const contractAddress = market.address;
+		throw new Error("Not implemented");
 
-		// 2. Query user orders
-		const ordersResult = await this.cosmClient.queryContractSmart(contractAddress, {
-			orders: { owner: request.ownerAddress, limit: 1000 }
-		});
-		const orders = ordersResult.orders || [];
+		// // 1. Get the market address
+		// const market = await this.getMarket({
+		// 	address: request.marketAddress,
+		// 	symbol: request.marketSymbol
+		// });
+		// const contractAddress = market.address;
 
-		// 3. Determine which orders to cancel
-		let ordersToCancel: any[] = [];
-		if (request.orderIds && request.orderIds.length > 0) {
-			ordersToCancel = orders.filter((order: any) => {
-				if (order.id && request.orderIds!.includes(order.id)) return true;
-				if (order.price && order.price.fixed && order.side) {
-					const syntheticId = `${order.side}:${order.price.fixed}`;
-					return request.orderIds!.includes(syntheticId);
-				}
-				return false;
-			});
-		} else if (request.orders && request.orders.length > 0) {
-			const ids = request.orders.map((order: any) => order.id).filter(Boolean);
-			ordersToCancel = orders.filter((o: any) => ids.includes(o.id));
-		} else {
-			throw new Error('No orderIds or orders provided to cancelOrders');
-		}
-		if (ordersToCancel.length === 0) {
-			throw new Error('No orders found to cancel');
-		}
+		// // 2. Query user orders
+		// const ordersResult = await this.cosmClient.queryContractSmart(contractAddress, {
+		// 	orders: { owner: request.ownerAddress, limit: 1000 }
+		// });
+		// const orders = ordersResult.orders || [];
 
-		// 4. Build the cancellation message for all orders
-		const cancelMsgs = ordersToCancel.map((order: any) => [order.side, { fixed: order.price.fixed }, '0']);
-		const executeMsg = {
-			order: [cancelMsgs, null]
-		};
+		// // 3. Determine which orders to cancel
+		// let ordersToCancel: any[] = [];
+		// if (request.orderIds && request.orderIds.length > 0) {
+		// 	ordersToCancel = orders.filter((order: any) => {
+		// 		if (order.id && request.orderIds!.includes(order.id)) return true;
+		// 		if (order.price && order.price.fixed && order.side) {
+		// 			const syntheticId = `${order.side}:${order.price.fixed}`;
+		// 			return request.orderIds!.includes(syntheticId);
+		// 		}
+		// 		return false;
+		// 	});
+		// } else if (request.orders && request.orders.length > 0) {
+		// 	const ids = request.orders.map((order: any) => order.id).filter(Boolean);
+		// 	ordersToCancel = orders.filter((o: any) => ids.includes(o.id));
+		// } else {
+		// 	throw new Error('No orderIds or orders provided to cancelOrders');
+		// }
+		// if (ordersToCancel.length === 0) {
+		// 	throw new Error('No orders found to cancel');
+		// }
 
-		// 5. Execute the cancellation transaction
-		const [{ address }] = await this.wallet.getAccounts();
-		const result = await this.cosmClient.execute(
-			address,
-			contractAddress,
-			executeMsg,
-			'auto'
-		);
+		// // 4. Build the cancellation message for all orders
+		// const cancelMsgs = ordersToCancel.map((order: any) => [order.side, { fixed: order.price.fixed }, '0']);
+		// const executeMsg = {
+		// 	order: [cancelMsgs, null]
+		// };
 
-		// 6. Return the response
-		const cancelledOrdersMap = Map<string, Order>();
-		for (const order of ordersToCancel) {
-			const id = order.id || `${order.side}:${order.price.fixed}`;
-			cancelledOrdersMap.set(id, {
-				id,
-				market: {} as Market,
-				owner: order.owner,
-				type: order.type || OrderType.LIMIT,
-				side: order.side,
-				price: order.price ? new Decimal(order.price) : new Decimal(0),
-				amount: new Decimal(order.amount),
-				filledAmount: new Decimal(order.filledAmount || 0),
-				filledPercentage: new Decimal(0),
-				status: OrderStatus.CANCELLED,
-				raw: order,
-			});
-		}
-		const transactionsMap = Map<string, Transaction>([
-			[
-				result.transactionHash,
-				{
-					hash: result.transactionHash,
-					status: TransactionStatus.SUCCESS,
-					fee: {
-						amount: result.gasUsed ? new Decimal(result.gasUsed.toString()) : new Decimal(0),
-						token: {
-							address: 'native',
-							symbol: 'RUJI',
-							name: 'Rujira',
-							decimals: 6,
-							raw: {}
-						}
-					},
-					raw: result
-				}
-			]
-		]);
-		return {
-			orders: cancelledOrdersMap,
-			status: OrderStatus.CANCELLED,
-			transactions: transactionsMap
-		};
+		// // 5. Execute the cancellation transaction
+		// const [{ address }] = await this.wallet.getAccounts();
+		// const result = await this.cosmClient.execute(
+		// 	address,
+		// 	contractAddress,
+		// 	executeMsg,
+		// 	'auto'
+		// );
+
+		// // 6. Return the response
+		// const cancelledOrdersMap = Map<string, Order>();
+		// for (const order of ordersToCancel) {
+		// 	const id = order.id || `${order.side}:${order.price.fixed}`;
+		// 	cancelledOrdersMap.set(id, {
+		// 		id,
+		// 		market: {} as Market,
+		// 		owner: order.owner,
+		// 		type: order.type || OrderType.LIMIT,
+		// 		side: order.side,
+		// 		price: order.price ? new Decimal(order.price) : new Decimal(0),
+		// 		amount: new Decimal(order.amount),
+		// 		filledAmount: new Decimal(order.filledAmount || 0),
+		// 		filledPercentage: new Decimal(0),
+		// 		status: OrderStatus.CANCELLED,
+		// 		raw: order,
+		// 	});
+		// }
+		// const transactionsMap = Map<string, Transaction>([
+		// 	[
+		// 		result.transactionHash,
+		// 		{
+		// 			hash: result.transactionHash,
+		// 			status: TransactionStatus.SUCCESS,
+		// 			fee: {
+		// 				amount: result.gasUsed ? new Decimal(result.gasUsed.toString()) : new Decimal(0),
+		// 				token: {
+		// 					address: 'native',
+		// 					symbol: 'RUJI',
+		// 					name: 'Rujira',
+		// 					decimals: 6,
+		// 					raw: {}
+		// 				}
+		// 			},
+		// 			raw: result
+		// 		}
+		// 	]
+		// ]);
+		// return {
+		// 	orders: cancelledOrdersMap,
+		// 	status: OrderStatus.CANCELLED,
+		// 	transactions: transactionsMap
+		// };
 	}
 
 	/**
@@ -1476,30 +1490,32 @@ async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersR
 	 * @returns The response for the canceled orders
 	 */
 	async cancelAllOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
-		// 1. Get the market address
-		const market = await this.getMarket({
-			address: request.marketAddress,
-			symbol: request.marketSymbol
-		});
-		const contractAddress = market.address;
+		throw new Error("Not implemented");
 
-		// 2. Query all user orders
-		const ordersMap = await this.getOrders({
-			ownerAddress: request.ownerAddress!,
-			marketAddress: contractAddress,
-			maximumNumberOfOrders: 1000
-		});
-		const allOrderIds = Array.from(ordersMap.keys()).filter((id): id is string => id !== undefined);
-		if (allOrderIds.length === 0) {
-			throw new Error('No orders found to cancel');
-		}
+	// 	// 1. Get the market address
+	// 	const market = await this.getMarket({
+	// 		address: request.marketAddress,
+	// 		symbol: request.marketSymbol
+	// 	});
+	// 	const contractAddress = market.address;
 
-		// 3. Call cancelOrders with all order IDs
-		return this.cancelOrders({
-			ownerAddress: request.ownerAddress,
-			marketAddress: contractAddress,
-			orderIds: allOrderIds
-		});
+	// 	// 2. Query all user orders
+	// 	const ordersMap = await this.getOrders({
+	// 		ownerAddress: request.ownerAddress!,
+	// 		marketAddress: contractAddress,
+	// 		maximumNumberOfOrders: 1000
+	// 	});
+	// 	const allOrderIds = Array.from(ordersMap.keys()).filter((id): id is string => id !== undefined);
+	// 	if (allOrderIds.length === 0) {
+	// 		throw new Error('No orders found to cancel');
+	// 	}
+
+	// 	// 3. Call cancelOrders with all order IDs
+	// 	return this.cancelOrders({
+	// 		ownerAddress: request.ownerAddress,
+	// 		marketAddress: contractAddress,
+	// 		orderIds: allOrderIds
+	// 	});
 	}
 
 	/**
@@ -1508,71 +1524,73 @@ async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersR
 	 * @returns The response for the withdrawn orders
 	 */
 	async withdrawFromMarket(request: FinWithdrawRequest): Promise<FinWithdrawResponse> {
-		if (!request.ownerAddress) {
-			throw new Error('ownerAddress is required');
-		}
-		if (!request.marketAddress && !request.marketSymbol) {
-			throw new Error('marketAddress or marketSymbol is required');
-		}
+		throw new Error("Not implemented");
 
-		// Resolve market address
-		let contractAddress: string;
-		if (request.marketAddress) {
-			contractAddress = request.marketAddress;
-		} else {
-			const market = await this.getMarket({ symbol: request.marketSymbol });
-			contractAddress = market.address;
-		}
+		// if (!request.ownerAddress) {
+		// 	throw new Error('ownerAddress is required');
+		// }
+		// if (!request.marketAddress && !request.marketSymbol) {
+		// 	throw new Error('marketAddress or marketSymbol is required');
+		// }
 
-		// Query all orders for the user in this market
-		const ordersResult = await this.cosmClient.queryContractSmart(contractAddress, {
-			orders: { owner: request.ownerAddress, limit: 1000 }
-		});
-		const orders = ordersResult.orders || [];
+		// // Resolve market address
+		// let contractAddress: string;
+		// if (request.marketAddress) {
+		// 	contractAddress = request.marketAddress;
+		// } else {
+		// 	const market = await this.getMarket({ symbol: request.marketSymbol });
+		// 	contractAddress = market.address;
+		// }
 
-		// Find filled orders (filled > 0)
-		const filledOrders = orders.filter((order: any) => {
-			return order.filled && order.filled !== '0';
-		});
+		// // Query all orders for the user in this market
+		// const ordersResult = await this.cosmClient.queryContractSmart(contractAddress, {
+		// 	orders: { owner: request.ownerAddress, limit: 1000 }
+		// });
+		// const orders = ordersResult.orders || [];
 
-		if (filledOrders.length === 0) {
-			throw new Error('No filled orders to withdraw');
-		}
+		// // Find filled orders (filled > 0)
+		// const filledOrders = orders.filter((order: any) => {
+		// 	return order.filled && order.filled !== '0';
+		// });
 
-		// Withdraw from each filled order (batch not supported, so withdraw one by one)
-		let lastTxResult: any = null;
-		for (const order of filledOrders) {
-			const withdrawMsg = {
-				order: [
-					[order.side, { fixed: order.price.fixed }, '0']
-				],
-			};
-			lastTxResult = await this.cosmClient.execute(
-				request.ownerAddress,
-				contractAddress,
-				withdrawMsg,
-				'auto'
-			);
-			console.debug(`Withdrawn from order: ${order.side} @ ${order.price.fixed}`);
-		}
+		// if (filledOrders.length === 0) {
+		// 	throw new Error('No filled orders to withdraw');
+		// }
 
-		return {
-			transaction: {
-				hash: lastTxResult.transactionHash,
-				status: lastTxResult.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
-				fee: {
-					amount: new Decimal(lastTxResult.gasUsed || 0), // This is not the real fee, but best available
-					token: {
-						address: '',
-						symbol: '',
-						name: '',
-						decimals: 0,
-						raw: {}
-					}
-				},
-				raw: lastTxResult
-			},
-			raw: lastTxResult
-		};
+		// // Withdraw from each filled order (batch not supported, so withdraw one by one)
+		// let lastTxResult: any = null;
+		// for (const order of filledOrders) {
+		// 	const withdrawMsg = {
+		// 		order: [
+		// 			[order.side, { fixed: order.price.fixed }, '0']
+		// 		],
+		// 	};
+		// 	lastTxResult = await this.cosmClient.execute(
+		// 		request.ownerAddress,
+		// 		contractAddress,
+		// 		withdrawMsg,
+		// 		'auto'
+		// 	);
+		// 	console.debug(`Withdrawn from order: ${order.side} @ ${order.price.fixed}`);
+		// }
+
+		// return {
+		// 	transaction: {
+		// 		hash: lastTxResult.transactionHash,
+		// 		status: lastTxResult.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
+		// 		fee: {
+		// 			amount: new Decimal(lastTxResult.gasUsed || 0), // This is not the real fee, but best available
+		// 			token: {
+		// 				address: '',
+		// 				symbol: '',
+		// 				name: '',
+		// 				decimals: 0,
+		// 				raw: {}
+		// 			}
+		// 		},
+		// 		raw: lastTxResult
+		// 	},
+		// 	raw: lastTxResult
+		// };
 	}
 }
