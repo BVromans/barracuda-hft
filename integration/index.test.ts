@@ -106,6 +106,7 @@ beforeAll(async () => {
 		secondMarketQuoteTokenSymbol = process.env.SECOND_MARKET_QUOTE_TOKEN_SYMBOL!;
 		secondMarketBaseTokenAmount = process.env.SECOND_MARKET_BASE_TOKEN_AMOUNT!;
 		ownerAddress = process.env.OWNER_ADDRESS!;
+		testOrderIds = process.env.TEST_ORDER_IDS!.split(',');
 	rujira = new Rujira({
 		walletPrivateKey: walletPrivateKey,
 		walletMnemonic: walletMnemonic,
@@ -1024,13 +1025,13 @@ describe("Rujira", () => {
 					const result = await rujira.fin.cancelOrders({ orderIds: testOrderIds });
 
 					expect(result).toBeDefined();
-					expect(result.orders.size).toBe(2); // TODO fix!!!
+					expect(result.orders.size).toBe(testOrderIds.length);
 
 					for (const [orderId, order] of result.orders.entries()) {
 						expect(order).toBeDefined();
 						expect(order.id).toBe(orderId);
-						expect(order.side).toBe(OrderSide.BUY); // TODO Fix, use the correct side for each order!!!
-						expect(order.type).toBe(OrderType.LIMIT); // TODO Fix, use the correct type for each order!!!
+						expect(order.side).toBe(order.side);
+						expect(order.type).toBe(order.type);
 						expect(order.status).toBe(OrderStatus.CANCELLED);
 
 						expect(order.market).toBeDefined();
@@ -1092,7 +1093,7 @@ describe("Rujira", () => {
 					const result = await rujira.fin.cancelAllOrders({ marketAddress: firstMarketAddress, marketSymbol: undefined });
 
 					expect(result).toBeDefined();
-					expect(result.orders.size).toBe(2); // TODO fix!!!
+					expect(result.orders.size).toBe(testOrderIds.length);
 
 					result.orders.forEach((order: Order) => {
 						expect(order).toBeDefined();
