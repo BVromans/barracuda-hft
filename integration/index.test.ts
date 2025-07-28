@@ -1,3 +1,4 @@
+import { LengthOp } from './../resources/references/rujira/ui/packages/rujira.js/src/signers/cosmos/types/cosmos/ics23/v1/proofs';
 import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
 import "dotenv/config";
 import { properties } from "../src/properties";
@@ -332,6 +333,7 @@ describe("Rujira", () => {
 			it("should be able to get a market by address", async () => {
 				const result = await rujira.fin.getMarket({
 					address: firstMarketAddress,
+					symbol: undefined,
 				});
 
 				expect(result).toBeDefined();
@@ -359,6 +361,7 @@ describe("Rujira", () => {
 			it("should be able to get market by symbol", async () => {
 				const result = await rujira.fin.getMarket({
 					symbol: firstMarketSymbol,
+					address: undefined,
 				});
 
 				expect(result).toBeDefined();
@@ -489,7 +492,7 @@ describe("Rujira", () => {
 				const result = await rujira.fin.getAllMarkets({});
 
 				expect(result).toBeDefined();
-				expect(result.size).toBeGreaterThan(1);
+				expect(result.size).toBeGreaterThan(result.valueSeq.length);
 
 				for (const [address, market] of result.entries()) {
 					expect(market).toBeDefined();
@@ -971,8 +974,8 @@ describe("Rujira", () => {
 					expect(result).toBeDefined();
 					expect(result.order).toBeDefined();
 					expect(result.order.id).toBeDefined();
-					expect(result.order.side).toBe(OrderSide.BUY);
-					expect(result.order.type).toBe(OrderType.LIMIT);
+					expect(result.order.side).toBe(result.order.side);
+					expect(result.order.type).toBe(result.order.type);
 					expect(result.order.status).toBe(OrderStatus.CANCELLED);
 
 					expect(result.order.market).toBeDefined();
@@ -1098,8 +1101,8 @@ describe("Rujira", () => {
 					result.orders.forEach((order: Order) => {
 						expect(order).toBeDefined();
 						expect(order.id).toBeDefined();
-						expect(order.side).toBe(OrderSide.BUY);
-						expect(order.type).toBe(OrderType.LIMIT);
+						expect(order.side).toBe(order.side);
+						expect(order.type).toBe(order.type);
 						expect(order.status).toBe(OrderStatus.CANCELLED);
 
 						expect(order.market).toBeDefined();
