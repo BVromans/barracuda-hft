@@ -993,16 +993,16 @@ describe("Rujira", () => {
 
 					expect(result.order.owner).toBeDefined();
 					expect(result.order.owner).toBe(ownerAddress);
-					expect(result.order.price.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(result.order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(result.order.price.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+					expect(result.order.amount.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
 					expect(result.order.filledAmount).toBeDefined();
 					expect(result.order.filledAmount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(result.order.filledPercentage).toBeDefined();
 					expect(result.order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(result.order.creationTimestamp).toBeDefined();
-					expect(result.order.creationTimestamp).toBeGreaterThan(0);
+					expect(result.order.creationTimestamp).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(result.order.updateTimestamp).toBeDefined();
-					expect(result.order.updateTimestamp).toBeGreaterThan(0);
+					expect(result.order.updateTimestamp).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(result.order.raw).toBeDefined();
 
 					expect(result.transaction).toBeDefined();
@@ -1010,6 +1010,7 @@ describe("Rujira", () => {
 					expect(result.transaction.status).toBe(TransactionStatus.SUCCESS);
 					expect(result.transaction.fee).toBeDefined();
 					expect(result.transaction.fee.amount).toBeDefined();
+					expect(result.transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(result.transaction.fee.token).toBeDefined();
 					expect(result.transaction.fee.token.address).toBeDefined();
 					expect(result.transaction.fee.token.symbol).toBeDefined();
@@ -1017,21 +1018,19 @@ describe("Rujira", () => {
 					expect(result.transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(result.transaction.fee.token.raw).toBeDefined();
 					expect(result.transaction.raw).toBeDefined();
-
 				});
 
 				it("should cancel multiple orders", async () => {
 					const result = await rujira.fin.cancelOrders({ orderIds: testOrderIds });
-					expect(result).toBeDefined();
-					expect(result.orders.size).toBe(2);
-					expect(result.orders.size).toBeLessThanOrEqual(2);
-					expect(result.orders.size).toBeGreaterThan(0);
 
-					result.orders.forEach((order: Order) => {
+					expect(result).toBeDefined();
+					expect(result.orders.size).toBe(2); // TODO fix!!!
+
+					for (const [orderId, order] of result.orders.entries()) {
 						expect(order).toBeDefined();
-						expect(order.id).toBeDefined();
-						expect(order.side).toBe(OrderSide.BUY);
-						expect(order.type).toBe(OrderType.LIMIT);
+						expect(order.id).toBe(orderId);
+						expect(order.side).toBe(OrderSide.BUY); // TODO Fix, use the correct side for each order!!!
+						expect(order.type).toBe(OrderType.LIMIT); // TODO Fix, use the correct type for each order!!!
 						expect(order.status).toBe(OrderStatus.CANCELLED);
 
 						expect(order.market).toBeDefined();
@@ -1070,11 +1069,12 @@ describe("Rujira", () => {
 						expect(order.updateTimestamp).toBeGreaterThan(0);
 
 						expect(order.raw).toBeDefined();
-					});
+					}
 
-					result.transactions.forEach((transaction: Transaction) => {
+					for (const [transactionHash, transaction] of result.transactions.entries()) {
 						expect(transaction).toBeDefined();
 						expect(transaction.hash).toBeDefined();
+						expect(transaction.hash).toBe(transactionHash);
 						expect(transaction.status).toBe(TransactionStatus.SUCCESS);
 						expect(transaction.fee).toBeDefined();
 						expect(transaction.fee.amount).toBeDefined();
@@ -1084,18 +1084,15 @@ describe("Rujira", () => {
 						expect(transaction.fee.token.name).toBeDefined();
 						expect(transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 						expect(transaction.fee.token.raw).toBeDefined();
-
 						expect(transaction.raw).toBeDefined();
-					});
+					}
 				});
 
 				it("should cancel all orders", async () => {
-					const result = await rujira.fin.cancelAllOrders({ marketAddress: firstMarketAddress, marketSymbol: firstMarketSymbol });
+					const result = await rujira.fin.cancelAllOrders({ marketAddress: firstMarketAddress, marketSymbol: undefined });
 
 					expect(result).toBeDefined();
-					expect(result.orders.size).toBe(2);
-					expect(result.orders.size).toBeLessThanOrEqual(2);
-					expect(result.orders.size).toBeGreaterThan(0);
+					expect(result.orders.size).toBe(2); // TODO fix!!!
 
 					result.orders.forEach((order: Order) => {
 						expect(order).toBeDefined();
@@ -1142,9 +1139,10 @@ describe("Rujira", () => {
 						expect(order.updateTimestamp).toBeGreaterThan(0);
 					});
 
-					result.transactions.forEach((transaction: Transaction) => {
+					for (const [transactionHash, transaction] of result.transactions.entries()) {
 						expect(transaction).toBeDefined();
 						expect(transaction.hash).toBeDefined();
+						expect(transaction.hash).toBe(transactionHash);
 						expect(transaction.status).toBe(TransactionStatus.SUCCESS);
 						expect(transaction.fee).toBeDefined();
 						expect(transaction.fee.amount).toBeGreaterThan(BIG_NUMBER_0.toNumber());
@@ -1157,7 +1155,7 @@ describe("Rujira", () => {
 						expect(transaction.fee.token.symbol).toBe(feePaymentTokenConstant.symbol);
 
 						expect(transaction.raw).toBeDefined();
-					});
+					}
 				});
 			});
 		});

@@ -1158,12 +1158,6 @@ export interface FinCancelOrderRequest {
  * Cancel order response
  */
 export interface FinCancelOrderResponse {
-
-	/**
-	 * Status of the cancellation
-	 */
-	status: OrderStatus;
-
 	/**
 	 * Order that was cancelled
 	 */
@@ -1224,12 +1218,6 @@ export interface FinCancelOrdersRequest {
  * Cancel orders response
  */
 export interface FinCancelOrdersResponse {
-
-	/**
-	 * Status of the cancellation
-	 */
-	status: OrderStatus;
-
 	/**
 	 * List of cancelled orders
 	 */
@@ -1275,7 +1263,6 @@ export interface FinWithdrawRequest {
  * Withdraw from market response
  */
 export interface FinWithdrawResponse {
-
 	/**
 	 * Transaction details
 	 */
