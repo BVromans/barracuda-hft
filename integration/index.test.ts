@@ -73,9 +73,7 @@ beforeAll(async () => {
 		'SECOND_MARKET_BASE_TOKEN_SYMBOL',
 		'SECOND_MARKET_QUOTE_TOKEN_SYMBOL',
 		'SECOND_MARKET_BASE_TOKEN_AMOUNT',
-    'OWNER_ADDRESS',
-    'PRICE_FIXED',
-    'TEST_ORDER_IDS'
+    'OWNER_ADDRESS'
 	];
 
 	const missingEnvironmentVariables = requiredEnvironmentVariables.filter(varName => !process.env[varName]);
@@ -85,28 +83,28 @@ beforeAll(async () => {
 	}
 
 	feePaymentTokenConstant = properties.getAs<Token>('rujira.tokens.feePayment');
-		nativeTokenConstant = properties.getAs<Token>('rujira.tokens.native');
-		beaconTokenConstant = properties.getAs<Token>('rujira.tokens.beacon');
-		walletPrivateKey = process.env.WALLET_PRIVATE_KEY!;
-		walletMnemonic = process.env.WALLET_MNEMONIC!;
-		transactionHash = process.env.TRANSACTION_HASH!;
-		firstMarketSymbol = process.env.FIRST_MARKET_SYMBOL!;
-		firstMarketAddress = process.env.FIRST_MARKET_ADDRESS!;
-		firstMarketBaseTokenAddress = process.env.FIRST_MARKET_BASE_TOKEN_ADDRESS!;
-		firstMarketQuoteTokenAddress = process.env.FIRST_MARKET_QUOTE_TOKEN_ADDRESS!;
-		firstMarketBaseTokenSymbol = process.env.FIRST_MARKET_BASE_TOKEN_SYMBOL!;
-		firstMarketQuoteTokenSymbol = process.env.FIRST_MARKET_QUOTE_TOKEN_SYMBOL!;
-		firstMarketBaseTokenAmount = process.env.FIRST_MARKET_BASE_TOKEN_AMOUNT!;
-		firstMarketQuoteTokenAmount = process.env.FIRST_MARKET_QUOTE_TOKEN_AMOUNT!;
-		secondMarketSymbol = process.env.SECOND_MARKET_SYMBOL!;
-		secondMarketAddress = process.env.SECOND_MARKET_ADDRESS!;
-		secondMarketBaseTokenAddress = process.env.SECOND_MARKET_BASE_TOKEN_ADDRESS!;
-		secondMarketQuoteTokenAddress = process.env.SECOND_MARKET_QUOTE_TOKEN_ADDRESS!;
-		secondMarketBaseTokenSymbol = process.env.SECOND_MARKET_BASE_TOKEN_SYMBOL!;
-		secondMarketQuoteTokenSymbol = process.env.SECOND_MARKET_QUOTE_TOKEN_SYMBOL!;
-		secondMarketBaseTokenAmount = process.env.SECOND_MARKET_BASE_TOKEN_AMOUNT!;
-		ownerAddress = process.env.OWNER_ADDRESS!;
-		testOrderIds = process.env.TEST_ORDER_IDS!.split(',');
+	nativeTokenConstant = properties.getAs<Token>('rujira.tokens.native');
+	beaconTokenConstant = properties.getAs<Token>('rujira.tokens.beacon');
+	walletPrivateKey = process.env.WALLET_PRIVATE_KEY!;
+	walletMnemonic = process.env.WALLET_MNEMONIC!;
+	transactionHash = process.env.TRANSACTION_HASH!;
+	firstMarketSymbol = process.env.FIRST_MARKET_SYMBOL!;
+	firstMarketAddress = process.env.FIRST_MARKET_ADDRESS!;
+	firstMarketBaseTokenAddress = process.env.FIRST_MARKET_BASE_TOKEN_ADDRESS!;
+	firstMarketQuoteTokenAddress = process.env.FIRST_MARKET_QUOTE_TOKEN_ADDRESS!;
+	firstMarketBaseTokenSymbol = process.env.FIRST_MARKET_BASE_TOKEN_SYMBOL!;
+	firstMarketQuoteTokenSymbol = process.env.FIRST_MARKET_QUOTE_TOKEN_SYMBOL!;
+	firstMarketBaseTokenAmount = process.env.FIRST_MARKET_BASE_TOKEN_AMOUNT!;
+	firstMarketQuoteTokenAmount = process.env.FIRST_MARKET_QUOTE_TOKEN_AMOUNT!;
+	secondMarketSymbol = process.env.SECOND_MARKET_SYMBOL!;
+	secondMarketAddress = process.env.SECOND_MARKET_ADDRESS!;
+	secondMarketBaseTokenAddress = process.env.SECOND_MARKET_BASE_TOKEN_ADDRESS!;
+	secondMarketQuoteTokenAddress = process.env.SECOND_MARKET_QUOTE_TOKEN_ADDRESS!;
+	secondMarketBaseTokenSymbol = process.env.SECOND_MARKET_BASE_TOKEN_SYMBOL!;
+	secondMarketQuoteTokenSymbol = process.env.SECOND_MARKET_QUOTE_TOKEN_SYMBOL!;
+	secondMarketBaseTokenAmount = process.env.SECOND_MARKET_BASE_TOKEN_AMOUNT!;
+	ownerAddress = process.env.OWNER_ADDRESS!;
+
 	rujira = new Rujira({
 		walletPrivateKey: walletPrivateKey,
 		walletMnemonic: walletMnemonic,
