@@ -791,24 +791,33 @@ describe("Rujira", () => {
 
 				expect(result.tokens.size).toBeGreaterThan(0);
 
-				// TODO Improve this test to be accumulating the balances (native and beacon) and check them against the totals!!!
-				for (const [tokenAddress, balances] of result.tokens.entries()) {
-					expect(balances).toBeDefined();
-					expect(balances.token).toBeDefined();
-					expect(balances.balances).toBeDefined();
+				let accumulatedNativeFree = DECIMAL_0;
+				let accumulatedNativeLockedInOrders = DECIMAL_0;
+				let accumulatedNativeLockedInPools = DECIMAL_0;
+				let accumulatedNativeWithdrawable = DECIMAL_0;
+				let accumulatedNativeTotal = DECIMAL_0;
 
-					expect(balances.token.address).toBe(tokenAddress);
-					expect(balances.token.symbol).toBeDefined();
-					expect(balances.token.name).toBeDefined();
-					expect(balances.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-					expect(balances.token.raw).toBeDefined();
+				let accumulatedBeaconFree = DECIMAL_0;
+				let accumulatedBeaconLockedInOrders = DECIMAL_0;
+				let accumulatedBeaconLockedInPools = DECIMAL_0;
+				let accumulatedBeaconWithdrawable = DECIMAL_0;
+				let accumulatedBeaconTotal = DECIMAL_0;
 
-					const tokenBalance = balances.balances;
+				for (const [tokenAddress, tokenBalance] of result.tokens.entries()) {
+					expect(tokenBalance).toBeDefined();
 					expect(tokenBalance.token).toBeDefined();
-					expect(tokenBalance.nativeToken).toBeDefined();
-					expect(tokenBalance.beaconToken).toBeDefined();
+					expect(tokenBalance.token.address).toBe(tokenAddress);
+					expect(tokenBalance.token.symbol).toBeDefined();
+					expect(tokenBalance.token.name).toBeDefined();
+					expect(tokenBalance.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(tokenBalance.token.raw).toBeDefined();
 
-					const tokenBalanceData = tokenBalance.token;
+					expect(tokenBalance.balances).toBeDefined();
+					expect(tokenBalance.balances.token).toBeDefined();
+					expect(tokenBalance.balances.nativeToken).toBeDefined();
+					expect(tokenBalance.balances.beaconToken).toBeDefined();
+
+					const tokenBalanceData = tokenBalance.balances.token;
 					expect(tokenBalanceData.free).toBeDefined();
 					expect(tokenBalanceData.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(tokenBalanceData.lockedInOrders).toBeDefined();
@@ -820,7 +829,7 @@ describe("Rujira", () => {
 					expect(tokenBalanceData.total).toBeDefined();
 					expect(tokenBalanceData.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
-					const nativeTokenBalance = tokenBalance.nativeToken;
+					const nativeTokenBalance = tokenBalance.balances.nativeToken;
 					expect(nativeTokenBalance.free).toBeDefined();
 					expect(nativeTokenBalance.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(nativeTokenBalance.lockedInOrders).toBeDefined();
@@ -843,7 +852,7 @@ describe("Rujira", () => {
 					expect(nativeTokenBalance.quotation.quoteToToken).toBeDefined();
 					expect(nativeTokenBalance.quotation.quoteToToken.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
-					const beaconTokenBalance = tokenBalance.beaconToken;
+					const beaconTokenBalance = tokenBalance.balances.beaconToken;
 					expect(beaconTokenBalance.free).toBeDefined();
 					expect(beaconTokenBalance.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(beaconTokenBalance.lockedInOrders).toBeDefined();
@@ -865,17 +874,29 @@ describe("Rujira", () => {
 					expect(beaconTokenBalance.quotation.tokenToQuote.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(beaconTokenBalance.quotation.quoteToToken).toBeDefined();
 					expect(beaconTokenBalance.quotation.quoteToToken.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+					accumulatedNativeFree = accumulatedNativeFree.plus(nativeTokenBalance.free);
+					accumulatedNativeLockedInOrders = accumulatedNativeLockedInOrders.plus(nativeTokenBalance.lockedInOrders);
+					accumulatedNativeLockedInPools = accumulatedNativeLockedInPools.plus(nativeTokenBalance.lockedInPools);
+					accumulatedNativeWithdrawable = accumulatedNativeWithdrawable.plus(nativeTokenBalance.withdrawable);
+					accumulatedNativeTotal = accumulatedNativeTotal.plus(nativeTokenBalance.total);
+
+					accumulatedBeaconFree = accumulatedBeaconFree.plus(beaconTokenBalance.free);
+					accumulatedBeaconLockedInOrders = accumulatedBeaconLockedInOrders.plus(beaconTokenBalance.lockedInOrders);
+					accumulatedBeaconLockedInPools = accumulatedBeaconLockedInPools.plus(beaconTokenBalance.lockedInPools);
+					accumulatedBeaconWithdrawable = accumulatedBeaconWithdrawable.plus(beaconTokenBalance.withdrawable);
+					accumulatedBeaconTotal = accumulatedBeaconTotal.plus(beaconTokenBalance.total);
 				}
 
-				const baseTokenBalance = result.tokens.getOrThrow(firstMarketBaseTokenAddress);
-				expect(baseTokenBalance).toBeDefined();
-				expect(baseTokenBalance.token.address).toBe(firstMarketBaseTokenAddress);
-				expect(baseTokenBalance.token.symbol).toBe(firstMarketBaseTokenSymbol);
+				const marketBaseTokenBalance = result.tokens.getOrThrow(firstMarketBaseTokenAddress);
+				expect(marketBaseTokenBalance).toBeDefined();
+				expect(marketBaseTokenBalance.token.address).toBe(firstMarketBaseTokenAddress);
+				expect(marketBaseTokenBalance.token.symbol).toBe(firstMarketBaseTokenSymbol);
 
-				const quoteTokenBalance = result.tokens.getOrThrow(firstMarketQuoteTokenAddress);
-				expect(quoteTokenBalance).toBeDefined();
-				expect(quoteTokenBalance.token.address).toBe(firstMarketQuoteTokenAddress);
-				expect(quoteTokenBalance.token.symbol).toBe(firstMarketQuoteTokenSymbol);
+				const marketQuoteTokenBalance = result.tokens.getOrThrow(firstMarketQuoteTokenAddress);
+				expect(marketQuoteTokenBalance).toBeDefined();
+				expect(marketQuoteTokenBalance.token.address).toBe(firstMarketQuoteTokenAddress);
+				expect(marketQuoteTokenBalance.token.symbol).toBe(firstMarketQuoteTokenSymbol);
 
 				const nativeTokenBalance = result.tokens.getOrThrow(nativeTokenConstant.address);
 				expect(nativeTokenBalance.token.address).toBe(nativeTokenConstant.address);
@@ -915,6 +936,18 @@ describe("Rujira", () => {
 				expect(totalBeaconToken.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 				expect(totalBeaconToken.total).toBeDefined();
 				expect(totalBeaconToken.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+				expect(accumulatedNativeFree.toNumber()).toBe(totalNativeToken.free.toNumber());
+				expect(accumulatedNativeLockedInOrders.toNumber()).toBe(totalNativeToken.lockedInOrders.toNumber());
+				expect(accumulatedNativeLockedInPools.toNumber()).toBe(totalNativeToken.lockedInPools.toNumber());
+				expect(accumulatedNativeWithdrawable.toNumber()).toBe(totalNativeToken.withdrawable.toNumber());
+				expect(accumulatedNativeTotal.toNumber()).toBe(totalNativeToken.total.toNumber());
+
+				expect(accumulatedBeaconFree.toNumber()).toBe(totalBeaconToken.free.toNumber());
+				expect(accumulatedBeaconLockedInOrders.toNumber()).toBe(totalBeaconToken.lockedInOrders.toNumber());
+				expect(accumulatedBeaconLockedInPools.toNumber()).toBe(totalBeaconToken.lockedInPools.toNumber());
+				expect(accumulatedBeaconWithdrawable.toNumber()).toBe(totalBeaconToken.withdrawable.toNumber());
+				expect(accumulatedBeaconTotal.toNumber()).toBe(totalBeaconToken.total.toNumber());
 			});
 		});
 
