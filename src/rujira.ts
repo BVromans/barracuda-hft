@@ -487,7 +487,7 @@ export class Fin {
 	 */
 	@Cacheable({
 		cacheKey: (request: FinGetAllTokensRequest) => request.toString(),
-		ttlSeconds: properties.getAs<number>('cache.rujira.fin.getAllTokens'),
+		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllTokens'),
 	})
 	async getAllTokens(_request: FinGetAllTokensRequest): Promise<FinGetAllTokensResponse> {
 		// Get all markets first (this already contains all token data)
@@ -604,7 +604,7 @@ export class Fin {
 	 */
 	@Cacheable({
 		cacheKey: (request: FinGetAllMarketsRequest) => request.toString(),
-		ttlSeconds: properties.getAs<number>('cache.rujira.fin.getAllMarkets'),
+		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllMarkets'),
 	})
 	async getAllMarkets(_request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
 		const graphQLEndPoint = properties.getAs<URL>('rujira.endpoints.graphql');
@@ -716,7 +716,7 @@ export class Fin {
 
 		for (const pair of rawPairs) {
 			// Only include LIVE markets
-			if (pair.deploymentStatus !== properties.getAs<string>('constant.rujira.enum.markets.active')) {
+			if (pair.deploymentStatus !== properties.getAs<string>('rujira.constants.enum.markets.active')) {
 				continue;
 			}
 

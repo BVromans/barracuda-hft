@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import * as path from 'path';
 import { parse } from 'yaml';
 import { Map } from 'immutable';
+import { MMap } from './extensions/immutablejs/types';
 
 /**
  * Centralized, singleton application properties/configuration.
@@ -21,7 +22,7 @@ export class Properties {
 	 * Constructor
 	 */
 	private constructor() {
-		this.map = Map<string, any>().asMutable();
+		this.map = MMap<string, any>();
 	}
 
 	/**
@@ -52,9 +53,9 @@ export class Properties {
 	 * Initial load
 	 */
 	private initialLoad(): void {
-		this.map.set('paths.root', process.cwd());
-		this.map.set('paths.resources', path.join(this.get<string>('paths.root'), 'resources'));
-		this.map.set('paths.resources.configuration', path.join(this.get<string>('paths.resources'), 'configuration'));
+		this.map.set('paths.root.path', process.cwd());
+		this.map.set('paths.resources.path', path.join(this.map.get('paths.root.path'), 'resources'));
+		this.map.set('paths.resources.configuration.path', path.join(this.map.get('paths.resources.path'), 'configuration'));
 	}
 
 	/**
@@ -67,7 +68,7 @@ export class Properties {
 	 * Load from configuration files
 	 */
 	private async loadFromConfigurationFiles(): Promise<void> {
-		const configurationFolder = this.get<string>('paths.resources.configuration');
+		const configurationFolder = this.get<string>('paths.resources.configuration.path');
 
 		let configuration: Map<string, any> = Map<string, any>().asMutable();
 

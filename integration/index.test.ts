@@ -52,8 +52,8 @@ let testsTimeout: number;
 
 beforeAll(async () => {
 	const requiredProperties = [
-		'wallet.mnemonic',
-		'wallet.publicKeys.thor',
+		'rujira.wallet.mnemonic',
+		'rujira.wallet.publicKeys.thor',
 		'rujira.tokens.feePayment',
 		'rujira.tokens.native',
 		'rujira.tokens.beacon',
@@ -76,14 +76,14 @@ beforeAll(async () => {
 		'tests.integration.second_market_quote_token_amount',
 	];
 
-	const missingProperties = requiredProperties.filter(path => properties.getAs<any>(path));
+	const missingProperties = requiredProperties.filter(path => !properties.getAs<any>(path));
 
 	if (missingProperties.length > 0) {
 		throw new Error(`Missing required properties: ${missingProperties.join(', ')}`);
 	}
 
-	walletMnemonic = properties.getAs<WalletMnemonic>('wallet.mnemonic');
-	walletPublicKeyThor = properties.getAs<WalletAddress>('wallet.publicKeys.thor');
+	walletMnemonic = properties.getAs<WalletMnemonic>('rujira.wallet.mnemonic');
+	walletPublicKeyThor = properties.getAs<WalletAddress>('rujira.wallet.publicKeys.thor');
 	feePaymentTokenConstant = properties.getAs<Token>('rujira.tokens.feePayment');
 	nativeTokenConstant = properties.getAs<Token>('rujira.tokens.native');
 	beaconTokenConstant = properties.getAs<Token>('rujira.tokens.beacon');
@@ -126,9 +126,9 @@ afterAll(async () => {
 const cleanUp = async () => {
 };
 
-describe("Rujira", () => {
-	describe("Fin", () => {
-		describe("status", () => {
+describe("Rujira", async() => {
+	describe("Fin", async () => {
+		describe("status", async () => {
 			it("should be up", async () => {
 				const result = await rujira.fin.getStatus({});
 

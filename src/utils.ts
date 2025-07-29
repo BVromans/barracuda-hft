@@ -49,8 +49,8 @@ export const sleep = (milliseconds: number) =>
 export const promiseAllInBatches = async <I, O>(
 	task: (item: I) => Promise<O>,
 	items: any[],
-	batchSize: number = properties.get('parallel.all.batchSize'),
-	delayBetweenBatches: number = properties.get('parallel.all.delayBetweenBatches'),
+	batchSize: number = properties.getAs<number>('rujira.default.parallel.batchSize'),
+	delayBetweenBatches: number = properties.getAs<number>('rujira.default.parallel.delayBetweenBatches'),
 ): Promise<O[]> => {
 	let position = 0;
 	let results: any[] = [];
@@ -101,9 +101,9 @@ export function runWithRetryAndTimeout(options?: {
 	timeoutErrorMessage?: string;
 }): MethodDecorator {
 	const {
-		maximumNumberOfRetries = properties.getAs<number>('retry.all.maxNumberOfRetries'),
-		delayBetweenRetries = properties.getAs<number>('retry.all.delayBetweenRetries'),
-		timeout = properties.getAs<number>('timeout.all'),
+		maximumNumberOfRetries = properties.getAs<number>('rujira.default.retry.maximumNumberOfRetries'),
+		delayBetweenRetries = properties.getAs<number>('rujira.default.retry.delayBetweenRetries'),
+		timeout = properties.getAs<number>('rujira.default.retry.timeout'),
 		timeoutErrorMessage = 'Timeout exceeded.',
 	} = options || {};
 	return function (
