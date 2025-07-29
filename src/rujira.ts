@@ -86,6 +86,8 @@ import {
 	Integer,
 	DECIMAL_0,
 	DECIMAL_INFINITY,
+	MMap,
+	MList,
 } from "./types";
 import Decimal from 'decimal.js';
 import { properties } from "./properties";
@@ -264,6 +266,21 @@ export class Fin {
 	private marketsBySymbol: Map<MarketSymbol, Market>;
 
 	/**
+	 * Native token
+	 */
+	private nativeToken: Token;
+
+	/**
+	 * Beacon token
+	 */
+	private beaconToken: Token;
+
+	/**
+	 * Fee payment token
+	 */
+	private feePaymentToken: Token;
+
+	/**
 	 * Constructor
 	 * @param options - The constructor options
 	 */
@@ -275,6 +292,10 @@ export class Fin {
 		this.tokensBySymbol = Map<TokenSymbol, Token>();
 		this.marketsByAddress = Map<MarketAddress, Market>();
 		this.marketsBySymbol = Map<MarketSymbol, Market>();
+
+		this.nativeToken = undefined as unknown as Token;
+		this.beaconToken = undefined as unknown as Token;
+		this.feePaymentToken = undefined as unknown as Token;
 	}
 
 	/**
@@ -287,6 +308,18 @@ export class Fin {
 
 		await this.getAllTokens({} as FinGetAllTokensRequest);
 		await this.getAllMarkets({} as FinGetAllMarketsRequest);
+
+		this.nativeToken = await this.getToken({
+			address: properties.getAs<Token>('rujira.tokens.native').address
+		});
+
+		this.beaconToken = await this.getToken({
+			address: properties.getAs<Token>('rujira.tokens.beacon').address
+		});
+
+		this.feePaymentToken = await this.getToken({
+			address: properties.getAs<Token>('rujira.tokens.feePayment').address
+		});
 	}
 
 	/**
@@ -890,10 +923,10 @@ export class Fin {
 		// let { walletAddress, tokenAddresses, tokenSymbols } = request;
 
 		// walletAddress = walletAddress?.toLowerCase().trim();
-		// tokenAddresses = tokenAddresses?.map((address: TokenAddress) => address.toLowerCase().trim());
-		// tokenSymbols = tokenSymbols?.map((symbol: TokenSymbol) => symbol.toLowerCase().trim());
+		// tokenAddresses = tokenAddresses?.map((address: TokenAddress) => address.toLowerCase().trim()) || MList<TokenAddress>();
+		// tokenSymbols = tokenSymbols?.map((symbol: TokenSymbol) => symbol.toLowerCase().trim()) || MList<TokenSymbol>();
 
-		// if (!walletAddress) throw new Error('walletAddress is required');
+		// if (!walletAddress) throw new Error('The wallet address is required');
 
 		// if (Array.isArray(tokenAddresses)) {
 		// 	tokenAddresses = List<TokenAddress>(tokenAddresses);
@@ -902,14 +935,14 @@ export class Fin {
 		// 	tokenSymbols = List<TokenSymbol>(tokenSymbols);
 		// }
 
-		// let tokens = await this.getAllTokens({} as FinGetAllTokensRequest);
 		// let markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
+		// let tokens = await this.getAllTokens({} as FinGetAllTokensRequest);
 
-		// if (tokenAddresses || tokenSymbols) {
-		// 	tokens = tokens.filter((token: Token) => tokenAddresses?.includes(token.address) || tokenSymbols?.includes(token.symbol));
+		// if (tokenAddresses.size > 0 || tokenSymbols.size > 0) {
+		// 	tokens = tokens.filter((token: Token) => tokenAddresses.includes(token.address) || tokenSymbols.includes(token.symbol));
 		// }
 
-		// const freeBalances = Map<TokenAddress, Amount>();
+		// const freeBalances = MMap<TokenAddress, Amount>();
 		// const freeBalanceResponse = await fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
 		// if (freeBalanceResponse.ok) {
 		// 	/*
@@ -943,8 +976,8 @@ export class Fin {
 		// 	}
 		// }
 
-		// const lockedInOrdersMap = Map<TokenAddress, Amount>();
-		// const withdrawableMap = Map<TokenAddress, Amount>();
+		// const lockedInOrdersMap = MMap<TokenAddress, Amount>();
+		// const withdrawableMap = MMap<TokenAddress, Amount>();
 
 		// for (const market of markets.values()) {
 		// 	/*
@@ -967,7 +1000,8 @@ export class Fin {
 		// 		}
 		// 	*/
 		// 	const ordersResponse = await this.cosmClient.queryContractSmart(
-		// 		market.address, {
+		// 		market.address,
+		// 		{
 		// 			orders: {
 		// 				owner: walletAddress,
 		// 				limit: properties.getOrDefault<Integer>('rujira.default.orders.maximumNumberOfOrders', DECIMAL_INFINITY.toNumber())
@@ -994,51 +1028,46 @@ export class Fin {
 
 		// 		if (rawOrder.filled && Number(rawOrder.filled) > 0) {
 		// 			const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
-		// 			lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.get(lockedTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
+		// 			lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.get(lockedTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
 		// 		}
 		// 		if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
-		// 			const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // opposite asset
-		// 			withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.get(withdrawTokenAddress) || DECIMAL_0).plus(new Decimal(rawOrder.filled)));
+		// 			const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // note that it's the opposite asset
+		// 			withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.get(withdrawTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
 		// 		}
 		// 	}
 		// }
 
-		// const tokensBalancesMap = Map<TokenAddress, TokenBalance>();
+		// const tokensBalancesMap = MMap<TokenAddress, TokenBalance>();
 		// for (const token of tokens.values()) {
 		// 	const free = freeBalances.get(token.address, DECIMAL_0);
-		// 	const locked = lockedInOrdersMap.get(token.address, DECIMAL_0);
-		// 	const withdraw = withdrawableMap.get(token.address, DECIMAL_0);
-		// 	const lockedInPools = new Decimal(0); // Not implemented
-		// 	const total = free.plus(locked).plus(lockedInPools).plus(withdraw);
+		// 	const lockedInOrders = lockedInOrdersMap.get(token.address, DECIMAL_0);
+		// 	const withdrawable = withdrawableMap.get(token.address, DECIMAL_0);
+		// 	const lockedInPools = DECIMAL_0; // Not implemented
+		// 	const total = free.plus(lockedInOrders).plus(lockedInPools).plus(withdrawable).plus(lockedInPools);
 
-		// 	const baseBalance: BaseBalance = {
+		// 	const tokenBalance: BaseBalance = {
 		// 		free,
-		// 		lockedInOrders: locked,
+		// 		lockedInOrders,
 		// 		lockedInPools,
-		// 		withdrawable: withdraw,
+		// 		withdrawable,
 		// 		total
 		// 	};
 
-		// 	// Find native and beacon tokens
-		// 	const nativeTokenObject = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'RUNE');
-		// 	const beaconTokenObject = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'USDC');
-
-		// 	// Find market price for native (RUNE)
-		// 	let conversionRateNative = new Decimal(0);
-		// 	if (nativeTokenObject && token.address !== nativeTokenObject.address) {
+		// 	let conversionRateNativeToken = DECIMAL_0;
+		// 	if (token.address !== this.nativeToken.address) {
 		// 		const market = Array.from(markets.values() as Iterable<Market>).find((market: Market) =>
 		// 			(market.tokens.base.address === token.address && market.tokens.quote.address === nativeTokenObject.address) ||
 		// 			(market.tokens.quote.address === token.address && market.tokens.base.address === nativeTokenObject.address)
 		// 		);
 		// 		if (market && market.price) {
 		// 			if (market.tokens.base.address === token.address) {
-		// 				conversionRateNative = market.price.baseQuote;
+		// 				conversionRateNativeToken = market.price.baseQuote;
 		// 			} else {
-		// 				conversionRateNative = market.price.quoteBase;
+		// 				conversionRateNativeToken = market.price.quoteBase;
 		// 			}
 		// 		}
 		// 	} else if (nativeTokenObject && token.address === nativeTokenObject.address) {
-		// 		conversionRateNative = new Decimal(1);
+		// 		conversionRateNativeToken = new Decimal(1);
 		// 	}
 
 		// 	// Find market price for beacon (USDC)
@@ -1060,15 +1089,15 @@ export class Fin {
 		// 	}
 
 		// 	const baseBalanceWithNativeQuotation: BaseBalanceWithQuotation = {
-		// 		...baseBalance,
+		// 		...tokenBalance,
 		// 		quotation: {
 		// 			token: nativeTokenObject || token,
-		// 			tokenToQuote: conversionRateNative,
-		// 			quoteToToken: conversionRateNative ? new Decimal(1).div(conversionRateNative) : new Decimal(0)
+		// 			tokenToQuote: conversionRateNativeToken,
+		// 			quoteToToken: conversionRateNativeToken ? new Decimal(1).div(conversionRateNativeToken) : new Decimal(0)
 		// 		}
 		// 	};
 		// 	const baseBalanceWithBeaconQuotation: BaseBalanceWithQuotation = {
-		// 		...baseBalance,
+		// 		...tokenBalance,
 		// 		quotation: {
 		// 			token: beaconTokenObject || token,
 		// 			tokenToQuote: conversionRateBeacon,
@@ -1077,7 +1106,7 @@ export class Fin {
 		// 	};
 
 		// 	const baseTokenBalance: BaseTokenBalance = {
-		// 		token: baseBalance,
+		// 		token: tokenBalance,
 		// 		nativeToken: baseBalanceWithNativeQuotation,
 		// 		beaconToken: baseBalanceWithBeaconQuotation
 		// 	};
@@ -1087,10 +1116,6 @@ export class Fin {
 		// 		balances: baseTokenBalance
 		// 	});
 		// }
-
-		// // 6. Build total balances (nativeToken, beaconToken) dynamically
-		// const nativeToken = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'RUNE');
-		// const beaconToken = tokens.find((tokenObj: Token) => tokenObj.symbol.toUpperCase() === 'USDC');
 
 		// const totalNative: BaseBalance = nativeToken ? {
 		// 	free: freeBalances[nativeToken.address] || new Decimal(0),
