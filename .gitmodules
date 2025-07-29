@@ -1,9 +1,12 @@
+[submodule "resources/references/rujira/api"]
+	path = resources/references/rujira/api
+	url = https://gitlab.com/thorchain/rujra-api.git
+	branch = develop
 [submodule "resources/references/rujira/contracts"]
 	path = resources/references/rujira/contracts
 	url = https://gitlab.com/thorchain/rujira.git
-[submodule "resources/references/rujira/api"]
-	path = resources/references/rujira/api
-	url = https://gitlab.com/thorchain/rujira-api.git
+	branch = main
 [submodule "resources/references/rujira/ui"]
 	path = resources/references/rujira/ui
 	url = https://gitlab.com/thorchain/rujira-ui.git
+	branch = dev
