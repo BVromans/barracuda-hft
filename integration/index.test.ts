@@ -25,9 +25,6 @@ import { getNotNullOrThrowError } from "../src/utils";
 
 let rujira: Rujira;
 
-let feePaymentTokenConstant: Token;
-let nativeTokenConstant: Token;
-let beaconTokenConstant: Token;
 let walletMnemonic: WalletMnemonic;
 let walletPublicKeyThor: WalletAddress;
 let wallet: Wallet;
@@ -54,9 +51,6 @@ beforeAll(async () => {
 	const requiredProperties = [
 		'rujira.wallet.mnemonic',
 		'rujira.wallet.publicKeys.thor',
-		'rujira.tokens.feePayment',
-		'rujira.tokens.native',
-		'rujira.tokens.beacon',
 		'tests.integration.transaction_hash',
 		'tests.integration.first_market_symbol',
 		'tests.integration.first_market_address',
@@ -84,9 +78,6 @@ beforeAll(async () => {
 
 	walletMnemonic = properties.getAs<WalletMnemonic>('rujira.wallet.mnemonic');
 	walletPublicKeyThor = properties.getAs<WalletAddress>('rujira.wallet.publicKeys.thor');
-	feePaymentTokenConstant = properties.getAs<Token>('rujira.tokens.feePayment');
-	nativeTokenConstant = properties.getAs<Token>('rujira.tokens.native');
-	beaconTokenConstant = properties.getAs<Token>('rujira.tokens.beacon');
 	transactionHash = properties.getAs<TransactionHash>('tests.integration.transaction_hash');
 	firstMarketSymbol = properties.getAs<MarketSymbol>('tests.integration.first_market_symbol');
 	firstMarketAddress = properties.getAs<MarketAddress>('tests.integration.first_market_address');
@@ -152,10 +143,10 @@ describe("Rujira", async() => {
 				expect(result.fee.amount).toBeDefined();
 				expect(result.fee.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.fee.token).toBeDefined();
-				expect(result.fee.token.address).toBe(feePaymentTokenConstant.address);
-				expect(result.fee.token.symbol).toBe(feePaymentTokenConstant.symbol);
-				expect(result.fee.token.name).toBe(feePaymentTokenConstant.name);
-				expect(result.fee.token.decimals).toBe(feePaymentTokenConstant.decimals);
+				expect(result.fee.token.address).toBe(rujira.fin.feePaymentToken.address);
+				expect(result.fee.token.symbol).toBe(rujira.fin.feePaymentToken.symbol);
+				expect(result.fee.token.name).toBe(rujira.fin.feePaymentToken.name);
+				expect(result.fee.token.decimals).toBe(rujira.fin.feePaymentToken.decimals);
 				expect(result.fee.token.raw).toBeDefined();
 				expect(result.raw).toBeDefined();
 			});
@@ -178,10 +169,10 @@ describe("Rujira", async() => {
 				expect(result.fee.amount.toNumber()).toBeGreaterThan(0);
 
 				expect(result.fee.token).toBeDefined();
-				expect(result.fee.token.address).toBe(feePaymentTokenConstant.address);
-				expect(result.fee.token.symbol).toBe(feePaymentTokenConstant.symbol);
-				expect(result.fee.token.name).toBe(feePaymentTokenConstant.name);
-				expect(result.fee.token.decimals).toBe(feePaymentTokenConstant.decimals);
+				expect(result.fee.token.address).toBe(rujira.fin.feePaymentToken.address);
+				expect(result.fee.token.symbol).toBe(rujira.fin.feePaymentToken.symbol);
+				expect(result.fee.token.name).toBe(rujira.fin.feePaymentToken.name);
+				expect(result.fee.token.decimals).toBe(rujira.fin.feePaymentToken.decimals);
 				expect(result.fee.token.raw).toBeDefined();
 
 				expect(result.raw).toBeDefined();
@@ -285,9 +276,9 @@ describe("Rujira", async() => {
 
 				const baseToken = result.getOrThrow(firstMarketBaseTokenAddress);
 				const quoteToken = result.getOrThrow(firstMarketQuoteTokenAddress);
-				const nativeToken = result.getOrThrow(nativeTokenConstant.address);
-				const beaconToken = result.getOrThrow(beaconTokenConstant.address);
-				const feePaymentToken = result.getOrThrow(feePaymentTokenConstant.address);
+				const nativeToken = result.getOrThrow(rujira.fin.nativeToken.address);
+				const beaconToken = result.getOrThrow(rujira.fin.beaconToken.address);
+				const feePaymentToken = result.getOrThrow(rujira.fin.feePaymentToken.address);
 
 				expect(baseToken).toBeDefined();
 				expect(baseToken.address).toBe(firstMarketBaseTokenAddress);
@@ -304,22 +295,22 @@ describe("Rujira", async() => {
 				expect(quoteToken.raw).toBeDefined();
 
 				expect(nativeToken).toBeDefined();
-				expect(nativeToken.address).toBe(nativeTokenConstant.address);
-				expect(nativeToken.symbol).toBe(nativeTokenConstant.symbol);
+				expect(nativeToken.address).toBe(rujira.fin.nativeToken.address);
+				expect(nativeToken.symbol).toBe(rujira.fin.nativeToken.symbol);
 				expect(nativeToken.name).toBeDefined();
 				expect(nativeToken.decimals).toBeGreaterThan(0);
 				expect(nativeToken.raw).toBeDefined();
 
 				expect(beaconToken).toBeDefined();
-				expect(beaconToken.address).toBe(beaconTokenConstant.address);
-				expect(beaconToken.symbol).toBe(beaconTokenConstant.symbol);
+				expect(beaconToken.address).toBe(rujira.fin.beaconToken.address);
+				expect(beaconToken.symbol).toBe(rujira.fin.beaconToken.symbol);
 				expect(beaconToken.name).toBeDefined();
 				expect(beaconToken.decimals).toBeGreaterThan(0);
 				expect(beaconToken.raw).toBeDefined();
 
 				expect(feePaymentToken).toBeDefined();
-				expect(feePaymentToken.address).toBe(feePaymentTokenConstant.address);
-				expect(feePaymentToken.symbol).toBe(feePaymentTokenConstant.symbol);
+				expect(feePaymentToken.address).toBe(rujira.fin.feePaymentToken.address);
+				expect(feePaymentToken.symbol).toBe(rujira.fin.feePaymentToken.symbol);
 				expect(feePaymentToken.name).toBeDefined();
 				expect(feePaymentToken.decimals).toBeGreaterThan(0);
 				expect(feePaymentToken.raw).toBeDefined();
@@ -897,17 +888,17 @@ describe("Rujira", async() => {
 				expect(marketQuoteTokenBalance.token.address).toBe(firstMarketQuoteTokenAddress);
 				expect(marketQuoteTokenBalance.token.symbol).toBe(firstMarketQuoteTokenSymbol);
 
-				const nativeTokenBalance = result.tokens.getOrThrow(nativeTokenConstant.address);
-				expect(nativeTokenBalance.token.address).toBe(nativeTokenConstant.address);
-				expect(nativeTokenBalance.token.symbol).toBe(nativeTokenConstant.symbol);
+				const nativeTokenBalance = result.tokens.getOrThrow(rujira.fin.nativeToken.address);
+				expect(nativeTokenBalance.token.address).toBe(rujira.fin.nativeToken.address);
+				expect(nativeTokenBalance.token.symbol).toBe(rujira.fin.nativeToken.symbol);
 
-				const beaconTokenBalance = result.tokens.getOrThrow(beaconTokenConstant.address);
-				expect(beaconTokenBalance.token.address).toBe(beaconTokenConstant.address);
-				expect(beaconTokenBalance.token.symbol).toBe(beaconTokenConstant.symbol);
+				const beaconTokenBalance = result.tokens.getOrThrow(rujira.fin.beaconToken.address);
+				expect(beaconTokenBalance.token.address).toBe(rujira.fin.beaconToken.address);
+				expect(beaconTokenBalance.token.symbol).toBe(rujira.fin.beaconToken.symbol);
 
-				const feePaymentTokenBalance = result.tokens.getOrThrow(feePaymentTokenConstant.address);
-				expect(feePaymentTokenBalance.token.address).toBe(feePaymentTokenConstant.address);
-				expect(feePaymentTokenBalance.token.symbol).toBe(feePaymentTokenConstant.symbol);
+				const feePaymentTokenBalance = result.tokens.getOrThrow(rujira.fin.feePaymentToken.address);
+				expect(feePaymentTokenBalance.token.address).toBe(rujira.fin.feePaymentToken.address);
+				expect(feePaymentTokenBalance.token.symbol).toBe(rujira.fin.feePaymentToken.symbol);
 
 				expect(result.total.nativeToken).toBeDefined();
 				expect(result.total.beaconToken).toBeDefined();
@@ -1186,7 +1177,7 @@ describe("Rujira", async() => {
 		// 				expect(transaction.fee.token.name).toBeDefined();
 		// 				expect(transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 		// 				expect(transaction.fee.token.raw).toBeDefined();
-		// 				expect(transaction.fee.token.symbol).toBe(feePaymentTokenConstant.symbol);
+		// 				expect(transaction.fee.token.symbol).toBe(rujira.fin.feePaymentToken.symbol);
 
 		// 				expect(transaction.raw).toBeDefined();
 		// 			}

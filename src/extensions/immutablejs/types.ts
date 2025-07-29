@@ -124,7 +124,7 @@ function MMap(entries?: any): Map<any, any> {
 	 * @returns The map with the value set
 	 */
 	// @ts-ignore
-	map.set = function<K, V>(key: K, value: V): Map<K, V> {
+	map.set = function<K, V>(key: K, value: V, putAsRawKey: boolean = false): Map<K, V> {
 		if (key == null) {
 			throw new Error(`Invalid key ("${key}").`);
 		}
@@ -133,7 +133,7 @@ function MMap(entries?: any): Map<any, any> {
 			return originalSet.call(this, key, value) as Map<K, V>;
 		}
 
-		if (typeof key === 'string') {
+		if (typeof key === 'string' && !putAsRawKey) {
 			const path = key.trim().split('.');
 			if (path.length === 1) {
 				return originalSet.call(this, path[0], value) as Map<K, V>;

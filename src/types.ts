@@ -21,35 +21,7 @@ export const BIG_NUMBER_1 = new BN(1);
 export const BIG_NUMBER_100 = new BN(100);
 export const BIG_NUMBER_NaN = new BN(NaN);
 
-const NATIVE_TOKEN = {
-	address: undefined as unknown as string,
-	symbol: 'RUJI',
-	name: 'RUJIRA',
-	decimals: undefined as unknown as number,
-	raw: undefined as unknown as Raw
-} as Token;
-
-const FEE_PAYMENT_TOKEN = {
-	address: undefined as unknown as string,
-	symbol: 'RUNE',
-	name: 'RUNE',
-	decimals: undefined as unknown as number,
-	raw: undefined as unknown as Raw
-} as Token;
-
-const BEACON_TOKEN = {
-	address: undefined as unknown as string,
-	symbol: 'USDC',
-	name: 'USDC',
-	decimals: undefined as unknown as number,
-	raw: undefined as unknown as Raw
-} as Token;
-
 properties.set('wallet.prefix', 'thor');
-properties.set('rujira.gasPrice', GasPrice.fromString(`0.02${FEE_PAYMENT_TOKEN.symbol.toLowerCase()}`));
-properties.set('rujira.tokens.native', NATIVE_TOKEN);
-properties.set('rujira.tokens.beacon', BEACON_TOKEN);
-properties.set('rujira.tokens.feePayment', FEE_PAYMENT_TOKEN);
 
 export enum Chain {
 	ETHEREUM = 'ethereum',

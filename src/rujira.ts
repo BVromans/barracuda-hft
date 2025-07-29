@@ -172,6 +172,8 @@ export class Rujira {
 			throw new Error('No wallet credentials provided. Please provide either a mnemonic or a private key');
 		}
 
+		properties.set('rujira.gasPrice', GasPrice.fromString(`0.02${properties.getAs<string>('rujira.constants.tokens.feePayment.symbol').toLowerCase()}`));
+
 		this.cosmClient = await SigningCosmWasmClient.connectWithSigner(
 			properties.getAs<URL>('rujira.endpoints.rpc'),
 			this.wallet,
@@ -268,17 +270,17 @@ export class Fin {
 	/**
 	 * Native token
 	 */
-	private nativeToken: Token;
+	public nativeToken: Token;
 
 	/**
 	 * Beacon token
 	 */
-	private beaconToken: Token;
+	public beaconToken: Token;
 
 	/**
 	 * Fee payment token
 	 */
-	private feePaymentToken: Token;
+	public feePaymentToken: Token;
 
 	/**
 	 * Constructor
@@ -288,10 +290,10 @@ export class Fin {
 		this.wallet = undefined as unknown as Wallet;
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 
-		this.tokensByAddress = Map<TokenAddress, Token>();
-		this.tokensBySymbol = Map<TokenSymbol, Token>();
-		this.marketsByAddress = Map<MarketAddress, Market>();
-		this.marketsBySymbol = Map<MarketSymbol, Market>();
+		this.tokensByAddress = MMap<TokenAddress, Token>();
+		this.tokensBySymbol = MMap<TokenSymbol, Token>();
+		this.marketsByAddress = MMap<MarketAddress, Market>();
+		this.marketsBySymbol = MMap<MarketSymbol, Market>();
 
 		this.nativeToken = undefined as unknown as Token;
 		this.beaconToken = undefined as unknown as Token;
@@ -309,17 +311,13 @@ export class Fin {
 		await this.getAllTokens({} as FinGetAllTokensRequest);
 		await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
-		this.nativeToken = await this.getToken({
-			address: properties.getAs<Token>('rujira.tokens.native').address
-		});
+		this.nativeToken = this.tokensByAddress.getOrThrow(properties.getAs<TokenAddress>('rujira.constants.tokens.native.address'));
+		this.beaconToken = this.tokensByAddress.getOrThrow(properties.getAs<TokenAddress>('rujira.constants.tokens.beacon.address'));
+		this.feePaymentToken = this.tokensByAddress.getOrThrow(properties.getAs<TokenAddress>('rujira.constants.tokens.feePayment.address'));
 
-		this.beaconToken = await this.getToken({
-			address: properties.getAs<Token>('rujira.tokens.beacon').address
-		});
-
-		this.feePaymentToken = await this.getToken({
-			address: properties.getAs<Token>('rujira.tokens.feePayment').address
-		});
+		properties.set('rujira.tokens.native', this.nativeToken);
+		properties.set('rujira.tokens.beacon', this.beaconToken);
+		properties.set('rujira.tokens.feePayment', this.feePaymentToken);
 	}
 
 	/**
@@ -463,7 +461,7 @@ export class Fin {
 		addresses = getNotNullOrThrowError<List<TokenAddress>>(addresses);
 		symbols = getNotNullOrThrowError<List<TokenSymbol>>(symbols);
 
-		const tokens = Map<TokenAddress, Token>();
+		const tokens = MMap<TokenAddress, Token>();
 
 		addresses.forEach((address: TokenAddress) => {
 			const token = this.tokensByAddress.getOrThrow(address);
@@ -486,32 +484,34 @@ export class Fin {
 	 * @returns The tokens response
 	 */
 	@Cacheable({
-		cacheKey: (request: FinGetAllTokensRequest) => request.toString(),
+		cacheKey: (_request: FinGetAllTokensRequest) => _request.toString(),
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllTokens'),
 	})
 	async getAllTokens(_request: FinGetAllTokensRequest): Promise<FinGetAllTokensResponse> {
 		// Get all markets first (this already contains all token data)
 		const markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
-		const tokens = Map<TokenAddress, Token>();
+		const tokens = MMap<TokenAddress, Token>();
 
 		// Extract all unique tokens from the markets
 		for (const market of markets.values()) {
 			// Add base token if not already added
 			if (!tokens.has(market.tokens.base.address)) {
-				tokens.set(market.tokens.base.address, market.tokens.base);
+				// @ts-ignore
+				tokens.set(market.tokens.base.address, market.tokens.base, true);
 			}
 
 			// Add quote token if not already added
 			if (!tokens.has(market.tokens.quote.address)) {
-				tokens.set(market.tokens.quote.address, market.tokens.quote);
+				// @ts-ignore
+				tokens.set(market.tokens.quote.address, market.tokens.quote, true);
 			}
 		}
 
 		// Update internal maps
 		for (const token of tokens.values()) {
-			this.tokensByAddress.set(token.address.toLowerCase(), token);
-			this.tokensBySymbol.set(token.symbol.toLowerCase(), token);
+			this.tokensByAddress.set(token.address, token);
+			this.tokensBySymbol.set(token.symbol, token);
 		}
 
 		return tokens;
@@ -580,7 +580,7 @@ export class Fin {
 		addresses = getNotNullOrThrowError<List<MarketAddress>>(addresses);
 		symbols = getNotNullOrThrowError<List<MarketSymbol>>(symbols);
 
-		const markets = Map<MarketAddress, Market>();
+		const markets = MMap<MarketAddress, Market>();
 
 		addresses.forEach((address: MarketAddress) => {
 			const market = this.marketsByAddress.getOrThrow(address);
@@ -712,7 +712,7 @@ export class Fin {
 		}
 
 		const rawPairs = data?.rujira?.fin || [];
-		const markets = Map<MarketAddress, Market>();
+		const markets = MMap<MarketAddress, Market>();
 
 		for (const pair of rawPairs) {
 			// Only include LIVE markets
@@ -1465,7 +1465,7 @@ export class Fin {
 		// );
 
 		// // 6. Return the response
-		// const cancelledOrdersMap = Map<string, Order>();
+		// const cancelledOrdersMap = MMap<string, Order>();
 		// for (const order of ordersToCancel) {
 		// 	const id = order.id || `${order.side}:${order.price.fixed}`;
 		// 	cancelledOrdersMap.set(id, {
