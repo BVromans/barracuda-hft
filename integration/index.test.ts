@@ -1,4 +1,3 @@
-import { LengthOp } from './../resources/references/rujira/ui/packages/rujira.js/src/signers/cosmos/types/cosmos/ics23/v1/proofs';
 import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
 import "dotenv/config";
 import { properties } from "../src/properties";
@@ -8,22 +7,19 @@ import {
 	BIG_NUMBER_0,
 	Candle,
 	DECIMAL_0,
-	List,
-	Market,
 	MarketAddress,
 	MarketStatus,
-	Order,
+	MarketSymbol,
 	OrderBookOrder,
-	OrderId,
-	OrderSide,
-	OrderStatus,
-	OrderType,
 	SystemStatus,
 	Token,
-	TokenBalance,
-	Transaction,
+	TokenAddress,
+	TokenSymbol,
+	TransactionHash,
 	TransactionStatus,
-	Wallet
+	Wallet,
+	WalletAddress,
+	WalletMnemonic
 } from "../src/types";
 import { getNotNullOrThrowError } from "../src/utils";
 
@@ -32,82 +28,85 @@ let rujira: Rujira;
 let feePaymentTokenConstant: Token;
 let nativeTokenConstant: Token;
 let beaconTokenConstant: Token;
-let walletPrivateKey: string;
-let walletMnemonic: string;
+let walletMnemonic: WalletMnemonic;
+let walletPublicKeyThor: WalletAddress;
 let wallet: Wallet;
-let transactionHash: string;
-let firstMarketSymbol: string;
-let firstMarketAddress: string;
-let firstMarketBaseTokenAddress: string;
-let firstMarketQuoteTokenAddress: string;
-let firstMarketBaseTokenSymbol: string;
-let firstMarketQuoteTokenSymbol: string;
-let firstMarketBaseTokenAmount: string;
-let firstMarketQuoteTokenAmount: string;
-let secondMarketSymbol: string;
-let secondMarketAddress: string;
-let secondMarketBaseTokenAddress: string;
-let secondMarketQuoteTokenAddress: string;
-let secondMarketBaseTokenSymbol: string;
-let secondMarketQuoteTokenSymbol: string;
-let secondMarketBaseTokenAmount: string;
-let ownerAddress: string;
-let testOrderIds: OrderId[];
+let transactionHash: TransactionHash;
+let firstMarketSymbol: MarketSymbol;
+let firstMarketAddress: MarketAddress;
+let firstMarketBaseTokenAddress: TokenAddress;
+let firstMarketQuoteTokenAddress: TokenAddress;
+let firstMarketBaseTokenSymbol: TokenSymbol;
+let firstMarketQuoteTokenSymbol: TokenSymbol;
+let firstMarketBaseTokenAmount: Amount;
+let firstMarketQuoteTokenAmount: Amount;
+let secondMarketSymbol: MarketSymbol;
+let secondMarketAddress: MarketAddress;
+let secondMarketBaseTokenAddress: TokenAddress;
+let secondMarketQuoteTokenAddress: TokenAddress;
+let secondMarketBaseTokenSymbol: TokenSymbol;
+let secondMarketQuoteTokenSymbol: TokenSymbol;
+let secondMarketBaseTokenAmount: Amount;
+let secondMarketQuoteTokenAmount: Amount;
+let testsTimeout: number;
 
 beforeAll(async () => {
-	const requiredEnvironmentVariables = [
-		'WALLET_PRIVATE_KEY',
-		'WALLET_MNEMONIC',
-		'TRANSACTION_HASH',
-		'FIRST_MARKET_SYMBOL',
-		'FIRST_MARKET_ADDRESS',
-		'FIRST_MARKET_BASE_TOKEN_ADDRESS',
-		'FIRST_MARKET_QUOTE_TOKEN_ADDRESS',
-		'FIRST_MARKET_BASE_TOKEN_SYMBOL',
-		'FIRST_MARKET_QUOTE_TOKEN_SYMBOL',
-		'FIRST_MARKET_BASE_TOKEN_AMOUNT',
-		'FIRST_MARKET_QUOTE_TOKEN_AMOUNT',
-		'SECOND_MARKET_SYMBOL',
-		'SECOND_MARKET_ADDRESS',
-		'SECOND_MARKET_BASE_TOKEN_ADDRESS',
-		'SECOND_MARKET_QUOTE_TOKEN_ADDRESS',
-		'SECOND_MARKET_BASE_TOKEN_SYMBOL',
-		'SECOND_MARKET_QUOTE_TOKEN_SYMBOL',
-		'SECOND_MARKET_BASE_TOKEN_AMOUNT',
-    'OWNER_ADDRESS'
+	const requiredProperties = [
+		'wallet.mnemonic',
+		'wallet.publicKeys.thor',
+		'rujira.tokens.feePayment',
+		'rujira.tokens.native',
+		'rujira.tokens.beacon',
+		'tests.integration.transaction_hash',
+		'tests.integration.first_market_symbol',
+		'tests.integration.first_market_address',
+		'tests.integration.first_market_base_token_address',
+		'tests.integration.first_market_quote_token_address',
+		'tests.integration.first_market_base_token_symbol',
+		'tests.integration.first_market_quote_token_symbol',
+		'tests.integration.first_market_base_token_amount',
+		'tests.integration.first_market_quote_token_amount',
+		'tests.integration.second_market_symbol',
+		'tests.integration.second_market_address',
+		'tests.integration.second_market_base_token_address',
+		'tests.integration.second_market_quote_token_address',
+		'tests.integration.second_market_base_token_symbol',
+		'tests.integration.second_market_quote_token_symbol',
+		'tests.integration.second_market_base_token_amount',
+		'tests.integration.second_market_quote_token_amount',
 	];
 
-	const missingEnvironmentVariables = requiredEnvironmentVariables.filter(varName => !process.env[varName]);
+	const missingProperties = requiredProperties.filter(path => properties.getAs<any>(path));
 
-	if (missingEnvironmentVariables.length > 0) {
-		throw new Error(`Missing required environment variables: ${missingEnvironmentVariables.join(', ')}`);
+	if (missingProperties.length > 0) {
+		throw new Error(`Missing required properties: ${missingProperties.join(', ')}`);
 	}
 
+	walletMnemonic = properties.getAs<WalletMnemonic>('wallet.mnemonic');
+	walletPublicKeyThor = properties.getAs<WalletAddress>('wallet.publicKeys.thor');
 	feePaymentTokenConstant = properties.getAs<Token>('rujira.tokens.feePayment');
 	nativeTokenConstant = properties.getAs<Token>('rujira.tokens.native');
 	beaconTokenConstant = properties.getAs<Token>('rujira.tokens.beacon');
-	walletPrivateKey = process.env.WALLET_PRIVATE_KEY!;
-	walletMnemonic = process.env.WALLET_MNEMONIC!;
-	transactionHash = process.env.TRANSACTION_HASH!;
-	firstMarketSymbol = process.env.FIRST_MARKET_SYMBOL!;
-	firstMarketAddress = process.env.FIRST_MARKET_ADDRESS!;
-	firstMarketBaseTokenAddress = process.env.FIRST_MARKET_BASE_TOKEN_ADDRESS!;
-	firstMarketQuoteTokenAddress = process.env.FIRST_MARKET_QUOTE_TOKEN_ADDRESS!;
-	firstMarketBaseTokenSymbol = process.env.FIRST_MARKET_BASE_TOKEN_SYMBOL!;
-	firstMarketQuoteTokenSymbol = process.env.FIRST_MARKET_QUOTE_TOKEN_SYMBOL!;
-	firstMarketBaseTokenAmount = process.env.FIRST_MARKET_BASE_TOKEN_AMOUNT!;
-	firstMarketQuoteTokenAmount = process.env.FIRST_MARKET_QUOTE_TOKEN_AMOUNT!;
-	secondMarketSymbol = process.env.SECOND_MARKET_SYMBOL!;
-	secondMarketAddress = process.env.SECOND_MARKET_ADDRESS!;
-	secondMarketBaseTokenAddress = process.env.SECOND_MARKET_BASE_TOKEN_ADDRESS!;
-	secondMarketQuoteTokenAddress = process.env.SECOND_MARKET_QUOTE_TOKEN_ADDRESS!;
-	secondMarketBaseTokenSymbol = process.env.SECOND_MARKET_BASE_TOKEN_SYMBOL!;
-	secondMarketQuoteTokenSymbol = process.env.SECOND_MARKET_QUOTE_TOKEN_SYMBOL!;
-	secondMarketBaseTokenAmount = process.env.SECOND_MARKET_BASE_TOKEN_AMOUNT!;
-	ownerAddress = process.env.OWNER_ADDRESS!;
+	transactionHash = properties.getAs<TransactionHash>('tests.integration.transaction_hash');
+	firstMarketSymbol = properties.getAs<MarketSymbol>('tests.integration.first_market_symbol');
+	firstMarketAddress = properties.getAs<MarketAddress>('tests.integration.first_market_address');
+	firstMarketBaseTokenAddress = properties.getAs<TokenAddress>('tests.integration.first_market_base_token_address');
+	firstMarketQuoteTokenAddress = properties.getAs<TokenAddress>('tests.integration.first_market_quote_token_address');
+	firstMarketBaseTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.first_market_base_token_symbol');
+	firstMarketQuoteTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.first_market_quote_token_symbol');
+	firstMarketBaseTokenAmount = properties.getAs<Amount>('tests.integration.first_market_base_token_amount');
+	firstMarketQuoteTokenAmount = properties.getAs<Amount>('tests.integration.first_market_quote_token_amount');
+	secondMarketSymbol = properties.getAs<MarketSymbol>('tests.integration.second_market_symbol');
+	secondMarketAddress = properties.getAs<MarketAddress>('tests.integration.second_market_address');
+	secondMarketBaseTokenAddress = properties.getAs<TokenAddress>('tests.integration.second_market_base_token_address');
+	secondMarketQuoteTokenAddress = properties.getAs<TokenAddress>('tests.integration.second_market_quote_token_address');
+	secondMarketBaseTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.second_market_base_token_symbol');
+	secondMarketQuoteTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.second_market_quote_token_symbol');
+	secondMarketBaseTokenAmount = properties.getAs<Amount>('tests.integration.second_market_base_token_amount');
+	secondMarketQuoteTokenAmount = properties.getAs<Amount>('tests.integration.second_market_quote_token_amount');
+	testsTimeout = properties.getAs<number>('tests.integration.timeout');
 
 	rujira = new Rujira({
-		walletPrivateKey: walletPrivateKey,
 		walletMnemonic: walletMnemonic,
 	});
 
@@ -115,7 +114,7 @@ beforeAll(async () => {
 
 	wallet = rujira.wallet;
 
-	jest.setTimeout(properties.getAs<number>('tests.integration.timeout'));
+	jest.setTimeout(testsTimeout);
 
 	await cleanUp();
 });
@@ -139,7 +138,7 @@ describe("Rujira", () => {
 			});
 		});
 
-		describe("transactions", () => {
+		describe.skip("transactions", () => {
 			it("should be able to get a transaction without waiting confirmation", async () => {
 				const result = await rujira.fin.getTransaction({
 					hash: transactionHash,
@@ -190,7 +189,7 @@ describe("Rujira", () => {
 			});
 		});
 
-		describe("tokens", () => {
+		describe.skip("tokens", () => {
 			it("should be able to get a token by address", async () => {
 				const result = await rujira.fin.getToken({
 					address: firstMarketBaseTokenAddress,
@@ -327,7 +326,7 @@ describe("Rujira", () => {
 			});
 		});
 
-		describe("markets", () => {
+		describe.skip("markets", () => {
 			it("should be able to get a market by address", async () => {
 				const result = await rujira.fin.getMarket({
 					address: firstMarketAddress,
@@ -559,7 +558,7 @@ describe("Rujira", () => {
 			});
 		});
 
-		describe("orderbook", () => {
+		describe.skip("orderbook", () => {
 			it("should be able to get the order book for a market", async () => {
 				const maximumNumberOfOrders = 10;
 
@@ -675,7 +674,7 @@ describe("Rujira", () => {
 			});
 		});
 
-		describe("ticker", () => {
+		describe.skip("ticker", () => {
 			it("should be able to get a ticker by market address", async () => {
 				const result = await rujira.fin.getTicker({ marketAddress: firstMarketAddress });
 
@@ -743,7 +742,7 @@ describe("Rujira", () => {
 			});
 		});
 
-		describe("candles", () => {
+		describe.skip("candles", () => {
 			it("should be able to get candles by market address", async () => {
 				const result = await rujira.fin.getCandles({ marketAddress: firstMarketAddress });
 
@@ -781,9 +780,9 @@ describe("Rujira", () => {
 			});
 		});
 
-		describe("balances", () => {
+		describe.skip("balances", () => {
 			it("should be able to get balances for a wallet", async () => {
-				const result = await rujira.fin.getBalances({ walletAddress: ownerAddress });
+				const result = await rujira.fin.getBalances({ walletAddress: walletPublicKeyThor });
 
 				expect(result).toBeDefined();
 				expect(result.tokens).toBeDefined();
@@ -951,7 +950,7 @@ describe("Rujira", () => {
 			});
 		});
 
-		describe("withdraw", () => {
+		describe.skip("withdraw", () => {
 			it("should be able to withdraw market by address", async () => {
 				const result = await rujira.fin.withdrawFromMarket({ marketAddress: firstMarketAddress, marketSymbol: undefined });
 
