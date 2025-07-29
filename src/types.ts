@@ -893,6 +893,11 @@ export interface FinGetOrderRequest {
 	marketSymbol?: MarketSymbol;
 
 	/**
+	 * Order price
+	 */
+	orderPrice: OrderPrice;
+
+	/**
 	 * Order type
 	 */
 	orderType?: OrderType;
@@ -906,11 +911,6 @@ export interface FinGetOrderRequest {
 	 * Order status
 	 */
 	orderStatus?: OrderStatus;
-
-	/**
-	 * Order price
-	 */
-	orderPrice: OrderPrice;
 }
 
 export interface FinGetOrderResponse extends Order {
@@ -934,6 +934,11 @@ export interface FinGetOrdersRequest {
 	 * Market name
 	 */
 	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Order price
+	 */
+	orderPrice?: OrderPrice;
 
 	/**
 	 * Order type

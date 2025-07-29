@@ -7,7 +7,7 @@ import { properties } from "./properties";
  * @param value
  * @param errorMessage
  */
-export const getNotNullOrThrowError = <R>(
+export const getOrThrow = <R>(
 	value?: any,
 	errorMessage: string = 'Value is null or undefined',
 ): R => {

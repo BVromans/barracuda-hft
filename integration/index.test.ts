@@ -22,7 +22,7 @@ import {
 	WalletAddress,
 	WalletMnemonic
 } from "../src/types";
-import { getNotNullOrThrowError } from "../src/utils";
+import { getOrThrow } from "../src/utils";
 import Decimal from "decimal.js";
 
 let rujira: Rujira;
@@ -246,11 +246,11 @@ describe("Rujira", async() => {
 				expect(result).toBeDefined();
 				expect(result.size).toBe(symbols.length);
 
-				const baseToken = getNotNullOrThrowError<Token>(
+				const baseToken = getOrThrow<Token>(
 					result.valueSeq().find((token: Token) => token.symbol === firstMarketBaseTokenSymbol),
 					`Token with symbol ${firstMarketBaseTokenSymbol} not found`
 				);
-				const quoteToken = getNotNullOrThrowError<Token>(
+				const quoteToken = getOrThrow<Token>(
 					result.valueSeq().find((token: Token) => token.symbol === firstMarketQuoteTokenSymbol),
 					`Token with symbol ${firstMarketQuoteTokenSymbol} not found`
 				);
@@ -600,7 +600,7 @@ describe("Rujira", async() => {
 					expect(firstBidOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(firstBidOrder.raw).toBeDefined();
 
-					const bestBid = getNotNullOrThrowError<OrderBookOrder>(
+					const bestBid = getOrThrow<OrderBookOrder>(
 						result.book.bestBid,
 						`Best bid order not found`
 					);
@@ -619,7 +619,7 @@ describe("Rujira", async() => {
 					expect(firstAskOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(firstAskOrder.raw).toBeDefined();
 
-					const bestAsk = getNotNullOrThrowError<OrderBookOrder>(
+					const bestAsk = getOrThrow<OrderBookOrder>(
 						result.book.bestAsk,
 						`Best ask order not found`
 					);
@@ -632,15 +632,15 @@ describe("Rujira", async() => {
 				}
 
 				if (asks.size > 0 && bids.size > 0) {
-					const bestAsk = getNotNullOrThrowError<OrderBookOrder>(
+					const bestAsk = getOrThrow<OrderBookOrder>(
 						result.book.bestAsk,
 						`Best ask order not found`
 					);
-					const bestBid = getNotNullOrThrowError<OrderBookOrder>(
+					const bestBid = getOrThrow<OrderBookOrder>(
 						result.book.bestBid,
 						`Best bid order not found`
 					);
-					const middlePrice = getNotNullOrThrowError<Amount>(
+					const middlePrice = getOrThrow<Amount>(
 						result.book.middlePrice,
 						`Middle price not found`
 					);
