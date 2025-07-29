@@ -4,14 +4,35 @@ rujira:
     rest: "https://thornode.ninerealms.com"
     graphql: "https://api.rujira.network/api/graphiql"
   wallet:
-    mnemonic: "<mnemonic>" # Optional, but required if privateKey is not provided
-    privateKey: "<privateKey>" # Optional, but required if mnemonic is not provided
+    mnemonic: "<wallet mnemonic>" # Optional, but required if privateKey is not provided
+    privateKey: "<wallet private key>" # Optional, but required if mnemonic is not provided
     publicKeys:
-      thor: "<thorPublicKey>" # Optional
-      ethereum: "<ethereumPublicKey>" # Optional
+      thor: "<wallet thor public key>" # Optional
+      ethereum: "<wallet ethereum public key>" # Optional
+  cache:
+    fin:
+      getAllTokens: 6 * 60 * 60 # 6 hours
+      getAllMarkets: 6 * 60 * 60 # 6 hours
+  constants:
+    enum:
+      markets:
+        active: "LIVE"
+    tokens:
+      native:
+        address: "THOR.RUJI"
+        symbol: "RUJI"
+      beacon:
+        address: "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+        symbol: "USDC"
+      feePayment:
+        address: "THOR.RUNE"
+        symbol: "RUNE"
   default:
     cache:
       ttlSeconds: 60
+    parallel:
+      batchSize: 10
+      delayBetweenBatches: 100
     retry:
       maximumNumberOfRetries: 3
       delayBetweenRetries: 1_000
