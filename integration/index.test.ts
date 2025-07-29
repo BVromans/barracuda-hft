@@ -7,6 +7,7 @@ import {
 	BIG_NUMBER_0,
 	Candle,
 	DECIMAL_0,
+	Integer,
 	MarketAddress,
 	MarketStatus,
 	MarketSymbol,
@@ -22,6 +23,7 @@ import {
 	WalletMnemonic
 } from "../src/types";
 import { getNotNullOrThrowError } from "../src/utils";
+import Decimal from "decimal.js";
 
 let rujira: Rujira;
 
@@ -85,17 +87,17 @@ beforeAll(async () => {
 	firstMarketQuoteTokenAddress = properties.getAs<TokenAddress>('tests.integration.first_market_quote_token_address');
 	firstMarketBaseTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.first_market_base_token_symbol');
 	firstMarketQuoteTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.first_market_quote_token_symbol');
-	firstMarketBaseTokenAmount = properties.getAs<Amount>('tests.integration.first_market_base_token_amount');
-	firstMarketQuoteTokenAmount = properties.getAs<Amount>('tests.integration.first_market_quote_token_amount');
+	firstMarketBaseTokenAmount = Decimal(properties.getAs<Amount>('tests.integration.first_market_base_token_amount'));
+	firstMarketQuoteTokenAmount = Decimal(properties.getAs<Amount>('tests.integration.first_market_quote_token_amount'));
 	secondMarketSymbol = properties.getAs<MarketSymbol>('tests.integration.second_market_symbol');
 	secondMarketAddress = properties.getAs<MarketAddress>('tests.integration.second_market_address');
 	secondMarketBaseTokenAddress = properties.getAs<TokenAddress>('tests.integration.second_market_base_token_address');
 	secondMarketQuoteTokenAddress = properties.getAs<TokenAddress>('tests.integration.second_market_quote_token_address');
 	secondMarketBaseTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.second_market_base_token_symbol');
 	secondMarketQuoteTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.second_market_quote_token_symbol');
-	secondMarketBaseTokenAmount = properties.getAs<Amount>('tests.integration.second_market_base_token_amount');
-	secondMarketQuoteTokenAmount = properties.getAs<Amount>('tests.integration.second_market_quote_token_amount');
-	testsTimeout = properties.getAs<number>('tests.integration.timeout');
+	secondMarketBaseTokenAmount = Decimal(properties.getAs<Amount>('tests.integration.second_market_base_token_amount'));
+	secondMarketQuoteTokenAmount = Decimal(properties.getAs<Amount>('tests.integration.second_market_quote_token_amount'));
+	testsTimeout = Number(properties.getAs<Integer>('tests.integration.timeout'));
 
 	rujira = new Rujira({
 		walletMnemonic: walletMnemonic,
