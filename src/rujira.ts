@@ -549,7 +549,7 @@ export class Fin {
 		let { address, symbol } = request;
 
 		address = address?.trim();
-		symbol = symbol?.trim();
+		symbol = symbol?.toLowerCase().trim();
 
 		if (!address && !symbol) {
 			throw new Error("You must provide a non-empty address or symbol");
@@ -598,23 +598,31 @@ export class Fin {
 			throw new Error("You must provide at least one non-empty address or symbol");
 		}
 
-		addresses = getOrThrow<List<TokenAddress>>(addresses);
-		symbols = getOrThrow<List<TokenSymbol>>(symbols);
+		if (addresses?.size) {
+			addresses = getOrThrow<List<TokenAddress>>(addresses);
+		}
+		if (symbols?.size) {
+			symbols = getOrThrow<List<TokenSymbol>>(symbols);
+		}
 
 
 		const tokens = MMap<TokenAddress, Token>();
 
-		addresses.forEach((address: TokenAddress) => {
-			const token = this.tokensByAddress.getOrThrow(address);
-			if (!token) throw new Error(`Token not found: ${address}`);
-			tokens.set(token.address, token);
-		});
+		if (addresses?.size) {
+			addresses.forEach((address: TokenAddress) => {
+				const token = this.tokensByAddress.getOrThrow(address);
+				if (!token) throw new Error(`Token not found: ${address}`);
+				tokens.set(token.address, token);
+			});
+		}
 
-		symbols.forEach((symbol: TokenSymbol) => {
-			const token = this.tokensBySymbol.getOrThrow(symbol);
-			if (!token) throw new Error(`Token not found: ${symbol}`);
-			tokens.set(token.address, token);
-		});
+		if (symbols?.size) {
+			symbols.forEach((symbol: TokenSymbol, index: number) => {
+				const token = this.tokensBySymbol.getOrThrow(symbol);
+				if (!token) throw new Error(`Token not found: ${symbol}`);
+				tokens.set(index.toString(), token);
+			});
+		}
 
 		return tokens;
 	}
