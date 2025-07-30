@@ -408,8 +408,8 @@ export class Fin {
 
 		let { address, symbol } = request;
 
-		address = address?.toLowerCase().trim();
-		symbol = symbol?.toLowerCase().trim();
+		address = address?.trim();
+		symbol = symbol?.trim();
 
 		if (!address && !symbol) {
 			throw new Error("You must provide a non-empty address or symbol");
@@ -759,8 +759,8 @@ export class Fin {
 
 		// Update internal maps
 		for (const market of markets.values()) {
-			this.marketsByAddress.set(market.address.toLowerCase(), market);
-			this.marketsBySymbol.set(market.symbol.toLowerCase(), market);
+			this.marketsByAddress.set(market.address, market);
+			this.marketsBySymbol.set(market.symbol, market);
 		}
 
 		return markets;
