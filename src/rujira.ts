@@ -88,11 +88,13 @@ import {
 	DECIMAL_INFINITY,
 	MMap,
 	MList,
+	OrderSide,
+	OrderId,
 } from "./types";
 import Decimal from 'decimal.js';
 import { properties } from "./properties";
 import { GasPrice } from "@cosmjs/stargate";
-import { getNotNullOrThrowError, runWithRetryAndTimeout } from "./utils";
+import { getOrThrow, runWithRetryAndTimeout } from "./utils";
 
 /**
  * LRU cache
@@ -368,16 +370,154 @@ export class Fin {
 
 		hash = hash.trim();
 
-		let transaction = await this.cosmClient.getTx(hash);
+		let rawTransaction: any;
 
-		if (!transaction) {
+		// const url = `${properties.getAs<URL>('rujira.endpoints.rest')}/cosmos/tx/v1beta1/txs/${hash}`;
+		// const response = await fetch(url, {
+		// 	method: 'GET',
+		// 	headers: { 'Content-Type': 'application/json' }
+		// });
+
+		// if (!response.ok) {
+		// 	throw new Error(`REST request failed: ${response.status} ${response.statusText}`);
+		// }
+
+		// rawTransaction = await response.json() as {
+		// 	tx: {
+		// 		body: {
+		// 			messages: Array<{
+		// 				"@type": string;
+		// 				sender: string;
+		// 				contract: string;
+		// 				msg: {
+		// 					order: [
+		// 						[
+		// 							Array<["quote" | string, { fixed: string } | unknown, string]>,
+		// 							null
+		// 						]
+		// 					];
+		// 				};
+		// 				funds: Array<{
+		// 					denom: string;
+		// 					amount: string;
+		// 				}>;
+		// 			}>;
+		// 			memo: string;
+		// 			timeout_height: string;
+		// 			extension_options: unknown[];
+		// 			non_critical_extension_options: unknown[];
+		// 		};
+		// 		auth_info: {
+		// 			signer_infos: Array<{
+		// 				public_key: {
+		// 					"@type": string;
+		// 					key: string;
+		// 				};
+		// 				mode_info: {
+		// 					single: {
+		// 						mode: string;
+		// 					};
+		// 				};
+		// 				sequence: string;
+		// 			}>;
+		// 			fee: {
+		// 				amount: Array<{
+		// 					denom: string;
+		// 					amount: string;
+		// 				}>;
+		// 				gas_limit: string;
+		// 				payer: string;
+		// 				granter: string;
+		// 			};
+		// 			tip: null;
+		// 		};
+		// 		signatures: string[];
+		// 	};
+		// 	tx_response: {
+		// 		height: string;
+		// 		txhash: string;
+		// 		codespace: string;
+		// 		code: number;
+		// 		data: string;
+		// 		raw_log: string;
+		// 		logs: unknown[];
+		// 		info: string;
+		// 		gas_wanted: string;
+		// 		gas_used: string;
+		// 		tx: {
+		// 			"@type": string;
+		// 			body: {
+		// 				messages: Array<{
+		// 					"@type": string;
+		// 					sender: string;
+		// 					contract: string;
+		// 					msg: {
+		// 						order: [
+		// 							[
+		// 								Array<["quote" | string, { fixed: string } | unknown, string]>,
+		// 								null
+		// 							]
+		// 						];
+		// 					};
+		// 					funds: Array<{
+		// 						denom: string;
+		// 						amount: string;
+		// 					}>;
+		// 				}>;
+		// 				memo: string;
+		// 				timeout_height: string;
+		// 				extension_options: unknown[];
+		// 				non_critical_extension_options: unknown[];
+		// 			};
+		// 			auth_info: {
+		// 				signer_infos: Array<{
+		// 					public_key: {
+		// 						"@type": string;
+		// 						key: string;
+		// 					};
+		// 					mode_info: {
+		// 						single: {
+		// 							mode: string;
+		// 						};
+		// 					};
+		// 					sequence: string;
+		// 				}>;
+		// 				fee: {
+		// 					amount: Array<{
+		// 						denom: string;
+		// 						amount: string;
+		// 					}>;
+		// 					gas_limit: string;
+		// 					payer: string;
+		// 					granter: string;
+		// 				};
+		// 				tip: null;
+		// 			};
+		// 			signatures: string[];
+		// 		};
+		// 		timestamp: string;
+		// 		events: Array<{
+		// 			type: string;
+		// 			attributes: Array<{
+		// 				key: string;
+		// 				value: string;
+		// 				index: boolean;
+		// 				msg_index?: string;
+		// 			}>;
+		// 		}>;
+		// 	};
+		// };
+
+		if (!rawTransaction) {
 			throw new Error(`Transaction not found: ${hash}`);
 		}
 
+		rawTransaction = await this.cosmClient.getTx(hash);
+
 		let status;
-		if (transaction.code === 0) {
+		if (rawTransaction.code === 0) {
 			status = TransactionStatus.SUCCESS;
-		} else if (transaction.code === 1) {
+		} else if (rawTransaction.code === 1) {
 			status = TransactionStatus.FAILED;
 		} else {
 			status = TransactionStatus.PENDING;
@@ -388,13 +528,13 @@ export class Fin {
 		}
 
 		return {
-			hash: transaction.hash,
+			hash: rawTransaction.hash,
 			status: status,
 			fee: {
-				amount: transaction.gasUsed ? Decimal(transaction.gasUsed.toString()) : Decimal(0),
+				amount: rawTransaction.gasUsed ? Decimal(rawTransaction.gasUsed.toString()) : Decimal(0),
 				token: properties.getAs<Token>('rujira.tokens.feePayment'),
 			},
-			raw: transaction
+			raw: rawTransaction
 		};
 	}
 
@@ -458,8 +598,8 @@ export class Fin {
 			throw new Error("You must provide at least one non-empty address or symbol");
 		}
 
-		addresses = getNotNullOrThrowError<List<TokenAddress>>(addresses);
-		symbols = getNotNullOrThrowError<List<TokenSymbol>>(symbols);
+		addresses = getOrThrow<List<TokenAddress>>(addresses);
+		symbols = getOrThrow<List<TokenSymbol>>(symbols);
 
 
 		const tokens = MMap<TokenAddress, Token>();
@@ -578,8 +718,8 @@ export class Fin {
 			throw new Error("You must provide at least one non-empty address or symbol");
 		}
 
-		addresses = getNotNullOrThrowError<List<MarketAddress>>(addresses);
-		symbols = getNotNullOrThrowError<List<MarketSymbol>>(symbols);
+		addresses = getOrThrow<List<MarketAddress>>(addresses);
+		symbols = getOrThrow<List<MarketSymbol>>(symbols);
 
 		const markets = MMap<MarketAddress, Market>();
 
@@ -1163,40 +1303,36 @@ export class Fin {
 	 * @returns The order response
 	 */
 	async getOrder(request: FinGetOrderRequest): Promise<FinGetOrderResponse> {
-		throw new Error('Not implemented');
+		let { ownerAddress, marketAddress, marketSymbol, orderType, orderSide, orderStatus, orderPrice } = request;
 
-		// // Validate request
-		// if (!request.ownerAddress) {
-		// 	throw new Error("Owner address is required");
-		// }
-		// if (!request.orderSide) {
-		// 	throw new Error("Order side is required");
-		// }
-		// if (!request.orderPrice) {
-		// 	throw new Error("Order price is required");
-		// }
+		ownerAddress = ownerAddress.trim().toLowerCase();
+		marketAddress = marketAddress?.trim().toLowerCase() || undefined;
+		marketSymbol = marketSymbol?.trim().toUpperCase() || undefined;
+		orderType = OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType] || undefined;
+		orderSide = OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide] || undefined;
+		orderStatus = OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus] || undefined;
+		orderPrice = orderPrice || undefined;
 
-		// // Resolve market
-		// const market = await this.getMarket({
-		// 	address: request.marketAddress,
-		// 	symbol: request.marketSymbol
-		// });
+		if (!ownerAddress) {
+			throw new Error("Owner address is required, since it's used to compose the order ID.");
+		}
+		if (!marketAddress && !marketSymbol) {
+			throw new Error("Market address or market symbol is required");
+		}
 
-		// // Build query message for specific order
-		// const queryMsg = {
-		// 	order: [
-		// 		request.ownerAddress,
-		// 		request.orderSide,
-		// 		request.orderPrice
-		// 	]
-		// };
+		if (!orderPrice) {
+			throw new Error("Order price is required, since it's used to compose the order ID.");
+		}
 
-		// try {
-		// 	const result = await this.cosmClient.queryContractSmart(market.address, queryMsg);
-		// 	return result as FinGetOrderResponse;
-		// } catch (error) {
-		// 	throw new Error(`Failed to get order: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		// }
+		if (!orderSide) {
+			throw new Error("Order side is required, since it's used to compose the order ID.");
+		}
+
+		const orderId = `${ownerAddress}-${orderSide.toString().toLowerCase()}-${orderPrice.toString()}`;
+		const orders = await this.getOrders({ ownerAddress, marketAddress, marketSymbol, orderType, orderSide, orderStatus, orderPrice, maximumNumberOfOrders: 1 });
+		const order = orders.get(orderId);
+
+		return order as FinGetOrderResponse;
 	}
 
 	/**
@@ -1205,43 +1341,126 @@ export class Fin {
 	 * @returns The orders response
 	 */
 	async getOrders(request: FinGetOrdersRequest): Promise<FinGetOrdersResponse> {
-		throw new Error('Not implemented');
+		let { ownerAddress, marketAddress, marketSymbol, orderType, orderSide, orderStatus, orderPrice, maximumNumberOfOrders } = request;
 
-		// // Validate request
-		// if (!request.ownerAddress) {
-		// 	throw new Error("Owner address is required");
-		// }
+		ownerAddress = ownerAddress.trim().toLowerCase();
+		marketAddress = marketAddress?.trim().toLowerCase() || undefined;
+		marketSymbol = marketSymbol?.trim().toUpperCase() || undefined;
+		orderType = OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType] || undefined;
+		orderSide = OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide] || undefined;
+		orderStatus = OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus] || undefined;
+		orderPrice = orderPrice;
+		maximumNumberOfOrders = maximumNumberOfOrders || Number(properties.getAs<string>('rujira.orders.maximumNumberOfOrders'));
 
-		// // Resolve market if provided
-		// let contractAddress: string;
-		// if (request.marketAddress) {
-		// 	contractAddress = request.marketAddress;
-		// } else if (request.marketSymbol) {
-		// 	const market = await this.getMarket({ symbol: request.marketSymbol });
-		// 	contractAddress = market.address;
-		// } else {
-		// 	throw new Error("Either market address or market symbol must be provided");
-		// }
+		if (!ownerAddress) {
+			throw new Error("Owner address is required");
+		}
+		if (!marketAddress && !marketSymbol) {
+			throw new Error("Market address or market symbol is required");
+		}
 
-		// // Build query message
-		// const queryMsg: any = {
-		// 	orders: {
-		// 		owner: request.ownerAddress,
-		// 		limit: request.maximumNumberOfOrders || 30
+		const market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+
+		const query = {
+			orders: {
+				owner: ownerAddress,
+				limit: maximumNumberOfOrders,
+				offset: 0
+			}
+		} as {
+			orders: {
+				owner: string,
+				limit: number,
+				offset: number
+			}
+		};
+
+		const result = await this.cosmClient.queryContractSmart(market.address, query);
+		// Example response:
+		// 	{
+		// 		"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
+		// 		"side": "quote",
+		// 		"price": {
+		// 			"fixed": "0.04"
+		// 		},
+		// 		"rate": "0.04",
+		// 		"updated_at": "1753359648989354207",
+		// 		"offer": "5400000",
+		// 		"remaining": "5400000",
+		// 		"filled": "0"
 		// 	}
-		// };
+		const rawOrders = result.orders as [{
+      owner: string,
+      side: string,
+      price: {
+        fixed: string
+      },
+      rate: string,
+      updated_at: string,
+      offer: string,
+      remaining: string,
+      filled: string
+    }] || [];
 
-		// // Add side filter if provided
-		// if (request.orderSide) {
-		// 	queryMsg.orders.side = request.orderSide;
-		// }
+		let orders = MMap<OrderId, Order>();
 
-		// try {
-		// 	const result = await this.cosmClient.queryContractSmart(contractAddress, queryMsg);
-		// 	return result as FinGetOrdersResponse;
-		// } catch (error) {
-		// 	throw new Error(`Failed to get orders: ${error instanceof Error ? error.message : 'Unknown error'}`);
-		// }
+		for (const rawOrder of rawOrders) {
+			const type = OrderType.LIMIT;
+			const side = rawOrder.side === 'quote' ? OrderSide.SELL : OrderSide.BUY;
+			const price = new Decimal(rawOrder.price.fixed);
+			const amount = new Decimal(rawOrder.offer);
+			const filledAmount = new Decimal(rawOrder.filled);
+			const filledPercentage = filledAmount.div(amount);
+			const status = filledAmount.eq(DECIMAL_0) ? OrderStatus.OPEN : filledAmount.eq(amount) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
+
+			const order = {
+				id: `${ownerAddress}-${side.toString().toLowerCase()}-${price.toString()}`,
+				market: market,
+				owner: ownerAddress,
+				type: type,
+				side: side,
+				price: price,
+				amount: amount,
+				filledAmount: filledAmount,
+				filledPercentage: filledPercentage,
+				status: status,
+				raw: rawOrder
+			} as Order;
+
+			orders.set(getOrThrow<OrderId>(order.id), order);
+		}
+
+		orders = orders.filter((order: Order) => {
+			if (ownerAddress && order.owner !== ownerAddress) {
+				return false;
+			}
+			if (marketAddress && order.market.address !== marketAddress) {
+				return false;
+			}
+			if (marketSymbol && order.market.symbol !== marketSymbol) {
+				return false;
+			}
+			if (orderType && order.type !== orderType) {
+				return false;
+			}
+			if (orderSide && order.side !== orderSide) {
+				return false;
+			}
+			if (orderStatus && order.status !== orderStatus) {
+				return false;
+			}
+			if (orderPrice && order.price !== orderPrice) {
+				return false;
+			}
+
+			return true;
+		});
+
+		if (maximumNumberOfOrders > 0) {
+			orders = orders.slice(0, maximumNumberOfOrders);
+		}
+
+		return orders as FinGetOrdersResponse;
 	}
 
 
