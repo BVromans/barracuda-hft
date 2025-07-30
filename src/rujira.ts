@@ -440,7 +440,7 @@ export class Fin {
 			}
 
 			addresses = addresses
-				.map((address: TokenAddress) => address?.toLowerCase().trim())
+				.map((address: TokenAddress) => address?.trim())
 				.filter((address: TokenAddress) => address);
 		}
 
@@ -460,6 +460,7 @@ export class Fin {
 
 		addresses = getNotNullOrThrowError<List<TokenAddress>>(addresses);
 		symbols = getNotNullOrThrowError<List<TokenSymbol>>(symbols);
+
 
 		const tokens = MMap<TokenAddress, Token>();
 
@@ -511,7 +512,7 @@ export class Fin {
 		// Update internal maps
 		for (const token of tokens.values()) {
 			this.tokensByAddress.set(token.address, token);
-			this.tokensBySymbol.set(token.symbol, token);
+			this.tokensBySymbol.set(token.symbol.toLowerCase(), token);
 		}
 
 		return tokens;
