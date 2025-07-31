@@ -576,7 +576,7 @@ export class Fin {
 
 		if (addresses) {
 			if (Array.isArray(addresses)) {
-				addresses = List<TokenAddress>(addresses);
+				addresses = MList<TokenAddress>(addresses);
 			}
 
 			addresses = addresses
@@ -586,7 +586,7 @@ export class Fin {
 
 		if (symbols) {
 			if (Array.isArray(symbols)) {
-				symbols = List<TokenSymbol>(symbols);
+				symbols = MList<TokenSymbol>(symbols);
 			}
 
 			symbols = symbols
@@ -604,7 +604,6 @@ export class Fin {
 		if (symbols?.size) {
 			symbols = getOrThrow<List<TokenSymbol>>(symbols);
 		}
-
 
 		const tokens = MMap<TokenAddress, Token>();
 
@@ -704,7 +703,7 @@ export class Fin {
 
 		if (addresses) {
 			if (Array.isArray(addresses)) {
-				addresses = List<MarketAddress>(addresses);
+				addresses = MList<MarketAddress>(addresses);
 			}
 
 			addresses = addresses
@@ -714,7 +713,7 @@ export class Fin {
 
 		if (symbols) {
 			if (Array.isArray(symbols)) {
-				symbols = List<MarketSymbol>(symbols);
+				symbols = MList<MarketSymbol>(symbols);
 			}
 
 			symbols = symbols
@@ -1339,6 +1338,10 @@ export class Fin {
 		const orderId = `${ownerAddress}-${orderSide.toString().toLowerCase()}-${orderPrice.toString()}`;
 		const orders = await this.getOrders({ ownerAddress, marketAddress, marketSymbol, orderType, orderSide, orderStatus, orderPrice, maximumNumberOfOrders: 1 });
 		const order = orders.get(orderId);
+
+		if (!order) {
+			throw new Error(`Order not found: ${orderId}`);
+		}
 
 		return order as FinGetOrderResponse;
 	}
