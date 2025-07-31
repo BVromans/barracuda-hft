@@ -992,7 +992,7 @@ export class Fin {
 		let { marketAddress, marketSymbol } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
-		marketSymbol = marketSymbol?.trim(); // Don't convert to lowercase
+		marketSymbol = marketSymbol?.toLowerCase().trim();
 
 		if (!marketAddress && !marketSymbol) {
 			throw new Error("Either market address or market name must be provided");
@@ -1018,7 +1018,7 @@ export class Fin {
 		return ticker;
 	}
 
-	/**
+		/**
 	 * Get candles
 	 * @param request - The request object
 	 * @returns The candles response
@@ -1027,7 +1027,7 @@ export class Fin {
 		let { marketAddress, marketSymbol, maximumNumberOfCandles, interval } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
-		marketSymbol = marketSymbol?.toLowerCase().trim();
+		marketSymbol = marketSymbol?.trim();
 		maximumNumberOfCandles = maximumNumberOfCandles || properties.getAs<number>('rujira.default.candles.maximumNumberOfCandles') || DECIMAL_INFINITY.toNumber();
 		interval = interval || properties.getAs<CandleInterval>('rujira.default.candles.interval') || '1m';
 
@@ -1037,28 +1037,71 @@ export class Fin {
 
 		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 
-		// TODO: Check this query!!!
-		const rawCandles = await this.cosmClient.queryContractSmart(
-			market.address,
-			{
-				candles: { interval, limit: maximumNumberOfCandles }
-			}
-		);
+		// Use interval directly as resolution (already in seconds format)
+		const resolution = interval.replace('m', '');
 
-		const parseCandle = (entry: any): Candle => ({
-			timestamp: entry.timestamp,
-			open: entry.open,
-			high: entry.high,
-			low: entry.low,
-			close: entry.close,
-			volume: entry.volume,
-			raw: entry
+		// Time range (last 7 days)
+		const before = new Date().toISOString();
+		const after = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+		const response = await fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				query: `
+					query($marketAddress: ID!, $after: String!, $before: String!, $resolution: String!, $last: Int) {
+						node(id: $marketAddress) {
+							... on FinPair {
+								address
+								candles(after: $after, before: $before, resolution: $resolution, last: $last) {
+									edges {
+										node {
+											open
+											close
+											high
+											low
+											volume
+											bin
+										}
+									}
+								}
+							}
+						}
+					}
+				`,
+				variables: {
+					marketAddress: Buffer.from(`FinPair:${market.address}`).toString('base64'),
+					after,
+					before,
+					resolution,
+					last: maximumNumberOfCandles
+				}
+			})
 		});
 
-		// noinspection UnnecessaryLocalVariableJS
-		const candles: List<Candle> = List<Candle>(rawCandles.candles || []).map(parseCandle);
+		if (!response.ok) {
+			throw new Error(`GraphQL request failed: ${response.status} ${response.statusText}`);
+		}
 
-		return candles;
+		const json: any = await response.json();
+		const { data, errors } = json;
+
+		if (errors) {
+			throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
+		}
+
+		const rawCandles = data?.node?.candles?.edges?.map((edge: any) => edge.node) || [];
+
+		return List<Candle>(rawCandles).map((entry: any): Candle => ({
+			timestamp: typeof entry.bin === 'string' ? new Date(entry.bin).getTime() :
+					   typeof entry.bin === 'number' ? entry.bin : Date.now(),
+			open: new Decimal(entry.open || 0),
+			high: new Decimal(entry.high || 0),
+			low: new Decimal(entry.low || 0),
+			close: new Decimal(entry.close || 0),
+			volume: new Decimal(entry.volume || 0),
+			raw: entry
+		}));
 	}
 
 	/**

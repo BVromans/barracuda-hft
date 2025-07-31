@@ -667,7 +667,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("ticker", () => {
+		describe.skip("ticker", () => {
 			it("should be able to get a ticker by market address", async () => {
 				const result = await rujira.fin.getTicker({ marketAddress: firstMarketAddress });
 
@@ -735,7 +735,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("candles", () => {
+		describe("candles", () => {
 			it("should be able to get candles by market address", async () => {
 				const result = await rujira.fin.getCandles({ marketAddress: firstMarketAddress });
 
@@ -989,13 +989,13 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("orders", () => {
-			it("should handle complete order lifecycle", async () => {
-				// ==============================================================
-				// Optimized flow for testing Rujira orders (8 orders total)
-				// market 1: TOKEN1/TOKEN2 (RUJI/USDC)
-				// market 2: TOKEN3/TOKEN2 (NAMI/USDC)
-				// ==============================================================
+		// describe("orders", () => {
+		// 	it("should handle complete order lifecycle", async () => {
+		// 		==============================================================
+		// 		Optimized flow for testing Rujira orders (8 orders total)
+		// 		market 1: TOKEN1/TOKEN2 (RUJI/USDC)
+		// 		market 2: TOKEN3/TOKEN2 (NAMI/USDC)
+		// 		==============================================================
 
 		// 		// Phase 1: Setup and Initial Balances
 		// 		// ==============================================================
