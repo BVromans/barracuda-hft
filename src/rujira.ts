@@ -376,6 +376,7 @@ export class Fin {
 		// rawTransaction = await this.cosmClient.getTx(hash);
 
 		const url = `${properties.getAs<URL>('rujira.endpoints.rest')}/cosmos/tx/v1beta1/txs/${hash}`;
+		// TODO: add a example response!!!
 		const response = await fetch(url, {
 			method: 'GET',
 			headers: { 'Content-Type': 'application/json' }
@@ -763,7 +764,7 @@ export class Fin {
 	async getAllMarkets(_request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
 		const graphQLEndPoint = properties.getAs<URL>('rujira.endpoints.graphql');
 
-		const marketsQuery = `
+		const query = `
 			query {
 				rujira {
 					fin {
@@ -851,7 +852,7 @@ export class Fin {
 		const response = await fetch(graphQLEndPoint, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ query: marketsQuery })
+			body: JSON.stringify({ query })
 		});
 
 		if (!response.ok) {
@@ -1003,11 +1004,13 @@ export class Fin {
 			throw new Error("Either market address or market name must be provided");
 		}
 
-		// Get the market using the existing getMarket method
 		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 
-		// Use tick from market data
-		const price = new Decimal(market.raw.tick || 0);
+		const orderBook = await this.getOrderBook({ marketAddress: market.address, marketSymbol: market.symbol, maximumNumberOfOrders: 1 });
+		const bestAsk = orderBook.book.bestAsk;
+		const bestBid = orderBook.book.bestBid;
+		const price = bestAsk && bestBid ? bestAsk.price.plus(bestBid.price).div(2) : DECIMAL_0;
+
 		const timestamp = Date.now();
 
 		const ticker: Ticker = {
@@ -1049,6 +1052,7 @@ export class Fin {
 		const before = new Date().toISOString();
 		const after = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
+		// TODO: add a example response!!!
 		const response = await fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -1088,7 +1092,8 @@ export class Fin {
 			throw new Error(`GraphQL request failed: ${response.status} ${response.statusText}`);
 		}
 
-		const json: any = await response.json();
+		// TODO: add a interface for the response!!!
+		const json: any = (await response.json());
 		const { data, errors } = json;
 
 		if (errors) {
@@ -1097,16 +1102,19 @@ export class Fin {
 
 		const rawCandles = data?.node?.candles?.edges?.map((edge: any) => edge.node) || [];
 
-		return List<Candle>(rawCandles).map((entry: any): Candle => ({
-			timestamp: typeof entry.bin === 'string' ? new Date(entry.bin).getTime() :
-					   typeof entry.bin === 'number' ? entry.bin : Date.now(),
-			open: new Decimal(entry.open || 0),
-			high: new Decimal(entry.high || 0),
-			low: new Decimal(entry.low || 0),
-			close: new Decimal(entry.close || 0),
-			volume: new Decimal(entry.volume || 0),
+		const candles = List<Candle>(rawCandles).map((entry: any): Candle => ({
+			timestamp: typeof entry.bin === 'string'
+				? new Date(entry.bin).getTime()
+				:typeof entry.bin === 'number' ? entry.bin : Date.now(),
+			open: Decimal(entry.open || 0),
+			high: Decimal(entry.high || 0),
+			low: Decimal(entry.low || 0),
+			close: Decimal(entry.close || 0),
+			volume: Decimal(entry.volume || 0),
 			raw: entry
 		}));
+
+		return candles;
 	}
 
 	/**
