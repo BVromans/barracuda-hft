@@ -1585,20 +1585,22 @@ export class Fin {
 			throw new Error("No order was created");
 		}
 
-		const order = Array.from(response.orders.values())[0];
+		const order = response.orders.first();
 		if (!order) {
 			throw new Error("Failed to retrieve created order");
 		}
 
-		const transaction = Array.from(response.transactions.values())[0];
+		const transaction = response.transactions.first();
 		if (!transaction) {
 			throw new Error("Failed to retrieve transaction details");
 		}
 
-		return {
-			order: order as Order,
-			transaction: transaction as Transaction
+		const result = {
+			order,
+			transaction
 		};
+
+		return result;
 	}
 
 
