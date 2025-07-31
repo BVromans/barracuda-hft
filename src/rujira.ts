@@ -364,160 +364,161 @@ export class Fin {
 	async getTransaction(request: FinGetTransactionRequest): Promise<FinGetTransactionResponse> {
 		let { hash, waitForConfirmation } = request;
 
-		if (!hash?.trim()) {
+		hash = hash?.trim();
+
+		if (!hash) {
 			throw new Error("Transaction hash is required and cannot be empty");
 		}
 
-		hash = hash.trim();
-
 		let rawTransaction: any;
 
-		// const url = `${properties.getAs<URL>('rujira.endpoints.rest')}/cosmos/tx/v1beta1/txs/${hash}`;
-		// const response = await fetch(url, {
-		// 	method: 'GET',
-		// 	headers: { 'Content-Type': 'application/json' }
-		// });
+		// TOOD: verify how to retrieve the transaction directly calling the RPC endpoint!!!
+		// rawTransaction = await this.cosmClient.getTx(hash);
 
-		// if (!response.ok) {
-		// 	throw new Error(`REST request failed: ${response.status} ${response.statusText}`);
-		// }
+		const url = `${properties.getAs<URL>('rujira.endpoints.rest')}/cosmos/tx/v1beta1/txs/${hash}`;
+		const response = await fetch(url, {
+			method: 'GET',
+			headers: { 'Content-Type': 'application/json' }
+		});
 
-		// rawTransaction = await response.json() as {
-		// 	tx: {
-		// 		body: {
-		// 			messages: Array<{
-		// 				"@type": string;
-		// 				sender: string;
-		// 				contract: string;
-		// 				msg: {
-		// 					order: [
-		// 						[
-		// 							Array<["quote" | string, { fixed: string } | unknown, string]>,
-		// 							null
-		// 						]
-		// 					];
-		// 				};
-		// 				funds: Array<{
-		// 					denom: string;
-		// 					amount: string;
-		// 				}>;
-		// 			}>;
-		// 			memo: string;
-		// 			timeout_height: string;
-		// 			extension_options: unknown[];
-		// 			non_critical_extension_options: unknown[];
-		// 		};
-		// 		auth_info: {
-		// 			signer_infos: Array<{
-		// 				public_key: {
-		// 					"@type": string;
-		// 					key: string;
-		// 				};
-		// 				mode_info: {
-		// 					single: {
-		// 						mode: string;
-		// 					};
-		// 				};
-		// 				sequence: string;
-		// 			}>;
-		// 			fee: {
-		// 				amount: Array<{
-		// 					denom: string;
-		// 					amount: string;
-		// 				}>;
-		// 				gas_limit: string;
-		// 				payer: string;
-		// 				granter: string;
-		// 			};
-		// 			tip: null;
-		// 		};
-		// 		signatures: string[];
-		// 	};
-		// 	tx_response: {
-		// 		height: string;
-		// 		txhash: string;
-		// 		codespace: string;
-		// 		code: number;
-		// 		data: string;
-		// 		raw_log: string;
-		// 		logs: unknown[];
-		// 		info: string;
-		// 		gas_wanted: string;
-		// 		gas_used: string;
-		// 		tx: {
-		// 			"@type": string;
-		// 			body: {
-		// 				messages: Array<{
-		// 					"@type": string;
-		// 					sender: string;
-		// 					contract: string;
-		// 					msg: {
-		// 						order: [
-		// 							[
-		// 								Array<["quote" | string, { fixed: string } | unknown, string]>,
-		// 								null
-		// 							]
-		// 						];
-		// 					};
-		// 					funds: Array<{
-		// 						denom: string;
-		// 						amount: string;
-		// 					}>;
-		// 				}>;
-		// 				memo: string;
-		// 				timeout_height: string;
-		// 				extension_options: unknown[];
-		// 				non_critical_extension_options: unknown[];
-		// 			};
-		// 			auth_info: {
-		// 				signer_infos: Array<{
-		// 					public_key: {
-		// 						"@type": string;
-		// 						key: string;
-		// 					};
-		// 					mode_info: {
-		// 						single: {
-		// 							mode: string;
-		// 						};
-		// 					};
-		// 					sequence: string;
-		// 				}>;
-		// 				fee: {
-		// 					amount: Array<{
-		// 						denom: string;
-		// 						amount: string;
-		// 					}>;
-		// 					gas_limit: string;
-		// 					payer: string;
-		// 					granter: string;
-		// 				};
-		// 				tip: null;
-		// 			};
-		// 			signatures: string[];
-		// 		};
-		// 		timestamp: string;
-		// 		events: Array<{
-		// 			type: string;
-		// 			attributes: Array<{
-		// 				key: string;
-		// 				value: string;
-		// 				index: boolean;
-		// 				msg_index?: string;
-		// 			}>;
-		// 		}>;
-		// 	};
-		// };
+		if (!response.ok) {
+			throw new Error(`REST request failed: ${response.status} ${response.statusText}`);
+		}
+
+		rawTransaction = await response.json() as {
+			tx: {
+				body: {
+					messages: Array<{
+						"@type": string;
+						sender: string;
+						contract: string;
+						msg: {
+							order: [
+								[
+									Array<["quote" | string, { fixed: string } | unknown, string]>,
+									null
+								]
+							];
+						};
+						funds: Array<{
+							denom: string;
+							amount: string;
+						}>;
+					}>;
+					memo: string;
+					timeout_height: string;
+					extension_options: unknown[];
+					non_critical_extension_options: unknown[];
+				};
+				auth_info: {
+					signer_infos: Array<{
+						public_key: {
+							"@type": string;
+							key: string;
+						};
+						mode_info: {
+							single: {
+								mode: string;
+							};
+						};
+						sequence: string;
+					}>;
+					fee: {
+						amount: Array<{
+							denom: string;
+							amount: string;
+						}>;
+						gas_limit: string;
+						payer: string;
+						granter: string;
+					};
+					tip: null;
+				};
+				signatures: string[];
+			};
+			tx_response: {
+				height: string;
+				txhash: string;
+				codespace: string;
+				code: number;
+				data: string;
+				raw_log: string;
+				logs: unknown[];
+				info: string;
+				gas_wanted: string;
+				gas_used: string;
+				tx: {
+					"@type": string;
+					body: {
+						messages: Array<{
+							"@type": string;
+							sender: string;
+							contract: string;
+							msg: {
+								order: [
+									[
+										Array<["quote" | string, { fixed: string } | unknown, string]>,
+										null
+									]
+								];
+							};
+							funds: Array<{
+								denom: string;
+								amount: string;
+							}>;
+						}>;
+						memo: string;
+						timeout_height: string;
+						extension_options: unknown[];
+						non_critical_extension_options: unknown[];
+					};
+					auth_info: {
+						signer_infos: Array<{
+							public_key: {
+								"@type": string;
+								key: string;
+							};
+							mode_info: {
+								single: {
+									mode: string;
+								};
+							};
+							sequence: string;
+						}>;
+						fee: {
+							amount: Array<{
+								denom: string;
+								amount: string;
+							}>;
+							gas_limit: string;
+							payer: string;
+							granter: string;
+						};
+						tip: null;
+					};
+					signatures: string[];
+				};
+				timestamp: string;
+				events: Array<{
+					type: string;
+					attributes: Array<{
+						key: string;
+						value: string;
+						index: boolean;
+						msg_index?: string;
+					}>;
+				}>;
+			};
+		};
 
 		if (!rawTransaction) {
 			throw new Error(`Transaction not found: ${hash}`);
 		}
 
-		rawTransaction = await this.cosmClient.getTx(hash);
-
 		let status;
-		if (rawTransaction.code === 0) {
+		if (rawTransaction.tx_response.code === 0) {
 			status = TransactionStatus.SUCCESS;
-		} else if (rawTransaction.code === 1) {
+		} else if (rawTransaction.tx_response.code === 1) {
 			status = TransactionStatus.FAILED;
 		} else {
 			status = TransactionStatus.PENDING;
@@ -527,15 +528,20 @@ export class Fin {
 			throw new Error(`Transaction is still pending: ${hash}`);
 		}
 
-		return {
-			hash: rawTransaction.hash,
+		const feeToken = await this.getToken({ symbol: rawTransaction.tx.auth_info.fee.amount[0].denom.toUpperCase() });
+		const feeAmount = rawTransaction.tx.auth_info.fee.amount[0].amount ? Decimal(rawTransaction.tx.auth_info.fee.amount[0].amount).div(Decimal(10).pow(feeToken.decimals)) : DECIMAL_0;
+
+		const result = {
+			hash: rawTransaction.tx_response.txhash,
 			status: status,
 			fee: {
-				amount: rawTransaction.gasUsed ? Decimal(rawTransaction.gasUsed.toString()) : Decimal(0),
-				token: properties.getAs<Token>('rujira.tokens.feePayment'),
+				amount: feeAmount,
+				token: feeToken,
 			},
 			raw: rawTransaction
 		};
+
+		return result;
 	}
 
 	/**
