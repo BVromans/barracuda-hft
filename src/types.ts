@@ -923,7 +923,12 @@ export interface FinGetOrdersRequest {
 	/**
 	 * Owner address (wallet that owns the order)
 	 */
-	ownerAddress: WalletAddress;
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
 
 	/**
 	 * Market address
@@ -934,6 +939,16 @@ export interface FinGetOrdersRequest {
 	 * Market name
 	 */
 	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
+	 * Order IDs
+	 */
+	orderIds?: List<OrderId> | OrderId[];
 
 	/**
 	 * Order price
