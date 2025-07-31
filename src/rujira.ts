@@ -313,9 +313,9 @@ export class Fin {
 		await this.getAllTokens({} as FinGetAllTokensRequest);
 		await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
-		this.nativeToken = this.tokensByAddress.getOrThrow(properties.getAs<TokenAddress>('rujira.constants.tokens.native.address'));
-		this.beaconToken = this.tokensByAddress.getOrThrow(properties.getAs<TokenAddress>('rujira.constants.tokens.beacon.address'));
-		this.feePaymentToken = this.tokensByAddress.getOrThrow(properties.getAs<TokenAddress>('rujira.constants.tokens.feePayment.address'));
+		this.nativeToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.native.address') });
+		this.beaconToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.beacon.address') });
+		this.feePaymentToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.feePayment.address') });
 
 		properties.set('rujira.tokens.native', this.nativeToken);
 		properties.set('rujira.tokens.beacon', this.beaconToken);
@@ -554,8 +554,8 @@ export class Fin {
 
 		let { address, symbol } = request;
 
-		address = address?.trim();
-		symbol = symbol?.toLowerCase().trim();
+		address = address?.trim()?.toLowerCase();
+		symbol = symbol?.trim()?.toUpperCase();
 
 		if (!address && !symbol) {
 			throw new Error("You must provide a non-empty address or symbol");
@@ -586,7 +586,7 @@ export class Fin {
 			}
 
 			addresses = addresses
-				.map((address: TokenAddress) => address?.trim())
+				.map((address: TokenAddress) => address?.trim()?.toLowerCase())
 				.filter((address: TokenAddress) => address);
 		}
 
@@ -596,7 +596,7 @@ export class Fin {
 			}
 
 			symbols = symbols
-				.map((symbol: TokenSymbol) => symbol?.toLowerCase().trim())
+				.map((symbol: TokenSymbol) => symbol?.trim()?.toUpperCase())
 				.filter((symbol: TokenSymbol) => symbol);
 		}
 
@@ -665,7 +665,7 @@ export class Fin {
 		// Update internal maps
 		for (const token of tokens.values()) {
 			this.tokensByAddress.set(token.address, token);
-			this.tokensBySymbol.set(token.symbol.toLowerCase(), token);
+			this.tokensBySymbol.set(token.symbol.toUpperCase(), token);
 		}
 
 		return tokens;
@@ -876,8 +876,8 @@ export class Fin {
 
 			// Create base token
 			const baseToken: Token = {
-				address: pair.assetBase.asset,
-				symbol: pair.assetBase.metadata?.symbol || pair.assetBase.asset,
+				address: pair.assetBase.asset.toLowerCase(),
+				symbol: pair.assetBase.metadata?.symbol?.toUpperCase() || pair.assetBase.asset?.toUpperCase(),
 				name: pair.assetBase.metadata?.name || pair.assetBase.metadata?.symbol || pair.assetBase.asset,
 				decimals: pair.assetBase.metadata?.decimals,
 				raw: pair.assetBase
@@ -885,19 +885,19 @@ export class Fin {
 
 			// Create quote token
 			const quoteToken: Token = {
-				address: pair.assetQuote.asset,
-				symbol: pair.assetQuote.metadata?.symbol || pair.assetQuote.asset,
+				address: pair.assetQuote.asset.toLowerCase(),
+				symbol: pair.assetQuote.metadata?.symbol?.toUpperCase() || pair.assetQuote.asset?.toUpperCase(),
 				name: pair.assetQuote.metadata?.name || pair.assetQuote.metadata?.symbol || pair.assetQuote.asset,
 				decimals: pair.assetQuote.metadata?.decimals,
 				raw: pair.assetQuote
 			};
 
 			// Create market symbol
-			const marketSymbol = `${baseToken.symbol}/${quoteToken.symbol}`;
+			const marketSymbol = `${baseToken.symbol}/${quoteToken.symbol}`.toUpperCase();
 
 			// Create market object
 			const market: Market = {
-				address: pair.address,
+				address: pair.address.toLowerCase(),
 				symbol: marketSymbol,
 				tokens: {
 					base: baseToken,
