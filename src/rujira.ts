@@ -1543,6 +1543,10 @@ export class Fin {
 		ownerAddress = ownerAddress?.trim().toLowerCase();
 		marketAddress = marketAddress?.trim().toLowerCase();
 		marketSymbol = marketSymbol?.trim().toUpperCase();
+		side = OrderSide[side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined;
+		type = OrderType[type?.trim().toUpperCase() as keyof typeof OrderType] || undefined;
+		amount = Decimal(amount);
+		price = price ? Decimal(price) : undefined;
 
 		if (!ownerAddress && !owner) {
 			throw new Error("Owner address or owner wallet is required");
@@ -1706,7 +1710,73 @@ export class Fin {
 	 * @returns The response for the replaced order
 	 */
 	async replaceOrder(request: FinReplaceOrderRequest): Promise<FinReplaceOrderResponse> {
-		throw new Error("Not implemented");
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price } = request;
+
+		ownerAddress = ownerAddress?.trim().toLowerCase();
+		marketAddress = marketAddress?.trim().toLowerCase();
+		marketSymbol = marketSymbol?.trim().toUpperCase();
+		side = OrderSide[side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined;
+		type = OrderType[type?.trim().toUpperCase() as keyof typeof OrderType] || undefined;
+		amount = Decimal(amount);
+		price = price ? Decimal(price) : undefined;
+
+		if (!ownerAddress && !owner) {
+			throw new Error("Owner address or owner wallet is required");
+		}
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Market address, market symbol, or market object is required");
+		}
+		if (!side) {
+			throw new Error("Order side is required");
+		}
+		if (!type) {
+			throw new Error("Order type is required");
+		}
+		if (!amount) {
+			throw new Error("Order amount is required");
+		}
+		if (type === OrderType.LIMIT && !price) {
+			throw new Error("Order price is required for limit orders");
+		}
+
+		const batchRequest: FinReplaceOrdersRequest = {
+			ownerAddress,
+			owner,
+			orders: MList<FinReplaceOrderRequest>([{
+				ownerAddress,
+				owner,
+				marketAddress,
+				marketSymbol,
+				market,
+				side,
+				type,
+				amount,
+				price
+			}])
+		};
+
+		const response = await this.replaceOrders(batchRequest);
+
+		if (!response?.orders || response.orders.size === 0) {
+			throw new Error("No order was created");
+		}
+
+		const order = response.orders.first();
+		if (!order) {
+			throw new Error("Failed to retrieve created order");
+		}
+
+		const transaction = response.transactions.first();
+		if (!transaction) {
+			throw new Error("Failed to retrieve transaction details");
+		}
+
+		const result = {
+			order,
+			transaction
+		};
+
+		return result;
 	}
 
 	/**

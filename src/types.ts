@@ -1014,7 +1014,7 @@ export interface FinPlaceOrderRequest {
 	/**
 	 * Order price (required for limit orders)
 	 */
-	price: OrderPrice;
+	price?: OrderPrice;
 }
 
 /**
