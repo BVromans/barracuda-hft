@@ -1184,11 +1184,6 @@ export interface FinCancelOrdersRequest {
 	 * Market
 	 */
 	market?: Market;
-
-	/**
-	 * Cancel all orders
-	 */
-	cancelAll?: boolean;
 }
 
 /**

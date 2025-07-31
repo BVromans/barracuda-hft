@@ -1794,20 +1794,48 @@ export class Fin {
 	 * @returns The response for the canceled order
 	 */
 	async cancelOrder(request: FinCancelOrderRequest): Promise<FinCancelOrderResponse> {
-		throw new Error("Not implemented");
+		let { orderId, order, ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
-		// const resp = await this.cancelOrders({
-		// 	ownerAddress: request.ownerAddress,
-		// 	marketAddress: request.marketAddress,
-		// 	marketSymbol: request.marketSymbol,
-		// 	orderIds: [request.orderId || ''],
-		// 	cancelAll: false
-		// });
-		// return {
-		// 	order: resp.orders.get(request.orderId || '') || {} as Order,
-		// 	status: resp.status,
-		// 	transaction: (Array.from(resp.transactions.values()) as Transaction[])[0]
-		// };
+		orderId = orderId?.trim().toLowerCase();
+		ownerAddress = ownerAddress?.trim().toLowerCase();
+		marketAddress = marketAddress?.trim().toLowerCase();
+		marketSymbol = marketSymbol?.trim().toUpperCase();
+
+		if (!orderId && !order) {
+			throw new Error("Order ID or order is required");
+		}
+
+		if (orderId && order) {
+			throw new Error("Order ID and order cannot be provided together");
+		}
+
+		if (!ownerAddress && !owner) {
+			throw new Error("Owner address or owner wallet is required");
+		}
+
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Market address, market symbol, or market object is required");
+		}
+
+		const response = await this.cancelOrders({
+			orderIds: orderId ? MList<OrderId>([orderId]) : undefined,
+			orders: order ? MList<Order>([order]) : undefined,
+			ownerAddress,
+			owner,
+			marketAddress,
+			marketSymbol,
+			market
+		});
+
+		const cancelledOrder = response.orders.getOrThrow(orderId || getOrThrow<OrderId>(order?.id));
+		const transaction = getOrThrow<Transaction>(response.transactions.first());
+
+		const result = {
+			order: cancelledOrder,
+			transaction
+		};
+
+		return result;
 	}
 
 	/**
