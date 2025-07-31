@@ -898,7 +898,7 @@ export class Fin {
 					base: baseToken,
 					quote: quoteToken
 				},
-				decimals: pair.tick, // Use tick as decimals
+				decimals: Number(pair.tick) || 0, // Use tick as decimals, ensure it's a number
 				status: MarketStatus.ACTIVE, // LIVE markets are active
 				raw: pair
 			};
@@ -992,27 +992,27 @@ export class Fin {
 		let { marketAddress, marketSymbol } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
-		marketSymbol = marketSymbol?.toLowerCase().trim();
+		marketSymbol = marketSymbol?.trim(); // Don't convert to lowercase
 
 		if (!marketAddress && !marketSymbol) {
 			throw new Error("Either market address or market name must be provided");
 		}
 
+		// Get the market using the existing getMarket method
 		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 
-		// TODO: Check this query!!!
-		const rawTicker = await this.cosmClient.queryContractSmart(
-			market.address,
-			{
-				ticker: {}
-			}
-		);
+		// Use tick from market data
+		const price = new Decimal(market.raw.tick || 0);
+		const timestamp = Date.now();
 
 		const ticker: Ticker = {
 			market,
-			price: rawTicker.price,
-			timestamp: rawTicker.timestamp,
-			raw: rawTicker
+			price,
+			timestamp,
+			raw: {
+				tick: market.raw.tick,
+				marketData: market.raw
+			}
 		};
 
 		return ticker;
