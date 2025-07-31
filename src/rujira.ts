@@ -1524,24 +1524,67 @@ export class Fin {
 	 * @returns The response for the created order
 	 */
 	async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
-		throw new Error('Not implemented');
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price } = request;
 
-			// // Basic validation
-			// if (!request.ownerAddress || (!request.marketAddress && !request.marketSymbol) || !request.side || !request.type || !request.amount) {
-			//     console.error('[placeOrder] Missing required fields');
-			//     throw new Error('Missing required fields');
-			// }
+		ownerAddress = ownerAddress?.trim().toLowerCase();
+		marketAddress = marketAddress?.trim().toLowerCase();
+		marketSymbol = marketSymbol?.trim().toUpperCase();
 
-			// const batchRequest: FinPlaceOrdersRequest = {
-			//     ownerAddress: request.ownerAddress,
-			//     orders: [request]
-			// };
-			// const response = await this.placeOrders(batchRequest);
-			// if (!response?.orders || response.orders.size === 0) {
-			//     console.error('[placeOrder] No order was created');
-			//     throw new Error('No order was created');
-			// }
-			// return (Array.from(response.orders.values()) as FinPlaceOrderResponse[])[0];
+		if (!ownerAddress && !owner) {
+			throw new Error("Owner address or owner wallet is required");
+		}
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Market address, market symbol, or market object is required");
+		}
+		if (!side) {
+			throw new Error("Order side is required");
+		}
+		if (!type) {
+			throw new Error("Order type is required");
+		}
+		if (!amount) {
+			throw new Error("Order amount is required");
+		}
+		if (type === OrderType.LIMIT && !price) {
+			throw new Error("Order price is required for limit orders");
+		}
+
+		const batchRequest: FinPlaceOrdersRequest = {
+			ownerAddress,
+			owner,
+			orders: MList<FinPlaceOrderRequest>([{
+				ownerAddress,
+				owner,
+				marketAddress,
+				marketSymbol,
+				market,
+				side,
+				type,
+				amount,
+				price
+			}])
+		};
+
+		const response = await this.placeOrders(batchRequest);
+
+		if (!response?.orders || response.orders.size === 0) {
+			throw new Error("No order was created");
+		}
+
+		const order = Array.from(response.orders.values())[0];
+		if (!order) {
+			throw new Error("Failed to retrieve created order");
+		}
+
+		const transaction = Array.from(response.transactions.values())[0];
+		if (!transaction) {
+			throw new Error("Failed to retrieve transaction details");
+		}
+
+		return {
+			order: order as Order,
+			transaction: transaction as Transaction
+		};
 	}
 
 
