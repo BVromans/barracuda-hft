@@ -942,6 +942,8 @@ export class Fin {
 		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 
 		// Always fetch the latest orderbook from the contract
+		// TODO: add an example response!!!
+		// TODO: add an interface for the response!!!
 		const rawOrderBook = await this.cosmClient.queryContractSmart(
 			market.address,
 			{
@@ -1019,10 +1021,7 @@ export class Fin {
 			market,
 			price,
 			timestamp,
-			raw: {
-				tick: market.raw.tick,
-				marketData: market.raw
-			}
+			raw: orderBook.raw
 		};
 
 		return ticker;
