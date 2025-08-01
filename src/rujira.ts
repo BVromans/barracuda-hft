@@ -9,9 +9,15 @@ import Decimal from 'decimal.js';
 import { LRUCache } from 'lru-cache';
 import { properties } from "./properties";
 import {
+	Amount,
+	Balances,
+	BaseBalance,
+	BaseBalanceWithQuotation,
+	BaseTokenBalance,
 	Candle,
 	CandleInterval,
 	DECIMAL_0,
+	DECIMAL_1,
 	DECIMAL_INFINITY,
 	FinCancelAllOrdersRequest,
 	FinCancelAllOrdersResponse,
@@ -59,6 +65,7 @@ import {
 	FinReplaceOrdersResponse,
 	FinWithdrawRequest,
 	FinWithdrawResponse,
+	Integer,
 	List,
 	Map,
 	Market,
@@ -79,8 +86,10 @@ import {
 	RujiraInitializeOptions,
 	SystemStatus,
 	Ticker,
+	TickerPrice,
 	Token,
 	TokenAddress,
+	TokenBalance,
 	TokenSymbol,
 	Transaction,
 	TransactionHash,
@@ -1210,242 +1219,225 @@ export class Fin {
 	 * @returns The balances response
 	 */
 	async getBalances(request: FinGetBalancesRequest): Promise<FinGetBalancesResponse> {
-		throw new Error('Not implemented');
+		let { walletAddress, wallet, tokenAddresses, tokenSymbols } = request;
 
-		// let { walletAddress, tokenAddresses, tokenSymbols } = request;
+		walletAddress = this.getWalletAddress(walletAddress, wallet);
+		tokenAddresses = tokenAddresses?.map((address: TokenAddress) => address.toLowerCase().trim()) || MList<TokenAddress>();
+		tokenSymbols = tokenSymbols?.map((symbol: TokenSymbol) => symbol.toLowerCase().trim()) || MList<TokenSymbol>();
 
-		// walletAddress = walletAddress?.toLowerCase().trim();
-		// tokenAddresses = tokenAddresses?.map((address: TokenAddress) => address.toLowerCase().trim()) || MList<TokenAddress>();
-		// tokenSymbols = tokenSymbols?.map((symbol: TokenSymbol) => symbol.toLowerCase().trim()) || MList<TokenSymbol>();
+		if (!walletAddress && !wallet) {
+			throw new Error('The wallet address or wallet is required');
+		}
 
-		// if (!walletAddress) throw new Error('The wallet address is required');
+		if (Array.isArray(tokenAddresses)) {
+			tokenAddresses = MList<TokenAddress>(tokenAddresses);
+		}
+		if (Array.isArray(tokenSymbols)) {
+			tokenSymbols = MList<TokenSymbol>(tokenSymbols);
+		}
 
-		// if (Array.isArray(tokenAddresses)) {
-		// 	tokenAddresses = List<TokenAddress>(tokenAddresses);
-		// }
-		// if (Array.isArray(tokenSymbols)) {
-		// 	tokenSymbols = List<TokenSymbol>(tokenSymbols);
-		// }
+		let markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
+		let tokens = await this.getAllTokens({} as FinGetAllTokensRequest);
 
-		// let markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
-		// let tokens = await this.getAllTokens({} as FinGetAllTokensRequest);
+		if (tokenAddresses.size > 0 || tokenSymbols.size > 0) {
+			tokens = tokens.filter((token: Token) => tokenAddresses.includes(token.address) || tokenSymbols.includes(token.symbol));
+		}
 
-		// if (tokenAddresses.size > 0 || tokenSymbols.size > 0) {
-		// 	tokens = tokens.filter((token: Token) => tokenAddresses.includes(token.address) || tokenSymbols.includes(token.symbol));
-		// }
+		const freeBalances = MMap<TokenAddress, Amount>();
+		const freeBalanceResponse = await this.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
+		if (freeBalanceResponse.ok) {
+			/*
+			Example response:
+				{
+					"balances": [
+						{
+							"denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+							"amount": "90505921"
+						}
+					],
+					"pagination": {
+						"next_key": null,
+						"total": "6"
+					}
+				}
+			*/
+			const freeBalanceResponseData = (await freeBalanceResponse.json()) as {
+				balances: Array<{
+					denom: string;
+					amount: string;
+				}>;
+				pagination: {
+					next_key: string | null;
+					total: string;
+				};
+			};
 
-		// const freeBalances = MMap<TokenAddress, Amount>();
-		// const freeBalanceResponse = await this.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
-		// if (freeBalanceResponse.ok) {
-		// 	/*
-		// 	Example response:
-		// 		{
-		// 			"balances": [
-		// 				{
-		// 					"denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-		// 					"amount": "90505921"
-		// 				}
-		// 			],
-		// 			"pagination": {
-		// 				"next_key": null,
-		// 				"total": "6"
-		// 			}
-		// 		}
-		// 	*/
-		// 	const freeBalanceResponseData = (await freeBalanceResponse.json()) as {
-		// 		balances: Array<{
-		// 			denom: string;
-		// 			amount: string;
-		// 		}>;
-		// 		pagination: {
-		// 			next_key: string | null;
-		// 			total: string;
-		// 		};
-		// 	};
+			for (const rawBalance of freeBalanceResponseData.balances) {
+				const token = await this.getToken({ address: rawBalance.denom });
 
-		// 	for (const rawBalance of freeBalanceResponseData.balances) {
-		// 		freeBalances.set(rawBalance.denom.toLowerCase().trim(), new Decimal(rawBalance.amount));
-		// 	}
-		// }
+				freeBalances.set(token.address, new Decimal(rawBalance.amount));
+			}
+		}
 
-		// const lockedInOrdersMap = MMap<TokenAddress, Amount>();
-		// const withdrawableMap = MMap<TokenAddress, Amount>();
+		const lockedInOrdersMap = MMap<TokenAddress, Amount>();
+		const withdrawableMap = MMap<TokenAddress, Amount>();
 
-		// for (const market of markets.values()) {
-		// 	/*
-		// 	Example response:
-		// 		{
-		// 			"orders": [
-		// 				{
-		// 					"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
-		// 					"side": "base",
-		// 					"price": {
-		// 						"fixed": "0.219169"
-		// 					},
-		// 					"rate": "0.219169",
-		// 					"updated_at": "1752680298782095574",
-		// 					"offer": "10000000",
-		// 					"remaining": "10000000",
-		// 					"filled": "0"
-		// 				}
-		// 			]
-		// 		}
-		// 	*/
-		// 	const ordersResponse = await this.cosmClientQueryContractSmart(
-		// 		market.address,
-		// 		{
-		// 			orders: {
-		// 				owner: walletAddress,
-		// 				limit: properties.getOrDefault<Integer>('rujira.default.orders.maximumNumberOfOrders', DECIMAL_INFINITY.toNumber())
-		// 			}
-		// 		}
-		// 	) as {
-		// 		orders: Array<{
-		// 			owner: string,
-		// 			"side": string,
-		// 			"price": {
-		// 				"fixed": string
-		// 			},
-		// 			"rate": string,
-		// 			"updated_at": string,
-		// 			"offer": string,
-		// 			"remaining": string,
-		// 			"filled": string
-		// 		}>;
-		// 	};
+		for (const market of markets.values()) {
+			/*
+			Example response:
+				{
+					"orders": [
+						{
+							"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
+							"side": "base",
+							"price": {
+								"fixed": "0.219169"
+							},
+							"rate": "0.219169",
+							"updated_at": "1752680298782095574",
+							"offer": "10000000",
+							"remaining": "10000000",
+							"filled": "0"
+						}
+					]
+				}
+			*/
+			const ordersResponse = await this.cosmClientQueryContractSmart(
+				market.address,
+				{
+					orders: {
+						owner: walletAddress,
+						limit: properties.getOrDefault<Integer>('rujira.default.orders.maximumNumberOfOrders', DECIMAL_INFINITY.toNumber())
+					}
+				}
+			) as {
+				orders: Array<{
+					owner: string,
+					"side": string,
+					"price": {
+						"fixed": string
+					},
+					"rate": string,
+					"updated_at": string,
+					"offer": string,
+					"remaining": string,
+					"filled": string
+				}>;
+			};
 
-		// 	for (const rawOrder of ordersResponse.orders) {
-		// 		const baseTokenAddress = market.tokens.base.address;
-		// 		const quoteTokenAddress = market.tokens.quote.address;
+			for (const rawOrder of ordersResponse.orders) {
+				const baseTokenAddress = market.tokens.base.address;
+				const quoteTokenAddress = market.tokens.quote.address;
 
-		// 		if (rawOrder.filled && Number(rawOrder.filled) > 0) {
-		// 			const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
-		// 			lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.get(lockedTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
-		// 		}
-		// 		if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
-		// 			const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // note that it's the opposite asset
-		// 			withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.get(withdrawTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
-		// 		}
-		// 	}
-		// }
+				if (rawOrder.filled && Number(rawOrder.filled) > 0) {
+					// TODO: check if this is correct!!!
+					const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
+					lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.get(lockedTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
+				}
+				if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
+					// TODO: check if this is correct!!!
+					const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // note that it's the opposite asset
+					withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.get(withdrawTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
+				}
+			}
+		}
 
-		// const tokensBalancesMap = MMap<TokenAddress, TokenBalance>();
-		// for (const token of tokens.values()) {
-		// 	const free = freeBalances.get(token.address, DECIMAL_0);
-		// 	const lockedInOrders = lockedInOrdersMap.get(token.address, DECIMAL_0);
-		// 	const withdrawable = withdrawableMap.get(token.address, DECIMAL_0);
-		// 	const lockedInPools = DECIMAL_0; // Not implemented
-		// 	const total = free.plus(lockedInOrders).plus(lockedInPools).plus(withdrawable).plus(lockedInPools);
+		const tokensBalancesMap = MMap<TokenAddress, TokenBalance>();
+		for (const token of tokens.values()) {
+			const free = freeBalances.get(token.address, DECIMAL_0);
+			const lockedInOrders = lockedInOrdersMap.get(token.address, DECIMAL_0);
+			const withdrawable = withdrawableMap.get(token.address, DECIMAL_0);
+			const lockedInPools = DECIMAL_0; // Not implemented
+			const total = free.plus(lockedInOrders).plus(lockedInPools).plus(withdrawable);
 
-		// 	const tokenBalance: BaseBalance = {
-		// 		free,
-		// 		lockedInOrders,
-		// 		lockedInPools,
-		// 		withdrawable,
-		// 		total
-		// 	};
+			const tokenBalance: BaseBalance = {
+				free,
+				lockedInOrders,
+				lockedInPools,
+				withdrawable,
+				total
+			};
 
-		// 	let conversionRateNativeToken = DECIMAL_0;
-		// 	if (token.address !== this.nativeToken.address) {
-		// 		const market = Array.from(markets.values() as Iterable<Market>).find((market: Market) =>
-		// 			(market.tokens.base.address === token.address && market.tokens.quote.address === nativeTokenObject.address) ||
-		// 			(market.tokens.quote.address === token.address && market.tokens.base.address === nativeTokenObject.address)
-		// 		);
-		// 		if (market && market.price) {
-		// 			if (market.tokens.base.address === token.address) {
-		// 				conversionRateNativeToken = market.price.baseQuote;
-		// 			} else {
-		// 				conversionRateNativeToken = market.price.quoteBase;
-		// 			}
-		// 		}
-		// 	} else if (nativeTokenObject && token.address === nativeTokenObject.address) {
-		// 		conversionRateNativeToken = new Decimal(1);
-		// 	}
+			let conversionRateNativeToken: TickerPrice = DECIMAL_0;
+			if (token.address !== this.nativeToken.address) {
+				try {
+					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` });
 
-		// 	// Find market price for beacon (USDC)
-		// 	let conversionRateBeacon = new Decimal(0);
-		// 	if (beaconTokenObject && token.address !== beaconTokenObject.address) {
-		// 		const market = Array.from(markets.values() as Iterable<Market>).find((marketObj: Market) =>
-		// 			(marketObj.tokens.base.address === token.address && marketObj.tokens.quote.address === beaconTokenObject.address) ||
-		// 			(marketObj.tokens.quote.address === token.address && marketObj.tokens.base.address === beaconTokenObject.address)
-		// 		);
-		// 		if (market && market.price) {
-		// 			if (market.tokens.base.address === token.address) {
-		// 				conversionRateBeacon = market.price.baseQuote;
-		// 			} else {
-		// 				conversionRateBeacon = market.price.quoteBase;
-		// 			}
-		// 		}
-		// 	} else if (beaconTokenObject && token.address === beaconTokenObject.address) {
-		// 		conversionRateBeacon = new Decimal(1);
-		// 	}
+					conversionRateNativeToken = quotingMarketTicker.price;
+				} catch (exception) {
+					ignoreException(exception);
+				}
+			} else {
+				conversionRateNativeToken = DECIMAL_1;
+			}
 
-		// 	const baseBalanceWithNativeQuotation: BaseBalanceWithQuotation = {
-		// 		...tokenBalance,
-		// 		quotation: {
-		// 			token: nativeTokenObject || token,
-		// 			tokenToQuote: conversionRateNativeToken,
-		// 			quoteToToken: conversionRateNativeToken ? new Decimal(1).div(conversionRateNativeToken) : new Decimal(0)
-		// 		}
-		// 	};
-		// 	const baseBalanceWithBeaconQuotation: BaseBalanceWithQuotation = {
-		// 		...tokenBalance,
-		// 		quotation: {
-		// 			token: beaconTokenObject || token,
-		// 			tokenToQuote: conversionRateBeacon,
-		// 			quoteToToken: conversionRateBeacon ? new Decimal(1).div(conversionRateBeacon) : new Decimal(0)
-		// 		}
-		// 	};
+			let conversionRateBeacon: TickerPrice = DECIMAL_0;
+			if (token.address !== this.beaconToken.address) {
+				try {
+					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.beaconToken.symbol}` });
 
-		// 	const baseTokenBalance: BaseTokenBalance = {
-		// 		token: tokenBalance,
-		// 		nativeToken: baseBalanceWithNativeQuotation,
-		// 		beaconToken: baseBalanceWithBeaconQuotation
-		// 	};
+					conversionRateBeacon = quotingMarketTicker.price;
+				} catch (exception) {
+					ignoreException(exception);
+				}
+			} else {
+				conversionRateBeacon = DECIMAL_1;
+			}
 
-		// 	tokensBalancesMap.set(token.address, {
-		// 		token,
-		// 		balances: baseTokenBalance
-		// 	});
-		// }
+			const baseBalanceWithNativeQuotation: BaseBalanceWithQuotation = {
+				...tokenBalance,
+				quotation: {
+					token: this.nativeToken || token,
+					tokenToQuote: conversionRateNativeToken,
+					quoteToToken: conversionRateNativeToken ? DECIMAL_1.div(conversionRateNativeToken) : DECIMAL_0
+				}
+			};
+			const baseBalanceWithBeaconQuotation: BaseBalanceWithQuotation = {
+				...tokenBalance,
+				quotation: {
+					token: this.beaconToken || token,
+					tokenToQuote: conversionRateBeacon,
+					quoteToToken: conversionRateBeacon ? DECIMAL_1.div(conversionRateBeacon) : DECIMAL_0
+				}
+			};
 
-		// const totalNative: BaseBalance = nativeToken ? {
-		// 	free: freeBalances[nativeToken.address] || new Decimal(0),
-		// 	lockedInOrders: lockedInOrdersMap[nativeToken.address] || new Decimal(0),
-		// 	lockedInPools: new Decimal(0),
-		// 	withdrawable: new Decimal(0),
-		// 	total: (freeBalances[nativeToken.address] || new Decimal(0)).plus(lockedInOrdersMap[nativeToken.address] || new Decimal(0))
-		// } : {
-		// 	free: new Decimal(0),
-		// 	lockedInOrders: new Decimal(0),
-		// 	lockedInPools: new Decimal(0),
-		// 	withdrawable: new Decimal(0),
-		// 	total: new Decimal(0)
-		// };
+			const baseTokenBalance: BaseTokenBalance = {
+				token: tokenBalance,
+				nativeToken: baseBalanceWithNativeQuotation,
+				beaconToken: baseBalanceWithBeaconQuotation
+			};
 
-		// const totalBeacon: BaseBalance = beaconToken ? {
-		// 	free: freeBalances[beaconToken.address] || new Decimal(0),
-		// 	lockedInOrders: lockedInOrdersMap[beaconToken.address] || new Decimal(0),
-		// 	lockedInPools: new Decimal(0),
-		// 	withdrawable: new Decimal(0),
-		// 	total: (freeBalances[beaconToken.address] || new Decimal(0)).plus(lockedInOrdersMap[beaconToken.address] || new Decimal(0))
-		// } : {
-		// 	free: new Decimal(0),
-		// 	lockedInOrders: new Decimal(0),
-		// 	lockedInPools: new Decimal(0),
-		// 	withdrawable: new Decimal(0),
-		// 	total: new Decimal(0)
-		// };
+			tokensBalancesMap.set(token.address, {
+				token,
+				balances: baseTokenBalance
+			});
+		}
 
-		// const balances: Balances = {
-		// 	tokens: tokensBalancesMap,
-		// 	total: {
-		// 		nativeToken: totalNative,
-		// 		beaconToken: totalBeacon
-		// 	}
-		// };
+		const totalNative: BaseBalance = {
+			free: freeBalances.get(this.nativeToken.address, DECIMAL_0),
+			lockedInOrders: lockedInOrdersMap.get(this.nativeToken.address, DECIMAL_0),
+			lockedInPools: DECIMAL_0,
+			withdrawable: withdrawableMap.get(this.nativeToken.address, DECIMAL_0),
+			total: freeBalances.get(this.nativeToken.address, DECIMAL_0).plus(lockedInOrdersMap.get(this.nativeToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.get(this.nativeToken.address, DECIMAL_0))
+		};
 
-		// return balances;
+		const totalBeacon: BaseBalance = {
+			free: freeBalances.get(this.beaconToken.address, DECIMAL_0),
+			lockedInOrders: lockedInOrdersMap.get(this.beaconToken.address, DECIMAL_0),
+			lockedInPools: DECIMAL_0,
+			withdrawable: withdrawableMap.get(this.beaconToken.address, DECIMAL_0),
+			total: freeBalances.get(this.beaconToken.address, DECIMAL_0).plus(lockedInOrdersMap.get(this.beaconToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.get(this.beaconToken.address, DECIMAL_0))
+		};
+
+		const balances: Balances = {
+			tokens: tokensBalancesMap,
+			total: {
+				nativeToken: totalNative,
+				beaconToken: totalBeacon
+			}
+		};
+
+		return balances;
 	}
 
 	/**
@@ -1763,7 +1755,8 @@ export class Fin {
 				]).toArray()
 			},
 			'auto',
-			undefined,
+			undefined, // TOOD: what is this?!!!
+			// TODO: fix this!!!
 			[{ denom: '', amount: '' }]
 		);
 
@@ -2254,3 +2247,18 @@ export class Fin {
 		return this.cosmClient.getHeight();
 	}
 }
+
+/**
+ * Ignore an exception
+ * @param exception - The exception to ignore
+ */
+const ignoreException = (exception: any): void => {
+	let message = 'Ignored exception: ';
+	if (exception instanceof Error) {
+		message += exception.message;
+	} else {
+		message += exception;
+	}
+
+	console.warn(message);
+};

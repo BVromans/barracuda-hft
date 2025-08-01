@@ -12,12 +12,15 @@ import { MList, MMap } from './extensions/immutablejs/types';
 export { List, Map, MList, MMap };
 
 export const DECIMAL_0 = new Decimal(0);
+export const DECIMAL_1 = new Decimal(1);
+export const DECIMAL_10 = new Decimal(10);
 export const DECIMAL_100 = new Decimal(100);
 export const DECIMAL_INFINITY = new Decimal(Number.POSITIVE_INFINITY);
 export const DECIMAL_NEGATIVE_INFINITY = new Decimal(Number.NEGATIVE_INFINITY);
 export const DECIMAL_NaN = new Decimal(NaN);
 export const BIG_NUMBER_0 = new BN(0);
 export const BIG_NUMBER_1 = new BN(1);
+export const BIG_NUMBER_10 = new BN(10);
 export const BIG_NUMBER_100 = new BN(100);
 export const BIG_NUMBER_NaN = new BN(NaN);
 
@@ -832,7 +835,12 @@ export interface FinGetBalancesRequest {
 	/**
 	 * Address
 	 */
-	walletAddress: WalletAddress;
+	walletAddress?: WalletAddress;
+
+	/**
+	 * Wallet
+	 */
+	wallet?: Wallet;
 
 	/**
 	 * Token addresses to filter balances (optional)
