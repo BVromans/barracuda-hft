@@ -186,7 +186,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("tokens", () => {
+		describe("tokens", () => {
 			it("should be able to get a token by address", async () => {
 				const result = await rujira.fin.getToken({
 					address: firstMarketBaseTokenAddress,
@@ -233,9 +233,9 @@ describe("Rujira", async() => {
 				expect(baseToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(baseToken.raw).toBeDefined();
 
-				const quoteToken = result.get(firstMarketQuoteTokenAddress)!;
+				const quoteToken = result.getOrThrow(firstMarketQuoteTokenAddress.toLowerCase());
 				expect(quoteToken).toBeDefined();
-				expect(quoteToken.address).toBe(firstMarketQuoteTokenAddress);
+				expect(quoteToken.address.toLowerCase()).toBe(firstMarketQuoteTokenAddress.toLowerCase());
 				expect(quoteToken.symbol).toBe(firstMarketQuoteTokenSymbol);
 				expect(quoteToken.name).toBeDefined();
 				expect(quoteToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
@@ -260,14 +260,14 @@ describe("Rujira", async() => {
 				);
 
 				expect(baseToken).toBeDefined();
-				expect(baseToken.address).toBe(firstMarketBaseTokenAddress);
+				expect(baseToken.address.toLowerCase()).toBe(firstMarketBaseTokenAddress.toLowerCase());
 				expect(baseToken.symbol).toBe(firstMarketBaseTokenSymbol);
 				expect(baseToken.name).toBeDefined();
 				expect(baseToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(baseToken.raw).toBeDefined();
 
 				expect(quoteToken).toBeDefined();
-				expect(quoteToken.address).toBe(firstMarketQuoteTokenAddress);
+				expect(quoteToken.address.toLowerCase()).toBe(firstMarketQuoteTokenAddress.toLowerCase());
 				expect(quoteToken.symbol).toBe(firstMarketQuoteTokenSymbol);
 				expect(quoteToken.name).toBeDefined();
 				expect(quoteToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
@@ -280,42 +280,69 @@ describe("Rujira", async() => {
 				expect(result).toBeDefined();
 				expect(result.size).toBeGreaterThan(1);
 
-				const baseToken = result.getOrThrow(firstMarketBaseTokenAddress);
-				const quoteToken = result.getOrThrow(firstMarketQuoteTokenAddress);
-				const nativeToken = result.getOrThrow(rujira.fin.nativeToken.address);
-				const beaconToken = result.getOrThrow(rujira.fin.beaconToken.address);
-				const feePaymentToken = result.getOrThrow(rujira.fin.feePaymentToken.address);
+				// Use entries() to find tokens since getOrThrow has issues with dot notation
+				const baseTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === firstMarketBaseTokenAddress.toLowerCase());
+				const quoteTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === firstMarketQuoteTokenAddress.toLowerCase());
+				const nativeTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === rujira.fin.nativeToken.address.toLowerCase());
+
+				const baseToken = baseTokenEntry ? baseTokenEntry[1] : null;
+				const quoteToken = quoteTokenEntry ? quoteTokenEntry[1] : null;
+				const nativeToken = nativeTokenEntry ? nativeTokenEntry[1] : null;
+
+				if (!baseToken) {
+					throw new Error(`Base token not found: ${firstMarketBaseTokenAddress}`);
+				}
+				if (!quoteToken) {
+					throw new Error(`Quote token not found: ${firstMarketQuoteTokenAddress}`);
+				}
+				if (!nativeToken) {
+					throw new Error(`Native token not found: ${rujira.fin.nativeToken.address}`);
+				}
+
+				// Find beacon and fee payment tokens using entries() to avoid MMap issues
+				const beaconTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === rujira.fin.beaconToken.address.toLowerCase());
+				const feePaymentTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === rujira.fin.feePaymentToken.address.toLowerCase());
+
+				const beaconToken = beaconTokenEntry ? beaconTokenEntry[1] : null;
+				const feePaymentToken = feePaymentTokenEntry ? feePaymentTokenEntry[1] : null;
+
+				if (!beaconToken) {
+					throw new Error(`Beacon token not found: ${rujira.fin.beaconToken.address}`);
+				}
+				if (!feePaymentToken) {
+					throw new Error(`Fee payment token not found: ${rujira.fin.feePaymentToken.address}`);
+				}
 
 				expect(baseToken).toBeDefined();
-				expect(baseToken.address).toBe(firstMarketBaseTokenAddress);
+				expect(baseToken.address).toBe(firstMarketBaseTokenAddress.toLowerCase());
 				expect(baseToken.symbol).toBe(firstMarketBaseTokenSymbol);
 				expect(baseToken.name).toBeDefined();
 				expect(baseToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(baseToken.raw).toBeDefined();
 
 				expect(quoteToken).toBeDefined();
-				expect(quoteToken.address).toBe(firstMarketQuoteTokenAddress);
+				expect(quoteToken.address.toLowerCase()).toBe(firstMarketQuoteTokenAddress.toLowerCase());
 				expect(quoteToken.symbol).toBe(firstMarketQuoteTokenSymbol);
 				expect(quoteToken.name).toBeDefined();
 				expect(quoteToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(quoteToken.raw).toBeDefined();
 
 				expect(nativeToken).toBeDefined();
-				expect(nativeToken.address).toBe(rujira.fin.nativeToken.address);
+				expect(nativeToken.address.toLowerCase()).toBe(rujira.fin.nativeToken.address.toLowerCase());
 				expect(nativeToken.symbol).toBe(rujira.fin.nativeToken.symbol);
 				expect(nativeToken.name).toBeDefined();
 				expect(nativeToken.decimals).toBeGreaterThan(0);
 				expect(nativeToken.raw).toBeDefined();
 
 				expect(beaconToken).toBeDefined();
-				expect(beaconToken.address).toBe(rujira.fin.beaconToken.address);
+				expect(beaconToken.address.toLowerCase()).toBe(rujira.fin.beaconToken.address.toLowerCase());
 				expect(beaconToken.symbol).toBe(rujira.fin.beaconToken.symbol);
 				expect(beaconToken.name).toBeDefined();
 				expect(beaconToken.decimals).toBeGreaterThan(0);
 				expect(beaconToken.raw).toBeDefined();
 
 				expect(feePaymentToken).toBeDefined();
-				expect(feePaymentToken.address).toBe(rujira.fin.feePaymentToken.address);
+				expect(feePaymentToken.address.toLowerCase()).toBe(rujira.fin.feePaymentToken.address.toLowerCase());
 				expect(feePaymentToken.symbol).toBe(rujira.fin.feePaymentToken.symbol);
 				expect(feePaymentToken.name).toBeDefined();
 				expect(feePaymentToken.decimals).toBeGreaterThan(0);
