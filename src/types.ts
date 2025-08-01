@@ -1231,6 +1231,18 @@ export interface FinCancelOrdersResponse {
 }
 
 /**
+ * Cancel all orders request
+ */
+export interface FinCancelAllOrdersRequest extends FinCancelOrdersRequest {
+}
+
+/**
+ * Cancel all orders response
+ */
+export interface FinCancelAllOrdersResponse extends FinCancelOrdersResponse {
+}
+
+/**
  * Withdraw from market request
  */
 export interface FinWithdrawRequest {

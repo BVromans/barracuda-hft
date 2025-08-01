@@ -1,34 +1,33 @@
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { AccountData, DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
-import { stringToPath, Bip39, EnglishMnemonic, Slip10, Slip10Curve } from "@cosmjs/crypto";
+import { Bip39, EnglishMnemonic, Slip10, Slip10Curve, stringToPath } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
+import { AccountData, DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
+import { GasPrice } from "@cosmjs/stargate";
 import cacheManager, { Cacheable, CacheManagerOptions } from "@type-cacheable/core";
 import { useAdapter } from "@type-cacheable/lru-cache-adapter";
+import Decimal from 'decimal.js';
 import { LRUCache } from 'lru-cache';
+import { properties } from "./properties";
 import {
-	Market,
-	MarketAddress,
-	MarketSymbol,
-	MarketStatus,
-	OrderBook,
-	OrderBookMiddlePrice,
-	OrderBookOrder,
-	SystemStatus,
-	Token,
-	TokenAddress,
-	TokenSymbol,
-	Transaction,
-	TransactionStatus,
+	Candle,
+	CandleInterval,
+	DECIMAL_0,
+	DECIMAL_INFINITY,
+	FinCancelAllOrdersRequest,
+	FinCancelAllOrdersResponse,
 	FinCancelOrderRequest,
 	FinCancelOrderResponse,
 	FinCancelOrdersRequest,
 	FinCancelOrdersResponse,
-	FinPlaceOrderRequest,
-	FinPlaceOrderResponse,
-	FinPlaceOrdersRequest,
-	FinPlaceOrdersResponse,
+	FinConstructorOptions,
+	FinGetAllMarketsRequest,
+	FinGetAllMarketsResponse,
+	FinGetAllTokensRequest,
+	FinGetAllTokensResponse,
 	FinGetBalancesRequest,
 	FinGetBalancesResponse,
+	FinGetCandlesRequest,
+	FinGetCandlesResponse,
 	FinGetMarketRequest,
 	FinGetMarketResponse,
 	FinGetMarketsRequest,
@@ -39,6 +38,7 @@ import {
 	FinGetOrderResponse,
 	FinGetOrdersRequest,
 	FinGetOrdersResponse,
+	FinGetStatusRequest,
 	FinGetStatusResponse,
 	FinGetTickerRequest,
 	FinGetTickerResponse,
@@ -48,54 +48,49 @@ import {
 	FinGetTokensResponse,
 	FinGetTransactionRequest,
 	FinGetTransactionResponse,
-	FinWithdrawRequest,
-	FinWithdrawResponse,
-	RujiraConstructorOptions,
-	RujiraInitializeOptions,
-	URL,
-	FinConstructorOptions,
 	FinInitializeOptions,
-	FinGetAllTokensRequest,
-	FinGetAllTokensResponse,
-	FinGetAllMarketsRequest,
-	FinGetAllMarketsResponse,
-	WalletMnemonic,
-	WalletPrivateKey,
-	FinGetStatusRequest,
-	OrderStatus,
-	TokenBalance,
-	BaseBalance,
-	BaseBalanceWithQuotation,
-	BaseTokenBalance,
-	Balances,
-	Wallet,
-	Order,
-	OrderType,
-	Map,
-	List,
-	Ticker,
+	FinPlaceOrderRequest,
+	FinPlaceOrderResponse,
+	FinPlaceOrdersRequest,
+	FinPlaceOrdersResponse,
 	FinReplaceOrderRequest,
 	FinReplaceOrderResponse,
 	FinReplaceOrdersRequest,
 	FinReplaceOrdersResponse,
-	FinGetCandlesRequest,
-	FinGetCandlesResponse,
-	CandleInterval,
-	Candle,
-	Amount,
-	Integer,
-	DECIMAL_0,
-	DECIMAL_INFINITY,
-	MMap,
+	FinWithdrawRequest,
+	FinWithdrawResponse,
+	List,
+	Map,
+	Market,
+	MarketAddress,
+	MarketStatus,
+	MarketSymbol,
 	MList,
-	OrderSide,
+	MMap,
+	Order,
+	OrderBook,
+	OrderBookMiddlePrice,
+	OrderBookOrder,
 	OrderId,
-	WalletAddress,
+	OrderSide,
+	OrderStatus,
+	OrderType,
+	RujiraConstructorOptions,
+	RujiraInitializeOptions,
+	SystemStatus,
+	Ticker,
+	Token,
+	TokenAddress,
+	TokenSymbol,
+	Transaction,
 	TransactionHash,
+	TransactionStatus,
+	URL,
+	Wallet,
+	WalletAddress,
+	WalletMnemonic,
+	WalletPrivateKey
 } from "./types";
-import Decimal from 'decimal.js';
-import { properties } from "./properties";
-import { GasPrice } from "@cosmjs/stargate";
 import { getOrThrow, runWithRetryAndTimeout } from "./utils";
 
 /**
@@ -1978,7 +1973,10 @@ export class Fin {
 		]);
 
 		const executeMessage = {
-			order: [cancelMessages, null]
+			order: [
+				cancelMessages,
+				null // TODO: what is this?!!!
+			]
 		};
 
 		// TODO: add example response!!!
@@ -1990,11 +1988,28 @@ export class Fin {
 			'auto'
 		);
 
-		// TODO: this method is incomplete, fix!!!
+		const cancelledOrders = ordersToCancel.map((order: Order) => ({
+			...order,
+			updateTimestamp: new Date().getTime(),
+			status: OrderStatus.CANCELLED,
+			raw: cancellationResponse
+		}));
+
+		const transactions = MMap<TransactionHash, Transaction>();
+		transactions.set(cancellationResponse.transactionHash, {
+			hash: cancellationResponse.transactionHash,
+			status: TransactionStatus.SUCCESS,
+			fee: {
+				// TODO: check if this is correct!!!
+				amount: cancellationResponse.gasUsed ? new Decimal(cancellationResponse.gasUsed.toString()).div(this.feePaymentToken.decimals) : DECIMAL_0,
+				token: this.feePaymentToken
+			},
+			raw: cancellationResponse
+		});
 
 		const result: FinCancelOrdersResponse = {
-			orders: MMap<OrderId, Order>(),
-			transactions: MMap<TransactionHash, Transaction>()
+			orders: cancelledOrders,
+			transactions: transactions
 		};
 
 		return result;
@@ -2005,97 +2020,12 @@ export class Fin {
 	 * @param request - The request object
 	 * @returns The response for the canceled orders
 	 */
-	async cancelAllOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
-		let { ownerAddress, owner, marketAddress, marketSymbol, market } = request;
-
-		ownerAddress = this.getWalletAddress(ownerAddress, owner);
-		marketAddress = marketAddress?.trim().toLowerCase();
-		marketSymbol = marketSymbol?.trim().toUpperCase();
-
-		if (!ownerAddress && !owner) {
-			throw new Error("Owner address or owner wallet is required");
-		}
-		if (!marketAddress && !marketSymbol && !market) {
-			throw new Error("Market address, market symbol, or market object is required");
-		}
-
-		if (!market) {
-			market = await this.getMarket({
-				address: marketAddress,
-				symbol: marketSymbol
-			});
-		}
-
-		// TODO: use the getOrders method instead!!!
-		const cancelOrdersResponse = await this.cosmClient.queryContractSmart(
-			market.address, {
-				orders: {
-					owner: ownerAddress,
-					limit: properties.getAs<number>('rujira.default.orders.maximumNumberOfOrders') || DECIMAL_INFINITY.toNumber()
-				}
-			}
-		);
-		const rawOrders = cancelOrdersResponse.orders || [];
-
-		if (rawOrders.length === 0) {
-			throw new Error("No orders found to cancel");
-		}
-
-		const cancelMessages = rawOrders.map((rawOrder: any) => [
-			rawOrder.side,
-			{ fixed: rawOrder.price.fixed },
-			'0' // Define the amount to 0 to cancel the order
-		]);
-
-		const executeMessage = {
-			order: [cancelMessages, null]
-		};
-
-		const executeResult = await this.cosmClient.execute(
-			ownerAddress,
-			market.address,
-			executeMessage,
-			'auto'
-		);
-
-		const cancelledOrders = MMap<OrderId, Order>();
-		for (const rawOrder of rawOrders) {
-			const orderId = `${ownerAddress}-${rawOrder.side}-${rawOrder.price.fixed}`;
-			const order: Order = {
-				id: orderId,
-				market: market,
-				ownerAddress: ownerAddress,
-				type: OrderType.LIMIT,
-				side: rawOrder.side === 'quote' ? OrderSide.SELL : OrderSide.BUY,
-				price: new Decimal(rawOrder.price.fixed),
-				amount: new Decimal(rawOrder.offer),
-				filledAmount: new Decimal(rawOrder.filled),
-				filledPercentage: new Decimal(rawOrder.filled).div(new Decimal(rawOrder.offer)),
-				status: OrderStatus.CANCELLED,
-				raw: rawOrder
-			};
-			cancelledOrders.set(orderId, order);
-		}
-
-		const transaction: Transaction = {
-			hash: executeResult.transactionHash,
-			status: TransactionStatus.SUCCESS,
-			fee: {
-				amount: executeResult.gasUsed ? new Decimal(executeResult.gasUsed.toString()) : DECIMAL_0,
-				token: this.feePaymentToken
-			},
-			raw: executeResult
-		};
-
-		const transactions = MMap<TransactionHash, Transaction>();
-		transactions.set(transaction.hash, transaction);
-
-		const response = {
-			orders: cancelledOrders,
-			transactions: transactions
-		};
-
-		return response;
+	async cancelAllOrders(request: FinCancelAllOrdersRequest): Promise<FinCancelAllOrdersResponse> {
+		return this.cancelOrders({
+			...request,
+			orderIds: undefined,
+			orders: undefined,
+		});
 	}
 
 	/**
