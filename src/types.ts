@@ -513,7 +513,7 @@ export interface Order {
 	/**
 	 * The account which placed the order
 	 */
-	owner: WalletAddress;
+	ownerAddress: WalletAddress;
 
 	/**
 	 * Type of the order
@@ -958,6 +958,11 @@ export interface FinGetOrdersRequest {
 	 * Order IDs
 	 */
 	orderIds?: List<OrderId> | OrderId[];
+
+	/**
+	 * Orders
+	 */
+	orders?: List<Order> | Order[];
 
 	/**
 	 * Order price

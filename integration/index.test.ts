@@ -995,7 +995,7 @@ describe("Rujira", async() => {
 						expect(order.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 						expect(order.market.status).toBe(MarketStatus.ACTIVE);
 						expect(order.market.raw).toBeDefined();
-						expect(order.owner).toBeDefined();
+						expect(order.ownerAddress).toBeDefined();
 						expect(order.side).toBeDefined();
 						expect(order.type).toBeDefined();
 						expect(order.amount).toBeDefined();
@@ -1055,7 +1055,7 @@ describe("Rujira", async() => {
 					expect(order.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(order.market.status).toBe(MarketStatus.ACTIVE);
 					expect(order.market.raw).toBeDefined();
-					expect(order.owner).toBeDefined();
+					expect(order.ownerAddress).toBeDefined();
 					expect(order.side).toBeDefined();
 					expect(order.type).toBeDefined();
 					expect(order.amount).toBeDefined();
