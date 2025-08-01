@@ -1,5 +1,5 @@
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
+import { AccountData, DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
 import { stringToPath, Bip39, EnglishMnemonic, Slip10, Slip10Curve } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
 import cacheManager, { Cacheable, CacheManagerOptions } from "@type-cacheable/core";
@@ -126,9 +126,14 @@ export class Rujira {
 	public readonly fin: Fin;
 
 	/**
+	 * Wallet address
+	 */
+	public walletAddress: WalletAddress;
+
+	/**
 	 * Wallet
 	 */
-	public wallet: Wallet;
+	private wallet: Wallet;
 
 	/**
 	 * Wallet private key
@@ -158,6 +163,8 @@ export class Rujira {
 
 		this.wallet = undefined as unknown as Wallet;
 
+		this.walletAddress = undefined as unknown as WalletAddress;
+
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 
 		this.fin = new Fin({
@@ -176,11 +183,13 @@ export class Rujira {
 			throw new Error('No wallet credentials provided. Please provide either a mnemonic or a private key');
 		}
 
+		this.walletAddress = this.wallet.firstAccount.address;
+
 		properties.set('rujira.gasPrice', GasPrice.fromString(`0.02${properties.getAs<string>('rujira.constants.tokens.feePayment.symbol').toLowerCase()}`));
 
 		this.cosmClient = await SigningCosmWasmClient.connectWithSigner(
 			properties.getAs<URL>('rujira.endpoints.rpc'),
-			this.wallet,
+			this.wallet.cosmWallet,
 			{
 				gasPrice: properties.getAs<GasPrice>('rujira.gasPrice')
 			}
@@ -218,11 +227,20 @@ export class Rujira {
 	 * @param privateKey - The private key to create the wallet from
 	 * @returns The wallet
 	 */
-	private async createWalletFromPrivateKey(privateKey: string): Promise<Wallet> {
-		return await DirectSecp256k1Wallet.fromKey(
+	private async createWalletFromPrivateKey(privateKey: WalletPrivateKey): Promise<Wallet> {
+		const cosmWallet = await DirectSecp256k1Wallet.fromKey(
 			fromBase64(privateKey),
 			properties.getAs<string>('wallet.prefix')
 		);
+
+		const firstAccount = getOrThrow<Array<AccountData>>(await cosmWallet.getAccounts())[0];
+
+		const wallet = {
+			cosmWallet: cosmWallet,
+			firstAccount: firstAccount
+		};
+
+		return wallet;
 	}
 
 	/**
@@ -241,6 +259,11 @@ export class Rujira {
  * Fin client
  */
 export class Fin {
+	/**
+	 * Wallet address
+	 */
+	private walletAddress: WalletAddress;
+
 	/**
 	 * Wallet
 	 */
@@ -291,6 +314,7 @@ export class Fin {
 	 * @param options - The constructor options
 	 */
 	constructor(options: FinConstructorOptions) {
+		this.walletAddress = undefined as unknown as WalletAddress;
 		this.wallet = undefined as unknown as Wallet;
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 
@@ -305,10 +329,33 @@ export class Fin {
 	}
 
 	/**
+	 * Get wallet address
+	 * @param walletAddress - The wallet address
+	 * @param wallet - The wallet
+	 * @returns The wallet address
+	 */
+	private getWalletAddress(walletAddress?: WalletAddress, wallet?: Wallet): WalletAddress {
+		if (walletAddress) {
+			return walletAddress.trim().toLowerCase();
+		}
+
+		if (wallet) {
+			return wallet.firstAccount.address.trim().toLowerCase();
+		}
+
+		if (this.wallet.firstAccount) {
+			return this.wallet.firstAccount.address.trim().toLowerCase();
+		}
+
+		throw new Error('No wallet address provided');
+	}
+
+	/**
 	 * Initialize the client
 	 * @param options - The initialize options
 	 */
 	async initialize(options: FinInitializeOptions): Promise<void> {
+		this.walletAddress = options.walletAddress;
 		this.wallet = options.wallet;
 		this.cosmClient = options.cosmClient;
 
@@ -1368,9 +1415,9 @@ export class Fin {
 	 * @returns The order response
 	 */
 	async getOrder(request: FinGetOrderRequest): Promise<FinGetOrderResponse> {
-		let { ownerAddress, marketAddress, marketSymbol, orderType, orderSide, orderStatus, orderPrice } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, orderType, orderSide, orderStatus, orderPrice } = request;
 
-		ownerAddress = ownerAddress.trim().toLowerCase();
+		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase() || undefined;
 		marketSymbol = marketSymbol?.trim().toUpperCase() || undefined;
 		orderType = OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType] || undefined;
@@ -1378,11 +1425,11 @@ export class Fin {
 		orderStatus = OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus] || undefined;
 		orderPrice = orderPrice || undefined;
 
-		if (!ownerAddress) {
-			throw new Error("Owner address is required, since it's used to compose the order ID.");
+		if (!ownerAddress && !owner) {
+			throw new Error("Owner address or owner wallet is required, since it's used to compose the order ID.");
 		}
-		if (!marketAddress && !marketSymbol) {
-			throw new Error("Market address or market symbol is required");
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Market address, market symbol, or market object is required");
 		}
 
 		if (!orderPrice) {
@@ -1394,7 +1441,7 @@ export class Fin {
 		}
 
 		const orderId = `${ownerAddress}-${orderSide.toString().toLowerCase()}-${orderPrice.toString()}`;
-		const orders = await this.getOrders({ ownerAddress, marketAddress, marketSymbol, orderType, orderSide, orderStatus, orderPrice, maximumNumberOfOrders: 1 });
+		const orders = await this.getOrders({ ownerAddress, owner, marketAddress, marketSymbol, market, orderType, orderSide, orderStatus, orderPrice, maximumNumberOfOrders: 1 });
 		const order = orders.get(orderId);
 
 		if (!order) {
@@ -1413,7 +1460,7 @@ export class Fin {
 		// TODO: add support for orderIds!!!
 		let { ownerAddress, owner, marketAddress, marketSymbol, market, orderType, orderSide, orderStatus, orderPrice, orderIds, maximumNumberOfOrders } = request;
 
-		ownerAddress = ownerAddress?.trim().toLowerCase() || getOrThrow<any>(await owner?.getAccounts())[0].address;
+		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase() || undefined;
 		marketSymbol = marketSymbol?.trim().toUpperCase() || undefined;
 		orderType = OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType] || undefined;
@@ -1544,7 +1591,7 @@ export class Fin {
 	async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price } = request;
 
-		ownerAddress = ownerAddress?.trim().toLowerCase();
+		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase();
 		marketSymbol = marketSymbol?.trim().toUpperCase();
 		side = OrderSide[side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined;
@@ -1620,10 +1667,10 @@ export class Fin {
 	async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse> {
 		let { ownerAddress, owner, orders } = request;
 
-		ownerAddress = ownerAddress?.trim().toLowerCase() || getOrThrow<any[]>(await owner?.getAccounts())[0].address;
+		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		orders = MList<FinPlaceOrderRequest>(orders?.map((order: FinPlaceOrderRequest) => ({
 			...order,
-			ownerAddress: order.ownerAddress?.trim().toLowerCase(),
+			ownerAddress: this.getWalletAddress(order.ownerAddress, order.owner),
 			marketAddress: order.marketAddress?.trim().toLowerCase(),
 			marketSymbol: order.marketSymbol?.trim().toUpperCase(),
 			side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
@@ -1640,12 +1687,10 @@ export class Fin {
 			throw new Error("Orders are required");
 		}
 
-		ownerAddress = getOrThrow<WalletAddress>(ownerAddress);
-
 		const market = await this.getMarket({ address: orders?.first()?.marketAddress, symbol: orders?.first()?.marketSymbol });
 
 		const response = await this.cosmClient.execute(
-			ownerAddress || getOrThrow<any[]>(await owner?.getAccounts())[0].address,
+			ownerAddress,
 			market.address,
 			{
 				order: orders.map((order: FinPlaceOrderRequest) => [
@@ -1690,7 +1735,7 @@ export class Fin {
 	async replaceOrder(request: FinReplaceOrderRequest): Promise<FinReplaceOrderResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price } = request;
 
-		ownerAddress = ownerAddress?.trim().toLowerCase();
+		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase();
 		marketSymbol = marketSymbol?.trim().toUpperCase();
 		side = OrderSide[side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined;
@@ -1775,7 +1820,7 @@ export class Fin {
 		let { orderId, order, ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
 		orderId = orderId?.trim().toLowerCase();
-		ownerAddress = ownerAddress?.trim().toLowerCase();
+		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase();
 		marketSymbol = marketSymbol?.trim().toUpperCase();
 
@@ -1926,7 +1971,7 @@ export class Fin {
 	async cancelAllOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
-		ownerAddress = ownerAddress?.trim().toLowerCase();
+		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase();
 		marketSymbol = marketSymbol?.trim().toUpperCase();
 
@@ -1937,31 +1982,23 @@ export class Fin {
 			throw new Error("Market address, market symbol, or market object is required");
 		}
 
-		let walletAddress = ownerAddress || '';
-		if (!walletAddress && owner) {
-			const accounts = await owner.getAccounts();
-			walletAddress = accounts[0]?.address || '';
-		}
-
-		if (!walletAddress) {
-			throw new Error("Could not determine wallet address");
-		}
-
 		if (!market) {
 			market = await this.getMarket({
 				address: marketAddress,
 				symbol: marketSymbol
 			});
 		}
-		const contractAddress = market.address;
 
-		const ordersResult = await this.cosmClient.queryContractSmart(contractAddress, {
-			orders: {
-				owner: walletAddress,
-				limit: properties.getAs<number>('rujira.default.orders.maximumNumberOfOrders') || DECIMAL_INFINITY.toNumber()
+		// TODO: use the getOrders method instead!!!
+		const cancelOrdersResponse = await this.cosmClient.queryContractSmart(
+			market.address, {
+				orders: {
+					owner: ownerAddress,
+					limit: properties.getAs<number>('rujira.default.orders.maximumNumberOfOrders') || DECIMAL_INFINITY.toNumber()
+				}
 			}
-		});
-		const rawOrders = ordersResult.orders || [];
+		);
+		const rawOrders = cancelOrdersResponse.orders || [];
 
 		if (rawOrders.length === 0) {
 			throw new Error("No orders found to cancel");
@@ -1978,19 +2015,19 @@ export class Fin {
 		};
 
 		const executeResult = await this.cosmClient.execute(
-			walletAddress,
-			contractAddress,
+			ownerAddress,
+			market.address,
 			executeMessage,
 			'auto'
 		);
 
 		const cancelledOrders = MMap<OrderId, Order>();
 		for (const rawOrder of rawOrders) {
-			const orderId = `${walletAddress}-${rawOrder.side}-${rawOrder.price.fixed}`;
+			const orderId = `${ownerAddress}-${rawOrder.side}-${rawOrder.price.fixed}`;
 			const order: Order = {
 				id: orderId,
 				market: market,
-				owner: walletAddress,
+				owner: ownerAddress,
 				type: OrderType.LIMIT,
 				side: rawOrder.side === 'quote' ? OrderSide.SELL : OrderSide.BUY,
 				price: new Decimal(rawOrder.price.fixed),
@@ -2032,7 +2069,7 @@ export class Fin {
 	async withdrawFromMarket(request: FinWithdrawRequest): Promise<FinWithdrawResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
-		ownerAddress = ownerAddress?.trim().toLowerCase();
+		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase();
 		marketSymbol = marketSymbol?.trim().toUpperCase();
 
@@ -2043,16 +2080,6 @@ export class Fin {
 			throw new Error("Market address, market symbol, or market object is required");
 		}
 
-		let walletAddress = ownerAddress || '';
-		if (!walletAddress && owner) {
-			const accounts = await owner.getAccounts();
-			walletAddress = accounts[0]?.address || '';
-		}
-
-		if (!walletAddress) {
-			throw new Error("Could not determine wallet address");
-		}
-
 		if (!market) {
 			market = await this.getMarket({
 				address: marketAddress,
@@ -2060,11 +2087,12 @@ export class Fin {
 			});
 		}
 
+		// TODO: use the getOrders method instead!!!
 		const ordersResponse = await this.cosmClient.queryContractSmart(
 			market.address,
 			{
 				orders: {
-					owner: walletAddress,
+					owner: ownerAddress,
 					limit: properties.getAs<number>('rujira.default.orders.maximumNumberOfOrders') || DECIMAL_INFINITY.toNumber()
 				}
 			}
@@ -2100,16 +2128,16 @@ export class Fin {
 			};
 
 			const result = await this.cosmClient.execute(
-				walletAddress,
+				ownerAddress,
 				market.address,
 				withdrawMessage,
 				'auto'
 			);
 
 			const order: Order = {
-				id: `${walletAddress}-${rawOrder.side}-${rawOrder.price.fixed}`,
+				id: `${ownerAddress}-${rawOrder.side}-${rawOrder.price.fixed}`,
 				market: market,
-				owner: walletAddress,
+				owner: ownerAddress,
 				type: OrderType.LIMIT,
 				side: rawOrder.side === 'quote' ? OrderSide.SELL : OrderSide.BUY,
 				price: new Decimal(rawOrder.price.fixed),
@@ -2130,7 +2158,7 @@ export class Fin {
 				raw: result
 			};
 
-			withdrawnOrders.set(order.id, order);
+			withdrawnOrders.set(getOrThrow<OrderId>(order.id), order);
 			transactions.set(transaction.hash, transaction);
 		}
 
@@ -2139,7 +2167,6 @@ export class Fin {
 		const result = {
 			orders: withdrawnOrders,
 			transactions: transactions,
-			transaction: lastTransaction,
 			raw: lastTransaction?.raw
 		};
 

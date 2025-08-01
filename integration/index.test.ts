@@ -12,6 +12,7 @@ import {
 	MarketStatus,
 	MarketSymbol,
 	OrderBookOrder,
+	OrderStatus,
 	SystemStatus,
 	Token,
 	TokenAddress,
@@ -104,8 +105,6 @@ beforeAll(async () => {
 	});
 
 	await rujira.initialize({});
-
-	wallet = rujira.wallet;
 
 	jest.setTimeout(testsTimeout);
 
@@ -976,47 +975,121 @@ describe("Rujira", async() => {
 
 		describe("withdraw", () => {
 			it.skip("should be able to withdraw market by address", async () => {
-
-					const result = await rujira.fin.withdrawFromMarket({ marketAddress: firstMarketAddress, marketSymbol: undefined, ownerAddress: walletPublicKeyThor });
+					const result = await rujira.fin.withdrawFromMarket({
+						marketAddress: firstMarketAddress,
+						marketSymbol: undefined,
+						ownerAddress: walletPublicKeyThor
+					});
 
 					expect(result).toBeDefined();
 
-					expect(result.transaction).toBeDefined();
-					expect(result.transaction.hash).toBeDefined();
-					expect(result.transaction.status).toBe(TransactionStatus.SUCCESS);
-					expect(result.transaction.fee).toBeDefined();
-					expect(result.transaction.fee.amount).toBeDefined();
-					expect(result.transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(result.transaction.fee.token).toBeDefined();
-					expect(result.transaction.fee.token.address).toBeDefined();
-					expect(result.transaction.fee.token.symbol).toBeDefined();
-					expect(result.transaction.fee.token.name).toBeDefined();
-					expect(result.transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-					expect(result.transaction.fee.token.raw).toBeDefined();
-					expect(result.transaction.raw).toBeDefined();
+					expect(result.orders).toBeDefined();
+					expect(result.orders.size).toBeGreaterThan(0);
+
+					for (const order of result.orders.values()) {
+						expect(order).toBeDefined();
+						expect(order.id).toBeDefined();
+						expect(order.market).toBeDefined();
+						expect(order.market.address).toBe(firstMarketAddress);
+						expect(order.market.symbol).toBe(firstMarketSymbol);
+						expect(order.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+						expect(order.market.status).toBe(MarketStatus.ACTIVE);
+						expect(order.market.raw).toBeDefined();
+						expect(order.owner).toBeDefined();
+						expect(order.side).toBeDefined();
+						expect(order.type).toBeDefined();
+						expect(order.amount).toBeDefined();
+						expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+						expect(order.price).toBeDefined();
+						expect(order.price.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+						expect(order.filledAmount).toBeDefined();
+						expect(order.filledAmount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+						expect(order.filledPercentage).toBeDefined();
+						expect(order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+						expect(order.status).toBe(OrderStatus.FILLED);
+						expect(order.creationTimestamp).toBeDefined();
+						expect(order.updateTimestamp).toBeDefined();
+						expect(order.raw).toBeDefined();
+					}
+
+					expect(result.transactions).toBeDefined();
+					expect(result.transactions.size).toBeGreaterThan(0);
+
+					for (const transaction of result.transactions.values()) {
+						expect(transaction).toBeDefined();
+						expect(transaction.hash).toBeDefined();
+						expect(transaction.status).toBe(TransactionStatus.SUCCESS);
+						expect(transaction.fee).toBeDefined();
+						expect(transaction.fee.amount).toBeDefined();
+						expect(transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+						expect(transaction.fee.token).toBeDefined();
+						expect(transaction.fee.token.address).toBeDefined();
+						expect(transaction.fee.token.symbol).toBeDefined();
+						expect(transaction.fee.token.name).toBeDefined();
+						expect(transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+						expect(transaction.fee.token.raw).toBeDefined();
+						expect(transaction.raw).toBeDefined();
+					}
 
 					expect(result.raw).toBeDefined();
-
 			});
 
 			it("should be able to withdraw market by symbol", async () => {
-				const result = await rujira.fin.withdrawFromMarket({ marketAddress: undefined, marketSymbol: firstMarketSymbol, ownerAddress: walletPublicKeyThor });
+				const result = await rujira.fin.withdrawFromMarket({
+					marketAddress: undefined,
+					marketSymbol: firstMarketSymbol,
+					ownerAddress: walletPublicKeyThor,
+				});
 
 				expect(result).toBeDefined();
 
-				expect(result.transaction).toBeDefined();
-				expect(result.transaction.hash).toBeDefined();
-				expect(result.transaction.status).toBe(TransactionStatus.SUCCESS);
-				expect(result.transaction.fee).toBeDefined();
-				expect(result.transaction.fee.amount).toBeDefined();
-				expect(result.transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(result.transaction.fee.token).toBeDefined();
-				expect(result.transaction.fee.token.address).toBeDefined();
-				expect(result.transaction.fee.token.symbol).toBeDefined();
-				expect(result.transaction.fee.token.name).toBeDefined();
-				expect(result.transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(result.transaction.fee.token.raw).toBeDefined();
-				expect(result.transaction.raw).toBeDefined();
+				expect(result.orders).toBeDefined();
+				expect(result.orders.size).toBeGreaterThan(0);
+
+				for (const order of result.orders.values()) {
+					expect(order).toBeDefined();
+					expect(order.id).toBeDefined();
+					expect(order.market).toBeDefined();
+					expect(order.market.address).toBe(firstMarketAddress);
+					expect(order.market.symbol).toBe(firstMarketSymbol);
+					expect(order.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(order.market.status).toBe(MarketStatus.ACTIVE);
+					expect(order.market.raw).toBeDefined();
+					expect(order.owner).toBeDefined();
+					expect(order.side).toBeDefined();
+					expect(order.type).toBeDefined();
+					expect(order.amount).toBeDefined();
+					expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(order.price).toBeDefined();
+					expect(order.price.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(order.filledAmount).toBeDefined();
+					expect(order.filledAmount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(order.filledPercentage).toBeDefined();
+					expect(order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(order.status).toBe(OrderStatus.FILLED);
+					expect(order.creationTimestamp).toBeDefined();
+					expect(order.updateTimestamp).toBeDefined();
+					expect(order.raw).toBeDefined();
+				}
+
+				expect(result.transactions).toBeDefined();
+				expect(result.transactions.size).toBeGreaterThan(0);
+
+				for (const transaction of result.transactions.values()) {
+					expect(transaction).toBeDefined();
+					expect(transaction.hash).toBeDefined();
+					expect(transaction.status).toBe(TransactionStatus.SUCCESS);
+					expect(transaction.fee).toBeDefined();
+					expect(transaction.fee.amount).toBeDefined();
+					expect(transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(transaction.fee.token).toBeDefined();
+					expect(transaction.fee.token.address).toBeDefined();
+					expect(transaction.fee.token.symbol).toBeDefined();
+					expect(transaction.fee.token.name).toBeDefined();
+					expect(transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(transaction.fee.token.raw).toBeDefined();
+					expect(transaction.raw).toBeDefined();
+				}
 
 				expect(result.raw).toBeDefined();
 			});

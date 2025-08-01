@@ -1,7 +1,7 @@
 // noinspection JSUnusedGlobalSymbols
 
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
-import { DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
+import { AccountData, DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
 import BN from "bn.js";
 import { GasPrice } from '@cosmjs/stargate';
@@ -125,7 +125,10 @@ export type OrderFilledPercentage = Percentage;
 export type OrderCreationTimestamp = Timestamp;
 export type OrderUpdateTimestamp = Timestamp;
 
-export type Wallet = DirectSecp256k1Wallet;
+export type Wallet = {
+	cosmWallet: DirectSecp256k1Wallet;
+	firstAccount: AccountData;
+};
 
 /**
  * Represents a token
@@ -235,14 +238,6 @@ export interface Market {
 	 * Raw data
 	 */
 	raw: Raw;
-
-	/**
-	 * Price of the market
-	 */
-	price?: {
-    baseQuote: Decimal;
-    quoteBase: Decimal;
-};
 }
 
 /**
@@ -602,11 +597,15 @@ export interface FinConstructorOptions {
  * Fin initialize options
  */
 export interface FinInitializeOptions {
-
 	/**
 	 * Wallet
 	 */
-	wallet: DirectSecp256k1Wallet;
+	wallet: Wallet;
+
+	/**
+	 * Wallet address
+	 */
+	walletAddress: WalletAddress;
 
 	/**
 	 * Cosm client
@@ -880,7 +879,12 @@ export interface FinGetOrderRequest {
 	/**
 	 * Owner address (wallet that owns the order)
 	 */
-	ownerAddress: WalletAddress;
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
 
 	/**
 	 * Market address
@@ -891,6 +895,11 @@ export interface FinGetOrderRequest {
 	 * Market name
 	 */
 	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
 
 	/**
 	 * Order price
@@ -1259,11 +1268,6 @@ export interface FinWithdrawResponse {
 	 * Transaction details
 	 */
 	transactions: Map<TransactionHash, Transaction>;
-
-	/**
-	 * Last transaction details (for backward compatibility)
-	 */
-	transaction: Transaction;
 
 	/**
 	 * Raw response
