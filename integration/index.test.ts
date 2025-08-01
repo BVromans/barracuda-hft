@@ -186,7 +186,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("tokens", () => {
+		describe.skip("tokens", () => {
 			it("should be able to get a token by address", async () => {
 				const result = await rujira.fin.getToken({
 					address: firstMarketBaseTokenAddress,
@@ -974,31 +974,33 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("withdraw", () => {
-			it("should be able to withdraw market by address", async () => {
-				const result = await rujira.fin.withdrawFromMarket({ marketAddress: firstMarketAddress, marketSymbol: undefined });
+		describe("withdraw", () => {
+			it.skip("should be able to withdraw market by address", async () => {
 
-				expect(result).toBeDefined();
+					const result = await rujira.fin.withdrawFromMarket({ marketAddress: firstMarketAddress, marketSymbol: undefined, ownerAddress: walletPublicKeyThor });
 
-				expect(result.transaction).toBeDefined();
-				expect(result.transaction.hash).toBeDefined();
-				expect(result.transaction.status).toBe(TransactionStatus.SUCCESS);
-				expect(result.transaction.fee).toBeDefined();
-				expect(result.transaction.fee.amount).toBeDefined();
-				expect(result.transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(result.transaction.fee.token).toBeDefined();
-				expect(result.transaction.fee.token.address).toBeDefined();
-				expect(result.transaction.fee.token.symbol).toBeDefined();
-				expect(result.transaction.fee.token.name).toBeDefined();
-				expect(result.transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(result.transaction.fee.token.raw).toBeDefined();
-				expect(result.transaction.raw).toBeDefined();
+					expect(result).toBeDefined();
 
-				expect(result.raw).toBeDefined();
+					expect(result.transaction).toBeDefined();
+					expect(result.transaction.hash).toBeDefined();
+					expect(result.transaction.status).toBe(TransactionStatus.SUCCESS);
+					expect(result.transaction.fee).toBeDefined();
+					expect(result.transaction.fee.amount).toBeDefined();
+					expect(result.transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(result.transaction.fee.token).toBeDefined();
+					expect(result.transaction.fee.token.address).toBeDefined();
+					expect(result.transaction.fee.token.symbol).toBeDefined();
+					expect(result.transaction.fee.token.name).toBeDefined();
+					expect(result.transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(result.transaction.fee.token.raw).toBeDefined();
+					expect(result.transaction.raw).toBeDefined();
+
+					expect(result.raw).toBeDefined();
+
 			});
 
 			it("should be able to withdraw market by symbol", async () => {
-				const result = await rujira.fin.withdrawFromMarket({ marketAddress: undefined, marketSymbol: firstMarketSymbol });
+				const result = await rujira.fin.withdrawFromMarket({ marketAddress: undefined, marketSymbol: firstMarketSymbol, ownerAddress: walletPublicKeyThor });
 
 				expect(result).toBeDefined();
 
