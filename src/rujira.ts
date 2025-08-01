@@ -1808,7 +1808,66 @@ export class Fin {
 	 * @returns The response for the replaced orders
 	 */
 	async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersResponse> {
-		throw new Error("Not implemented");
+		let { ownerAddress, owner, orders } = request;
+
+		ownerAddress = ownerAddress?.trim().toLowerCase();
+		orders = MList<FinPlaceOrderRequest>(orders?.map((order: FinPlaceOrderRequest) => ({
+			...order,
+			ownerAddress: order.ownerAddress?.trim().toLowerCase(),
+			marketAddress: order.marketAddress?.trim().toLowerCase(),
+			marketSymbol: order.marketSymbol?.trim().toUpperCase(),
+			side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
+			type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
+			amount: Decimal(order.amount),
+			price: order.price ? Decimal(order.price) : undefined,
+		})));
+
+		if (!ownerAddress && !owner) {
+			throw new Error("Owner address or owner wallet is required");
+		}
+
+		if (orders.isEmpty()) {
+			throw new Error("Orders are required");
+		}
+
+		ownerAddress = getOrThrow<WalletAddress>(ownerAddress);
+
+		const market = await this.getMarket({ address: orders?.first()?.marketAddress, symbol: orders?.first()?.marketSymbol });
+
+		const response = await this.cosmClient.execute(
+		ownerAddress,
+		market.address,
+		{
+			order: orders.map((order: FinPlaceOrderRequest) => [
+				order.side === OrderSide.BUY ? 'quote' : 'base',
+				{
+					fixed: order.price?.toString()
+				},
+				order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString(),
+				null
+			]).toArray()
+		},
+		'auto',
+		undefined,
+		[{ denom: '', amount: '' }]
+		);
+
+		let orderIds = MList<OrderId>();
+		orders.forEach((order: FinPlaceOrderRequest) => {
+			orderIds.push(`${ownerAddress}-${order.side.toString().toLowerCase()}-${order.price?.toString()}`);
+		});
+		const replacedOrders = await this.getOrders({ ownerAddress, market, orderIds });
+
+		const transaction = await this.getTransaction({ hash: response.transactionHash });
+		const transactions = MMap<TransactionHash, Transaction>();
+		transactions.set(transaction.hash, transaction);
+
+		const result = {
+			orders: replacedOrders,
+			transactions: transactions
+		};
+
+		return result;
 	}
 
 	/**
