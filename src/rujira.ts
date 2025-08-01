@@ -1924,32 +1924,104 @@ export class Fin {
 	 * @returns The response for the canceled orders
 	 */
 	async cancelAllOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
-		throw new Error("Not implemented");
+		let { ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
-	// 	// 1. Get the market address
-	// 	const market = await this.getMarket({
-	// 		address: request.marketAddress,
-	// 		symbol: request.marketSymbol
-	// 	});
-	// 	const contractAddress = market.address;
+		ownerAddress = ownerAddress?.trim().toLowerCase();
+		marketAddress = marketAddress?.trim().toLowerCase();
+		marketSymbol = marketSymbol?.trim().toUpperCase();
 
-	// 	// 2. Query all user orders
-	// 	const ordersMap = await this.getOrders({
-	// 		ownerAddress: request.ownerAddress!,
-	// 		marketAddress: contractAddress,
-	// 		maximumNumberOfOrders: 1000
-	// 	});
-	// 	const allOrderIds = Array.from(ordersMap.keys()).filter((id): id is string => id !== undefined);
-	// 	if (allOrderIds.length === 0) {
-	// 		throw new Error('No orders found to cancel');
-	// 	}
+		if (!ownerAddress && !owner) {
+			throw new Error("Owner address or owner wallet is required");
+		}
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Market address, market symbol, or market object is required");
+		}
 
-	// 	// 3. Call cancelOrders with all order IDs
-	// 	return this.cancelOrders({
-	// 		ownerAddress: request.ownerAddress,
-	// 		marketAddress: contractAddress,
-	// 		orderIds: allOrderIds
-	// 	});
+		let walletAddress = ownerAddress || '';
+		if (!walletAddress && owner) {
+			const accounts = await owner.getAccounts();
+			walletAddress = accounts[0]?.address || '';
+		}
+
+		if (!walletAddress) {
+			throw new Error("Could not determine wallet address");
+		}
+
+		if (!market) {
+			market = await this.getMarket({
+				address: marketAddress,
+				symbol: marketSymbol
+			});
+		}
+		const contractAddress = market.address;
+
+		const ordersResult = await this.cosmClient.queryContractSmart(contractAddress, {
+			orders: {
+				owner: walletAddress,
+				limit: properties.getAs<number>('rujira.default.orders.maximumNumberOfOrders') || DECIMAL_INFINITY.toNumber()
+			}
+		});
+		const rawOrders = ordersResult.orders || [];
+
+		if (rawOrders.length === 0) {
+			throw new Error("No orders found to cancel");
+		}
+
+		const cancelMessages = rawOrders.map((rawOrder: any) => [
+			rawOrder.side,
+			{ fixed: rawOrder.price.fixed },
+			'0'
+		]);
+
+		const executeMessage = {
+			order: [cancelMessages, null]
+		};
+
+		const executeResult = await this.cosmClient.execute(
+			walletAddress,
+			contractAddress,
+			executeMessage,
+			'auto'
+		);
+
+		const cancelledOrders = MMap<OrderId, Order>();
+		for (const rawOrder of rawOrders) {
+			const orderId = `${walletAddress}-${rawOrder.side}-${rawOrder.price.fixed}`;
+			const order: Order = {
+				id: orderId,
+				market: market,
+				owner: walletAddress,
+				type: OrderType.LIMIT,
+				side: rawOrder.side === 'quote' ? OrderSide.SELL : OrderSide.BUY,
+				price: new Decimal(rawOrder.price.fixed),
+				amount: new Decimal(rawOrder.offer),
+				filledAmount: new Decimal(rawOrder.filled),
+				filledPercentage: new Decimal(rawOrder.filled).div(new Decimal(rawOrder.offer)),
+				status: OrderStatus.CANCELLED,
+				raw: rawOrder
+			};
+			cancelledOrders.set(orderId, order);
+		}
+
+		const transaction: Transaction = {
+			hash: executeResult.transactionHash,
+			status: TransactionStatus.SUCCESS,
+			fee: {
+				amount: executeResult.gasUsed ? new Decimal(executeResult.gasUsed.toString()) : DECIMAL_0,
+				token: this.feePaymentToken
+			},
+			raw: executeResult
+		};
+
+		const transactions = MMap<TransactionHash, Transaction>();
+		transactions.set(transaction.hash, transaction);
+
+		const response = {
+			orders: cancelledOrders,
+			transactions: transactions
+		};
+
+		return response;
 	}
 
 	/**
