@@ -1958,73 +1958,119 @@ export class Fin {
 	 * @returns The response for the withdrawn orders
 	 */
 	async withdrawFromMarket(request: FinWithdrawRequest): Promise<FinWithdrawResponse> {
-		throw new Error("Not implemented");
+		let { ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
-		// if (!request.ownerAddress) {
-		// 	throw new Error('ownerAddress is required');
-		// }
-		// if (!request.marketAddress && !request.marketSymbol) {
-		// 	throw new Error('marketAddress or marketSymbol is required');
-		// }
+		ownerAddress = ownerAddress?.trim().toLowerCase();
+		marketAddress = marketAddress?.trim().toLowerCase();
+		marketSymbol = marketSymbol?.trim().toUpperCase();
 
-		// // Resolve market address
-		// let contractAddress: string;
-		// if (request.marketAddress) {
-		// 	contractAddress = request.marketAddress;
-		// } else {
-		// 	const market = await this.getMarket({ symbol: request.marketSymbol });
-		// 	contractAddress = market.address;
-		// }
+		if (!ownerAddress && !owner) {
+			throw new Error("Owner address or owner wallet is required");
+		}
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Market address, market symbol, or market object is required");
+		}
 
-		// // Query all orders for the user in this market
-		// const ordersResult = await this.cosmClient.queryContractSmart(contractAddress, {
-		// 	orders: { owner: request.ownerAddress, limit: 1000 }
-		// });
-		// const orders = ordersResult.orders || [];
+		let walletAddress = ownerAddress || '';
+		if (!walletAddress && owner) {
+			const accounts = await owner.getAccounts();
+			walletAddress = accounts[0]?.address || '';
+		}
 
-		// // Find filled orders (filled > 0)
-		// const filledOrders = orders.filter((order: any) => {
-		// 	return order.filled && order.filled !== '0';
-		// });
+		if (!walletAddress) {
+			throw new Error("Could not determine wallet address");
+		}
 
-		// if (filledOrders.length === 0) {
-		// 	throw new Error('No filled orders to withdraw');
-		// }
+		if (!market) {
+			market = await this.getMarket({
+				address: marketAddress,
+				symbol: marketSymbol
+			});
+		}
 
-		// // Withdraw from each filled order (batch not supported, so withdraw one by one)
-		// let lastTxResult: any = null;
-		// for (const order of filledOrders) {
-		// 	const withdrawMsg = {
-		// 		order: [
-		// 			[order.side, { fixed: order.price.fixed }, '0']
-		// 		],
-		// 	};
-		// 	lastTxResult = await this.cosmClient.execute(
-		// 		request.ownerAddress,
-		// 		contractAddress,
-		// 		withdrawMsg,
-		// 		'auto'
-		// 	);
-		// 	console.debug(`Withdrawn from order: ${order.side} @ ${order.price.fixed}`);
-		// }
+		const ordersResponse = await this.cosmClient.queryContractSmart(
+			market.address,
+			{
+				orders: {
+					owner: walletAddress,
+					limit: properties.getAs<number>('rujira.default.orders.maximumNumberOfOrders') || DECIMAL_INFINITY.toNumber()
+				}
+			}
+		);
 
-		// return {
-		// 	transaction: {
-		// 		hash: lastTxResult.transactionHash,
-		// 		status: lastTxResult.code === 0 ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
-		// 		fee: {
-		// 			amount: new Decimal(lastTxResult.gasUsed || 0), // This is not the real fee, but best available
-		// 			token: {
-		// 				address: '',
-		// 				symbol: '',
-		// 				name: '',
-		// 				decimals: 0,
-		// 				raw: {}
-		// 			}
-		// 		},
-		// 		raw: lastTxResult
-		// 	},
-		// 	raw: lastTxResult
-		// };
+		const rawOrders = ordersResponse.orders || [];
+
+		const filledOrders = MList<any>(rawOrders.filter((order: any) => {
+			return order.filled && Number(order.filled) > 0;
+		}));
+
+		if (filledOrders.isEmpty()) {
+			throw new Error("No filled orders found to withdraw");
+		}
+
+		const withdrawnOrders = MMap<OrderId, Order>();
+		const transactions = MMap<TransactionHash, Transaction>();
+
+		for (const rawOrder of filledOrders) {
+			const withdrawMessage = {
+				order: [
+					[
+						[
+							rawOrder.side,
+							{
+								fixed: rawOrder.price.fixed
+							},
+							null
+						]
+					],
+					null
+				]
+			};
+
+			const result = await this.cosmClient.execute(
+				walletAddress,
+				market.address,
+				withdrawMessage,
+				'auto'
+			);
+
+			const order: Order = {
+				id: `${walletAddress}-${rawOrder.side}-${rawOrder.price.fixed}`,
+				market: market,
+				owner: walletAddress,
+				type: OrderType.LIMIT,
+				side: rawOrder.side === 'quote' ? OrderSide.SELL : OrderSide.BUY,
+				price: new Decimal(rawOrder.price.fixed),
+				amount: new Decimal(rawOrder.offer),
+				filledAmount: new Decimal(rawOrder.filled),
+				filledPercentage: new Decimal(rawOrder.filled).div(new Decimal(rawOrder.offer)),
+				status: OrderStatus.FILLED,
+				raw: rawOrder
+			};
+
+			const transaction: Transaction = {
+				hash: result.transactionHash,
+				status: TransactionStatus.SUCCESS,
+				fee: {
+					amount: result.gasUsed ? new Decimal(result.gasUsed.toString()) : DECIMAL_0,
+					token: this.feePaymentToken
+				},
+				raw: result
+			};
+
+			withdrawnOrders.set(order.id, order);
+			transactions.set(transaction.hash, transaction);
+		}
+
+		const lastTransaction = transactions.last();
+
+		const result = {
+			orders: withdrawnOrders,
+			transactions: transactions,
+			transaction: lastTransaction,
+			raw: lastTransaction?.raw
+		};
+
+		return result;
 	}
 }
