@@ -1,8 +1,8 @@
-import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { ExecuteResult, JsonObject, SigningCosmWasmClient, SigningCosmWasmClientOptions } from "@cosmjs/cosmwasm-stargate";
 import { Bip39, EnglishMnemonic, Slip10, Slip10Curve, stringToPath } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
-import { AccountData, DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
-import { GasPrice } from "@cosmjs/stargate";
+import { AccountData, Coin, DirectSecp256k1Wallet, OfflineSigner } from "@cosmjs/proto-signing";
+import { GasPrice, HttpEndpoint, StdFee } from "@cosmjs/stargate";
 import cacheManager, { Cacheable, CacheManagerOptions } from "@type-cacheable/core";
 import { useAdapter } from "@type-cacheable/lru-cache-adapter";
 import Decimal from 'decimal.js';
@@ -182,7 +182,7 @@ export class Rujira {
 
 		properties.set('rujira.gasPrice', GasPrice.fromString(`0.02${properties.getAs<string>('rujira.constants.tokens.feePayment.symbol').toLowerCase()}`));
 
-		this.cosmClient = await SigningCosmWasmClient.connectWithSigner(
+		this.cosmClient = await this.signingCosmWasmClientConnectWithSigner(
 			properties.getAs<URL>('rujira.endpoints.rpc'),
 			this.wallet.cosmWallet,
 			{
@@ -205,7 +205,7 @@ export class Rujira {
 	 */
 	private async deriveWalletPrivateKeyFromMnemonic(mnemonic: string): Promise<string> {
 		const englishMnemonic = new EnglishMnemonic(mnemonic);
-		const seed = await Bip39.mnemonicToSeed(englishMnemonic);
+		const seed = await this.bip39MnemonicToSeed(englishMnemonic);
 
 		// Derive the private key using the THORChain HD path
 		const hdPath = stringToPath("m/44'/931'/0'/0/0");
@@ -223,12 +223,12 @@ export class Rujira {
 	 * @returns The wallet
 	 */
 	private async createWalletFromPrivateKey(privateKey: WalletPrivateKey): Promise<Wallet> {
-		const cosmWallet = await DirectSecp256k1Wallet.fromKey(
+		const cosmWallet = await this.directSecp256k1WalletFromKeyfromKey(
 			fromBase64(privateKey),
 			properties.getAs<string>('wallet.prefix')
 		);
 
-		const firstAccount = getOrThrow<Array<AccountData>>(await cosmWallet.getAccounts())[0];
+		const firstAccount = getOrThrow<Array<AccountData>>(await this.directSecp256k1WalletGetAccounts(cosmWallet))[0];
 
 		const wallet = {
 			cosmWallet: cosmWallet,
@@ -247,6 +247,50 @@ export class Rujira {
 		const privateKey = await this.deriveWalletPrivateKeyFromMnemonic(mnemonic);
 
 		return await this.createWalletFromPrivateKey(privateKey);
+	}
+
+	/**
+	 * Get the accounts from a direct secp256k1 wallet
+	 * @param wallet - The wallet to get the accounts from
+	 * @returns The accounts
+	 */
+	@runWithRetryAndTimeout()
+	private async directSecp256k1WalletGetAccounts(wallet: DirectSecp256k1Wallet): Promise<readonly AccountData[]> {
+		return wallet.getAccounts();
+	}
+
+	/**
+	 * Connect to the cosm client
+	 * @param endpoint - The endpoint to connect to
+	 * @param signer - The signer to use
+	 * @param options - The options to use
+	 * @returns The cosm client
+	 */
+	@runWithRetryAndTimeout()
+	private async signingCosmWasmClientConnectWithSigner(endpoint: string | HttpEndpoint, signer: OfflineSigner, options?: SigningCosmWasmClientOptions): Promise<SigningCosmWasmClient> {
+		return SigningCosmWasmClient.connectWithSigner(endpoint, signer, options);
+	}
+
+	/**
+	 * Convert a mnemonic to a seed
+	 * @param mnemonic - The mnemonic to convert
+	 * @param password - The password to use
+	 * @returns The seed
+	 */
+	@runWithRetryAndTimeout()
+	private async bip39MnemonicToSeed(mnemonic: EnglishMnemonic, password?: string): Promise<Uint8Array> {
+		return Bip39.mnemonicToSeed(mnemonic, password);
+	}
+
+	/**
+	 * Create a direct secp256k1 wallet from a key
+	 * @param key - The key to create the wallet from
+	 * @param prefix - The prefix to use
+	 * @returns The wallet
+	 */
+	@runWithRetryAndTimeout()
+	private async directSecp256k1WalletFromKeyfromKey(privkey: Uint8Array, prefix?: string): Promise<DirectSecp256k1Wallet> {
+		return DirectSecp256k1Wallet.fromKey(privkey, prefix);
 	}
 }
 
@@ -382,7 +426,7 @@ export class Fin {
 			}
 
 			// Try to get chain height to verify connection
-			await this.cosmClient.getHeight();
+			await this.cosmClientGetHeight;
 
 			return {
 				status: SystemStatus.UP
@@ -417,11 +461,11 @@ export class Fin {
 		let rawTransaction: any;
 
 		// TOOD: verify how to retrieve the transaction directly calling the RPC endpoint!!!
-		// rawTransaction = await this.cosmClient.getTx(hash);
+		// rawTransaction = await this.cosmClientGetTx(hash);
 
 		const url = `${properties.getAs<URL>('rujira.endpoints.rest')}/cosmos/tx/v1beta1/txs/${hash}`;
 		// TODO: add a example response!!!
-		const response = await fetch(url, {
+		const response = await this.fetch(url, {
 			method: 'GET',
 			headers: { 'Content-Type': 'application/json' }
 		});
@@ -893,7 +937,7 @@ export class Fin {
 				}
 			}`;
 
-		const response = await fetch(graphQLEndPoint, {
+		const response = await this.fetch(graphQLEndPoint, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ query })
@@ -986,7 +1030,7 @@ export class Fin {
 		// Always fetch the latest orderbook from the contract
 		// TODO: add an example response!!!
 		// TODO: add an interface for the response!!!
-		const rawOrderBook = await this.cosmClient.queryContractSmart(
+		const rawOrderBook = await this.cosmClientQueryContractSmart(
 			market.address,
 			{
 				order_book: {
@@ -1096,7 +1140,7 @@ export class Fin {
 		const after = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
 		// TODO: add a example response!!!
-		const response = await fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
+		const response = await this.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -1191,7 +1235,7 @@ export class Fin {
 		// }
 
 		// const freeBalances = MMap<TokenAddress, Amount>();
-		// const freeBalanceResponse = await fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
+		// const freeBalanceResponse = await this.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
 		// if (freeBalanceResponse.ok) {
 		// 	/*
 		// 	Example response:
@@ -1247,7 +1291,7 @@ export class Fin {
 		// 			]
 		// 		}
 		// 	*/
-		// 	const ordersResponse = await this.cosmClient.queryContractSmart(
+		// 	const ordersResponse = await this.cosmClientQueryContractSmart(
 		// 		market.address,
 		// 		{
 		// 			orders: {
@@ -1489,7 +1533,7 @@ export class Fin {
 			}
 		};
 
-		const result = await this.cosmClient.queryContractSmart(market.address, query);
+		const result = await this.cosmClientQueryContractSmart(market.address, query);
 		// Example response:
 		// 	{
 		// 		"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
@@ -1682,9 +1726,30 @@ export class Fin {
 			throw new Error("Orders are required");
 		}
 
-		const market = await this.getMarket({ address: orders?.first()?.marketAddress, symbol: orders?.first()?.marketSymbol });
+		let marketAddress: MarketAddress;
+		let marketSymbol: MarketSymbol;
+		let market: Market = undefined as unknown as Market;
+		await Promise.all(orders.map(async (order: FinPlaceOrderRequest) => {
+			if (!marketAddress) {
+				marketAddress = getOrThrow<MarketAddress>(order.marketAddress);
+			} else if (marketAddress !== order.marketAddress) {
+				throw new Error("Market address is not the same for all orders");
+			}
 
-		const response = await this.cosmClient.execute(
+			if (!marketSymbol) {
+				marketSymbol = getOrThrow<MarketSymbol>(order.marketSymbol);
+			} else if (marketSymbol !== order.marketSymbol) {
+				throw new Error("Market symbol is not the same for all orders");
+			}
+
+			if (!market) {
+				market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+			} else if (market.address !== order.marketAddress || market.symbol !== order.marketSymbol) {
+				throw new Error("Market is not the same for all orders");
+			}
+		}));
+
+		const response = await this.cosmClientExecute(
 			ownerAddress,
 			market.address,
 			{
@@ -1829,7 +1894,7 @@ export class Fin {
 
 		const market = await this.getMarket({ address: orders?.first()?.marketAddress, symbol: orders?.first()?.marketSymbol });
 
-		const response = await this.cosmClient.execute(
+		const response = await this.cosmClientExecute(
 		ownerAddress,
 		market.address,
 		{
@@ -1981,7 +2046,7 @@ export class Fin {
 
 		// TODO: add example response!!!
 		// TODO: add response interface!!!
-		const cancellationResponse = await this.cosmClient.execute(
+		const cancellationResponse = await this.cosmClientExecute(
 			ownerAddress,
 			market.address,
 			executeMessage,
@@ -2055,7 +2120,7 @@ export class Fin {
 		}
 
 		// TODO: use the getOrders method instead!!!
-		const ordersResponse = await this.cosmClient.queryContractSmart(
+		const ordersResponse = await this.cosmClientQueryContractSmart(
 			market.address,
 			{
 				orders: {
@@ -2094,7 +2159,7 @@ export class Fin {
 				]
 			};
 
-			const result = await this.cosmClient.execute(
+			const result = await this.cosmClientExecute(
 				ownerAddress,
 				market.address,
 				withdrawMessage,
@@ -2138,5 +2203,54 @@ export class Fin {
 		};
 
 		return result;
+	}
+
+	/**
+	 * Fetch a resource
+	 * @param input - The input to fetch
+	 * @param init - The init to fetch
+	 * @returns The response
+	 */
+	@runWithRetryAndTimeout()
+	private async fetch(
+		input: string | URL | globalThis.Request,
+		init?: RequestInit,
+	): Promise<Response> {
+		return fetch(input, init);
+	}
+
+	/**
+	 * Execute a message on the cosm client
+	 * @param senderAddress - The address of the sender
+	 * @param contractAddress - The address of the contract
+	 * @param msg - The message to execute
+	 * @param fee - The fee to pay
+	 * @param memo - The memo to add to the transaction
+	 * @param funds - The funds to transfer
+	 * @returns The result of the execution
+	 */
+	@runWithRetryAndTimeout()
+	private async cosmClientExecute(senderAddress: string, contractAddress: string, msg: JsonObject, fee: StdFee | "auto" | number, memo?: string, funds?: readonly Coin[]): Promise<ExecuteResult> {
+		return this.cosmClient.execute(senderAddress, contractAddress, msg, fee, memo, funds);
+	}
+
+	/**
+	 * Query a contract on the cosm client
+	 * @param contractAddress - The address of the contract
+	 * @param queryMsg - The query message
+	 * @returns The result of the query
+	 */
+	@runWithRetryAndTimeout()
+	private async cosmClientQueryContractSmart(contractAddress: string, queryMsg: JsonObject): Promise<JsonObject> {
+		return this.cosmClient.queryContractSmart(contractAddress, queryMsg);
+	}
+
+	/**
+	 * Get the height of the cosm client
+	 * @returns The height
+	 */
+	@runWithRetryAndTimeout()
+	private async cosmClientGetHeight(): Promise<number> {
+		return this.cosmClient.getHeight();
 	}
 }
