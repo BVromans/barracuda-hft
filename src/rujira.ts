@@ -2066,7 +2066,7 @@ export class Fin {
 		const cancelMessages = rawOrders.map((rawOrder: any) => [
 			rawOrder.side,
 			{ fixed: rawOrder.price.fixed },
-			'0'
+			'0' // Define the amount to 0 to cancel the order
 		]);
 
 		const executeMessage = {
