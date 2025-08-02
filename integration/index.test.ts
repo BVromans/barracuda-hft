@@ -623,6 +623,9 @@ describe("Rujira", async() => {
 				expect(asks.size).toBeLessThanOrEqual(maximumNumberOfOrders);
 				expect(bids.size).toBeLessThanOrEqual(maximumNumberOfOrders);
 
+				expect(asks.size).toBe(result.raw.base.length);
+				expect(bids.size).toBe(result.raw.quote.length);
+
 				if (bids.size > 0) {
 					const firstBidOrder = bids.getOrThrow(0);
 					expect(firstBidOrder).toBeDefined();

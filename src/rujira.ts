@@ -1040,13 +1040,12 @@ export class Fin {
 
 		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 
-		// Always fetch the latest orderbook from the contract
 		// TODO: add an example response!!!
 		// TODO: add an interface for the response!!!
 		const rawOrderBook = await this.cosmClientQueryContractSmart(
 			market.address,
 			{
-				order_book: {
+				book: {
 					limit: maximumNumberOfOrders
 				}
 			}
@@ -1059,8 +1058,8 @@ export class Fin {
 			raw: entry
 		});
 
-		let asks: List<OrderBookOrder> = List<OrderBookOrder>(rawOrderBook.asks || []).map(parseOrder);
-		let bids: List<OrderBookOrder> = List<OrderBookOrder>(rawOrderBook.bids || []).map(parseOrder);
+		let asks: List<OrderBookOrder> = MList<OrderBookOrder>(rawOrderBook.base || []).map(parseOrder);
+		let bids: List<OrderBookOrder> = MList<OrderBookOrder>(rawOrderBook.quote || []).map(parseOrder);
 
 		asks = maximumNumberOfOrders ? asks.slice(0, maximumNumberOfOrders) : asks;
 		bids = maximumNumberOfOrders ? bids.slice(0, maximumNumberOfOrders) : bids;
