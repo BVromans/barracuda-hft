@@ -84,18 +84,18 @@ beforeAll(async () => {
 	transactionHash = properties.getAs<TransactionHash>('tests.integration.transaction_hash');
 	firstMarketSymbol = properties.getAs<MarketSymbol>('tests.integration.first_market_symbol');
 	firstMarketAddress = properties.getAs<MarketAddress>('tests.integration.first_market_address');
-	firstMarketBaseTokenAddress = properties.getAs<TokenAddress>('tests.integration.first_market_base_token_address');
-	firstMarketQuoteTokenAddress = properties.getAs<TokenAddress>('tests.integration.first_market_quote_token_address');
-	firstMarketBaseTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.first_market_base_token_symbol');
-	firstMarketQuoteTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.first_market_quote_token_symbol');
+	firstMarketBaseTokenAddress = properties.getAs<TokenAddress>('tests.integration.first_market_base_token_address').toLowerCase();
+	firstMarketQuoteTokenAddress = properties.getAs<TokenAddress>('tests.integration.first_market_quote_token_address').toLowerCase();
+	firstMarketBaseTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.first_market_base_token_symbol').toUpperCase();
+	firstMarketQuoteTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.first_market_quote_token_symbol').toUpperCase();
 	firstMarketBaseTokenAmount = Decimal(properties.getAs<Amount>('tests.integration.first_market_base_token_amount'));
 	firstMarketQuoteTokenAmount = Decimal(properties.getAs<Amount>('tests.integration.first_market_quote_token_amount'));
 	secondMarketSymbol = properties.getAs<MarketSymbol>('tests.integration.second_market_symbol');
 	secondMarketAddress = properties.getAs<MarketAddress>('tests.integration.second_market_address');
-	secondMarketBaseTokenAddress = properties.getAs<TokenAddress>('tests.integration.second_market_base_token_address');
-	secondMarketQuoteTokenAddress = properties.getAs<TokenAddress>('tests.integration.second_market_quote_token_address');
-	secondMarketBaseTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.second_market_base_token_symbol');
-	secondMarketQuoteTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.second_market_quote_token_symbol');
+	secondMarketBaseTokenAddress = properties.getAs<TokenAddress>('tests.integration.second_market_base_token_address').toLowerCase();
+	secondMarketQuoteTokenAddress = properties.getAs<TokenAddress>('tests.integration.second_market_quote_token_address').toLowerCase();
+	secondMarketBaseTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.second_market_base_token_symbol').toUpperCase();
+	secondMarketQuoteTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.second_market_quote_token_symbol').toUpperCase();
 	secondMarketBaseTokenAmount = Decimal(properties.getAs<Amount>('tests.integration.second_market_base_token_amount'));
 	secondMarketQuoteTokenAmount = Decimal(properties.getAs<Amount>('tests.integration.second_market_quote_token_amount'));
 	testsTimeout = Number(properties.getAs<Integer>('tests.integration.timeout'));
@@ -120,7 +120,7 @@ const cleanUp = async () => {
 
 describe("Rujira", async() => {
 	describe("Fin", async () => {
-		describe.skip("status", async () => {
+		describe("status", async () => {
 			it("should be up", async () => {
 				const result = await rujira.fin.getStatus({});
 
@@ -130,7 +130,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("transactions", () => {
+		describe("transactions", () => {
 			it("should be able to get a transaction without waiting confirmation", async () => {
 				const result = await rujira.fin.getTransaction({
 					hash: transactionHash,
@@ -185,7 +185,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("tokens", () => {
+		describe("tokens", () => {
 			it("should be able to get a token by address", async () => {
 				const result = await rujira.fin.getToken({
 					address: firstMarketBaseTokenAddress,
@@ -349,7 +349,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("markets", () => {
+		describe("markets", () => {
 			it("should be able to get a market by address", async () => {
 				const result = await rujira.fin.getMarket({
 					address: firstMarketAddress,
@@ -512,7 +512,7 @@ describe("Rujira", async() => {
 				const result = await rujira.fin.getAllMarkets({});
 
 				expect(result).toBeDefined();
-				expect(result.size).toBeGreaterThan(result.valueSeq.length);
+				expect(result.size).toBeGreaterThan(0);
 
 				for (const [address, market] of result.entries()) {
 					expect(market).toBeDefined();
@@ -581,7 +581,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("orderbook", () => {
+		describe("orderbook", () => {
 			it("should be able to get the order book for a market", async () => {
 				const maximumNumberOfOrders = 10;
 
@@ -973,7 +973,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("withdraw", () => {
+		describe.skip("withdraw", () => {
 			it.skip("should be able to withdraw market by address", async () => {
 					const result = await rujira.fin.withdrawFromMarket({
 						marketAddress: firstMarketAddress,

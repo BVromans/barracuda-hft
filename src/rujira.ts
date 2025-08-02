@@ -736,7 +736,7 @@ export class Fin {
 	 * @returns The tokens response
 	 */
 	@Cacheable({
-		cacheKey: (_request: FinGetAllTokensRequest) => _request.toString(),
+		cacheKey: (_request: FinGetAllTokensRequest) => `getAllTokens(${_request.toString()})`,
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllTokens'),
 	})
 	async getAllTokens(_request: FinGetAllTokensRequest): Promise<FinGetAllTokensResponse> {
@@ -813,6 +813,8 @@ export class Fin {
 			addresses = addresses
 				.map((address: MarketAddress) => address?.toLowerCase().trim())
 				.filter((address: MarketAddress) => address);
+		} else {
+			addresses = MList<MarketAddress>();
 		}
 
 		if (symbols) {
@@ -821,8 +823,10 @@ export class Fin {
 			}
 
 			symbols = symbols
-				.map((symbol: MarketSymbol) => symbol?.toLowerCase().trim())
+				.map((symbol: MarketSymbol) => symbol?.toUpperCase().trim())
 				.filter((symbol: MarketSymbol) => symbol);
+		} else {
+			symbols = MList<MarketSymbol>();
 		}
 
 		if (!addresses?.size && !symbols?.size) {
@@ -855,7 +859,7 @@ export class Fin {
 	 * @returns The markets response
 	 */
 	@Cacheable({
-		cacheKey: (request: FinGetAllMarketsRequest) => request.toString(),
+		cacheKey: (request: FinGetAllMarketsRequest) => `getAllMarkets(${request.toString()})`,
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllMarkets'),
 	})
 	async getAllMarkets(_request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
@@ -1001,12 +1005,12 @@ export class Fin {
 					base: baseToken,
 					quote: quoteToken
 				},
-				decimals: Number(pair.tick) || 0, // Use tick as decimals, ensure it's a number
+				decimals: Number(pair.tick) || 8, // Use tick as decimals, ensure it's a number
 				status: MarketStatus.ACTIVE, // LIVE markets are active
 				raw: pair
 			};
 
-			markets.set(pair.address, market);
+			markets.set(pair.address.toLowerCase(), market);
 		}
 
 		// Update internal maps
