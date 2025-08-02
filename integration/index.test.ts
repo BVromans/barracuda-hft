@@ -82,16 +82,16 @@ beforeAll(async () => {
 	walletMnemonic = properties.getAs<WalletMnemonic>('rujira.wallet.mnemonic');
 	walletPublicKeyThor = properties.getAs<WalletAddress>('rujira.wallet.publicKeys.thor');
 	transactionHash = properties.getAs<TransactionHash>('tests.integration.transaction_hash');
-	firstMarketSymbol = properties.getAs<MarketSymbol>('tests.integration.first_market_symbol');
-	firstMarketAddress = properties.getAs<MarketAddress>('tests.integration.first_market_address');
+	firstMarketSymbol = properties.getAs<MarketSymbol>('tests.integration.first_market_symbol').toUpperCase();
+	firstMarketAddress = properties.getAs<MarketAddress>('tests.integration.first_market_address').toLowerCase();
 	firstMarketBaseTokenAddress = properties.getAs<TokenAddress>('tests.integration.first_market_base_token_address').toLowerCase();
 	firstMarketQuoteTokenAddress = properties.getAs<TokenAddress>('tests.integration.first_market_quote_token_address').toLowerCase();
 	firstMarketBaseTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.first_market_base_token_symbol').toUpperCase();
 	firstMarketQuoteTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.first_market_quote_token_symbol').toUpperCase();
 	firstMarketBaseTokenAmount = Decimal(properties.getAs<Amount>('tests.integration.first_market_base_token_amount'));
 	firstMarketQuoteTokenAmount = Decimal(properties.getAs<Amount>('tests.integration.first_market_quote_token_amount'));
-	secondMarketSymbol = properties.getAs<MarketSymbol>('tests.integration.second_market_symbol');
-	secondMarketAddress = properties.getAs<MarketAddress>('tests.integration.second_market_address');
+	secondMarketSymbol = properties.getAs<MarketSymbol>('tests.integration.second_market_symbol').toUpperCase();
+	secondMarketAddress = properties.getAs<MarketAddress>('tests.integration.second_market_address').toLowerCase();
 	secondMarketBaseTokenAddress = properties.getAs<TokenAddress>('tests.integration.second_market_base_token_address').toLowerCase();
 	secondMarketQuoteTokenAddress = properties.getAs<TokenAddress>('tests.integration.second_market_quote_token_address').toLowerCase();
 	secondMarketBaseTokenSymbol = properties.getAs<TokenSymbol>('tests.integration.second_market_base_token_symbol').toUpperCase();
@@ -700,7 +700,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("ticker", () => {
+		describe("ticker", () => {
 			it("should be able to get a ticker by market address", async () => {
 				const result = await rujira.fin.getTicker({ marketAddress: firstMarketAddress });
 

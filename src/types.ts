@@ -760,6 +760,11 @@ export interface FinGetOrderBookRequest {
 	marketSymbol?: MarketSymbol;
 
 	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
 	 * Maximum number of orders to return
 	 */
 	maximumNumberOfOrders?: Integer;
@@ -784,6 +789,11 @@ export interface FinGetTickerRequest {
 	 * Market name
 	 */
 	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
 }
 
 /**

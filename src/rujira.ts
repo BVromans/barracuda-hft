@@ -779,8 +779,8 @@ export class Fin {
 
 		let { address, symbol } = request;
 
-		address = address?.trim();
-		symbol = symbol?.trim();
+		address = address?.trim()?.toLowerCase();
+		symbol = symbol?.trim()?.toUpperCase();
 
 		if (!address && !symbol) {
 			throw new Error("You must provide a non-empty address or symbol");
@@ -1028,17 +1028,19 @@ export class Fin {
 	 * @returns The order book response
 	 */
 	async getOrderBook(request: FinGetOrderBookRequest): Promise<FinGetOrderBookResponse> {
-		let { marketAddress, marketSymbol, maximumNumberOfOrders } = request;
+		let { marketAddress, marketSymbol, market, maximumNumberOfOrders } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
 		marketSymbol = marketSymbol?.toLowerCase().trim();
 		maximumNumberOfOrders = maximumNumberOfOrders || properties.getAs<number>('rujira.default.orderBook.maximumNumberOfOrders') || DECIMAL_INFINITY.toNumber();
 
-		if (!marketAddress && !marketSymbol) {
-			throw new Error("Either market address or market name must be provided");
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Either market address or market name or market must be provided");
 		}
 
-		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		if (!market) {
+			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
 
 		// TODO: add an example response!!!
 		// TODO: add an interface for the response!!!
@@ -1097,18 +1099,20 @@ export class Fin {
 	 * @returns The ticker response
 	 */
 	async getTicker(request: FinGetTickerRequest): Promise<FinGetTickerResponse> {
-		let { marketAddress, marketSymbol } = request;
+		let { marketAddress, marketSymbol, market } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
 		marketSymbol = marketSymbol?.toLowerCase().trim();
 
-		if (!marketAddress && !marketSymbol) {
-			throw new Error("Either market address or market name must be provided");
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Either market address or market name or market must be provided");
 		}
 
-		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		if (!market) {
+			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
 
-		const orderBook = await this.getOrderBook({ marketAddress: market.address, marketSymbol: market.symbol, maximumNumberOfOrders: 1 });
+		const orderBook = await this.getOrderBook({ marketAddress: market.address, marketSymbol: market.symbol, market: market, maximumNumberOfOrders: 1 });
 		const timestamp = Date.now();
 		const bestAsk = orderBook.book.bestAsk;
 		const bestBid = orderBook.book.bestBid;
