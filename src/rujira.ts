@@ -1106,11 +1106,10 @@ export class Fin {
 		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 
 		const orderBook = await this.getOrderBook({ marketAddress: market.address, marketSymbol: market.symbol, maximumNumberOfOrders: 1 });
+		const timestamp = Date.now();
 		const bestAsk = orderBook.book.bestAsk;
 		const bestBid = orderBook.book.bestBid;
 		const price = bestAsk && bestBid ? bestAsk.price.plus(bestBid.price).div(2) : DECIMAL_0;
-
-		const timestamp = Date.now();
 
 		const ticker: Ticker = {
 			market,
@@ -1128,18 +1127,20 @@ export class Fin {
 	 * @returns The candles response
 	 */
 	async getCandles(request: FinGetCandlesRequest): Promise<FinGetCandlesResponse> {
-		let { marketAddress, marketSymbol, maximumNumberOfCandles, interval } = request;
+		let { marketAddress, marketSymbol, market, maximumNumberOfCandles, interval } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
 		marketSymbol = marketSymbol?.trim();
 		maximumNumberOfCandles = maximumNumberOfCandles || properties.getAs<number>('rujira.default.candles.maximumNumberOfCandles') || DECIMAL_INFINITY.toNumber();
 		interval = interval || properties.getAs<CandleInterval>('rujira.default.candles.interval') || '1m';
 
-		if (!marketAddress && !marketSymbol) {
-			throw new Error("Either market address or market name must be provided");
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Either market address or market name or market must be provided");
 		}
 
-		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		if (!market) {
+			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
 
 		// Use interval directly as resolution (already in seconds format)
 		const resolution = interval.replace('m', '');
@@ -1196,9 +1197,11 @@ export class Fin {
 			throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
 		}
 
+		// TODO: check if this is correct!!!
 		const rawCandles = data?.node?.candles?.edges?.map((edge: any) => edge.node) || [];
 
-		const candles = List<Candle>(rawCandles).map((entry: any): Candle => ({
+		// TODO: check if this is correct!!!
+		const candles = MList<Candle>(rawCandles).map((entry: any): Candle => ({
 			timestamp: typeof entry.bin === 'string'
 				? new Date(entry.bin).getTime()
 				:typeof entry.bin === 'number' ? entry.bin : Date.now(),
@@ -2177,7 +2180,8 @@ export class Fin {
 				hash: result.transactionHash,
 				status: TransactionStatus.SUCCESS,
 				fee: {
-					amount: result.gasUsed ? new Decimal(result.gasUsed.toString()) : DECIMAL_0,
+					// TODO: check if this is correct!!!
+					amount: result.gasUsed ? new Decimal(result.gasUsed.toString()).div(this.feePaymentToken.decimals) : DECIMAL_0,
 					token: this.feePaymentToken
 				},
 				raw: result
