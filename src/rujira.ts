@@ -3,6 +3,7 @@ import { Bip39, EnglishMnemonic, Slip10, Slip10Curve, stringToPath } from "@cosm
 import { fromBase64 } from "@cosmjs/encoding";
 import { AccountData, Coin, DirectSecp256k1Wallet, OfflineSigner } from "@cosmjs/proto-signing";
 import { GasPrice, HttpEndpoint, StdFee } from "@cosmjs/stargate";
+import * as Indicators from "@ixjb94/indicators-js";
 import cacheManager, { Cacheable, CacheManagerOptions } from "@type-cacheable/core";
 import { useAdapter } from "@type-cacheable/lru-cache-adapter";
 import Decimal from 'decimal.js';
@@ -68,6 +69,7 @@ import {
 	FinWithdrawRequest,
 	FinWithdrawResponse,
 	Indicator,
+	IndicatorData,
 	IndicatorId,
 	Integer,
 	List,
@@ -1239,7 +1241,18 @@ export class Fin {
 			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
 		}
 
-		const indicators = MMap<IndicatorId, Indicator>();
+		const data = candles.map((candle: Candle) => candle.close.toNumber());
+
+		const indicators = MMap<Indicator, IndicatorData>();
+
+		for (const indicator of Indicator.getAll()) {
+			const value = (Indicators as any)[indicator.id](data, 3);
+
+			indicators.set(indicator, {
+				indicator,
+				value
+			});
+		}
 
 		return indicators;
 	}
