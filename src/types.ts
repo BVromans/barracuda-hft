@@ -120,6 +120,9 @@ export type CandlePrice = Amount;
 export type CandleVolume = Amount;
 export type CandleInterval = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w' | '1M' | '1y';
 
+export type IndicatorId = Id;
+export type IndicatorValue = any;
+
 export type OrderId = Id;
 export type OrderPrice = Amount;
 export type OrderAmount = Amount;
@@ -371,6 +374,26 @@ export interface Candle {
 	 * Volume of the candle
 	 */
 	volume: CandleVolume;
+
+	/**
+	 * Raw data
+	 */
+	raw: Raw;
+}
+
+/**
+ * Represents an indicator
+ */
+export interface Indicator {
+	/**
+	 * ID of the indicator
+	 */
+	id: IndicatorId;
+
+	/**
+	 * Value of the indicator
+	 */
+	value: IndicatorValue;
 
 	/**
 	 * Raw data
@@ -836,6 +859,47 @@ export interface FinGetCandlesRequest {
  * Get candles response
  */
 export interface FinGetCandlesResponse extends List<Candle> {
+}
+
+/**
+ * Get indicators request
+ */
+export interface FinGetIndicatorsRequest {
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+		/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
+	 * Maximum number of candles to return
+	 */
+	maximumNumberOfCandles?: Integer;
+
+	/**
+	 * Candle interval
+	 */
+	interval?: CandleInterval;
+
+	/**
+	 * Candles
+	 */
+	candles: List<Candle>;
+}
+
+/**
+ * Get indicators response
+ */
+export interface FinGetIndicatorsResponse extends Map<IndicatorId, Indicator> {
 }
 
 /**

@@ -34,6 +34,8 @@ import {
 	FinGetBalancesResponse,
 	FinGetCandlesRequest,
 	FinGetCandlesResponse,
+	FinGetIndicatorsRequest,
+	FinGetIndicatorsResponse,
 	FinGetMarketRequest,
 	FinGetMarketResponse,
 	FinGetMarketsRequest,
@@ -65,6 +67,8 @@ import {
 	FinReplaceOrdersResponse,
 	FinWithdrawRequest,
 	FinWithdrawResponse,
+	Indicator,
+	IndicatorId,
 	Integer,
 	List,
 	Map,
@@ -1221,6 +1225,23 @@ export class Fin {
 		}));
 
 		return candles;
+	}
+
+	/**
+	 * Get indicators
+	 * @param request - The request object
+	 * @returns The indicators response
+	 */
+	async getIndicators(request: FinGetIndicatorsRequest): Promise<FinGetIndicatorsResponse> {
+		let { candles, marketAddress, marketSymbol, market, maximumNumberOfCandles, interval } = request;
+
+		if (!candles || candles.size === 0) {
+			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
+		}
+
+		const indicators = MMap<IndicatorId, Indicator>();
+
+		return indicators;
 	}
 
 	/**
