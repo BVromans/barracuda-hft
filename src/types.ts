@@ -4,7 +4,6 @@ import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
 import BN from "bn.js";
-import { GasPrice } from '@cosmjs/stargate';
 import { properties } from './properties';
 import { List, Map } from 'immutable';
 import { MList, MMap } from './extensions/immutablejs/types';
@@ -12,6 +11,7 @@ import { MList, MMap } from './extensions/immutablejs/types';
 export { List, Map, MList, MMap };
 
 export const DECIMAL_0 = new Decimal(0);
+export const DECIMAL_1 = new Decimal(1);
 export const DECIMAL_100 = new Decimal(100);
 export const DECIMAL_INFINITY = new Decimal(Number.POSITIVE_INFINITY);
 export const DECIMAL_NEGATIVE_INFINITY = new Decimal(Number.NEGATIVE_INFINITY);
@@ -23,43 +23,67 @@ export const BIG_NUMBER_NaN = new BN(NaN);
 
 properties.set('wallet.prefix', 'thor');
 
+/**
+ * Chain
+ */
 export enum Chain {
 	ETHEREUM = 'ethereum',
 	RUJIRA = 'rujira',
 	THORCHAIN = 'thorchain',
 }
 
+/**
+ * System status
+ */
 export enum SystemStatus {
 	UP = 'up',
 	DOWN = 'down',
 }
 
+/**
+ * Network
+ */
 export enum Network {
 	MAINNET = 'mainnet',
 	TESTNET = 'testnet'
 }
 
+/**
+ * Transaction status
+ */
 export enum TransactionStatus {
 	PENDING = 'pending',
 	SUCCESS = 'success',
 	FAILED = 'failed'
 }
 
+/**
+ * Market status
+ */
 export enum MarketStatus {
 	ACTIVE = 'active',
 	INACTIVE = 'inactive'
 }
 
+/**
+ * Order side
+ */
 export enum OrderSide {
 	BUY = 'buy',
 	SELL = 'sell'
 }
 
+/**
+ * Order type
+ */
 export enum OrderType {
 	MARKET = 'market',
 	LIMIT = 'limit'
 }
 
+/**
+ * Order status
+ */
 export enum OrderStatus {
 	OPEN = 'open',
 	CANCELLED = 'cancelled',
@@ -68,6 +92,257 @@ export enum OrderStatus {
 	CREATION_PENDING = 'creation_pending',
 	CANCELLATION_PENDING = 'cancellation_pending',
 	UNKNOWN = 'unknown'
+}
+
+/**
+ * Strategy status
+ */
+export enum StrategyStatus {
+	CREATED = 'created',
+	INITIALIZING = 'initializing',
+	IDLE = 'idle',
+	RUNNING = 'running',
+	STOP_REQUESTED = 'stop_requested',
+	STOPPING = 'stopping',
+	STOPPED = 'stopped'
+}
+
+/**
+ * Represents an indicator
+ */
+export class Indicator {
+	static accumulation_distribution_line = new Indicator("ad", "Accumulation/Distribution Line", []);
+	static accumulation_distribution_oscillator = new Indicator("adosc", "Accumulation/Distribution Oscillator", []);
+	static average_directional_movement_index = new Indicator("adx", "Average Directional Movement Index", []);
+	static average_directional_movement_rating = new Indicator("adxr", "Average Directional Movement Rating", []);
+	static awesome_oscillator = new Indicator("ao", "Awesome Oscillator", []);
+	static absolute_price_oscillator = new Indicator("apo", "Absolute Price Oscillator", []);
+	static aroon = new Indicator("aroon", "Aroon", []);
+	static aroon_oscillator = new Indicator("aroonosc", "Aroon Oscillator", []);
+	static average_true_range = new Indicator("atr", "Average True Range", []);
+	static average_price = new Indicator("avgprice", "Average Price", []);
+	static bollinger_bands = new Indicator("bbands", "Bollinger Bands", [20, 2]);
+	static balance_of_power = new Indicator("bop", "Balance of Power", []);
+	static commodity_channel_index = new Indicator("cci", "Commodity Channel Index", []);
+	static chande_momentum_oscillator = new Indicator("cmo", "Chande Momentum Oscillator", []);
+	static crossany = new Indicator("crossany", "Crossany", []);
+	static crossover = new Indicator("crossover", "Crossover", []);
+	static crossunder = new Indicator("crossunder", "Crossunder", []);
+	static cross_over_number = new Indicator("crossOverNumber", "Crossover a number", []);
+	static cross_under_number = new Indicator("crossUnderNumber", "Crossunder a number", []);
+	static chaikins_volatility = new Indicator("cvi", "Chaikins Volatility", []);
+	static linear_decay = new Indicator("decay", "Linear Decay", []);
+	static double_exponential_moving_average = new Indicator("dema", "Double Exponential Moving Average", []);
+	static directional_indicator = new Indicator("di", "Directional Indicator", []);
+	static directional_movement = new Indicator("dm", "Directional Movement", []);
+	static detrended_price_oscillator = new Indicator("dpo", "Detrended Price Oscillator", []);
+	static directional_movement_index = new Indicator("dx", "Directional Movement Index", []);
+	static exponential_decay = new Indicator("edecay", "Exponential Decay", []);
+	static exponential_moving_average = new Indicator("ema", "Exponential Moving Average", []);
+	static ease_of_movement = new Indicator("emv", "Ease of Movement", []);
+	static fisher_transform = new Indicator("fisher", "Fisher Transform", []);
+	static forecast_oscillator = new Indicator("fosc", "Forecast Oscillator", []);
+	static hull_moving_average = new Indicator("hma", "Hull Moving Average", []);
+	static kaufman_adaptive_moving_average = new Indicator("kama", "Kaufman Adaptive Moving Average", []);
+	static klinger_volume_oscillator = new Indicator("kvo", "Klinger Volume Oscillator", []);
+	static lag = new Indicator("lag", "Lag", []);
+	static linear_regression = new Indicator("linreg", "Linear Regression", []);
+	static linear_regression_intercept = new Indicator("linregintercept", "Linear Regression Intercept", []);
+	static linear_regression_slope = new Indicator("linregslope", "Linear Regression Slope", []);
+	static moving_average_convergence_divergence = new Indicator("macd", "Moving Average Convergence/Divergence", []);
+	static market_facilitation_index = new Indicator("marketfi", "Market Facilitation Index", []);
+	static mass_index = new Indicator("mass", "Mass Index", []);
+	static maximum_in_period = new Indicator("max", "Maximum In Period", []);
+	static mean_deviation_over_period = new Indicator("md", "Mean Deviation Over Period", []);
+	static median_price = new Indicator("medprice", "Median Price", []);
+	static money_flow_index = new Indicator("mfi", "Money Flow Index", []);
+	static minimum_in_period = new Indicator("min", "Minimum In Period", []);
+	static momentum = new Indicator("mom", "Momentum", []);
+	static normalized_average_true_range = new Indicator("natr", "Normalized Average True Range", []);
+	static negative_volume_index = new Indicator("nvi", "Negative Volume Index", []);
+	static on_balance_volume = new Indicator("obv", "On Balance Volume", []);
+	static percentage_price_oscillator = new Indicator("ppo", "Percentage Price Oscillator", []);
+	static parabolic_sar = new Indicator("psar", "Parabolic SAR", []);
+	static positive_volume_index = new Indicator("pvi", "Positive Volume Index", []);
+	static qstick = new Indicator("qstick", "Qstick", []);
+	static rate_of_change = new Indicator("roc", "Rate of Change", []);
+	static rate_of_change_ratio = new Indicator("rocr", "Rate of Change Ratio", []);
+	static relative_strength_index = new Indicator("rsi", "Relative Strength Index", []);
+	static simple_moving_average = new Indicator("sma", "Simple Moving Average", []);
+	static standard_deviation_over_period = new Indicator("stddev", "Standard Deviation Over Period", []);
+	static standard_error_over_period = new Indicator("stderr", "Standard Error Over Period", []);
+	static stochastic_oscillator = new Indicator("stoch", "Stochastic Oscillator", []);
+	static stochastic_rsi = new Indicator("stochrsi", "Stochastic RSI", []);
+	static sum_over_period = new Indicator("sum", "Sum Over Period", []);
+	static triple_exponential_moving_average = new Indicator("tema", "Triple Exponential Moving Average", []);
+	static true_range = new Indicator("tr", "True Range", []);
+	static triangular_moving_average = new Indicator("trima", "Triangular Moving Average", []);
+	static trix = new Indicator("trix", "Trix", []);
+	static time_series_forecast = new Indicator("tsf", "Time Series Forecast", []);
+	static typical_price = new Indicator("typprice", "Typical Price", []);
+	static ultimate_oscillator = new Indicator("ultosc", "Ultimate Oscillator", []);
+	static variance_over_period = new Indicator("var", "Variance Over Period", []);
+	static vertical_horizontal_filter = new Indicator("vhf", "Vertical Horizontal Filter", []);
+	static variable_index_dynamic_average = new Indicator("vidya", "Variable Index Dynamic Average", []);
+	static annualized_historical_volatility = new Indicator("volatility", "Annualized Historical Volatility", []);
+	static volume_oscillator = new Indicator("vosc", "Volume Oscillator", []);
+	static volume_weighted_moving_average = new Indicator("vwma", "Volume Weighted Moving Average", []);
+	static williams_accumulation_distribution = new Indicator("wad", "Williams Accumulation/Distribution", []);
+	static weighted_close_price = new Indicator("wcprice", "Weighted Close Price", []);
+	static wilders_smoothing = new Indicator("wilders", "Wilders Smoothing", []);
+	static williams_r = new Indicator("willr", "Williams %R", []);
+	static weighted_moving_average = new Indicator("wma", "Weighted Moving Average", []);
+	static zero_lag_exponential_moving_average = new Indicator("zlema", "Zero-Lag Exponential Moving Average", []);
+	static abands = new Indicator("abands", "?", []);
+	static arnaud_legoux_moving_average = new Indicator("alma", "Arnaud Legoux Moving Average", []);
+	static chandelier_exit = new Indicator("ce", "Chandelier Exit", []);
+	static chaikin_money_flow = new Indicator("cmf", "Chaikin money flow", []);
+	static donchian_channels = new Indicator("dc", "Donchian Channels", []);
+	static force_index = new Indicator("fi", "Force index", []);
+	static keltner_channels = new Indicator("kc", "Keltner Channels", []);
+	static know_sure_thing = new Indicator("kst", "Know Sure Thing", []);
+	static pbands = new Indicator("pbands", "?", []);
+	static polarized_fractal_efficiency = new Indicator("pfe", "Polarized Fractal Efficiency", []);
+	static poscillator = new Indicator("posc", "?", []);
+	static relative_momentum_index = new Indicator("rmi", "Relative Momentum Index", []);
+	static recursive_moving_trend_average = new Indicator("rmta", "Recursive Moving Trend Average", []);
+	static relative_vigor_index = new Indicator("rvi", "Relative Vigor Index", []);
+	static stochastic_momentum_index = new Indicator("smi", "Stochastic Momentum Index", []);
+	static true_strength_index = new Indicator("tsi", "True Strength Index", []);
+	static volume_weighted_average_price = new Indicator("vwap", "Volume-Weighted Average Price", []);
+
+	/**
+	 * ID of the indicator
+	 */
+	id: IndicatorId;
+
+	/**
+	 * Name of the indicator
+	 */
+	name: IndicatorName;
+
+	/**
+	 * Default parameters of the indicator
+	 */
+	defaultParameters: IndicatorParameters;
+
+	/**
+	 *
+	 * @param id
+	 * @param name
+	 * @param defaultParameters
+	 */
+	constructor(id: string, name: string, defaultParameters: IndicatorParameters) {
+		this.id = id;
+		this.name = name;
+		this.defaultParameters = defaultParameters;
+	}
+
+	/**
+	 * Get all indicators
+	 * @returns All indicators
+	 */
+	static getAll(): Indicator[] {
+		return [
+			Indicator.accumulation_distribution_line,
+			Indicator.accumulation_distribution_oscillator,
+			Indicator.average_directional_movement_index,
+			Indicator.average_directional_movement_rating,
+			Indicator.awesome_oscillator,
+			Indicator.absolute_price_oscillator,
+			Indicator.aroon,
+			Indicator.aroon_oscillator,
+			Indicator.average_true_range,
+			Indicator.average_price,
+			Indicator.bollinger_bands,
+			Indicator.balance_of_power,
+			Indicator.commodity_channel_index,
+			Indicator.chande_momentum_oscillator,
+			Indicator.crossany,
+			Indicator.crossover,
+			Indicator.crossunder,
+			Indicator.cross_over_number,
+			Indicator.cross_under_number,
+			Indicator.chaikins_volatility,
+			Indicator.linear_decay,
+			Indicator.double_exponential_moving_average,
+			Indicator.directional_indicator,
+			Indicator.directional_movement,
+			Indicator.detrended_price_oscillator,
+			Indicator.directional_movement_index,
+			Indicator.exponential_decay,
+			Indicator.exponential_moving_average,
+			Indicator.forecast_oscillator,
+			Indicator.fisher_transform,
+			Indicator.klinger_volume_oscillator,
+			Indicator.kaufman_adaptive_moving_average,
+			Indicator.klinger_volume_oscillator,
+			Indicator.lag,
+			Indicator.linear_regression,
+			Indicator.linear_regression_intercept,
+			Indicator.linear_regression_slope,
+			Indicator.moving_average_convergence_divergence,
+			Indicator.market_facilitation_index,
+			Indicator.mass_index,
+			Indicator.maximum_in_period,
+			Indicator.mean_deviation_over_period,
+			Indicator.median_price,
+			Indicator.money_flow_index,
+			Indicator.minimum_in_period,
+			Indicator.momentum,
+			Indicator.normalized_average_true_range,
+			Indicator.negative_volume_index,
+			Indicator.on_balance_volume,
+			Indicator.percentage_price_oscillator,
+			Indicator.parabolic_sar,
+			Indicator.positive_volume_index,
+			Indicator.qstick,
+			Indicator.rate_of_change,
+			Indicator.rate_of_change_ratio,
+			Indicator.relative_strength_index,
+			Indicator.simple_moving_average,
+			Indicator.standard_deviation_over_period,
+			Indicator.standard_error_over_period,
+			Indicator.stochastic_oscillator,
+			Indicator.stochastic_rsi,
+			Indicator.sum_over_period,
+			Indicator.triple_exponential_moving_average,
+			Indicator.true_range,
+			Indicator.triangular_moving_average,
+			Indicator.trix,
+			Indicator.time_series_forecast,
+			Indicator.typical_price,
+			Indicator.ultimate_oscillator,
+			Indicator.variance_over_period,
+			Indicator.vertical_horizontal_filter,
+			Indicator.variable_index_dynamic_average,
+			Indicator.annualized_historical_volatility,
+			Indicator.volume_oscillator,
+			Indicator.volume_weighted_moving_average,
+			Indicator.williams_accumulation_distribution,
+			Indicator.weighted_close_price,
+			Indicator.wilders_smoothing,
+			Indicator.williams_r,
+			Indicator.weighted_moving_average,
+			Indicator.zero_lag_exponential_moving_average,
+			Indicator.arnaud_legoux_moving_average,
+			Indicator.chandelier_exit,
+			Indicator.chaikin_money_flow,
+			Indicator.donchian_channels,
+			Indicator.force_index,
+			Indicator.keltner_channels,
+			Indicator.know_sure_thing,
+			Indicator.pbands,
+			Indicator.polarized_fractal_efficiency,
+			Indicator.positive_volume_index,
+			Indicator.relative_momentum_index,
+			Indicator.recursive_moving_trend_average,
+			Indicator.relative_vigor_index,
+			Indicator.stochastic_momentum_index,
+			Indicator.true_strength_index,
+			Indicator.volume_weighted_average_price,
+		];
+	}
 }
 
 export type Boolean = boolean;
@@ -107,7 +382,7 @@ export type MarketPrice = Amount;
 
 export type OrderBookOrderPrice = Amount;
 export type OrderBookOrderAmount = Amount;
-export type OrderBookMiddlePrice = Amount;
+export type OrderBookPrice = Amount;
 
 export type TickerPrice = Amount;
 export type TickerTimestamp = Timestamp;
@@ -116,6 +391,11 @@ export type CandleTimestamp = Timestamp;
 export type CandlePrice = Amount;
 export type CandleVolume = Amount;
 export type CandleInterval = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w' | '1M' | '1y';
+
+export type IndicatorId = Id;
+export type IndicatorName = Name;
+export type IndicatorParameters = any[];
+export type IndicatorValue = any;
 
 export type OrderId = Id;
 export type OrderPrice = Amount;
@@ -302,11 +582,41 @@ export interface OrderBook {
 		 * Best ask of the order book
 		 */
 		bestAsk?: OrderBookOrder;
+	}
 
+	/**
+	 * Prices of the order book
+	 */
+	statistics: {
 		/**
 		 * Middle price of the order book
 		 */
-		middlePrice?: OrderBookMiddlePrice;
+		middlePrice: {
+			/**
+			 * Price of the base token to the quote token
+			 */
+			baseToQuote?: OrderBookPrice;
+
+			/**
+			 * Price of the quote token to the base token
+			 */
+			quoteToBase?: OrderBookPrice;
+		},
+
+		/**
+		 * Volume weighted average price (VWAP) of the order book
+		 */
+		volumeWeightedAveragePrice: {
+			/**
+			 * Price of the base token to the quote token
+			 */
+			baseToQuote?: OrderBookPrice;
+
+			/**
+			 * Price of the quote token to the base token
+			 */
+			quoteToBase?: OrderBookPrice;
+		}
 	}
 
 	/**
@@ -327,7 +637,12 @@ export interface Ticker {
 	/**
 	 * Price of the ticker
 	 */
-	price: TickerPrice;
+	middlePrice?: TickerPrice;
+
+	/**
+	 * Volume weighted average price (VWAP) of the ticker
+	 */
+	volumeWeightedAveragePrice?: TickerPrice;
 
 	/**
 	 * Timestamp of the ticker
@@ -378,6 +693,21 @@ export interface Candle {
 	 * Raw data
 	 */
 	raw: Raw;
+}
+
+/**
+ * Represents an indicator
+ */
+export interface IndicatorData {
+	/**
+	 * ID of the indicator
+	 */
+	indicator: Indicator;
+
+	/**
+	 * Value of the indicator
+	 */
+	value: IndicatorValue;
 }
 
 
@@ -824,6 +1154,47 @@ export interface FinGetCandlesRequest {
  * Get candles response
  */
 export interface FinGetCandlesResponse extends List<Candle> {
+}
+
+/**
+ * Get indicators request
+ */
+export interface FinGetIndicatorsRequest {
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+		/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
+	 * Maximum number of candles to return
+	 */
+	maximumNumberOfCandles?: Integer;
+
+	/**
+	 * Candle interval
+	 */
+	interval?: CandleInterval;
+
+	/**
+	 * Candles
+	 */
+	candles: List<Candle>;
+}
+
+/**
+ * Get indicators response
+ */
+export interface FinGetIndicatorsResponse extends Map<Indicator, IndicatorData> {
 }
 
 /**

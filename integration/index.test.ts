@@ -7,6 +7,7 @@ import {
 	BIG_NUMBER_0,
 	Candle,
 	DECIMAL_0,
+	DECIMAL_1,
 	Integer,
 	MarketAddress,
 	MarketStatus,
@@ -14,6 +15,7 @@ import {
 	OrderBookOrder,
 	OrderStatus,
 	SystemStatus,
+	TickerPrice,
 	Token,
 	TokenAddress,
 	TokenSymbol,
@@ -679,28 +681,30 @@ describe("Rujira", async() => {
 						result.book.bestBid,
 						`Best bid order not found`
 					);
-					const middlePrice = getOrThrow<Amount>(
-						result.book.middlePrice,
-						`Middle price not found`
-					);
-					expect(middlePrice).toBeDefined();
-					expect(middlePrice.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-					expect(middlePrice.toNumber()).toBeLessThanOrEqual(bestAsk.price.toNumber());
-					expect(middlePrice.toNumber()).toBeGreaterThanOrEqual(bestBid.price.toNumber());
+					const baseToQuoteMiddlePrice = getOrThrow<Amount>(result.statistics.middlePrice.baseToQuote);
+					expect(baseToQuoteMiddlePrice).toBeDefined();
+					expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(baseToQuoteMiddlePrice.toNumber()).toBeLessThanOrEqual(bestAsk.price.toNumber());
+					expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThanOrEqual(bestBid.price.toNumber());
+
+					const quoteToBaseMiddlePrice = getOrThrow<Amount>(result.statistics.middlePrice.quoteToBase);
+					expect(quoteToBaseMiddlePrice).toBeDefined();
+					expect(quoteToBaseMiddlePrice.toNumber()).toBe(DECIMAL_1.div(baseToQuoteMiddlePrice).toNumber());
 				} else if (asks.size > 0 && bids.size === 0) {
 					expect(result.book.bestAsk).toBeDefined();
 					expect(result.book.bestBid).toBeUndefined();
-					expect(result.book.middlePrice).toBeDefined();
-					expect(result.book.middlePrice!.toNumber()).toBe(result.book.bestAsk!.price.toNumber());
+					expect(result.statistics.middlePrice.baseToQuote).toBeUndefined();
+					expect(result.statistics.middlePrice.quoteToBase).toBeUndefined();
 				} else if (bids.size > 0 && asks.size === 0) {
 					expect(result.book.bestBid).toBeDefined();
 					expect(result.book.bestAsk).toBeUndefined();
-					expect(result.book.middlePrice).toBeDefined();
-					expect(result.book.middlePrice!.toNumber()).toBe(result.book.bestBid!.price.toNumber());
+					expect(result.statistics.middlePrice.baseToQuote).toBeUndefined();
+					expect(result.statistics.middlePrice.quoteToBase).toBeUndefined();
 				} else {
 					expect(result.book.bestAsk).toBeUndefined();
 					expect(result.book.bestBid).toBeUndefined();
-					expect(result.book.middlePrice).toBeUndefined();
+					expect(result.statistics.middlePrice.baseToQuote).toBeUndefined();
+					expect(result.statistics.middlePrice.quoteToBase).toBeUndefined();
 				}
 				expect(result.raw).toBeDefined();
 			});
@@ -731,8 +735,8 @@ describe("Rujira", async() => {
 				expect(result.market.status).toBe(MarketStatus.ACTIVE);
 				expect(result.market.raw).toBeDefined();
 
-				expect(result.price).toBeDefined();
-				expect(result.price.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.middlePrice).toBeDefined();
+				expect(getOrThrow<TickerPrice>(result.middlePrice, `Middle price not found`).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.timestamp).toBeDefined();
 				expect(result.timestamp).toBeGreaterThan(0);
@@ -764,8 +768,11 @@ describe("Rujira", async() => {
 				expect(result.market.status).toBe(MarketStatus.ACTIVE);
 				expect(result.market.raw).toBeDefined();
 
-				expect(result.price).toBeDefined();
-				expect(result.price.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.middlePrice).toBeDefined();
+				expect(getOrThrow<TickerPrice>(result.middlePrice).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+					expect(result.volumeWeightedAveragePrice).toBeDefined();
+					expect(getOrThrow<TickerPrice>(result.volumeWeightedAveragePrice).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.timestamp).toBeDefined();
 				expect(result.timestamp).toBeGreaterThan(0);
