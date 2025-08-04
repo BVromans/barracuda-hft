@@ -20,6 +20,7 @@ import {
 	DECIMAL_0,
 	DECIMAL_1,
 	DECIMAL_INFINITY,
+	DECIMAL_NaN,
 	FinCancelAllOrdersRequest,
 	FinCancelAllOrdersResponse,
 	FinCancelOrderRequest,
@@ -70,7 +71,6 @@ import {
 	FinWithdrawResponse,
 	Indicator,
 	IndicatorData,
-	IndicatorId,
 	Integer,
 	List,
 	Map,
@@ -82,8 +82,8 @@ import {
 	MMap,
 	Order,
 	OrderBook,
-	OrderBookMiddlePrice,
 	OrderBookOrder,
+	OrderBookPrice,
 	OrderId,
 	OrderSide,
 	OrderStatus,
@@ -1075,14 +1075,16 @@ export class Fin {
 		const bestAsk: OrderBookOrder = asks.size > 0 ? asks.getOrThrow(0) : undefined as unknown as OrderBookOrder;
 		const bestBid: OrderBookOrder = bids.size > 0 ? bids.getOrThrow(0) : undefined as unknown as OrderBookOrder;
 
-		let middlePrice: OrderBookMiddlePrice | undefined;
-		if (asks.size > 0 && bids.size > 0) {
-			middlePrice = bestAsk.price.plus(bestBid.price).div(2);
-		} else if (asks.size > 0 && !bids.size) {
-			middlePrice = bestAsk.price;
-		} else if (!asks.size && bids.size) {
-			middlePrice = bestBid.price;
+		let baseToQuoteMiddlePrice: OrderBookPrice | undefined;
+		if (!asks.isEmpty() && !bids.isEmpty()) {
+			baseToQuoteMiddlePrice = bestAsk.price.plus(bestBid.price).div(2);
+		} else if (!asks.isEmpty() && bids.isEmpty()) {
+			baseToQuoteMiddlePrice = bestAsk.price;
+		} else if (asks.isEmpty() && !bids.isEmpty()) {
+			baseToQuoteMiddlePrice = bestBid.price;
 		}
+
+		let baseToQuoteVolumeWeightedAveragePrice: OrderBookPrice | undefined;
 
 		const orderBook: OrderBook = {
 			market,
@@ -1091,7 +1093,16 @@ export class Fin {
 				bids,
 				bestAsk,
 				bestBid,
-				middlePrice
+			},
+			statistics: {
+				middlePrice: {
+					baseToQuote: baseToQuoteMiddlePrice,
+					quoteToBase: baseToQuoteMiddlePrice ? DECIMAL_1.div(baseToQuoteMiddlePrice) : undefined
+				},
+				volumeWeightedAveragePrice: {
+					baseToQuote: baseToQuoteVolumeWeightedAveragePrice,
+					quoteToBase: baseToQuoteVolumeWeightedAveragePrice ? DECIMAL_1.div(baseToQuoteVolumeWeightedAveragePrice) : undefined
+				}
 			},
 			raw: rawOrderBook
 		};
@@ -1120,13 +1131,11 @@ export class Fin {
 
 		const orderBook = await this.getOrderBook({ marketAddress: market.address, marketSymbol: market.symbol, market: market, maximumNumberOfOrders: 1 });
 		const timestamp = Date.now();
-		const bestAsk = orderBook.book.bestAsk;
-		const bestBid = orderBook.book.bestBid;
-		const price = bestAsk && bestBid ? bestAsk.price.plus(bestBid.price).div(2) : DECIMAL_0;
 
 		const ticker: Ticker = {
 			market,
-			price,
+			middlePrice: orderBook.statistics.middlePrice.baseToQuote,
+			volumeWeightedAveragePrice: orderBook.statistics.volumeWeightedAveragePrice.baseToQuote,
 			timestamp,
 			raw: orderBook.raw
 		};
@@ -1246,7 +1255,7 @@ export class Fin {
 		const indicators = MMap<Indicator, IndicatorData>();
 
 		for (const indicator of Indicator.getAll()) {
-			const value = (Indicators as any)[indicator.id](data, 3);
+			const value = (Indicators as any)[indicator.id](data, ...indicator.defaultParameters);
 
 			indicators.set(indicator, {
 				indicator,
@@ -1407,7 +1416,7 @@ export class Fin {
 				try {
 					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` });
 
-					conversionRateNativeToken = quotingMarketTicker.price;
+					conversionRateNativeToken = quotingMarketTicker.middlePrice || DECIMAL_0;
 				} catch (exception) {
 					ignoreException(exception);
 				}
@@ -1420,7 +1429,7 @@ export class Fin {
 				try {
 					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.beaconToken.symbol}` });
 
-					conversionRateBeacon = quotingMarketTicker.price;
+					conversionRateBeacon = quotingMarketTicker.middlePrice || DECIMAL_0;
 				} catch (exception) {
 					ignoreException(exception);
 				}
@@ -1433,7 +1442,7 @@ export class Fin {
 				quotation: {
 					token: this.nativeToken || token,
 					tokenToQuote: conversionRateNativeToken,
-					quoteToToken: conversionRateNativeToken ? DECIMAL_1.div(conversionRateNativeToken) : DECIMAL_0
+					quoteToToken: conversionRateNativeToken.gt(DECIMAL_0) ? DECIMAL_1.div(conversionRateNativeToken) : DECIMAL_0
 				}
 			};
 			const baseBalanceWithBeaconQuotation: BaseBalanceWithQuotation = {
@@ -1441,7 +1450,7 @@ export class Fin {
 				quotation: {
 					token: this.beaconToken || token,
 					tokenToQuote: conversionRateBeacon,
-					quoteToToken: conversionRateBeacon ? DECIMAL_1.div(conversionRateBeacon) : DECIMAL_0
+					quoteToToken: conversionRateBeacon.gt(DECIMAL_0) ? DECIMAL_1.div(conversionRateBeacon) : DECIMAL_0
 				}
 			};
 
@@ -1608,7 +1617,7 @@ export class Fin {
 			const status = filledAmount.eq(DECIMAL_0) ? OrderStatus.OPEN : filledAmount.eq(amount) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 
 			const order = {
-				id: `${ownerAddress}-${side.toString().toLowerCase()}-${price.toString()}`,
+				id: `${ownerAddress}-${market.address}-${side.toString().toLowerCase()}-${price.toString()}`,
 				market: market,
 				ownerAddress: ownerAddress,
 				type: type,

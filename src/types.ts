@@ -77,7 +77,7 @@ export enum OrderStatus {
  * Represents an indicator
  */
 export class Indicator {
-	static ad = new Indicator("ad", "Accumulation/Distribution Line", []);
+	static accumulation_distribution_line = new Indicator("ad", "Accumulation/Distribution Line", []);
 	static adosc = new Indicator("adosc", "Accumulation/Distribution Oscillator", []);
 	static adx = new Indicator("adx", "Average Directional Movement Index", []);
 	static adxr = new Indicator("adxr", "Average Directional Movement Rating", []);
@@ -87,7 +87,7 @@ export class Indicator {
 	static aroonosc = new Indicator("aroonosc", "Aroon Oscillator", []);
 	static atr = new Indicator("atr", "Average True Range", []);
 	static avgprice = new Indicator("avgprice", "Average Price", []);
-	static bbands = new Indicator("bbands", "Bollinger Bands", []);
+	static bbands = new Indicator("bbands", "Bollinger Bands", [20, 2]);
 	static bop = new Indicator("bop", "Balance of Power", []);
 	static cci = new Indicator("cci", "Commodity Channel Index", []);
 	static cmo = new Indicator("cmo", "Chande Momentum Oscillator", []);
@@ -210,7 +210,7 @@ export class Indicator {
 	 */
 	static getAll(): Indicator[] {
 		return [
-			Indicator.ad,
+			Indicator.accumulation_distribution_line,
 			Indicator.adosc,
 			Indicator.adx,
 			Indicator.adxr,
@@ -350,7 +350,7 @@ export type MarketPrice = Amount;
 
 export type OrderBookOrderPrice = Amount;
 export type OrderBookOrderAmount = Amount;
-export type OrderBookMiddlePrice = Amount;
+export type OrderBookPrice = Amount;
 
 export type TickerPrice = Amount;
 export type TickerTimestamp = Timestamp;
@@ -545,11 +545,41 @@ export interface OrderBook {
 		 * Best ask of the order book
 		 */
 		bestAsk?: OrderBookOrder;
+	}
 
+	/**
+	 * Prices of the order book
+	 */
+	statistics: {
 		/**
 		 * Middle price of the order book
 		 */
-		middlePrice?: OrderBookMiddlePrice;
+		middlePrice: {
+			/**
+			 * Price of the base token to the quote token
+			 */
+			baseToQuote?: OrderBookPrice;
+
+			/**
+			 * Price of the quote token to the base token
+			 */
+			quoteToBase?: OrderBookPrice;
+		},
+
+		/**
+		 * Volume weighted average price (VWAP) of the order book
+		 */
+		volumeWeightedAveragePrice: {
+			/**
+			 * Price of the base token to the quote token
+			 */
+			baseToQuote?: OrderBookPrice;
+
+			/**
+			 * Price of the quote token to the base token
+			 */
+			quoteToBase?: OrderBookPrice;
+		}
 	}
 
 	/**
@@ -570,7 +600,12 @@ export interface Ticker {
 	/**
 	 * Price of the ticker
 	 */
-	price: TickerPrice;
+	middlePrice?: TickerPrice;
+
+	/**
+	 * Volume weighted average price (VWAP) of the ticker
+	 */
+	volumeWeightedAveragePrice?: TickerPrice;
 
 	/**
 	 * Timestamp of the ticker
