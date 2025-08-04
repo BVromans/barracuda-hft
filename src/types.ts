@@ -26,43 +26,67 @@ export const BIG_NUMBER_NaN = new BN(NaN);
 
 properties.set('wallet.prefix', 'thor');
 
+/**
+ * Chain
+ */
 export enum Chain {
 	ETHEREUM = 'ethereum',
 	RUJIRA = 'rujira',
 	THORCHAIN = 'thorchain',
 }
 
+/**
+ * System status
+ */
 export enum SystemStatus {
 	UP = 'up',
 	DOWN = 'down',
 }
 
+/**
+ * Network
+ */
 export enum Network {
 	MAINNET = 'mainnet',
 	TESTNET = 'testnet'
 }
 
+/**
+ * Transaction status
+ */
 export enum TransactionStatus {
 	PENDING = 'pending',
 	SUCCESS = 'success',
 	FAILED = 'failed'
 }
 
+/**
+ * Market status
+ */
 export enum MarketStatus {
 	ACTIVE = 'active',
 	INACTIVE = 'inactive'
 }
 
+/**
+ * Order side
+ */
 export enum OrderSide {
 	BUY = 'buy',
 	SELL = 'sell'
 }
 
+/**
+ * Order type
+ */
 export enum OrderType {
 	MARKET = 'market',
 	LIMIT = 'limit'
 }
 
+/**
+ * Order status
+ */
 export enum OrderStatus {
 	OPEN = 'open',
 	CANCELLED = 'cancelled',
@@ -71,6 +95,19 @@ export enum OrderStatus {
 	CREATION_PENDING = 'creation_pending',
 	CANCELLATION_PENDING = 'cancellation_pending',
 	UNKNOWN = 'unknown'
+}
+
+/**
+ * Strategy status
+ */
+export enum StrategyStatus {
+	CREATED = 'created',
+	INITIALIZED = 'initialized',
+	IDLE = 'idle',
+	RUNNING = 'running',
+	STOP_REQUESTED = 'stop_requested',
+	STOPPING = 'stopping',
+	STOPPED = 'stopped'
 }
 
 /**
