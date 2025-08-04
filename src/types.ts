@@ -102,7 +102,7 @@ export enum OrderStatus {
  */
 export enum StrategyStatus {
 	CREATED = 'created',
-	INITIALIZED = 'initialized',
+	INITIALIZING = 'initializing',
 	IDLE = 'idle',
 	RUNNING = 'running',
 	STOP_REQUESTED = 'stop_requested',
