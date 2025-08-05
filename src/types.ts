@@ -826,7 +826,7 @@ export interface Order {
 	/**
 	 * Price of the order
 	 */
-	price: OrderPrice;
+	price?: OrderPrice;
 
 	/**
 	 * Amount of the order
@@ -1321,22 +1321,22 @@ export interface FinGetOrdersRequest {
 	/**
 	 * Order price
 	 */
-	orderPrice?: OrderPrice;
+	orderPrices?: List<OrderPrice> | OrderPrice[];
 
 	/**
 	 * Order type
 	 */
-	orderType?: OrderType;
+	orderTypes?: List<OrderType> | OrderType[];
 
 	/**
 	 * Order side
 	 */
-	orderSide?: OrderSide;
+	orderSides?: List<OrderSide> | OrderSide[];
 
 	/**
 	 * Order status
 	 */
-	orderStatus?: OrderStatus;
+	orderStatuses?: List<OrderStatus> | OrderStatus[];
 
 	/**
 	 * Maximum number of orders to return
@@ -1692,12 +1692,12 @@ export interface FinExecuteOrdersRequest {
 		/**
 		 * Cancel orders by IDs or order objects
 		 */
-		cancel?: List<OrderId> | List<Order> | any;
+		cancel?: List<OrderId> | List<Order> | OrderId[] | Order[];
 
 		/**
 		 * Withdraw filled orders by IDs or order objects
 		 */
-		withdraw?: List<OrderId> | List<Order> | any;
+		withdraw?: List<OrderId> | List<Order> | OrderId[] | Order[];
 	};
 }
 

@@ -106,7 +106,9 @@ import {
 	Wallet,
 	WalletAddress,
 	WalletMnemonic,
-	WalletPrivateKey
+	WalletPrivateKey,
+	DECIMAL_10,
+	OrderPrice
 } from "./types";
 import { getOrThrow, runWithRetryAndTimeout } from "./utils";
 
@@ -1527,7 +1529,7 @@ export class Fin {
 		}
 
 		const orderId = `${ownerAddress}-${orderSide.toString().toLowerCase()}-${orderPrice.toString()}`;
-		const orders = await this.getOrders({ ownerAddress, owner, marketAddress, marketSymbol, market, orderType, orderSide, orderStatus, orderPrice, maximumNumberOfOrders: 1 });
+		const orders = await this.getOrders({ ownerAddress, owner, marketAddress, marketSymbol, market, orderTypes: [orderType], orderSides: [orderSide], orderStatuses: [orderStatus], orderPrices: [orderPrice], maximumNumberOfOrders: 1 });
 		const order = orders.get(orderId);
 
 		if (!order) {
@@ -1544,15 +1546,15 @@ export class Fin {
 	 */
 	async getOrders(request: FinGetOrdersRequest): Promise<FinGetOrdersResponse> {
 		// TODO: add support for orderIds and orders!!!
-		let { ownerAddress, owner, marketAddress, marketSymbol, market, orderType, orderSide, orderStatus, orderPrice, orderIds, orders, maximumNumberOfOrders } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, orderTypes, orderSides, orderStatuses, orderPrices, orderIds, orders, maximumNumberOfOrders } = request;
 
 		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase() || undefined;
 		marketSymbol = marketSymbol?.trim().toUpperCase() || undefined;
-		orderType = OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType] || undefined;
-		orderSide = OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide] || undefined;
-		orderStatus = OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus] || undefined;
-		orderPrice = orderPrice;
+		orderTypes = MList(orderTypes?.map((orderType: OrderType) => OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType])) || undefined;
+		orderSides = MList(orderSides?.map((orderSide: OrderSide) => OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide])) || undefined;
+		orderStatuses = MList(orderStatuses?.map((orderStatus: OrderStatus) => OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus])) || undefined;
+		orderPrices = MList(orderPrices?.map((orderPrice: OrderPrice) => Decimal(orderPrice))) || undefined;
 		maximumNumberOfOrders = maximumNumberOfOrders || Number(properties.getAs<string>('rujira.orders.maximumNumberOfOrders'));
 
 		if (!ownerAddress && !owner) {
@@ -1680,16 +1682,16 @@ export class Fin {
 			if (marketSymbol && order.market.symbol !== marketSymbol) {
 				return false;
 			}
-			if (orderType && order.type !== orderType) {
+			if (orderTypes && !orderTypes.includes(order.type)) {
 				return false;
 			}
-			if (orderSide && order.side !== orderSide) {
+			if (orderSides && !orderSides.includes(order.side)) {
 				return false;
 			}
-			if (orderStatus && order.status !== orderStatus) {
+			if (orderStatuses && !orderStatuses.includes(order.status)) {
 				return false;
 			}
-			if (orderPrice && order.price !== orderPrice) {
+			if (orderPrices && (!order.price || !orderPrices.includes(getOrThrow<OrderPrice>(order.price)))) {
 				return false;
 			}
 
@@ -2116,7 +2118,7 @@ export class Fin {
 
 		const cancelMessages = ordersToCancel.map((order: Order) => [
 			order.side,
-			{ fixed: order.price.toString() }, // order price, there's only one order per price
+			{ fixed: getOrThrow<OrderPrice>(order.price).toString() }, // order price, there's only one order per price
 			'0' // Define the amount to 0 to cancel the order
 		]);
 
@@ -2352,7 +2354,7 @@ export class Fin {
 		marketSymbol = marketSymbol?.trim().toUpperCase();
 
 		// Sanitize place orders
-		if (orders.place && !orders.place.isEmpty()) {
+		if (orders.place) {
 			orders.place = MList<FinPlaceOrderRequest>(orders.place.map((order: FinPlaceOrderRequest) => ({
 				...order,
 				ownerAddress: this.getWalletAddress(order.ownerAddress, order.owner),
@@ -2366,7 +2368,7 @@ export class Fin {
 		}
 
 		// Sanitize replace orders
-		if (orders.replace && !orders.replace.isEmpty()) {
+		if (orders.replace) {
 			orders.replace = MList<FinReplaceOrderRequest>(orders.replace.map((order: FinReplaceOrderRequest) => ({
 				...order,
 				ownerAddress: this.getWalletAddress(order.ownerAddress, order.owner),
@@ -2380,7 +2382,7 @@ export class Fin {
 		}
 
 		// Sanitize cancel orders
-		if (orders.cancel && !orders.cancel.isEmpty()) {
+		if (orders.cancel) {
 			const cancelOrderIds = MList<OrderId>();
 			orders.cancel.forEach((item: OrderId | Order) => {
 				if (typeof item === 'string') {
@@ -2393,7 +2395,7 @@ export class Fin {
 		}
 
 		// Sanitize withdraw orders
-		if (orders.withdraw && !orders.withdraw.isEmpty()) {
+		if (orders.withdraw) {
 			const withdrawOrderIds = MList<OrderId>();
 			orders.withdraw.forEach((item: OrderId | Order) => {
 				if (typeof item === 'string') {
@@ -2419,7 +2421,7 @@ export class Fin {
 		}
 
 		// Validate place orders
-		if (orders.place && !orders.place.isEmpty()) {
+		if (orders.place) {
 			orders.place.forEach((order: FinPlaceOrderRequest) => {
 				if (!order.side || !order.type || !order.amount) {
 					throw new Error("Order side, type, and amount are required for place orders");
@@ -2431,7 +2433,7 @@ export class Fin {
 		}
 
 		// Validate replace orders
-		if (orders.replace && !orders.replace.isEmpty()) {
+		if (orders.replace) {
 			orders.replace.forEach((order: FinReplaceOrderRequest) => {
 				if (!order.side || !order.type || !order.amount) {
 					throw new Error("Order side, type, and amount are required for replace orders");
@@ -2443,14 +2445,14 @@ export class Fin {
 		}
 
 		// Validate cancel orders
-		if (orders.cancel && !orders.cancel.isEmpty()) {
+		if (orders.cancel) {
 			if (orders.cancel.isEmpty()) {
 				throw new Error("Valid order IDs are required for cancellation");
 			}
 		}
 
 		// Validate withdraw orders
-		if (orders.withdraw && !orders.withdraw.isEmpty()) {
+		if (orders.withdraw) {
 			if (orders.withdraw.isEmpty()) {
 				throw new Error("Valid order IDs are required for withdrawal");
 			}
@@ -2459,14 +2461,16 @@ export class Fin {
 		// ===== INITIALIZATION =====
 		const contractAddress = market.address;
 		const executeMessages = MMap<OrderId, any>();
-		const orderIds = MList<OrderId>();
 		const transactions = MMap<TransactionHash, Transaction>();
+		const orderIds = MList<OrderId>();
 		const ordersMap = MMap<string, Map<OrderId, Order>>();
 
 		// Get existing orders to check their status (open, partially filled, filled orders)
 		const existingOrders = await this.getOrders({
 			ownerAddress,
-			market
+			market,
+			orderTypes: [OrderType.LIMIT],
+			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED]
 		});
 
 		// Process place orders
@@ -2479,7 +2483,7 @@ export class Fin {
 					{
 						fixed: order.price?.toString()
 					},
-					order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString(),
+					order.amount.mul(DECIMAL_10.pow(order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString(),
 					null
 				]);
 				orderIds.push(orderId);
@@ -2491,11 +2495,11 @@ export class Fin {
 					ownerAddress: ownerAddress,
 					type: order.type,
 					side: order.side,
-					price: order.price || DECIMAL_1, // Default price for market orders
+					price: order.price,
 					amount: order.amount,
 					filledAmount: DECIMAL_0,
 					filledPercentage: DECIMAL_0,
-					status: OrderStatus.CREATION_PENDING,
+					status: OrderStatus.OPEN,
 					creationTimestamp: Date.now(),
 					updateTimestamp: Date.now(),
 					raw: order
@@ -2506,7 +2510,6 @@ export class Fin {
 		}
 
 		// Process replace orders
-		// Cannot change SIDE, TYPE and PRICE -- only amount
 		if (orders.replace && !orders.replace.isEmpty()) {
 			const replaceOrdersMap = MMap<OrderId, Order>();
 			orders.replace.forEach((order: FinReplaceOrderRequest) => {
@@ -2516,7 +2519,7 @@ export class Fin {
 					{
 						fixed: order.price?.toString()
 					},
-					order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString(),
+					order.amount.mul(DECIMAL_10.pow(order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString(),
 					null
 				]);
 				orderIds.push(orderId);
@@ -2528,11 +2531,11 @@ export class Fin {
 					ownerAddress: ownerAddress,
 					type: order.type,
 					side: order.side,
-					price: order.price || DECIMAL_1,
+					price: order.price,
 					amount: order.amount,
 					filledAmount: DECIMAL_0,
 					filledPercentage: DECIMAL_0,
-					status: OrderStatus.CREATION_PENDING,
+					status: OrderStatus.OPEN,
 					creationTimestamp: Date.now(),
 					updateTimestamp: Date.now(),
 					raw: order
@@ -2543,7 +2546,6 @@ export class Fin {
 		}
 
 		// Process cancel orders
-		// Remember to change STATUS to CANCELLED and update timestamp
 		if (orders.cancel && !orders.cancel.isEmpty()) {
 			const cancelOrdersMap = MMap<OrderId, Order>();
 			orders.cancel.forEach((orderId: OrderId) => {
@@ -2560,7 +2562,7 @@ export class Fin {
 
 				executeMessages.set(orderId, [
 					existingOrder.side,
-					{ fixed: existingOrder.price.toString() },
+					{ fixed: getOrThrow<OrderPrice>(existingOrder.price).toString() },
 					'0' // Set amount to 0 to cancel
 				]);
 				orderIds.push(orderId);
@@ -2577,7 +2579,6 @@ export class Fin {
 		}
 
 		// Process withdraw orders
-		// Remember to update timestamp
 		if (orders.withdraw && !orders.withdraw.isEmpty()) {
 			const withdrawOrdersMap = MMap<OrderId, Order>();
 			orders.withdraw.forEach((orderId: OrderId) => {
@@ -2592,6 +2593,7 @@ export class Fin {
 					throw new Error(`Cannot withdraw order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.FILLED}`);
 				}
 
+				// TODO: fix and check the other messages!!!
 				executeMessages.set(orderId, [
 					'withdraw',
 					orderId
@@ -2621,7 +2623,7 @@ export class Fin {
 			},
 			'auto',
 			undefined,
-			[{ denom: '', amount: '' }]
+			[{ denom: '', amount: '' }] // TODO: fix!!!
 		);
 
 		// Get the transaction details
