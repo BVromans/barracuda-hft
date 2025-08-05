@@ -2385,6 +2385,8 @@ export class Fin {
 			}
 		}
 
+		// TODO": validate that the orders use the same market!!!
+
 		// ===== INITIALIZATION =====
 		const contractAddress = market.address;
 		const executeMessages = MMap<OrderId, any>();
