@@ -1253,7 +1253,7 @@ export class Fin {
 		const indicators = MMap<Indicator, IndicatorData>();
 
 		for (const indicator of Indicator.getAll()) {
-			const value = (Indicators as any)[indicator.id](data, ...indicator.defaultParameters);
+			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(candles), ...indicator.parameters);
 
 			indicators.set(indicator, {
 				indicator,

@@ -183,12 +183,12 @@ function calculateIndicators(candles: any[]) {
             value = indicatorFunction(highs, lows, closes, volumes, ...tradingIndicator.specialParams);
           } else {
             // Call indicator with OHLCV data
-            value = indicatorFunction(highs, lows, closes, volumes, ...tradingIndicator.indicator.defaultParameters);
+            value = indicatorFunction(highs, lows, closes, volumes, ...tradingIndicator.indicator.parameters);
           }
         } else {
           // Extract only close prices for simple indicators
           const prices = candles.map((c: any) => parseFloat(c.close));
-          value = indicatorFunction(prices, ...tradingIndicator.indicator.defaultParameters);
+          value = indicatorFunction(prices, ...tradingIndicator.indicator.parameters);
         }
 
         indicators.set(tradingIndicator.indicator, {
@@ -244,7 +244,7 @@ async function testIndicatorsVWAPCorrected() {
       if (indicatorData) {
         console.log(`\n🎯 ${tradingIndicator.name} (${tradingIndicator.description})`);
         console.log(`   Data Type: ${tradingIndicator.needsOHLCV ? 'OHLCV' : 'Close Only'}`);
-        console.log(`   Parameters: [${tradingIndicator.specialParams ? tradingIndicator.specialParams.join(', ') : tradingIndicator.indicator.defaultParameters.join(', ')}]`);
+        console.log(`   Parameters: [${tradingIndicator.specialParams ? tradingIndicator.specialParams.join(', ') : tradingIndicator.indicator.parameters.join(', ')}]`);
 
         const value = indicatorData.value;
 

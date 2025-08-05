@@ -142,7 +142,7 @@ async function testGetIndicators() {
 
       if (indicatorData) {
         console.log(`\n🎯 ${selectedIndicator.name} (${selectedIndicator.id})`);
-        console.log(`   Parameters: [${selectedIndicator.defaultParameters.join(', ')}]`);
+        console.log(`   Parameters: [${selectedIndicator.parameters.join(', ')}]`);
 
         const value = indicatorData.value;
 

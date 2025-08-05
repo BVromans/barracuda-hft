@@ -130,7 +130,7 @@ function calculateIndicators(prices: number[]) {
     try {
       const indicatorFunction = (Indicators as any)[tradingIndicator.indicator.id];
       if (indicatorFunction) {
-        const value = indicatorFunction(prices, ...tradingIndicator.indicator.defaultParameters);
+        const value = indicatorFunction(prices, ...tradingIndicator.indicator.parameters);
         indicators.set(tradingIndicator.indicator, {
           indicator: tradingIndicator.indicator,
           value: value
@@ -225,7 +225,7 @@ async function testIndicatorsPublic() {
 
       if (indicatorData) {
         console.log(`\n🎯 ${tradingIndicator.name} (${tradingIndicator.description})`);
-        console.log(`   Parameters: [${tradingIndicator.indicator.defaultParameters.join(', ')}]`);
+        console.log(`   Parameters: [${tradingIndicator.indicator.parameters.join(', ')}]`);
 
         const value = indicatorData.value;
 
