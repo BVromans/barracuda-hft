@@ -26,67 +26,43 @@ export const BIG_NUMBER_NaN = new BN(NaN);
 
 properties.set('wallet.prefix', 'thor');
 
-/**
- * Chain
- */
 export enum Chain {
 	ETHEREUM = 'ethereum',
 	RUJIRA = 'rujira',
 	THORCHAIN = 'thorchain',
 }
 
-/**
- * System status
- */
 export enum SystemStatus {
 	UP = 'up',
 	DOWN = 'down',
 }
 
-/**
- * Network
- */
 export enum Network {
 	MAINNET = 'mainnet',
 	TESTNET = 'testnet'
 }
 
-/**
- * Transaction status
- */
 export enum TransactionStatus {
 	PENDING = 'pending',
 	SUCCESS = 'success',
 	FAILED = 'failed'
 }
 
-/**
- * Market status
- */
 export enum MarketStatus {
 	ACTIVE = 'active',
 	INACTIVE = 'inactive'
 }
 
-/**
- * Order side
- */
 export enum OrderSide {
 	BUY = 'buy',
 	SELL = 'sell'
 }
 
-/**
- * Order type
- */
 export enum OrderType {
 	MARKET = 'market',
 	LIMIT = 'limit'
 }
 
-/**
- * Order status
- */
 export enum OrderStatus {
 	OPEN = 'open',
 	CANCELLED = 'cancelled',
@@ -95,19 +71,6 @@ export enum OrderStatus {
 	CREATION_PENDING = 'creation_pending',
 	CANCELLATION_PENDING = 'cancellation_pending',
 	UNKNOWN = 'unknown'
-}
-
-/**
- * Strategy status
- */
-export enum StrategyStatus {
-	CREATED = 'created',
-	INITIALIZING = 'initializing',
-	IDLE = 'idle',
-	RUNNING = 'running',
-	STOP_REQUESTED = 'stop_requested',
-	STOPPING = 'stopping',
-	STOPPED = 'stopped'
 }
 
 /**
@@ -1681,4 +1644,89 @@ export interface FinWithdrawResponse {
 	 * Raw response
 	 */
 	raw: Raw;
+}
+
+/**
+ * Unified order execution request that can handle place, replace, cancel, and withdraw operations
+ */
+export interface FinExecuteOrdersRequest {
+	/**
+	 * Owner address (wallet that will execute the orders)
+	 */
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner wallet
+	 */
+	owner?: Wallet;
+
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market symbol
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market object
+	 */
+	market?: Market;
+
+	/**
+	 * Order operations to execute
+	 */
+	orders: {
+		/**
+		 * Place new orders
+		 */
+		place?: List<FinPlaceOrderRequest>;
+
+		/**
+		 * Replace existing orders
+		 */
+		replace?: List<FinReplaceOrderRequest>;
+
+		/**
+		 * Cancel orders by IDs or order objects
+		 */
+		cancel?: List<OrderId> | List<Order> | any;
+
+		/**
+		 * Withdraw filled orders by IDs or order objects
+		 */
+		withdraw?: List<OrderId> | List<Order> | any;
+	};
+}
+
+/**
+ * Unified order execution response
+ */
+export interface FinExecuteOrdersResponse {
+	/**
+	 * Placed orders (if any)
+	 */
+	placedOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Replaced orders (if any)
+	 */
+	replacedOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Cancelled orders (if any)
+	 */
+	cancelledOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Withdrawn orders (if any)
+	 */
+	withdrawnOrders?: Map<OrderId, Order>;
+
+	/**
+	 * All transactions from the execution
+	 */
+	transactions: Map<TransactionHash, Transaction>;
 }

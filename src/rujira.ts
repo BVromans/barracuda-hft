@@ -67,6 +67,8 @@ import {
 	FinReplaceOrderResponse,
 	FinReplaceOrdersRequest,
 	FinReplaceOrdersResponse,
+	FinExecuteOrdersRequest,
+	FinExecuteOrdersResponse,
 	FinWithdrawRequest,
 	FinWithdrawResponse,
 	Indicator,
@@ -1564,6 +1566,34 @@ export class Fin {
 			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 		}
 
+		// Sanitize orderIds and extract order IDs from orders objects
+		const sanitizedOrderIds = MList<OrderId>();
+
+		// Sanitize orderIds if provided
+		if (orderIds) {
+			orderIds.forEach((orderId: OrderId) => {
+				if (orderId) {
+					sanitizedOrderIds.push(orderId.trim().toLowerCase());
+				}
+			});
+		}
+
+		// Sanitize orders by transforming into a list and extracting/sanitizing order IDs
+		if (orders) {
+			// Ensure orders is a List
+			const ordersList = List.isList(orders) ? orders : MList<Order>(orders);
+
+			// Extract and sanitize order IDs from order objects
+			ordersList.forEach((orderObj: Order) => {
+				if (orderObj.id) {
+					const sanitizedId = orderObj.id.trim().toLowerCase();
+					if (!sanitizedOrderIds.includes(sanitizedId)) {
+						sanitizedOrderIds.push(sanitizedId);
+					}
+				}
+			});
+		}
+
 		const query = {
 			orders: {
 				owner: ownerAddress,
@@ -1634,6 +1664,13 @@ export class Fin {
 		}
 
 		filteredOrders = filteredOrders.filter((order: Order) => {
+			// Filter by sanitized order IDs (merged from orderIds and orders)
+			if (sanitizedOrderIds && !sanitizedOrderIds.isEmpty()) {
+				if (!order.id || !sanitizedOrderIds.includes(order.id)) {
+					return false;
+				}
+			}
+
 			if (ownerAddress && order.ownerAddress !== ownerAddress) {
 				return false;
 			}
@@ -2299,6 +2336,308 @@ export class Fin {
 	@runWithRetryAndTimeout()
 	private async cosmClientGetHeight(): Promise<number> {
 		return this.cosmClient.getHeight();
+	}
+
+	/**
+	 * Unified method to execute order operations (place, replace, cancel, withdraw)
+	 * @param request - The unified request object
+	 * @returns The unified response object
+	 */
+	async executeOrders(request: FinExecuteOrdersRequest): Promise<FinExecuteOrdersResponse> {
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, orders } = request;
+
+		// ===== SANITIZATION =====
+		ownerAddress = this.getWalletAddress(ownerAddress, owner);
+		marketAddress = marketAddress?.trim().toLowerCase();
+		marketSymbol = marketSymbol?.trim().toUpperCase();
+
+		// Sanitize place orders
+		if (orders.place && !orders.place.isEmpty()) {
+			orders.place = MList<FinPlaceOrderRequest>(orders.place.map((order: FinPlaceOrderRequest) => ({
+				...order,
+				ownerAddress: this.getWalletAddress(order.ownerAddress, order.owner),
+				marketAddress: order.marketAddress?.trim().toLowerCase(),
+				marketSymbol: order.marketSymbol?.trim().toUpperCase(),
+				side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
+				type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
+				amount: Decimal(order.amount),
+				price: order.price ? Decimal(order.price) : undefined,
+			})));
+		}
+
+		// Sanitize replace orders
+		if (orders.replace && !orders.replace.isEmpty()) {
+			orders.replace = MList<FinReplaceOrderRequest>(orders.replace.map((order: FinReplaceOrderRequest) => ({
+				...order,
+				ownerAddress: this.getWalletAddress(order.ownerAddress, order.owner),
+				marketAddress: order.marketAddress?.trim().toLowerCase(),
+				marketSymbol: order.marketSymbol?.trim().toUpperCase(),
+				side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
+				type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
+				amount: Decimal(order.amount),
+				price: order.price ? Decimal(order.price) : undefined,
+			})));
+		}
+
+		// Sanitize cancel orders
+		if (orders.cancel && !orders.cancel.isEmpty()) {
+			const cancelOrderIds = MList<OrderId>();
+			orders.cancel.forEach((item: OrderId | Order) => {
+				if (typeof item === 'string') {
+					cancelOrderIds.push(item.trim().toLowerCase());
+				} else if (item.id) {
+					cancelOrderIds.push(item.id.trim().toLowerCase());
+				}
+			});
+			orders.cancel = cancelOrderIds;
+		}
+
+		// Sanitize withdraw orders
+		if (orders.withdraw && !orders.withdraw.isEmpty()) {
+			const withdrawOrderIds = MList<OrderId>();
+			orders.withdraw.forEach((item: OrderId | Order) => {
+				if (typeof item === 'string') {
+					withdrawOrderIds.push(item.trim().toLowerCase());
+				} else if (item.id) {
+					withdrawOrderIds.push(item.id.trim().toLowerCase());
+				}
+			});
+			orders.withdraw = withdrawOrderIds;
+		}
+
+		// ===== VALIDATION =====
+		if (!ownerAddress) {
+			throw new Error("Owner address or owner wallet is required");
+		}
+
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Market address, market symbol, or market object is required");
+		}
+
+		if (!market) {
+			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
+
+		// Validate place orders
+		if (orders.place && !orders.place.isEmpty()) {
+			orders.place.forEach((order: FinPlaceOrderRequest) => {
+				if (!order.side || !order.type || !order.amount) {
+					throw new Error("Order side, type, and amount are required for place orders");
+				}
+				if (order.type === OrderType.LIMIT && !order.price) {
+					throw new Error("Order price is required for limit place orders");
+				}
+			});
+		}
+
+		// Validate replace orders
+		if (orders.replace && !orders.replace.isEmpty()) {
+			orders.replace.forEach((order: FinReplaceOrderRequest) => {
+				if (!order.side || !order.type || !order.amount) {
+					throw new Error("Order side, type, and amount are required for replace orders");
+				}
+				if (order.type === OrderType.LIMIT && !order.price) {
+					throw new Error("Order price is required for limit replace orders");
+				}
+			});
+		}
+
+		// Validate cancel orders
+		if (orders.cancel && !orders.cancel.isEmpty()) {
+			if (orders.cancel.isEmpty()) {
+				throw new Error("Valid order IDs are required for cancellation");
+			}
+		}
+
+		// Validate withdraw orders
+		if (orders.withdraw && !orders.withdraw.isEmpty()) {
+			if (orders.withdraw.isEmpty()) {
+				throw new Error("Valid order IDs are required for withdrawal");
+			}
+		}
+
+		// ===== INITIALIZATION =====
+		const contractAddress = market.address;
+		const executeMessages = MMap<OrderId, any>();
+		const orderIds = MList<OrderId>();
+		const transactions = MMap<TransactionHash, Transaction>();
+		const ordersMap = MMap<string, Map<OrderId, Order>>();
+
+		// Get existing orders to check their status (open, partially filled, filled orders)
+		const existingOrders = await this.getOrders({
+			ownerAddress,
+			market
+		});
+
+		// Process place orders
+		if (orders.place && !orders.place.isEmpty()) {
+			const placeOrdersMap = MMap<OrderId, Order>();
+			orders.place.forEach((order: FinPlaceOrderRequest) => {
+				const orderId = `${ownerAddress}-${order.side.toString().toLowerCase()}-${order.price?.toString()}`;
+				executeMessages.set(orderId, [
+					order.side === OrderSide.BUY ? 'quote' : 'base',
+					{
+						fixed: order.price?.toString()
+					},
+					order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString(),
+					null
+				]);
+				orderIds.push(orderId);
+
+				// Create a proper Order object at this moment
+				const orderObject: Order = {
+					id: orderId,
+					market: market,
+					ownerAddress: ownerAddress,
+					type: order.type,
+					side: order.side,
+					price: order.price || DECIMAL_1, // Default price for market orders
+					amount: order.amount,
+					filledAmount: DECIMAL_0,
+					filledPercentage: DECIMAL_0,
+					status: OrderStatus.CREATION_PENDING,
+					creationTimestamp: Date.now(),
+					updateTimestamp: Date.now(),
+					raw: order
+				};
+				placeOrdersMap.set(orderId, orderObject);
+			});
+			ordersMap.set('place', placeOrdersMap);
+		}
+
+		// Process replace orders
+		// Cannot change SIDE, TYPE and PRICE -- only amount
+		if (orders.replace && !orders.replace.isEmpty()) {
+			const replaceOrdersMap = MMap<OrderId, Order>();
+			orders.replace.forEach((order: FinReplaceOrderRequest) => {
+				const orderId = `${ownerAddress}-${order.side.toString().toLowerCase()}-${order.price?.toString()}`;
+				executeMessages.set(orderId, [
+					order.side === OrderSide.BUY ? 'quote' : 'base',
+					{
+						fixed: order.price?.toString()
+					},
+					order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString(),
+					null
+				]);
+				orderIds.push(orderId);
+
+				// Create a proper Order object using existing order and new amount (remember to update timestamp)
+				const orderObject: Order = {
+					id: orderId,
+					market: market,
+					ownerAddress: ownerAddress,
+					type: order.type,
+					side: order.side,
+					price: order.price || DECIMAL_1,
+					amount: order.amount,
+					filledAmount: DECIMAL_0,
+					filledPercentage: DECIMAL_0,
+					status: OrderStatus.CREATION_PENDING,
+					creationTimestamp: Date.now(),
+					updateTimestamp: Date.now(),
+					raw: order
+				};
+				replaceOrdersMap.set(orderId, orderObject);
+			});
+			ordersMap.set('replace', replaceOrdersMap);
+		}
+
+		// Process cancel orders
+		// Remember to change STATUS to CANCELLED and update timestamp
+		if (orders.cancel && !orders.cancel.isEmpty()) {
+			const cancelOrdersMap = MMap<OrderId, Order>();
+			orders.cancel.forEach((orderId: OrderId) => {
+				// Check if order exists in existing orders
+				const existingOrder = existingOrders.get(orderId);
+				if (!existingOrder) {
+					throw new Error(`Order not found: ${orderId}`);
+				}
+
+				// Validate order status for cancellation
+				if (existingOrder.status !== OrderStatus.OPEN) {
+					throw new Error(`Cannot cancel order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.OPEN}`);
+				}
+
+				executeMessages.set(orderId, [
+					existingOrder.side,
+					{ fixed: existingOrder.price.toString() },
+					'0' // Set amount to 0 to cancel
+				]);
+				orderIds.push(orderId);
+
+				// Update order status to CANCELLED and update timestamp
+				const cancelledOrder: Order = {
+					...existingOrder,
+					status: OrderStatus.CANCELLED,
+					updateTimestamp: Date.now()
+				};
+				cancelOrdersMap.set(orderId, cancelledOrder);
+			});
+			ordersMap.set('cancel', cancelOrdersMap);
+		}
+
+		// Process withdraw orders
+		// Remember to update timestamp
+		if (orders.withdraw && !orders.withdraw.isEmpty()) {
+			const withdrawOrdersMap = MMap<OrderId, Order>();
+			orders.withdraw.forEach((orderId: OrderId) => {
+				// Check if order exists in existing orders
+				const existingOrder = existingOrders.get(orderId);
+				if (!existingOrder) {
+					throw new Error(`Order not found: ${orderId}`);
+				}
+
+				// Validate order status for withdrawal
+				if (existingOrder.status !== OrderStatus.FILLED) {
+					throw new Error(`Cannot withdraw order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.FILLED}`);
+				}
+
+				executeMessages.set(orderId, [
+					'withdraw',
+					orderId
+				]);
+				orderIds.push(orderId);
+
+				// Update timestamp for withdrawn order
+				const withdrawnOrder: Order = {
+					...existingOrder,
+					updateTimestamp: Date.now()
+				};
+				withdrawOrdersMap.set(orderId, withdrawnOrder);
+			});
+			ordersMap.set('withdraw', withdrawOrdersMap);
+		}
+
+		if (executeMessages.isEmpty()) {
+			throw new Error("No valid orders to execute");
+		}
+
+		// Execute the transaction
+		const response = await this.cosmClient.execute(
+			ownerAddress,
+			contractAddress,
+			{
+				order: executeMessages.toArray()
+			},
+			'auto',
+			undefined,
+			[{ denom: '', amount: '' }]
+		);
+
+		// Get the transaction details
+		const transaction = await this.getTransaction({ hash: response.transactionHash });
+		transactions.set(transaction.hash, transaction);
+
+		// Build the response
+		const result: FinExecuteOrdersResponse = {
+			placedOrders: ordersMap.get('place'),
+			replacedOrders: ordersMap.get('replace'),
+			cancelledOrders: ordersMap.get('cancel'),
+			withdrawnOrders: ordersMap.get('withdraw'),
+			transactions: transactions
+		};
+
+		return result;
 	}
 }
 
