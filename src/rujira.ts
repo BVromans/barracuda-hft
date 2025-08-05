@@ -1545,7 +1545,6 @@ export class Fin {
 	 * @returns The orders response
 	 */
 	async getOrders(request: FinGetOrdersRequest): Promise<FinGetOrdersResponse> {
-		// TODO: add support for orderIds and orders!!!
 		let { ownerAddress, owner, marketAddress, marketSymbol, market, orderTypes, orderSides, orderStatuses, orderPrices, orderIds, orders, maximumNumberOfOrders } = request;
 
 		ownerAddress = this.getWalletAddress(ownerAddress, owner);
@@ -1564,6 +1563,14 @@ export class Fin {
 			throw new Error("Market address or market symbol is required");
 		}
 
+		// Validate that at least one filtering criteria is provided when using orderIds or orders
+		if ((orderIds && !List.isList(orderIds) ? orderIds.length > 0 : !orderIds?.isEmpty()) ||
+			(orders && !List.isList(orders) ? orders.length > 0 : !orders?.isEmpty())) {
+			if (!ownerAddress && !marketAddress && !marketSymbol && !market) {
+				throw new Error("When filtering by orderIds or orders, at least one of ownerAddress, marketAddress, marketSymbol, or market must be provided");
+			}
+		}
+
 		if (!market) {
 			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 		}
@@ -1572,24 +1579,28 @@ export class Fin {
 		const sanitizedOrderIds = MList<OrderId>();
 
 		// Sanitize orderIds if provided
-		if (orderIds) {
-			orderIds.forEach((orderId: OrderId) => {
-				if (orderId) {
-					sanitizedOrderIds.push(orderId.trim().toLowerCase());
+		if (orderIds && !List.isList(orderIds) ? orderIds.length > 0 : !orderIds?.isEmpty()) {
+			const orderIdsList = List.isList(orderIds) ? orderIds : MList<OrderId>(orderIds);
+			orderIdsList.forEach((orderId: OrderId) => {
+				if (orderId && typeof orderId === 'string') {
+					const sanitizedId = orderId.trim().toLowerCase();
+					if (sanitizedId && !sanitizedOrderIds.includes(sanitizedId)) {
+						sanitizedOrderIds.push(sanitizedId);
+					}
 				}
 			});
 		}
 
 		// Sanitize orders by transforming into a list and extracting/sanitizing order IDs
-		if (orders) {
+		if (orders && !List.isList(orders) ? orders.length > 0 : !orders?.isEmpty()) {
 			// Ensure orders is a List
 			const ordersList = List.isList(orders) ? orders : MList<Order>(orders);
 
 			// Extract and sanitize order IDs from order objects
 			ordersList.forEach((orderObj: Order) => {
-				if (orderObj.id) {
+				if (orderObj && orderObj.id && typeof orderObj.id === 'string') {
 					const sanitizedId = orderObj.id.trim().toLowerCase();
-					if (!sanitizedOrderIds.includes(sanitizedId)) {
+					if (sanitizedId && !sanitizedOrderIds.includes(sanitizedId)) {
 						sanitizedOrderIds.push(sanitizedId);
 					}
 				}
@@ -1673,25 +1684,38 @@ export class Fin {
 				}
 			}
 
+			// Filter by owner address
 			if (ownerAddress && order.ownerAddress !== ownerAddress) {
 				return false;
 			}
+
+			// Filter by market address
 			if (marketAddress && order.market.address !== marketAddress) {
 				return false;
 			}
+
+			// Filter by market symbol
 			if (marketSymbol && order.market.symbol !== marketSymbol) {
 				return false;
 			}
-			if (orderTypes && !orderTypes.includes(order.type)) {
+
+			// Filter by order types
+			if (orderTypes && !orderTypes.isEmpty() && !orderTypes.includes(order.type)) {
 				return false;
 			}
-			if (orderSides && !orderSides.includes(order.side)) {
+
+			// Filter by order sides
+			if (orderSides && !orderSides.isEmpty() && !orderSides.includes(order.side)) {
 				return false;
 			}
-			if (orderStatuses && !orderStatuses.includes(order.status)) {
+
+			// Filter by order statuses
+			if (orderStatuses && !orderStatuses.isEmpty() && !orderStatuses.includes(order.status)) {
 				return false;
 			}
-			if (orderPrices && (!order.price || !orderPrices.includes(getOrThrow<OrderPrice>(order.price)))) {
+
+			// Filter by order prices
+			if (orderPrices && !orderPrices.isEmpty() && (!order.price || !orderPrices.includes(getOrThrow<OrderPrice>(order.price)))) {
 				return false;
 			}
 
@@ -2343,6 +2367,23 @@ export class Fin {
 			throw new Error("Market address, market symbol, or market object is required");
 		}
 
+		// Validate that all orders use the same market
+		const validateMarket = (orders: any[], operation: string) => {
+			if (orders && orders.length > 0) {
+				orders.forEach((order: any) => {
+					if (order.marketAddress && order.marketAddress !== marketAddress) {
+						throw new Error(`${operation} orders must use the same market. Expected: ${marketAddress}, Got: ${order.marketAddress}`);
+					}
+					if (order.marketSymbol && order.marketSymbol !== marketSymbol) {
+						throw new Error(`${operation} orders must use the same market. Expected: ${marketSymbol}, Got: ${order.marketSymbol}`);
+					}
+				});
+			}
+		};
+
+		validateMarket(orders.place?.toArray() || [], 'Place');
+		validateMarket(orders.replace?.toArray() || [], 'Replace');
+
 		if (!market) {
 			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 		}
@@ -2385,13 +2426,9 @@ export class Fin {
 			}
 		}
 
-		// TODO": validate that the orders use the same market!!!
-
 		// ===== INITIALIZATION =====
 		const contractAddress = market.address;
-		const executeMessages = MMap<OrderId, any>();
 		const transactions = MMap<TransactionHash, Transaction>();
-		const orderIds = MList<OrderId>();
 		const ordersMap = MMap<string, Map<OrderId, Order>>();
 
 		// Get existing orders to check their status (open, partially filled, filled orders)
@@ -2402,20 +2439,22 @@ export class Fin {
 			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED]
 		});
 
+		// Build the complete order message structure
+		const executeMessages: any[] = [];
+
 		// Process place orders
 		if (orders.place && !orders.place.isEmpty()) {
 			const placeOrdersMap = MMap<OrderId, Order>();
+
 			orders.place.forEach((order: FinPlaceOrderRequest) => {
 				const orderId = `${ownerAddress}-${order.side.toString().toLowerCase()}-${order.price?.toString()}`;
-				executeMessages.set(orderId, [
-					order.side === OrderSide.BUY ? 'quote' : 'base',
-					{
-						fixed: order.price?.toString()
-					},
-					order.amount.mul(DECIMAL_10.pow(order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString(),
-					null
-				]);
-				orderIds.push(orderId);
+
+				// Create message
+				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
+				const price = order.price?.toString() || '0';
+				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString();
+
+				executeMessages.push([side, { fixed: price }, amount]);
 
 				// Create a proper Order object at this moment
 				const orderObject: Order = {
@@ -2441,19 +2480,18 @@ export class Fin {
 		// Process replace orders
 		if (orders.replace && !orders.replace.isEmpty()) {
 			const replaceOrdersMap = MMap<OrderId, Order>();
+
 			orders.replace.forEach((order: FinReplaceOrderRequest) => {
 				const orderId = `${ownerAddress}-${order.side.toString().toLowerCase()}-${order.price?.toString()}`;
-				executeMessages.set(orderId, [
-					order.side === OrderSide.BUY ? 'quote' : 'base',
-					{
-						fixed: order.price?.toString()
-					},
-					order.amount.mul(DECIMAL_10.pow(order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString(),
-					null
-				]);
-				orderIds.push(orderId);
 
-				// Create a proper Order object using existing order and new amount (remember to update timestamp)
+				// Create message
+				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
+				const price = order.price?.toString() || '0';
+				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString();
+
+				executeMessages.push([side, { fixed: price }, amount]);
+
+				// Create a proper Order object using existing order and new amount
 				const orderObject: Order = {
 					id: orderId,
 					market: market,
@@ -2477,6 +2515,7 @@ export class Fin {
 		// Process cancel orders
 		if (orders.cancel && !orders.cancel.isEmpty()) {
 			const cancelOrdersMap = MMap<OrderId, Order>();
+
 			orders.cancel.forEach((orderId: OrderId) => {
 				// Check if order exists in existing orders
 				const existingOrder = existingOrders.get(orderId);
@@ -2489,12 +2528,11 @@ export class Fin {
 					throw new Error(`Cannot cancel order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.OPEN}`);
 				}
 
-				executeMessages.set(orderId, [
-					existingOrder.side,
-					{ fixed: getOrThrow<OrderPrice>(existingOrder.price).toString() },
-					'0' // Set amount to 0 to cancel
-				]);
-				orderIds.push(orderId);
+				// Create cancel message: [side, { fixed: price }, '0']
+				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
+				const price = existingOrder.price?.toString() || '0';
+
+				executeMessages.push([side, { fixed: price }, '0']);
 
 				// Update order status to CANCELLED and update timestamp
 				const cancelledOrder: Order = {
@@ -2510,6 +2548,7 @@ export class Fin {
 		// Process withdraw orders
 		if (orders.withdraw && !orders.withdraw.isEmpty()) {
 			const withdrawOrdersMap = MMap<OrderId, Order>();
+
 			orders.withdraw.forEach((orderId: OrderId) => {
 				// Check if order exists in existing orders
 				const existingOrder = existingOrders.get(orderId);
@@ -2522,12 +2561,11 @@ export class Fin {
 					throw new Error(`Cannot withdraw order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.FILLED}`);
 				}
 
-				// TODO: fix and check the other messages!!!
-				executeMessages.set(orderId, [
-					'withdraw',
-					orderId
-				]);
-				orderIds.push(orderId);
+				// For withdraw, we use the same structure as place/replace but with null amount
+				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
+				const price = existingOrder.price?.toString() || '0';
+
+				executeMessages.push([side, { fixed: price }, null]);
 
 				// Update timestamp for withdrawn order
 				const withdrawnOrder: Order = {
@@ -2539,7 +2577,7 @@ export class Fin {
 			ordersMap.set('withdraw', withdrawOrdersMap);
 		}
 
-		if (executeMessages.isEmpty()) {
+		if (executeMessages.length === 0) {
 			throw new Error("No valid orders to execute");
 		}
 
@@ -2548,11 +2586,9 @@ export class Fin {
 			ownerAddress,
 			contractAddress,
 			{
-				order: executeMessages.toArray()
+				order: [executeMessages, null]
 			},
-			'auto',
-			undefined,
-			[{ denom: '', amount: '' }] // TODO: fix!!!
+			'auto'
 		);
 
 		// Get the transaction details
