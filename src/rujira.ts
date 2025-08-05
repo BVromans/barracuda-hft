@@ -2073,93 +2073,20 @@ export class Fin {
 	async cancelOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
 		let { orderIds, orders, ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
-		ownerAddress = this.getWalletAddress(ownerAddress, owner);
-		marketAddress = marketAddress?.trim().toLowerCase();
-		marketSymbol = marketSymbol?.trim().toUpperCase();
-
-		if (!market && (marketAddress || marketSymbol)) {
-			market = await this.getMarket({
-				address: marketAddress,
-				symbol: marketSymbol
-			});
-		}
-
-		orderIds = MList<OrderId>(orderIds?.map((orderId: OrderId) => orderId.trim().toLowerCase()));
-		orders = MList<Order>(orders?.map((order: Order) => ({
-			...order,
-			ownerAddress: order.ownerAddress || ownerAddress,
-			market: order.market || market,
-			side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
-			type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
-		})));
-
-		if ((!orderIds || orderIds.isEmpty()) && (!orders || orders.isEmpty())) {
-			throw new Error("Order IDs or orders are required");
-		}
-
-		if (!ownerAddress && !owner) {
-			throw new Error("Owner address or owner wallet is required");
-		}
-		if (!marketAddress && !marketSymbol && !market) {
-			throw new Error("Market address, market symbol, or market object is required");
-		}
-
-		market = getOrThrow<Market>(market);
-
-		const ordersToCancel = await this.getOrders({
+		const executedOrders = await this.executeOrders({
 			ownerAddress,
 			owner,
 			marketAddress,
 			marketSymbol,
 			market,
-			orderIds,
-			orders
-		});
+			orders: {
+				cancel: orderIds || orders
+			}
+		})
 
-		const cancelMessages = ordersToCancel.map((order: Order) => [
-			order.side,
-			{ fixed: getOrThrow<OrderPrice>(order.price).toString() }, // order price, there's only one order per price
-			'0' // Define the amount to 0 to cancel the order
-		]);
-
-		const executeMessage = {
-			order: [
-				cancelMessages,
-				null // TODO: what is this?!!!
-			]
-		};
-
-		// TODO: add example response!!!
-		// TODO: add response interface!!!
-		const cancellationResponse = await this.cosmClientExecute(
-			ownerAddress,
-			market.address,
-			executeMessage,
-			'auto'
-		);
-
-		const cancelledOrders = ordersToCancel.map((order: Order) => ({
-			...order,
-			updateTimestamp: new Date().getTime(),
-			status: OrderStatus.CANCELLED,
-			raw: cancellationResponse
-		}));
-
-		const transactions = MMap<TransactionHash, Transaction>();
-		transactions.set(cancellationResponse.transactionHash, {
-			hash: cancellationResponse.transactionHash,
-			status: TransactionStatus.SUCCESS,
-			fee: {
-				// TODO: check if this is correct!!!
-				amount: cancellationResponse.gasUsed ? new Decimal(cancellationResponse.gasUsed.toString()).div(this.feePaymentToken.decimals) : DECIMAL_0,
-				token: this.feePaymentToken
-			},
-			raw: cancellationResponse
-		});
-
-		const result: FinCancelOrdersResponse = {
-			orders: cancelledOrders,
-			transactions: transactions
+		const result = {
+			orders: getOrThrow<Map<OrderId, Order>>(executedOrders.cancelledOrders),
+			transactions: executedOrders.transactions
 		};
 
 		return result;
