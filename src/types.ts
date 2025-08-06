@@ -1639,11 +1639,6 @@ export interface FinWithdrawResponse {
 	 * Transaction details
 	 */
 	transactions: Map<TransactionHash, Transaction>;
-
-	/**
-	 * Raw response
-	 */
-	raw: Raw;
 }
 
 /**
