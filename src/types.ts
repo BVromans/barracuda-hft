@@ -119,7 +119,17 @@ export class Indicator {
 		"ad",
 		"Accumulation/Distribution Line",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					data[3].push(candle.volume.toNumber() || 0);
+					return data;
+				},
+				[[], [], [], []] as [number[], number[], number[], number[]]
+			);
+			return result;
 		},
 		[]
 	);
@@ -128,45 +138,85 @@ export class Indicator {
 		"adosc",
 		"Accumulation/Distribution Oscillator",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					data[3].push(candle.volume.toNumber() || 0);
+					return data;
+				},
+				[[], [], [], []] as [number[], number[], number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[28, 14]
 	);
 
 	static average_directional_movement_index = new Indicator(
 		"adx",
 		"Average Directional Movement Index",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[14, 14]
 	);
 
 	static average_directional_movement_rating = new Indicator(
 		"adxr",
 		"Average Directional Movement Rating",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[14]
 	);
 
 	static awesome_oscillator = new Indicator(
 		"ao",
 		"Awesome Oscillator",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[34]
 	);
 
 	static absolute_price_oscillator = new Indicator(
 		"apo",
 		"Absolute Price Oscillator",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[12, 26]
 	);
 
 	static aroon = new Indicator(
@@ -2053,7 +2103,7 @@ export interface FinGetIndicatorsRequest {
 	/**
 	 * Candles
 	 */
-	candles?: List<Candle>;
+	candles: List<Candle>;
 }
 
 /**
