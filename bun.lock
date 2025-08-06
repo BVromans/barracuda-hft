@@ -7,6 +7,7 @@
         "@cosmjs/cosmwasm-stargate": "^0.33.1",
         "@cosmjs/proto-signing": "^0.33.1",
         "@cosmjs/stargate": "^0.33.1",
+        "@ixjb94/indicators-js": "^1.0.0",
         "@type-cacheable/core": "^14.1.0",
         "@type-cacheable/lru-cache-adapter": "^18.0.0",
         "decimal.js": "^10.5.0",
@@ -48,6 +49,8 @@
     "@cosmjs/tendermint-rpc": ["@cosmjs/tendermint-rpc@0.33.1", "", { "dependencies": { "@cosmjs/crypto": "^0.33.1", "@cosmjs/encoding": "^0.33.1", "@cosmjs/json-rpc": "^0.33.1", "@cosmjs/math": "^0.33.1", "@cosmjs/socket": "^0.33.1", "@cosmjs/stream": "^0.33.1", "@cosmjs/utils": "^0.33.1", "axios": "^1.6.0", "readonly-date": "^1.0.0", "xstream": "^11.14.0" } }, "sha512-22klDFq2MWnf//C8+rZ5/dYatr6jeGT+BmVbutXYfAK9fmODbtFcumyvB6uWaEORWfNukl8YK1OLuaWezoQvxA=="],
 
     "@cosmjs/utils": ["@cosmjs/utils@0.33.1", "", {}, "sha512-UnLHDY6KMmC+UXf3Ufyh+onE19xzEXjT4VZ504Acmk4PXxqyvG4cCPprlKUFnGUX7f0z8Or9MAOHXBx41uHBcg=="],
+
+    "@ixjb94/indicators-js": ["@ixjb94/indicators-js@1.0.0", "", {}, "sha512-YFotQTy4E25lMkGyYT4FNBa0h0Mkt06Nt9/NlWtVC4D8cBoZkPaBTLvxQ2xny2k8eOSAepjrQ6vDgBSE1uO0nw=="],
 
     "@noble/hashes": ["@noble/hashes@1.8.0", "", {}, "sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A=="],
 

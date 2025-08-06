@@ -1,34 +1,43 @@
-import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { DirectSecp256k1Wallet } from "@cosmjs/proto-signing";
-import { stringToPath, Bip39, EnglishMnemonic, Slip10, Slip10Curve } from "@cosmjs/crypto";
+import { ExecuteResult, JsonObject, SigningCosmWasmClient, SigningCosmWasmClientOptions } from "@cosmjs/cosmwasm-stargate";
+import { Bip39, EnglishMnemonic, Slip10, Slip10Curve, stringToPath } from "@cosmjs/crypto";
 import { fromBase64 } from "@cosmjs/encoding";
+import { AccountData, Coin, DirectSecp256k1Wallet, OfflineSigner } from "@cosmjs/proto-signing";
+import { GasPrice, HttpEndpoint, StdFee } from "@cosmjs/stargate";
+import * as Indicators from "@ixjb94/indicators-js";
 import cacheManager, { Cacheable, CacheManagerOptions } from "@type-cacheable/core";
 import { useAdapter } from "@type-cacheable/lru-cache-adapter";
+import Decimal from 'decimal.js';
 import { LRUCache } from 'lru-cache';
+import { properties } from "./properties";
 import {
-	Market,
-	MarketAddress,
-	MarketSymbol,
-	MarketStatus,
-	OrderBook,
-	OrderBookMiddlePrice,
-	OrderBookOrder,
-	SystemStatus,
-	Token,
-	TokenAddress,
-	TokenSymbol,
-	Transaction,
-	TransactionStatus,
+	Amount,
+	Balances,
+	BaseBalance,
+	BaseBalanceWithQuotation,
+	BaseTokenBalance,
+	Candle,
+	CandleInterval,
+	DECIMAL_0,
+	DECIMAL_1,
+	DECIMAL_INFINITY,
+	DECIMAL_NaN,
+	FinCancelAllOrdersRequest,
+	FinCancelAllOrdersResponse,
 	FinCancelOrderRequest,
 	FinCancelOrderResponse,
 	FinCancelOrdersRequest,
 	FinCancelOrdersResponse,
-	FinPlaceOrderRequest,
-	FinPlaceOrderResponse,
-	FinPlaceOrdersRequest,
-	FinPlaceOrdersResponse,
+	FinConstructorOptions,
+	FinGetAllMarketsRequest,
+	FinGetAllMarketsResponse,
+	FinGetAllTokensRequest,
+	FinGetAllTokensResponse,
 	FinGetBalancesRequest,
 	FinGetBalancesResponse,
+	FinGetCandlesRequest,
+	FinGetCandlesResponse,
+	FinGetIndicatorsRequest,
+	FinGetIndicatorsResponse,
 	FinGetMarketRequest,
 	FinGetMarketResponse,
 	FinGetMarketsRequest,
@@ -39,6 +48,7 @@ import {
 	FinGetOrderResponse,
 	FinGetOrdersRequest,
 	FinGetOrdersResponse,
+	FinGetStatusRequest,
 	FinGetStatusResponse,
 	FinGetTickerRequest,
 	FinGetTickerResponse,
@@ -48,54 +58,58 @@ import {
 	FinGetTokensResponse,
 	FinGetTransactionRequest,
 	FinGetTransactionResponse,
-	FinWithdrawRequest,
-	FinWithdrawResponse,
-	RujiraConstructorOptions,
-	RujiraInitializeOptions,
-	URL,
-	FinConstructorOptions,
 	FinInitializeOptions,
-	FinGetAllTokensRequest,
-	FinGetAllTokensResponse,
-	FinGetAllMarketsRequest,
-	FinGetAllMarketsResponse,
-	WalletMnemonic,
-	WalletPrivateKey,
-	FinGetStatusRequest,
-	OrderStatus,
-	TokenBalance,
-	BaseBalance,
-	BaseBalanceWithQuotation,
-	BaseTokenBalance,
-	Balances,
-	Wallet,
-	Order,
-	OrderType,
-	Map,
-	List,
-	Ticker,
+	FinPlaceOrderRequest,
+	FinPlaceOrderResponse,
+	FinPlaceOrdersRequest,
+	FinPlaceOrdersResponse,
 	FinReplaceOrderRequest,
 	FinReplaceOrderResponse,
 	FinReplaceOrdersRequest,
 	FinReplaceOrdersResponse,
-	FinGetCandlesRequest,
-	FinGetCandlesResponse,
-	CandleInterval,
-	Candle,
-	Amount,
+	FinExecuteOrdersRequest,
+	FinExecuteOrdersResponse,
+	FinWithdrawRequest,
+	FinWithdrawResponse,
+	Indicator,
+	IndicatorData,
 	Integer,
-	DECIMAL_0,
-	DECIMAL_INFINITY,
-	MMap,
+	List,
+	Map,
+	Market,
+	MarketAddress,
+	MarketStatus,
+	MarketSymbol,
 	MList,
-	OrderSide,
+	MMap,
+	Order,
+	OrderBook,
+	OrderBookOrder,
+	OrderBookPrice,
 	OrderId,
-	WalletAddress,
+	OrderSide,
+	OrderStatus,
+	OrderType,
+	RujiraConstructorOptions,
+	RujiraInitializeOptions,
+	SystemStatus,
+	Ticker,
+	TickerPrice,
+	Token,
+	TokenAddress,
+	TokenBalance,
+	TokenSymbol,
+	Transaction,
 	TransactionHash,
+	TransactionStatus,
+	URL,
+	Wallet,
+	WalletAddress,
+	WalletMnemonic,
+	WalletPrivateKey,
+	DECIMAL_10,
+	OrderPrice
 } from "./types";
-import Decimal from 'decimal.js';
-import { properties } from "./properties";
-import { GasPrice } from "@cosmjs/stargate";
 import { getOrThrow, runWithRetryAndTimeout } from "./utils";
 
 /**
@@ -126,9 +140,14 @@ export class Rujira {
 	public readonly fin: Fin;
 
 	/**
+	 * Wallet address
+	 */
+	public walletAddress: WalletAddress;
+
+	/**
 	 * Wallet
 	 */
-	public wallet: Wallet;
+	private wallet: Wallet;
 
 	/**
 	 * Wallet private key
@@ -158,6 +177,8 @@ export class Rujira {
 
 		this.wallet = undefined as unknown as Wallet;
 
+		this.walletAddress = undefined as unknown as WalletAddress;
+
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 
 		this.fin = new Fin({
@@ -176,11 +197,13 @@ export class Rujira {
 			throw new Error('No wallet credentials provided. Please provide either a mnemonic or a private key');
 		}
 
+		this.walletAddress = this.wallet.firstAccount.address;
+
 		properties.set('rujira.gasPrice', GasPrice.fromString(`0.02${properties.getAs<string>('rujira.constants.tokens.feePayment.symbol').toLowerCase()}`));
 
-		this.cosmClient = await SigningCosmWasmClient.connectWithSigner(
+		this.cosmClient = await this.signingCosmWasmClientConnectWithSigner(
 			properties.getAs<URL>('rujira.endpoints.rpc'),
-			this.wallet,
+			this.wallet.cosmWallet,
 			{
 				gasPrice: properties.getAs<GasPrice>('rujira.gasPrice')
 			}
@@ -201,7 +224,7 @@ export class Rujira {
 	 */
 	private async deriveWalletPrivateKeyFromMnemonic(mnemonic: string): Promise<string> {
 		const englishMnemonic = new EnglishMnemonic(mnemonic);
-		const seed = await Bip39.mnemonicToSeed(englishMnemonic);
+		const seed = await this.bip39MnemonicToSeed(englishMnemonic);
 
 		// Derive the private key using the THORChain HD path
 		const hdPath = stringToPath("m/44'/931'/0'/0/0");
@@ -218,11 +241,20 @@ export class Rujira {
 	 * @param privateKey - The private key to create the wallet from
 	 * @returns The wallet
 	 */
-	private async createWalletFromPrivateKey(privateKey: string): Promise<Wallet> {
-		return await DirectSecp256k1Wallet.fromKey(
+	private async createWalletFromPrivateKey(privateKey: WalletPrivateKey): Promise<Wallet> {
+		const cosmWallet = await this.directSecp256k1WalletFromKeyfromKey(
 			fromBase64(privateKey),
 			properties.getAs<string>('wallet.prefix')
 		);
+
+		const firstAccount = getOrThrow<Array<AccountData>>(await this.directSecp256k1WalletGetAccounts(cosmWallet))[0];
+
+		const wallet = {
+			cosmWallet: cosmWallet,
+			firstAccount: firstAccount
+		};
+
+		return wallet;
 	}
 
 	/**
@@ -235,12 +267,61 @@ export class Rujira {
 
 		return await this.createWalletFromPrivateKey(privateKey);
 	}
+
+	/**
+	 * Get the accounts from a direct secp256k1 wallet
+	 * @param wallet - The wallet to get the accounts from
+	 * @returns The accounts
+	 */
+	@runWithRetryAndTimeout()
+	private async directSecp256k1WalletGetAccounts(wallet: DirectSecp256k1Wallet): Promise<readonly AccountData[]> {
+		return wallet.getAccounts();
+	}
+
+	/**
+	 * Connect to the cosm client
+	 * @param endpoint - The endpoint to connect to
+	 * @param signer - The signer to use
+	 * @param options - The options to use
+	 * @returns The cosm client
+	 */
+	@runWithRetryAndTimeout()
+	private async signingCosmWasmClientConnectWithSigner(endpoint: string | HttpEndpoint, signer: OfflineSigner, options?: SigningCosmWasmClientOptions): Promise<SigningCosmWasmClient> {
+		return SigningCosmWasmClient.connectWithSigner(endpoint, signer, options);
+	}
+
+	/**
+	 * Convert a mnemonic to a seed
+	 * @param mnemonic - The mnemonic to convert
+	 * @param password - The password to use
+	 * @returns The seed
+	 */
+	@runWithRetryAndTimeout()
+	private async bip39MnemonicToSeed(mnemonic: EnglishMnemonic, password?: string): Promise<Uint8Array> {
+		return Bip39.mnemonicToSeed(mnemonic, password);
+	}
+
+	/**
+	 * Create a direct secp256k1 wallet from a key
+	 * @param key - The key to create the wallet from
+	 * @param prefix - The prefix to use
+	 * @returns The wallet
+	 */
+	@runWithRetryAndTimeout()
+	private async directSecp256k1WalletFromKeyfromKey(privkey: Uint8Array, prefix?: string): Promise<DirectSecp256k1Wallet> {
+		return DirectSecp256k1Wallet.fromKey(privkey, prefix);
+	}
 }
 
 /**
  * Fin client
  */
 export class Fin {
+	/**
+	 * Wallet address
+	 */
+	private walletAddress: WalletAddress;
+
 	/**
 	 * Wallet
 	 */
@@ -291,6 +372,7 @@ export class Fin {
 	 * @param options - The constructor options
 	 */
 	constructor(options: FinConstructorOptions) {
+		this.walletAddress = undefined as unknown as WalletAddress;
 		this.wallet = undefined as unknown as Wallet;
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 
@@ -305,10 +387,33 @@ export class Fin {
 	}
 
 	/**
+	 * Get wallet address
+	 * @param walletAddress - The wallet address
+	 * @param wallet - The wallet
+	 * @returns The wallet address
+	 */
+	private getWalletAddress(walletAddress?: WalletAddress, wallet?: Wallet): WalletAddress {
+		if (walletAddress) {
+			return walletAddress.trim().toLowerCase();
+		}
+
+		if (wallet) {
+			return wallet.firstAccount.address.trim().toLowerCase();
+		}
+
+		if (this.wallet.firstAccount) {
+			return this.wallet.firstAccount.address.trim().toLowerCase();
+		}
+
+		throw new Error('No wallet address provided');
+	}
+
+	/**
 	 * Initialize the client
 	 * @param options - The initialize options
 	 */
 	async initialize(options: FinInitializeOptions): Promise<void> {
+		this.walletAddress = options.walletAddress;
 		this.wallet = options.wallet;
 		this.cosmClient = options.cosmClient;
 
@@ -340,7 +445,7 @@ export class Fin {
 			}
 
 			// Try to get chain height to verify connection
-			await this.cosmClient.getHeight();
+			await this.cosmClientGetHeight;
 
 			return {
 				status: SystemStatus.UP
@@ -375,11 +480,11 @@ export class Fin {
 		let rawTransaction: any;
 
 		// TOOD: verify how to retrieve the transaction directly calling the RPC endpoint!!!
-		// rawTransaction = await this.cosmClient.getTx(hash);
+		// rawTransaction = await this.cosmClientGetTx(hash);
 
 		const url = `${properties.getAs<URL>('rujira.endpoints.rest')}/cosmos/tx/v1beta1/txs/${hash}`;
 		// TODO: add a example response!!!
-		const response = await fetch(url, {
+		const response = await this.fetch(url, {
 			method: 'GET',
 			headers: { 'Content-Type': 'application/json' }
 		});
@@ -641,7 +746,7 @@ export class Fin {
 	 * @returns The tokens response
 	 */
 	@Cacheable({
-		cacheKey: (_request: FinGetAllTokensRequest) => _request.toString(),
+		cacheKey: (_request: FinGetAllTokensRequest) => `getAllTokens(${_request.toString()})`,
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllTokens'),
 	})
 	async getAllTokens(_request: FinGetAllTokensRequest): Promise<FinGetAllTokensResponse> {
@@ -684,8 +789,8 @@ export class Fin {
 
 		let { address, symbol } = request;
 
-		address = address?.trim();
-		symbol = symbol?.trim();
+		address = address?.trim()?.toLowerCase();
+		symbol = symbol?.trim()?.toUpperCase();
 
 		if (!address && !symbol) {
 			throw new Error("You must provide a non-empty address or symbol");
@@ -718,6 +823,8 @@ export class Fin {
 			addresses = addresses
 				.map((address: MarketAddress) => address?.toLowerCase().trim())
 				.filter((address: MarketAddress) => address);
+		} else {
+			addresses = MList<MarketAddress>();
 		}
 
 		if (symbols) {
@@ -726,8 +833,10 @@ export class Fin {
 			}
 
 			symbols = symbols
-				.map((symbol: MarketSymbol) => symbol?.toLowerCase().trim())
+				.map((symbol: MarketSymbol) => symbol?.toUpperCase().trim())
 				.filter((symbol: MarketSymbol) => symbol);
+		} else {
+			symbols = MList<MarketSymbol>();
 		}
 
 		if (!addresses?.size && !symbols?.size) {
@@ -760,7 +869,7 @@ export class Fin {
 	 * @returns The markets response
 	 */
 	@Cacheable({
-		cacheKey: (request: FinGetAllMarketsRequest) => request.toString(),
+		cacheKey: (request: FinGetAllMarketsRequest) => `getAllMarkets(${request.toString()})`,
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllMarkets'),
 	})
 	async getAllMarkets(_request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
@@ -851,7 +960,7 @@ export class Fin {
 				}
 			}`;
 
-		const response = await fetch(graphQLEndPoint, {
+		const response = await this.fetch(graphQLEndPoint, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ query })
@@ -906,12 +1015,12 @@ export class Fin {
 					base: baseToken,
 					quote: quoteToken
 				},
-				decimals: Number(pair.tick) || 0, // Use tick as decimals, ensure it's a number
+				decimals: Number(pair.tick) || 8, // Use tick as decimals, ensure it's a number
 				status: MarketStatus.ACTIVE, // LIVE markets are active
 				raw: pair
 			};
 
-			markets.set(pair.address, market);
+			markets.set(pair.address.toLowerCase(), market);
 		}
 
 		// Update internal maps
@@ -929,25 +1038,26 @@ export class Fin {
 	 * @returns The order book response
 	 */
 	async getOrderBook(request: FinGetOrderBookRequest): Promise<FinGetOrderBookResponse> {
-		let { marketAddress, marketSymbol, maximumNumberOfOrders } = request;
+		let { marketAddress, marketSymbol, market, maximumNumberOfOrders } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
 		marketSymbol = marketSymbol?.toLowerCase().trim();
 		maximumNumberOfOrders = maximumNumberOfOrders || properties.getAs<number>('rujira.default.orderBook.maximumNumberOfOrders') || DECIMAL_INFINITY.toNumber();
 
-		if (!marketAddress && !marketSymbol) {
-			throw new Error("Either market address or market name must be provided");
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Either market address or market name or market must be provided");
 		}
 
-		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		if (!market) {
+			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
 
-		// Always fetch the latest orderbook from the contract
 		// TODO: add an example response!!!
 		// TODO: add an interface for the response!!!
-		const rawOrderBook = await this.cosmClient.queryContractSmart(
+		const rawOrderBook = await this.cosmClientQueryContractSmart(
 			market.address,
 			{
-				order_book: {
+				book: {
 					limit: maximumNumberOfOrders
 				}
 			}
@@ -960,8 +1070,8 @@ export class Fin {
 			raw: entry
 		});
 
-		let asks: List<OrderBookOrder> = List<OrderBookOrder>(rawOrderBook.asks || []).map(parseOrder);
-		let bids: List<OrderBookOrder> = List<OrderBookOrder>(rawOrderBook.bids || []).map(parseOrder);
+		let asks: List<OrderBookOrder> = MList<OrderBookOrder>(rawOrderBook.base || []).map(parseOrder);
+		let bids: List<OrderBookOrder> = MList<OrderBookOrder>(rawOrderBook.quote || []).map(parseOrder);
 
 		asks = maximumNumberOfOrders ? asks.slice(0, maximumNumberOfOrders) : asks;
 		bids = maximumNumberOfOrders ? bids.slice(0, maximumNumberOfOrders) : bids;
@@ -969,14 +1079,16 @@ export class Fin {
 		const bestAsk: OrderBookOrder = asks.size > 0 ? asks.getOrThrow(0) : undefined as unknown as OrderBookOrder;
 		const bestBid: OrderBookOrder = bids.size > 0 ? bids.getOrThrow(0) : undefined as unknown as OrderBookOrder;
 
-		let middlePrice: OrderBookMiddlePrice | undefined;
-		if (asks.size > 0 && bids.size > 0) {
-			middlePrice = bestAsk.price.plus(bestBid.price).div(2);
-		} else if (asks.size > 0 && !bids.size) {
-			middlePrice = bestAsk.price;
-		} else if (!asks.size && bids.size) {
-			middlePrice = bestBid.price;
+		let baseToQuoteMiddlePrice: OrderBookPrice | undefined;
+		if (!asks.isEmpty() && !bids.isEmpty()) {
+			baseToQuoteMiddlePrice = bestAsk.price.plus(bestBid.price).div(2);
+		} else if (!asks.isEmpty() && bids.isEmpty()) {
+			baseToQuoteMiddlePrice = bestAsk.price;
+		} else if (asks.isEmpty() && !bids.isEmpty()) {
+			baseToQuoteMiddlePrice = bestBid.price;
 		}
+
+		let baseToQuoteVolumeWeightedAveragePrice: OrderBookPrice | undefined;
 
 		const orderBook: OrderBook = {
 			market,
@@ -985,7 +1097,16 @@ export class Fin {
 				bids,
 				bestAsk,
 				bestBid,
-				middlePrice
+			},
+			statistics: {
+				middlePrice: {
+					baseToQuote: baseToQuoteMiddlePrice,
+					quoteToBase: baseToQuoteMiddlePrice ? DECIMAL_1.div(baseToQuoteMiddlePrice) : undefined
+				},
+				volumeWeightedAveragePrice: {
+					baseToQuote: baseToQuoteVolumeWeightedAveragePrice,
+					quoteToBase: baseToQuoteVolumeWeightedAveragePrice ? DECIMAL_1.div(baseToQuoteVolumeWeightedAveragePrice) : undefined
+				}
 			},
 			raw: rawOrderBook
 		};
@@ -999,27 +1120,26 @@ export class Fin {
 	 * @returns The ticker response
 	 */
 	async getTicker(request: FinGetTickerRequest): Promise<FinGetTickerResponse> {
-		let { marketAddress, marketSymbol } = request;
+		let { marketAddress, marketSymbol, market } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
 		marketSymbol = marketSymbol?.toLowerCase().trim();
 
-		if (!marketAddress && !marketSymbol) {
-			throw new Error("Either market address or market name must be provided");
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Either market address or market name or market must be provided");
 		}
 
-		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		if (!market) {
+			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
 
-		const orderBook = await this.getOrderBook({ marketAddress: market.address, marketSymbol: market.symbol, maximumNumberOfOrders: 1 });
-		const bestAsk = orderBook.book.bestAsk;
-		const bestBid = orderBook.book.bestBid;
-		const price = bestAsk && bestBid ? bestAsk.price.plus(bestBid.price).div(2) : DECIMAL_0;
-
+		const orderBook = await this.getOrderBook({ marketAddress: market.address, marketSymbol: market.symbol, market: market, maximumNumberOfOrders: 1 });
 		const timestamp = Date.now();
 
 		const ticker: Ticker = {
 			market,
-			price,
+			middlePrice: orderBook.statistics.middlePrice.baseToQuote,
+			volumeWeightedAveragePrice: orderBook.statistics.volumeWeightedAveragePrice.baseToQuote,
 			timestamp,
 			raw: orderBook.raw
 		};
@@ -1033,18 +1153,20 @@ export class Fin {
 	 * @returns The candles response
 	 */
 	async getCandles(request: FinGetCandlesRequest): Promise<FinGetCandlesResponse> {
-		let { marketAddress, marketSymbol, maximumNumberOfCandles, interval } = request;
+		let { marketAddress, marketSymbol, market, maximumNumberOfCandles, interval } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
 		marketSymbol = marketSymbol?.trim();
 		maximumNumberOfCandles = maximumNumberOfCandles || properties.getAs<number>('rujira.default.candles.maximumNumberOfCandles') || DECIMAL_INFINITY.toNumber();
 		interval = interval || properties.getAs<CandleInterval>('rujira.default.candles.interval') || '1m';
 
-		if (!marketAddress && !marketSymbol) {
-			throw new Error("Either market address or market name must be provided");
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Either market address or market name or market must be provided");
 		}
 
-		const market: Market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		if (!market) {
+			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
 
 		// Use interval directly as resolution (already in seconds format)
 		const resolution = interval.replace('m', '');
@@ -1054,7 +1176,7 @@ export class Fin {
 		const after = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
 		// TODO: add a example response!!!
-		const response = await fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
+		const response = await this.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -1101,9 +1223,11 @@ export class Fin {
 			throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
 		}
 
+		// TODO: check if this is correct!!!
 		const rawCandles = data?.node?.candles?.edges?.map((edge: any) => edge.node) || [];
 
-		const candles = List<Candle>(rawCandles).map((entry: any): Candle => ({
+		// TODO: check if this is correct!!!
+		const candles = MList<Candle>(rawCandles).map((entry: any): Candle => ({
 			timestamp: typeof entry.bin === 'string'
 				? new Date(entry.bin).getTime()
 				:typeof entry.bin === 'number' ? entry.bin : Date.now(),
@@ -1119,247 +1243,258 @@ export class Fin {
 	}
 
 	/**
+	 * Get indicators
+	 * @param request - The request object
+	 * @returns The indicators response
+	 */
+	async getIndicators(request: FinGetIndicatorsRequest): Promise<FinGetIndicatorsResponse> {
+		let { candles, marketAddress, marketSymbol, market, maximumNumberOfCandles, interval } = request;
+
+		if (!candles || candles.size === 0) {
+			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
+		}
+
+		const data = candles.map((candle: Candle) => candle.close.toNumber());
+
+		const indicators = MMap<Indicator, IndicatorData>();
+
+		for (const indicator of Indicator.getAll()) {
+			const value = (Indicators as any)[indicator.id](data, ...indicator.defaultParameters);
+
+			indicators.set(indicator, {
+				indicator,
+				value
+			});
+		}
+
+		return indicators;
+	}
+
+	/**
 	 * Get balances for a wallet (free, locked in orders, withdrawable, totals)
 	 * @param request - The request object
 	 * @returns The balances response
 	 */
 	async getBalances(request: FinGetBalancesRequest): Promise<FinGetBalancesResponse> {
-		throw new Error('Not implemented');
+		let { walletAddress, wallet, tokenAddresses, tokenSymbols } = request;
 
-		// let { walletAddress, tokenAddresses, tokenSymbols } = request;
+		walletAddress = this.getWalletAddress(walletAddress, wallet);
+		tokenAddresses = tokenAddresses?.map((address: TokenAddress) => address.toLowerCase().trim()) || MList<TokenAddress>();
+		tokenSymbols = tokenSymbols?.map((symbol: TokenSymbol) => symbol.toLowerCase().trim()) || MList<TokenSymbol>();
 
-		// walletAddress = walletAddress?.toLowerCase().trim();
-		// tokenAddresses = tokenAddresses?.map((address: TokenAddress) => address.toLowerCase().trim()) || MList<TokenAddress>();
-		// tokenSymbols = tokenSymbols?.map((symbol: TokenSymbol) => symbol.toLowerCase().trim()) || MList<TokenSymbol>();
+		if (!walletAddress && !wallet) {
+			throw new Error('The wallet address or wallet is required');
+		}
 
-		// if (!walletAddress) throw new Error('The wallet address is required');
+		if (Array.isArray(tokenAddresses)) {
+			tokenAddresses = MList<TokenAddress>(tokenAddresses);
+		}
+		if (Array.isArray(tokenSymbols)) {
+			tokenSymbols = MList<TokenSymbol>(tokenSymbols);
+		}
 
-		// if (Array.isArray(tokenAddresses)) {
-		// 	tokenAddresses = List<TokenAddress>(tokenAddresses);
-		// }
-		// if (Array.isArray(tokenSymbols)) {
-		// 	tokenSymbols = List<TokenSymbol>(tokenSymbols);
-		// }
+		let markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
+		let tokens = await this.getAllTokens({} as FinGetAllTokensRequest);
 
-		// let markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
-		// let tokens = await this.getAllTokens({} as FinGetAllTokensRequest);
+		if (tokenAddresses.size > 0 || tokenSymbols.size > 0) {
+			tokens = tokens.filter((token: Token) => tokenAddresses.includes(token.address) || tokenSymbols.includes(token.symbol));
+		}
 
-		// if (tokenAddresses.size > 0 || tokenSymbols.size > 0) {
-		// 	tokens = tokens.filter((token: Token) => tokenAddresses.includes(token.address) || tokenSymbols.includes(token.symbol));
-		// }
+		const freeBalances = MMap<TokenAddress, Amount>();
+		const freeBalanceResponse = await this.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
+		if (freeBalanceResponse.ok) {
+			/*
+			Example response:
+				{
+					"balances": [
+						{
+							"denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+							"amount": "90505921"
+						}
+					],
+					"pagination": {
+						"next_key": null,
+						"total": "6"
+					}
+				}
+			*/
+			const freeBalanceResponseData = (await freeBalanceResponse.json()) as {
+				balances: Array<{
+					denom: string;
+					amount: string;
+				}>;
+				pagination: {
+					next_key: string | null;
+					total: string;
+				};
+			};
 
-		// const freeBalances = MMap<TokenAddress, Amount>();
-		// const freeBalanceResponse = await fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
-		// if (freeBalanceResponse.ok) {
-		// 	/*
-		// 	Example response:
-		// 		{
-		// 			"balances": [
-		// 				{
-		// 					"denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-		// 					"amount": "90505921"
-		// 				}
-		// 			],
-		// 			"pagination": {
-		// 				"next_key": null,
-		// 				"total": "6"
-		// 			}
-		// 		}
-		// 	*/
-		// 	const freeBalanceResponseData = (await freeBalanceResponse.json()) as {
-		// 		balances: Array<{
-		// 			denom: string;
-		// 			amount: string;
-		// 		}>;
-		// 		pagination: {
-		// 			next_key: string | null;
-		// 			total: string;
-		// 		};
-		// 	};
+			for (const rawBalance of freeBalanceResponseData.balances) {
+				const token = await this.getToken({ address: rawBalance.denom });
 
-		// 	for (const rawBalance of freeBalanceResponseData.balances) {
-		// 		freeBalances.set(rawBalance.denom.toLowerCase().trim(), new Decimal(rawBalance.amount));
-		// 	}
-		// }
+				freeBalances.set(token.address, new Decimal(rawBalance.amount));
+			}
+		}
 
-		// const lockedInOrdersMap = MMap<TokenAddress, Amount>();
-		// const withdrawableMap = MMap<TokenAddress, Amount>();
+		const lockedInOrdersMap = MMap<TokenAddress, Amount>();
+		const withdrawableMap = MMap<TokenAddress, Amount>();
 
-		// for (const market of markets.values()) {
-		// 	/*
-		// 	Example response:
-		// 		{
-		// 			"orders": [
-		// 				{
-		// 					"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
-		// 					"side": "base",
-		// 					"price": {
-		// 						"fixed": "0.219169"
-		// 					},
-		// 					"rate": "0.219169",
-		// 					"updated_at": "1752680298782095574",
-		// 					"offer": "10000000",
-		// 					"remaining": "10000000",
-		// 					"filled": "0"
-		// 				}
-		// 			]
-		// 		}
-		// 	*/
-		// 	const ordersResponse = await this.cosmClient.queryContractSmart(
-		// 		market.address,
-		// 		{
-		// 			orders: {
-		// 				owner: walletAddress,
-		// 				limit: properties.getOrDefault<Integer>('rujira.default.orders.maximumNumberOfOrders', DECIMAL_INFINITY.toNumber())
-		// 			}
-		// 		}
-		// 	) as {
-		// 		orders: Array<{
-		// 			owner: string,
-		// 			"side": string,
-		// 			"price": {
-		// 				"fixed": string
-		// 			},
-		// 			"rate": string,
-		// 			"updated_at": string,
-		// 			"offer": string,
-		// 			"remaining": string,
-		// 			"filled": string
-		// 		}>;
-		// 	};
+		for (const market of markets.values()) {
+			/*
+			Example response:
+				{
+					"orders": [
+						{
+							"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
+							"side": "base",
+							"price": {
+								"fixed": "0.219169"
+							},
+							"rate": "0.219169",
+							"updated_at": "1752680298782095574",
+							"offer": "10000000",
+							"remaining": "10000000",
+							"filled": "0"
+						}
+					]
+				}
+			*/
+			const ordersResponse = await this.cosmClientQueryContractSmart(
+				market.address,
+				{
+					orders: {
+						owner: walletAddress,
+						limit: properties.getOrDefault<Integer>('rujira.default.orders.maximumNumberOfOrders', DECIMAL_INFINITY.toNumber())
+					}
+				}
+			) as {
+				orders: Array<{
+					owner: string,
+					"side": string,
+					"price": {
+						"fixed": string
+					},
+					"rate": string,
+					"updated_at": string,
+					"offer": string,
+					"remaining": string,
+					"filled": string
+				}>;
+			};
 
-		// 	for (const rawOrder of ordersResponse.orders) {
-		// 		const baseTokenAddress = market.tokens.base.address;
-		// 		const quoteTokenAddress = market.tokens.quote.address;
+			for (const rawOrder of ordersResponse.orders) {
+				const baseTokenAddress = market.tokens.base.address;
+				const quoteTokenAddress = market.tokens.quote.address;
 
-		// 		if (rawOrder.filled && Number(rawOrder.filled) > 0) {
-		// 			const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
-		// 			lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.get(lockedTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
-		// 		}
-		// 		if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
-		// 			const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // note that it's the opposite asset
-		// 			withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.get(withdrawTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
-		// 		}
-		// 	}
-		// }
+				if (rawOrder.filled && Number(rawOrder.filled) > 0) {
+					// TODO: check if this is correct!!!
+					const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
+					lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.get(lockedTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
+				}
+				if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
+					// TODO: check if this is correct!!!
+					const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // note that it's the opposite asset
+					withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.get(withdrawTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
+				}
+			}
+		}
 
-		// const tokensBalancesMap = MMap<TokenAddress, TokenBalance>();
-		// for (const token of tokens.values()) {
-		// 	const free = freeBalances.get(token.address, DECIMAL_0);
-		// 	const lockedInOrders = lockedInOrdersMap.get(token.address, DECIMAL_0);
-		// 	const withdrawable = withdrawableMap.get(token.address, DECIMAL_0);
-		// 	const lockedInPools = DECIMAL_0; // Not implemented
-		// 	const total = free.plus(lockedInOrders).plus(lockedInPools).plus(withdrawable).plus(lockedInPools);
+		const tokensBalancesMap = MMap<TokenAddress, TokenBalance>();
+		for (const token of tokens.values()) {
+			const free = freeBalances.get(token.address, DECIMAL_0);
+			const lockedInOrders = lockedInOrdersMap.get(token.address, DECIMAL_0);
+			const withdrawable = withdrawableMap.get(token.address, DECIMAL_0);
+			const lockedInPools = DECIMAL_0; // Not implemented
+			const total = free.plus(lockedInOrders).plus(lockedInPools).plus(withdrawable);
 
-		// 	const tokenBalance: BaseBalance = {
-		// 		free,
-		// 		lockedInOrders,
-		// 		lockedInPools,
-		// 		withdrawable,
-		// 		total
-		// 	};
+			const tokenBalance: BaseBalance = {
+				free,
+				lockedInOrders,
+				lockedInPools,
+				withdrawable,
+				total
+			};
 
-		// 	let conversionRateNativeToken = DECIMAL_0;
-		// 	if (token.address !== this.nativeToken.address) {
-		// 		const market = Array.from(markets.values() as Iterable<Market>).find((market: Market) =>
-		// 			(market.tokens.base.address === token.address && market.tokens.quote.address === nativeTokenObject.address) ||
-		// 			(market.tokens.quote.address === token.address && market.tokens.base.address === nativeTokenObject.address)
-		// 		);
-		// 		if (market && market.price) {
-		// 			if (market.tokens.base.address === token.address) {
-		// 				conversionRateNativeToken = market.price.baseQuote;
-		// 			} else {
-		// 				conversionRateNativeToken = market.price.quoteBase;
-		// 			}
-		// 		}
-		// 	} else if (nativeTokenObject && token.address === nativeTokenObject.address) {
-		// 		conversionRateNativeToken = new Decimal(1);
-		// 	}
+			let conversionRateNativeToken: TickerPrice = DECIMAL_0;
+			if (token.address !== this.nativeToken.address) {
+				try {
+					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` });
 
-		// 	// Find market price for beacon (USDC)
-		// 	let conversionRateBeacon = new Decimal(0);
-		// 	if (beaconTokenObject && token.address !== beaconTokenObject.address) {
-		// 		const market = Array.from(markets.values() as Iterable<Market>).find((marketObj: Market) =>
-		// 			(marketObj.tokens.base.address === token.address && marketObj.tokens.quote.address === beaconTokenObject.address) ||
-		// 			(marketObj.tokens.quote.address === token.address && marketObj.tokens.base.address === beaconTokenObject.address)
-		// 		);
-		// 		if (market && market.price) {
-		// 			if (market.tokens.base.address === token.address) {
-		// 				conversionRateBeacon = market.price.baseQuote;
-		// 			} else {
-		// 				conversionRateBeacon = market.price.quoteBase;
-		// 			}
-		// 		}
-		// 	} else if (beaconTokenObject && token.address === beaconTokenObject.address) {
-		// 		conversionRateBeacon = new Decimal(1);
-		// 	}
+					conversionRateNativeToken = quotingMarketTicker.middlePrice || DECIMAL_0;
+				} catch (exception) {
+					ignoreException(exception);
+				}
+			} else {
+				conversionRateNativeToken = DECIMAL_1;
+			}
 
-		// 	const baseBalanceWithNativeQuotation: BaseBalanceWithQuotation = {
-		// 		...tokenBalance,
-		// 		quotation: {
-		// 			token: nativeTokenObject || token,
-		// 			tokenToQuote: conversionRateNativeToken,
-		// 			quoteToToken: conversionRateNativeToken ? new Decimal(1).div(conversionRateNativeToken) : new Decimal(0)
-		// 		}
-		// 	};
-		// 	const baseBalanceWithBeaconQuotation: BaseBalanceWithQuotation = {
-		// 		...tokenBalance,
-		// 		quotation: {
-		// 			token: beaconTokenObject || token,
-		// 			tokenToQuote: conversionRateBeacon,
-		// 			quoteToToken: conversionRateBeacon ? new Decimal(1).div(conversionRateBeacon) : new Decimal(0)
-		// 		}
-		// 	};
+			let conversionRateBeacon: TickerPrice = DECIMAL_0;
+			if (token.address !== this.beaconToken.address) {
+				try {
+					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.beaconToken.symbol}` });
 
-		// 	const baseTokenBalance: BaseTokenBalance = {
-		// 		token: tokenBalance,
-		// 		nativeToken: baseBalanceWithNativeQuotation,
-		// 		beaconToken: baseBalanceWithBeaconQuotation
-		// 	};
+					conversionRateBeacon = quotingMarketTicker.middlePrice || DECIMAL_0;
+				} catch (exception) {
+					ignoreException(exception);
+				}
+			} else {
+				conversionRateBeacon = DECIMAL_1;
+			}
 
-		// 	tokensBalancesMap.set(token.address, {
-		// 		token,
-		// 		balances: baseTokenBalance
-		// 	});
-		// }
+			const baseBalanceWithNativeQuotation: BaseBalanceWithQuotation = {
+				...tokenBalance,
+				quotation: {
+					token: this.nativeToken || token,
+					tokenToQuote: conversionRateNativeToken,
+					quoteToToken: conversionRateNativeToken.gt(DECIMAL_0) ? DECIMAL_1.div(conversionRateNativeToken) : DECIMAL_0
+				}
+			};
+			const baseBalanceWithBeaconQuotation: BaseBalanceWithQuotation = {
+				...tokenBalance,
+				quotation: {
+					token: this.beaconToken || token,
+					tokenToQuote: conversionRateBeacon,
+					quoteToToken: conversionRateBeacon.gt(DECIMAL_0) ? DECIMAL_1.div(conversionRateBeacon) : DECIMAL_0
+				}
+			};
 
-		// const totalNative: BaseBalance = nativeToken ? {
-		// 	free: freeBalances[nativeToken.address] || new Decimal(0),
-		// 	lockedInOrders: lockedInOrdersMap[nativeToken.address] || new Decimal(0),
-		// 	lockedInPools: new Decimal(0),
-		// 	withdrawable: new Decimal(0),
-		// 	total: (freeBalances[nativeToken.address] || new Decimal(0)).plus(lockedInOrdersMap[nativeToken.address] || new Decimal(0))
-		// } : {
-		// 	free: new Decimal(0),
-		// 	lockedInOrders: new Decimal(0),
-		// 	lockedInPools: new Decimal(0),
-		// 	withdrawable: new Decimal(0),
-		// 	total: new Decimal(0)
-		// };
+			const baseTokenBalance: BaseTokenBalance = {
+				token: tokenBalance,
+				nativeToken: baseBalanceWithNativeQuotation,
+				beaconToken: baseBalanceWithBeaconQuotation
+			};
 
-		// const totalBeacon: BaseBalance = beaconToken ? {
-		// 	free: freeBalances[beaconToken.address] || new Decimal(0),
-		// 	lockedInOrders: lockedInOrdersMap[beaconToken.address] || new Decimal(0),
-		// 	lockedInPools: new Decimal(0),
-		// 	withdrawable: new Decimal(0),
-		// 	total: (freeBalances[beaconToken.address] || new Decimal(0)).plus(lockedInOrdersMap[beaconToken.address] || new Decimal(0))
-		// } : {
-		// 	free: new Decimal(0),
-		// 	lockedInOrders: new Decimal(0),
-		// 	lockedInPools: new Decimal(0),
-		// 	withdrawable: new Decimal(0),
-		// 	total: new Decimal(0)
-		// };
+			tokensBalancesMap.set(token.address, {
+				token,
+				balances: baseTokenBalance
+			});
+		}
 
-		// const balances: Balances = {
-		// 	tokens: tokensBalancesMap,
-		// 	total: {
-		// 		nativeToken: totalNative,
-		// 		beaconToken: totalBeacon
-		// 	}
-		// };
+		const totalNative: BaseBalance = {
+			free: freeBalances.get(this.nativeToken.address, DECIMAL_0),
+			lockedInOrders: lockedInOrdersMap.get(this.nativeToken.address, DECIMAL_0),
+			lockedInPools: DECIMAL_0,
+			withdrawable: withdrawableMap.get(this.nativeToken.address, DECIMAL_0),
+			total: freeBalances.get(this.nativeToken.address, DECIMAL_0).plus(lockedInOrdersMap.get(this.nativeToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.get(this.nativeToken.address, DECIMAL_0))
+		};
 
-		// return balances;
+		const totalBeacon: BaseBalance = {
+			free: freeBalances.get(this.beaconToken.address, DECIMAL_0),
+			lockedInOrders: lockedInOrdersMap.get(this.beaconToken.address, DECIMAL_0),
+			lockedInPools: DECIMAL_0,
+			withdrawable: withdrawableMap.get(this.beaconToken.address, DECIMAL_0),
+			total: freeBalances.get(this.beaconToken.address, DECIMAL_0).plus(lockedInOrdersMap.get(this.beaconToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.get(this.beaconToken.address, DECIMAL_0))
+		};
+
+		const balances: Balances = {
+			tokens: tokensBalancesMap,
+			total: {
+				nativeToken: totalNative,
+				beaconToken: totalBeacon
+			}
+		};
+
+		return balances;
 	}
 
 	/**
@@ -1368,9 +1503,9 @@ export class Fin {
 	 * @returns The order response
 	 */
 	async getOrder(request: FinGetOrderRequest): Promise<FinGetOrderResponse> {
-		let { ownerAddress, marketAddress, marketSymbol, orderType, orderSide, orderStatus, orderPrice } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, orderType, orderSide, orderStatus, orderPrice } = request;
 
-		ownerAddress = ownerAddress.trim().toLowerCase();
+		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase() || undefined;
 		marketSymbol = marketSymbol?.trim().toUpperCase() || undefined;
 		orderType = OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType] || undefined;
@@ -1378,11 +1513,11 @@ export class Fin {
 		orderStatus = OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus] || undefined;
 		orderPrice = orderPrice || undefined;
 
-		if (!ownerAddress) {
-			throw new Error("Owner address is required, since it's used to compose the order ID.");
+		if (!ownerAddress && !owner) {
+			throw new Error("Owner address or owner wallet is required, since it's used to compose the order ID.");
 		}
-		if (!marketAddress && !marketSymbol) {
-			throw new Error("Market address or market symbol is required");
+		if (!marketAddress && !marketSymbol && !market) {
+			throw new Error("Market address, market symbol, or market object is required");
 		}
 
 		if (!orderPrice) {
@@ -1394,7 +1529,7 @@ export class Fin {
 		}
 
 		const orderId = `${ownerAddress}-${orderSide.toString().toLowerCase()}-${orderPrice.toString()}`;
-		const orders = await this.getOrders({ ownerAddress, marketAddress, marketSymbol, orderType, orderSide, orderStatus, orderPrice, maximumNumberOfOrders: 1 });
+		const orders = await this.getOrders({ ownerAddress, owner, marketAddress, marketSymbol, market, orderTypes: [orderType], orderSides: [orderSide], orderStatuses: [orderStatus], orderPrices: [orderPrice], maximumNumberOfOrders: 1 });
 		const order = orders.get(orderId);
 
 		if (!order) {
@@ -1410,16 +1545,15 @@ export class Fin {
 	 * @returns The orders response
 	 */
 	async getOrders(request: FinGetOrdersRequest): Promise<FinGetOrdersResponse> {
-		// TODO: add support for orderIds!!!
-		let { ownerAddress, owner, marketAddress, marketSymbol, market, orderType, orderSide, orderStatus, orderPrice, orderIds, maximumNumberOfOrders } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, orderTypes, orderSides, orderStatuses, orderPrices, orderIds, orders, maximumNumberOfOrders } = request;
 
-		ownerAddress = ownerAddress?.trim().toLowerCase() || getOrThrow<any>(await owner?.getAccounts())[0].address;
+		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase() || undefined;
 		marketSymbol = marketSymbol?.trim().toUpperCase() || undefined;
-		orderType = OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType] || undefined;
-		orderSide = OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide] || undefined;
-		orderStatus = OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus] || undefined;
-		orderPrice = orderPrice;
+		orderTypes = MList(orderTypes?.map((orderType: OrderType) => OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType])) || undefined;
+		orderSides = MList(orderSides?.map((orderSide: OrderSide) => OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide])) || undefined;
+		orderStatuses = MList(orderStatuses?.map((orderStatus: OrderStatus) => OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus])) || undefined;
+		orderPrices = MList(orderPrices?.map((orderPrice: OrderPrice) => Decimal(orderPrice))) || undefined;
 		maximumNumberOfOrders = maximumNumberOfOrders || Number(properties.getAs<string>('rujira.orders.maximumNumberOfOrders'));
 
 		if (!ownerAddress && !owner) {
@@ -1429,8 +1563,48 @@ export class Fin {
 			throw new Error("Market address or market symbol is required");
 		}
 
+		// Validate that at least one filtering criteria is provided when using orderIds or orders
+		if ((orderIds && !List.isList(orderIds) ? orderIds.length > 0 : !orderIds?.isEmpty()) ||
+			(orders && !List.isList(orders) ? orders.length > 0 : !orders?.isEmpty())) {
+			if (!ownerAddress && !marketAddress && !marketSymbol && !market) {
+				throw new Error("When filtering by orderIds or orders, at least one of ownerAddress, marketAddress, marketSymbol, or market must be provided");
+			}
+		}
+
 		if (!market) {
 			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
+
+		// Sanitize orderIds and extract order IDs from orders objects
+		const sanitizedOrderIds = MList<OrderId>();
+
+		// Sanitize orderIds if provided
+		if (orderIds && !List.isList(orderIds) ? orderIds.length > 0 : !orderIds?.isEmpty()) {
+			const orderIdsList = List.isList(orderIds) ? orderIds : MList<OrderId>(orderIds);
+			orderIdsList.forEach((orderId: OrderId) => {
+				if (orderId && typeof orderId === 'string') {
+					const sanitizedId = orderId.trim().toLowerCase();
+					if (sanitizedId && !sanitizedOrderIds.includes(sanitizedId)) {
+						sanitizedOrderIds.push(sanitizedId);
+					}
+				}
+			});
+		}
+
+		// Sanitize orders by transforming into a list and extracting/sanitizing order IDs
+		if (orders && !List.isList(orders) ? orders.length > 0 : !orders?.isEmpty()) {
+			// Ensure orders is a List
+			const ordersList = List.isList(orders) ? orders : MList<Order>(orders);
+
+			// Extract and sanitize order IDs from order objects
+			ordersList.forEach((orderObj: Order) => {
+				if (orderObj && orderObj.id && typeof orderObj.id === 'string') {
+					const sanitizedId = orderObj.id.trim().toLowerCase();
+					if (sanitizedId && !sanitizedOrderIds.includes(sanitizedId)) {
+						sanitizedOrderIds.push(sanitizedId);
+					}
+				}
+			});
 		}
 
 		const query = {
@@ -1447,7 +1621,7 @@ export class Fin {
 			}
 		};
 
-		const result = await this.cosmClient.queryContractSmart(market.address, query);
+		const result = await this.cosmClientQueryContractSmart(market.address, query);
 		// Example response:
 		// 	{
 		// 		"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
@@ -1474,7 +1648,7 @@ export class Fin {
       filled: string
     }] || [];
 
-		let orders = MMap<OrderId, Order>();
+		let filteredOrders = MMap<OrderId, Order>();
 
 		for (const rawOrder of rawOrders) {
 			const type = OrderType.LIMIT;
@@ -1486,9 +1660,9 @@ export class Fin {
 			const status = filledAmount.eq(DECIMAL_0) ? OrderStatus.OPEN : filledAmount.eq(amount) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 
 			const order = {
-				id: `${ownerAddress}-${side.toString().toLowerCase()}-${price.toString()}`,
+				id: `${ownerAddress}-${market.address}-${side.toString().toLowerCase()}-${price.toString()}`,
 				market: market,
-				owner: ownerAddress,
+				ownerAddress: ownerAddress,
 				type: type,
 				side: side,
 				price: price,
@@ -1499,29 +1673,49 @@ export class Fin {
 				raw: rawOrder
 			} as Order;
 
-			orders.set(getOrThrow<OrderId>(order.id), order);
+			filteredOrders.set(getOrThrow<OrderId>(order.id), order);
 		}
 
-		orders = orders.filter((order: Order) => {
-			if (ownerAddress && order.owner !== ownerAddress) {
+		filteredOrders = filteredOrders.filter((order: Order) => {
+			// Filter by sanitized order IDs (merged from orderIds and orders)
+			if (sanitizedOrderIds && !sanitizedOrderIds.isEmpty()) {
+				if (!order.id || !sanitizedOrderIds.includes(order.id)) {
+					return false;
+				}
+			}
+
+			// Filter by owner address
+			if (ownerAddress && order.ownerAddress !== ownerAddress) {
 				return false;
 			}
+
+			// Filter by market address
 			if (marketAddress && order.market.address !== marketAddress) {
 				return false;
 			}
+
+			// Filter by market symbol
 			if (marketSymbol && order.market.symbol !== marketSymbol) {
 				return false;
 			}
-			if (orderType && order.type !== orderType) {
+
+			// Filter by order types
+			if (orderTypes && !orderTypes.isEmpty() && !orderTypes.includes(order.type)) {
 				return false;
 			}
-			if (orderSide && order.side !== orderSide) {
+
+			// Filter by order sides
+			if (orderSides && !orderSides.isEmpty() && !orderSides.includes(order.side)) {
 				return false;
 			}
-			if (orderStatus && order.status !== orderStatus) {
+
+			// Filter by order statuses
+			if (orderStatuses && !orderStatuses.isEmpty() && !orderStatuses.includes(order.status)) {
 				return false;
 			}
-			if (orderPrice && order.price !== orderPrice) {
+
+			// Filter by order prices
+			if (orderPrices && !orderPrices.isEmpty() && (!order.price || !orderPrices.includes(getOrThrow<OrderPrice>(order.price)))) {
 				return false;
 			}
 
@@ -1529,10 +1723,10 @@ export class Fin {
 		});
 
 		if (maximumNumberOfOrders > 0) {
-			orders = orders.slice(0, maximumNumberOfOrders);
+			filteredOrders = filteredOrders.slice(0, maximumNumberOfOrders);
 		}
 
-		return orders as FinGetOrdersResponse;
+		return filteredOrders as FinGetOrdersResponse;
 	}
 
 
@@ -1544,69 +1738,29 @@ export class Fin {
 	async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price } = request;
 
-		ownerAddress = ownerAddress?.trim().toLowerCase();
-		marketAddress = marketAddress?.trim().toLowerCase();
-		marketSymbol = marketSymbol?.trim().toUpperCase();
-		side = OrderSide[side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined;
-		type = OrderType[type?.trim().toUpperCase() as keyof typeof OrderType] || undefined;
-		amount = Decimal(amount);
-		price = price ? Decimal(price) : undefined;
-
-		if (!ownerAddress && !owner) {
-			throw new Error("Owner address or owner wallet is required");
-		}
-		if (!marketAddress && !marketSymbol && !market) {
-			throw new Error("Market address, market symbol, or market object is required");
-		}
-		if (!side) {
-			throw new Error("Order side is required");
-		}
-		if (!type) {
-			throw new Error("Order type is required");
-		}
-		if (!amount) {
-			throw new Error("Order amount is required");
-		}
-		if (type === OrderType.LIMIT && !price) {
-			throw new Error("Order price is required for limit orders");
-		}
-
-		const batchRequest: FinPlaceOrdersRequest = {
+		const executedOrders = await this.executeOrders({
 			ownerAddress,
 			owner,
-			orders: MList<FinPlaceOrderRequest>([{
-				ownerAddress,
-				owner,
-				marketAddress,
-				marketSymbol,
-				market,
-				side,
-				type,
-				amount,
-				price
-			}])
-		};
-
-		const response = await this.placeOrders(batchRequest);
-
-		if (!response?.orders || response.orders.size === 0) {
-			throw new Error("No order was created");
-		}
-
-		const order = response.orders.first();
-		if (!order) {
-			throw new Error("Failed to retrieve created order");
-		}
-
-		const transaction = response.transactions.first();
-		if (!transaction) {
-			throw new Error("Failed to retrieve transaction details");
-		}
+			orders: {
+				place: MList<FinPlaceOrderRequest>(
+					[
+						{
+							ownerAddress,
+							owner,
+							marketAddress,
+							marketSymbol,
+							market,
+							side, type, amount, price
+						}
+					]
+				)
+			}
+		});
 
 		const result = {
-			order,
-			transaction
-		};
+			order: getOrThrow<Order>(executedOrders.placedOrders?.first()),
+			transaction: getOrThrow<Transaction>(executedOrders.transactions.first())
+		}
 
 		return result;
 	}
@@ -1620,63 +1774,17 @@ export class Fin {
 	async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse> {
 		let { ownerAddress, owner, orders } = request;
 
-		ownerAddress = ownerAddress?.trim().toLowerCase() || getOrThrow<any[]>(await owner?.getAccounts())[0].address;
-		orders = MList<FinPlaceOrderRequest>(orders?.map((order: FinPlaceOrderRequest) => ({
-			...order,
-			ownerAddress: order.ownerAddress?.trim().toLowerCase(),
-			marketAddress: order.marketAddress?.trim().toLowerCase(),
-			marketSymbol: order.marketSymbol?.trim().toUpperCase(),
-			side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
-			type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
-			amount: Decimal(order.amount),
-			price: order.price ? Decimal(order.price) : undefined,
-		})));
-
-		if (!ownerAddress && !owner) {
-			throw new Error("Owner address or owner wallet is required");
-		}
-
-		if (orders.isEmpty()) {
-			throw new Error("Orders are required");
-		}
-
-		ownerAddress = getOrThrow<WalletAddress>(ownerAddress);
-
-		const market = await this.getMarket({ address: orders?.first()?.marketAddress, symbol: orders?.first()?.marketSymbol });
-
-		const response = await this.cosmClient.execute(
-			ownerAddress || getOrThrow<any[]>(await owner?.getAccounts())[0].address,
-			market.address,
-			{
-				order: orders.map((order: FinPlaceOrderRequest) => [
-					order.side === OrderSide.BUY ? 'quote' : 'base',
-					{
-						fixed: order.price?.toString() // order price
-					},
-					order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString(), // order amount
-					null // order owner (optional)
-				]).toArray()
-			},
-			'auto',
-			undefined,
-			[{ denom: '', amount: '' }]
-		);
-
-		// TODO: check it it is possible to create the orders from the response!!!
-		let orderIds = MList<OrderId>();
-		orders.forEach((order: FinPlaceOrderRequest) => {
-			orderIds.push(`${ownerAddress}-${order.side.toString().toLowerCase()}-${order.price?.toString()}`);
+		const executedOrders = await this.executeOrders({
+			ownerAddress,
+			owner,
+			orders: {
+				place: MList<FinPlaceOrderRequest>(orders)
+			}
 		});
-		const placedOrders = await this.getOrders({ ownerAddress, market, orderIds });
-
-		// TODO: check it it is possible to create the transaction from the response!!!
-		const transaction = await this.getTransaction({ hash: response.transactionHash });
-		const transactions = MMap<TransactionHash, Transaction>();
-		transactions.set(transaction.hash, transaction);
 
 		const result = {
-			orders: placedOrders,
-			transactions: transactions
+			orders: getOrThrow<Map<OrderId, Order>>(executedOrders.placedOrders),
+			transactions: executedOrders.transactions
 		};
 
 		return result;
@@ -1690,69 +1798,28 @@ export class Fin {
 	async replaceOrder(request: FinReplaceOrderRequest): Promise<FinReplaceOrderResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price } = request;
 
-		ownerAddress = ownerAddress?.trim().toLowerCase();
-		marketAddress = marketAddress?.trim().toLowerCase();
-		marketSymbol = marketSymbol?.trim().toUpperCase();
-		side = OrderSide[side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined;
-		type = OrderType[type?.trim().toUpperCase() as keyof typeof OrderType] || undefined;
-		amount = Decimal(amount);
-		price = price ? Decimal(price) : undefined;
-
-		if (!ownerAddress && !owner) {
-			throw new Error("Owner address or owner wallet is required");
-		}
-		if (!marketAddress && !marketSymbol && !market) {
-			throw new Error("Market address, market symbol, or market object is required");
-		}
-		if (!side) {
-			throw new Error("Order side is required");
-		}
-		if (!type) {
-			throw new Error("Order type is required");
-		}
-		if (!amount) {
-			throw new Error("Order amount is required");
-		}
-		if (type === OrderType.LIMIT && !price) {
-			throw new Error("Order price is required for limit orders");
-		}
-
-		const batchRequest: FinReplaceOrdersRequest = {
+		const executedOrders = await this.executeOrders({
 			ownerAddress,
 			owner,
-			orders: MList<FinReplaceOrderRequest>([{
-				ownerAddress,
-				owner,
-				marketAddress,
-				marketSymbol,
-				market,
-				side,
-				type,
-				amount,
-				price
-			}])
-		};
-
-		const response = await this.replaceOrders(batchRequest);
-
-		if (!response?.orders || response.orders.size === 0) {
-			throw new Error("No order was created");
-		}
-
-		const order = response.orders.first();
-		if (!order) {
-			throw new Error("Failed to retrieve created order");
-		}
-
-		const transaction = response.transactions.first();
-		if (!transaction) {
-			throw new Error("Failed to retrieve transaction details");
-		}
+			orders: {
+				replace: MList<FinPlaceOrderRequest>([{
+					ownerAddress,
+					owner,
+					marketAddress,
+					marketSymbol,
+					market,
+					side,
+					type,
+					amount,
+					price
+				}])
+			}
+		});
 
 		const result = {
-			order,
-			transaction
-		};
+			order: getOrThrow<Order>(executedOrders.replacedOrders?.first()),
+			transaction: getOrThrow<Transaction>(executedOrders.transactions.first())
+		}
 
 		return result;
 	}
@@ -1763,7 +1830,22 @@ export class Fin {
 	 * @returns The response for the replaced orders
 	 */
 	async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersResponse> {
-		throw new Error("Not implemented");
+		let { ownerAddress, owner, orders } = request;
+
+		const executedOrders = await this.executeOrders({
+			ownerAddress,
+			owner,
+			orders: {
+				replace: MList<FinPlaceOrderRequest>(orders)
+			}
+		});
+
+		const result = {
+			orders: getOrThrow<Map<OrderId, Order>>(executedOrders.replacedOrders),
+			transactions: executedOrders.transactions
+		};
+
+		return result;
 	}
 
 	/**
@@ -1774,44 +1856,21 @@ export class Fin {
 	async cancelOrder(request: FinCancelOrderRequest): Promise<FinCancelOrderResponse> {
 		let { orderId, order, ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
-		orderId = orderId?.trim().toLowerCase();
-		ownerAddress = ownerAddress?.trim().toLowerCase();
-		marketAddress = marketAddress?.trim().toLowerCase();
-		marketSymbol = marketSymbol?.trim().toUpperCase();
-
-		if (!orderId && !order) {
-			throw new Error("Order ID or order is required");
-		}
-
-		if (orderId && order) {
-			throw new Error("Order ID and order cannot be provided together");
-		}
-
-		if (!ownerAddress && !owner) {
-			throw new Error("Owner address or owner wallet is required");
-		}
-
-		if (!marketAddress && !marketSymbol && !market) {
-			throw new Error("Market address, market symbol, or market object is required");
-		}
-
-		const response = await this.cancelOrders({
-			orderIds: orderId ? MList<OrderId>([orderId]) : undefined,
-			orders: order ? MList<Order>([order]) : undefined,
+		const executedOrders = await this.executeOrders({
 			ownerAddress,
 			owner,
 			marketAddress,
 			marketSymbol,
-			market
+			market,
+			orders: {
+				cancel: orderId ? MList<OrderId>([orderId]) : MList<Order>([getOrThrow<Order>(order)])
+			}
 		});
 
-		const cancelledOrder = response.orders.getOrThrow(orderId || getOrThrow<OrderId>(order?.id));
-		const transaction = getOrThrow<Transaction>(response.transactions.first());
-
 		const result = {
-			order: cancelledOrder,
-			transaction
-		};
+			order: getOrThrow<Order>(executedOrders.cancelledOrders?.first()),
+			transaction: getOrThrow<Transaction>(executedOrders.transactions.first())
+		}
 
 		return result;
 	}
@@ -1822,100 +1881,25 @@ export class Fin {
 	 * @returns The response for the canceled orders
 	 */
 	async cancelOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
-		throw new Error("Not implemented");
+		let { orderIds, orders, ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
-		// // 1. Get the market address
-		// const market = await this.getMarket({
-		// 	address: request.marketAddress,
-		// 	symbol: request.marketSymbol
-		// });
-		// const contractAddress = market.address;
+		const executedOrders = await this.executeOrders({
+			ownerAddress,
+			owner,
+			marketAddress,
+			marketSymbol,
+			market,
+			orders: {
+				cancel: MList<OrderId>(orderIds) || MList<Order>(orders)
+			}
+		})
 
-		// // 2. Query user orders
-		// const ordersResult = await this.cosmClient.queryContractSmart(contractAddress, {
-		// 	orders: { owner: request.ownerAddress, limit: 1000 }
-		// });
-		// const orders = ordersResult.orders || [];
+		const result = {
+			orders: getOrThrow<Map<OrderId, Order>>(executedOrders.cancelledOrders),
+			transactions: executedOrders.transactions
+		};
 
-		// // 3. Determine which orders to cancel
-		// let ordersToCancel: any[] = [];
-		// if (request.orderIds && request.orderIds.length > 0) {
-		// 	ordersToCancel = orders.filter((order: any) => {
-		// 		if (order.id && request.orderIds!.includes(order.id)) return true;
-		// 		if (order.price && order.price.fixed && order.side) {
-		// 			const syntheticId = `${order.side}:${order.price.fixed}`;
-		// 			return request.orderIds!.includes(syntheticId);
-		// 		}
-		// 		return false;
-		// 	});
-		// } else if (request.orders && request.orders.length > 0) {
-		// 	const ids = request.orders.map((order: any) => order.id).filter(Boolean);
-		// 	ordersToCancel = orders.filter((o: any) => ids.includes(o.id));
-		// } else {
-		// 	throw new Error('No orderIds or orders provided to cancelOrders');
-		// }
-		// if (ordersToCancel.length === 0) {
-		// 	throw new Error('No orders found to cancel');
-		// }
-
-		// // 4. Build the cancellation message for all orders
-		// const cancelMsgs = ordersToCancel.map((order: any) => [order.side, { fixed: order.price.fixed }, '0']);
-		// const executeMsg = {
-		// 	order: [cancelMsgs, null]
-		// };
-
-		// // 5. Execute the cancellation transaction
-		// const [{ address }] = await this.wallet.getAccounts();
-		// const result = await this.cosmClient.execute(
-		// 	address,
-		// 	contractAddress,
-		// 	executeMsg,
-		// 	'auto'
-		// );
-
-		// // 6. Return the response
-		// const cancelledOrdersMap = MMap<string, Order>();
-		// for (const order of ordersToCancel) {
-		// 	const id = order.id || `${order.side}:${order.price.fixed}`;
-		// 	cancelledOrdersMap.set(id, {
-		// 		id,
-		// 		market: {} as Market,
-		// 		owner: order.owner,
-		// 		type: order.type || OrderType.LIMIT,
-		// 		side: order.side,
-		// 		price: order.price ? new Decimal(order.price) : new Decimal(0),
-		// 		amount: new Decimal(order.amount),
-		// 		filledAmount: new Decimal(order.filledAmount || 0),
-		// 		filledPercentage: new Decimal(0),
-		// 		status: OrderStatus.CANCELLED,
-		// 		raw: order,
-		// 	});
-		// }
-		// const transactionsMap = Map<string, Transaction>([
-		// 	[
-		// 		result.transactionHash,
-		// 		{
-		// 			hash: result.transactionHash,
-		// 			status: TransactionStatus.SUCCESS,
-		// 			fee: {
-		// 				amount: result.gasUsed ? new Decimal(result.gasUsed.toString()) : new Decimal(0),
-		// 				token: {
-		// 					address: 'native',
-		// 					symbol: 'RUJI',
-		// 					name: 'Rujira',
-		// 					decimals: 6,
-		// 					raw: {}
-		// 				}
-		// 			},
-		// 			raw: result
-		// 		}
-		// 	]
-		// ]);
-		// return {
-		// 	orders: cancelledOrdersMap,
-		// 	status: OrderStatus.CANCELLED,
-		// 	transactions: transactionsMap
-		// };
+		return result;
 	}
 
 	/**
@@ -1923,33 +1907,35 @@ export class Fin {
 	 * @param request - The request object
 	 * @returns The response for the canceled orders
 	 */
-	async cancelAllOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
-		throw new Error("Not implemented");
+	async cancelAllOrders(request: FinCancelAllOrdersRequest): Promise<FinCancelAllOrdersResponse> {
+		let { ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
-	// 	// 1. Get the market address
-	// 	const market = await this.getMarket({
-	// 		address: request.marketAddress,
-	// 		symbol: request.marketSymbol
-	// 	});
-	// 	const contractAddress = market.address;
+		const allOpenOrders = await this.getOrders({
+			ownerAddress,
+			owner,
+			marketAddress,
+			marketSymbol,
+			market,
+			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED]
+		});
 
-	// 	// 2. Query all user orders
-	// 	const ordersMap = await this.getOrders({
-	// 		ownerAddress: request.ownerAddress!,
-	// 		marketAddress: contractAddress,
-	// 		maximumNumberOfOrders: 1000
-	// 	});
-	// 	const allOrderIds = Array.from(ordersMap.keys()).filter((id): id is string => id !== undefined);
-	// 	if (allOrderIds.length === 0) {
-	// 		throw new Error('No orders found to cancel');
-	// 	}
+		const executedOrders = await this.executeOrders({
+			ownerAddress,
+			owner,
+			marketAddress,
+			marketSymbol,
+			market,
+			orders: {
+				cancel: allOpenOrders.valueSeq().toList()
+			}
+		})
 
-	// 	// 3. Call cancelOrders with all order IDs
-	// 	return this.cancelOrders({
-	// 		ownerAddress: request.ownerAddress,
-	// 		marketAddress: contractAddress,
-	// 		orderIds: allOrderIds
-	// 	});
+		const result = {
+			orders: getOrThrow<Map<OrderId, Order>>(executedOrders.cancelledOrders),
+			transactions: executedOrders.transactions
+		};
+
+		return result;
 	}
 
 	/**
@@ -1960,117 +1946,411 @@ export class Fin {
 	async withdrawFromMarket(request: FinWithdrawRequest): Promise<FinWithdrawResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
-		ownerAddress = ownerAddress?.trim().toLowerCase();
+		const allFilledOrders = await this.getOrders({
+			ownerAddress,
+			owner,
+			marketAddress,
+			marketSymbol,
+			market,
+			orderStatuses: [OrderStatus.FILLED]
+		});
+
+		const executedOrders = await this.executeOrders({
+			ownerAddress,
+			owner,
+			marketAddress,
+			marketSymbol,
+			market,
+			orders: {
+				withdraw: allFilledOrders.valueSeq().toList()
+			}
+		});
+
+		const result = {
+			orders: getOrThrow<Map<OrderId, Order>>(executedOrders.withdrawnOrders),
+			transactions: executedOrders.transactions
+		};
+
+		return result;
+	}
+
+	/**
+	 * Fetch a resource
+	 * @param input - The input to fetch
+	 * @param init - The init to fetch
+	 * @returns The response
+	 */
+	@runWithRetryAndTimeout()
+	private async fetch(
+		input: string | URL | globalThis.Request,
+		init?: RequestInit,
+	): Promise<Response> {
+		return fetch(input, init);
+	}
+
+	/**
+	 * Execute a message on the cosm client
+	 * @param senderAddress - The address of the sender
+	 * @param contractAddress - The address of the contract
+	 * @param msg - The message to execute
+	 * @param fee - The fee to pay
+	 * @param memo - The memo to add to the transaction
+	 * @param funds - The funds to transfer
+	 * @returns The result of the execution
+	 */
+	@runWithRetryAndTimeout()
+	private async cosmClientExecute(senderAddress: string, contractAddress: string, msg: JsonObject, fee: StdFee | "auto" | number, memo?: string, funds?: readonly Coin[]): Promise<ExecuteResult> {
+		return this.cosmClient.execute(senderAddress, contractAddress, msg, fee, memo, funds);
+	}
+
+	/**
+	 * Query a contract on the cosm client
+	 * @param contractAddress - The address of the contract
+	 * @param queryMsg - The query message
+	 * @returns The result of the query
+	 */
+	@runWithRetryAndTimeout()
+	private async cosmClientQueryContractSmart(contractAddress: string, queryMsg: JsonObject): Promise<JsonObject> {
+		return this.cosmClient.queryContractSmart(contractAddress, queryMsg);
+	}
+
+	/**
+	 * Get the height of the cosm client
+	 * @returns The height
+	 */
+	@runWithRetryAndTimeout()
+	private async cosmClientGetHeight(): Promise<number> {
+		return this.cosmClient.getHeight();
+	}
+
+	/**
+	 * Unified method to execute order operations (place, replace, cancel, withdraw)
+	 * @param request - The unified request object
+	 * @returns The unified response object
+	 */
+	async executeOrders(request: FinExecuteOrdersRequest): Promise<FinExecuteOrdersResponse> {
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, orders } = request;
+
+		// ===== SANITIZATION =====
+		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase();
 		marketSymbol = marketSymbol?.trim().toUpperCase();
 
-		if (!ownerAddress && !owner) {
+		// Sanitize place orders
+		if (orders.place) {
+			orders.place = MList<FinPlaceOrderRequest>(orders.place.map((order: FinPlaceOrderRequest) => ({
+				...order,
+				ownerAddress: this.getWalletAddress(order.ownerAddress, order.owner),
+				marketAddress: order.marketAddress?.trim().toLowerCase(),
+				marketSymbol: order.marketSymbol?.trim().toUpperCase(),
+				side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
+				type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
+				amount: Decimal(order.amount),
+				price: order.price ? Decimal(order.price) : undefined,
+			})));
+		}
+
+		// Sanitize replace orders
+		if (orders.replace) {
+			orders.replace = MList<FinReplaceOrderRequest>(orders.replace.map((order: FinReplaceOrderRequest) => ({
+				...order,
+				ownerAddress: this.getWalletAddress(order.ownerAddress, order.owner),
+				marketAddress: order.marketAddress?.trim().toLowerCase(),
+				marketSymbol: order.marketSymbol?.trim().toUpperCase(),
+				side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
+				type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
+				amount: Decimal(order.amount),
+				price: order.price ? Decimal(order.price) : undefined,
+			})));
+		}
+
+		// Sanitize cancel orders
+		if (orders.cancel) {
+			const cancelOrderIds = MList<OrderId>();
+			orders.cancel.forEach((item: OrderId | Order) => {
+				if (typeof item === 'string') {
+					cancelOrderIds.push(item.trim().toLowerCase());
+				} else if (item.id) {
+					cancelOrderIds.push(item.id.trim().toLowerCase());
+				}
+			});
+			orders.cancel = cancelOrderIds;
+		}
+
+		// Sanitize withdraw orders
+		if (orders.withdraw) {
+			const withdrawOrderIds = MList<OrderId>();
+			orders.withdraw.forEach((item: OrderId | Order) => {
+				if (typeof item === 'string') {
+					withdrawOrderIds.push(item.trim().toLowerCase());
+				} else if (item.id) {
+					withdrawOrderIds.push(item.id.trim().toLowerCase());
+				}
+			});
+			orders.withdraw = withdrawOrderIds;
+		}
+
+		// ===== VALIDATION =====
+		if (!ownerAddress) {
 			throw new Error("Owner address or owner wallet is required");
 		}
+
 		if (!marketAddress && !marketSymbol && !market) {
 			throw new Error("Market address, market symbol, or market object is required");
 		}
 
-		let walletAddress = ownerAddress || '';
-		if (!walletAddress && owner) {
-			const accounts = await owner.getAccounts();
-			walletAddress = accounts[0]?.address || '';
-		}
+		// Validate that all orders use the same market
+		const validateMarket = (orders: any[], operation: string) => {
+			if (orders && orders.length > 0) {
+				orders.forEach((order: any) => {
+					if (order.marketAddress && order.marketAddress !== marketAddress) {
+						throw new Error(`${operation} orders must use the same market. Expected: ${marketAddress}, Got: ${order.marketAddress}`);
+					}
+					if (order.marketSymbol && order.marketSymbol !== marketSymbol) {
+						throw new Error(`${operation} orders must use the same market. Expected: ${marketSymbol}, Got: ${order.marketSymbol}`);
+					}
+				});
+			}
+		};
 
-		if (!walletAddress) {
-			throw new Error("Could not determine wallet address");
-		}
+		validateMarket(orders.place?.toArray() || [], 'Place');
+		validateMarket(orders.replace?.toArray() || [], 'Replace');
 
 		if (!market) {
-			market = await this.getMarket({
-				address: marketAddress,
-				symbol: marketSymbol
+			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
+
+		// Validate place orders
+		if (orders.place) {
+			orders.place.forEach((order: FinPlaceOrderRequest) => {
+				if (!order.side || !order.type || !order.amount) {
+					throw new Error("Order side, type, and amount are required for place orders");
+				}
+				if (order.type === OrderType.LIMIT && !order.price) {
+					throw new Error("Order price is required for limit place orders");
+				}
 			});
 		}
 
-		const ordersResponse = await this.cosmClient.queryContractSmart(
-			market.address,
-			{
-				orders: {
-					owner: walletAddress,
-					limit: properties.getAs<number>('rujira.default.orders.maximumNumberOfOrders') || DECIMAL_INFINITY.toNumber()
+		// Validate replace orders
+		if (orders.replace) {
+			orders.replace.forEach((order: FinReplaceOrderRequest) => {
+				if (!order.side || !order.type || !order.amount) {
+					throw new Error("Order side, type, and amount are required for replace orders");
 				}
+				if (order.type === OrderType.LIMIT && !order.price) {
+					throw new Error("Order price is required for limit replace orders");
+				}
+			});
+		}
+
+		// Validate cancel orders
+		if (orders.cancel) {
+			if (orders.cancel.isEmpty()) {
+				throw new Error("Valid order IDs are required for cancellation");
 			}
+		}
+
+		// Validate withdraw orders
+		if (orders.withdraw) {
+			if (orders.withdraw.isEmpty()) {
+				throw new Error("Valid order IDs are required for withdrawal");
+			}
+		}
+
+		// ===== INITIALIZATION =====
+		const contractAddress = market.address;
+		const transactions = MMap<TransactionHash, Transaction>();
+		const ordersMap = MMap<string, Map<OrderId, Order>>();
+
+		// Get existing orders to check their status (open, partially filled, filled orders)
+		const existingOrders = await this.getOrders({
+			ownerAddress,
+			market,
+			orderTypes: [OrderType.LIMIT],
+			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED]
+		});
+
+		// Build the complete order message structure
+		const executeMessages: any[] = [];
+
+		// Process place orders
+		if (orders.place && !orders.place.isEmpty()) {
+			const placeOrdersMap = MMap<OrderId, Order>();
+
+			orders.place.forEach((order: FinPlaceOrderRequest) => {
+				const orderId = `${ownerAddress}-${order.side.toString().toLowerCase()}-${order.price?.toString()}`;
+
+				// Create message
+				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
+				const price = order.price?.toString() || '0';
+				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString();
+
+				executeMessages.push([side, { fixed: price }, amount]);
+
+				// Create a proper Order object at this moment
+				const orderObject: Order = {
+					id: orderId,
+					market: market,
+					ownerAddress: ownerAddress,
+					type: order.type,
+					side: order.side,
+					price: order.price,
+					amount: order.amount,
+					filledAmount: DECIMAL_0,
+					filledPercentage: DECIMAL_0,
+					status: OrderStatus.OPEN,
+					creationTimestamp: Date.now(),
+					updateTimestamp: Date.now(),
+					raw: order
+				};
+				placeOrdersMap.set(orderId, orderObject);
+			});
+			ordersMap.set('place', placeOrdersMap);
+		}
+
+		// Process replace orders
+		if (orders.replace && !orders.replace.isEmpty()) {
+			const replaceOrdersMap = MMap<OrderId, Order>();
+
+			orders.replace.forEach((order: FinReplaceOrderRequest) => {
+				const orderId = `${ownerAddress}-${order.side.toString().toLowerCase()}-${order.price?.toString()}`;
+
+				// Create message
+				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
+				const price = order.price?.toString() || '0';
+				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString();
+
+				executeMessages.push([side, { fixed: price }, amount]);
+
+				// Create a proper Order object using existing order and new amount
+				const orderObject: Order = {
+					id: orderId,
+					market: market,
+					ownerAddress: ownerAddress,
+					type: order.type,
+					side: order.side,
+					price: order.price,
+					amount: order.amount,
+					filledAmount: DECIMAL_0,
+					filledPercentage: DECIMAL_0,
+					status: OrderStatus.OPEN,
+					creationTimestamp: Date.now(),
+					updateTimestamp: Date.now(),
+					raw: order
+				};
+				replaceOrdersMap.set(orderId, orderObject);
+			});
+			ordersMap.set('replace', replaceOrdersMap);
+		}
+
+		// Process cancel orders
+		if (orders.cancel && !orders.cancel.isEmpty()) {
+			const cancelOrdersMap = MMap<OrderId, Order>();
+
+			orders.cancel.forEach((orderId: OrderId) => {
+				// Check if order exists in existing orders
+				const existingOrder = existingOrders.get(orderId);
+				if (!existingOrder) {
+					throw new Error(`Order not found: ${orderId}`);
+				}
+
+				// Validate order status for cancellation
+				if (existingOrder.status !== OrderStatus.OPEN) {
+					throw new Error(`Cannot cancel order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.OPEN}`);
+				}
+
+				// Create cancel message: [side, { fixed: price }, '0']
+				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
+				const price = existingOrder.price?.toString() || '0';
+
+				executeMessages.push([side, { fixed: price }, '0']);
+
+				// Update order status to CANCELLED and update timestamp
+				const cancelledOrder: Order = {
+					...existingOrder,
+					status: OrderStatus.CANCELLED,
+					updateTimestamp: Date.now()
+				};
+				cancelOrdersMap.set(orderId, cancelledOrder);
+			});
+			ordersMap.set('cancel', cancelOrdersMap);
+		}
+
+		// Process withdraw orders
+		if (orders.withdraw && !orders.withdraw.isEmpty()) {
+			const withdrawOrdersMap = MMap<OrderId, Order>();
+
+			orders.withdraw.forEach((orderId: OrderId) => {
+				// Check if order exists in existing orders
+				const existingOrder = existingOrders.get(orderId);
+				if (!existingOrder) {
+					throw new Error(`Order not found: ${orderId}`);
+				}
+
+				// Validate order status for withdrawal
+				if (existingOrder.status !== OrderStatus.FILLED) {
+					throw new Error(`Cannot withdraw order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.FILLED}`);
+				}
+
+				// For withdraw, we use the same structure as place/replace but with null amount
+				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
+				const price = existingOrder.price?.toString() || '0';
+
+				executeMessages.push([side, { fixed: price }, null]);
+
+				// Update timestamp for withdrawn order
+				const withdrawnOrder: Order = {
+					...existingOrder,
+					updateTimestamp: Date.now()
+				};
+				withdrawOrdersMap.set(orderId, withdrawnOrder);
+			});
+			ordersMap.set('withdraw', withdrawOrdersMap);
+		}
+
+		if (executeMessages.length === 0) {
+			throw new Error("No valid orders to execute");
+		}
+
+		// Execute the transaction
+		const response = await this.cosmClient.execute(
+			ownerAddress,
+			contractAddress,
+			{
+				order: [executeMessages, null]
+			},
+			'auto'
 		);
 
-		const rawOrders = ordersResponse.orders || [];
+		// Get the transaction details
+		const transaction = await this.getTransaction({ hash: response.transactionHash });
+		transactions.set(transaction.hash, transaction);
 
-		const filledOrders = MList<any>(rawOrders.filter((order: any) => {
-			return order.filled && Number(order.filled) > 0;
-		}));
-
-		if (filledOrders.isEmpty()) {
-			throw new Error("No filled orders found to withdraw");
-		}
-
-		const withdrawnOrders = MMap<OrderId, Order>();
-		const transactions = MMap<TransactionHash, Transaction>();
-
-		for (const rawOrder of filledOrders) {
-			const withdrawMessage = {
-				order: [
-					[
-						[
-							rawOrder.side,
-							{
-								fixed: rawOrder.price.fixed
-							},
-							null
-						]
-					],
-					null
-				]
-			};
-
-			const result = await this.cosmClient.execute(
-				walletAddress,
-				market.address,
-				withdrawMessage,
-				'auto'
-			);
-
-			const order: Order = {
-				id: `${walletAddress}-${rawOrder.side}-${rawOrder.price.fixed}`,
-				market: market,
-				owner: walletAddress,
-				type: OrderType.LIMIT,
-				side: rawOrder.side === 'quote' ? OrderSide.SELL : OrderSide.BUY,
-				price: new Decimal(rawOrder.price.fixed),
-				amount: new Decimal(rawOrder.offer),
-				filledAmount: new Decimal(rawOrder.filled),
-				filledPercentage: new Decimal(rawOrder.filled).div(new Decimal(rawOrder.offer)),
-				status: OrderStatus.FILLED,
-				raw: rawOrder
-			};
-
-			const transaction: Transaction = {
-				hash: result.transactionHash,
-				status: TransactionStatus.SUCCESS,
-				fee: {
-					amount: result.gasUsed ? new Decimal(result.gasUsed.toString()) : DECIMAL_0,
-					token: this.feePaymentToken
-				},
-				raw: result
-			};
-
-			withdrawnOrders.set(order.id, order);
-			transactions.set(transaction.hash, transaction);
-		}
-
-		const lastTransaction = transactions.last();
-
-		const result = {
-			orders: withdrawnOrders,
-			transactions: transactions,
-			transaction: lastTransaction,
-			raw: lastTransaction?.raw
+		// Build the response
+		const result: FinExecuteOrdersResponse = {
+			placedOrders: ordersMap.get('place'),
+			replacedOrders: ordersMap.get('replace'),
+			cancelledOrders: ordersMap.get('cancel'),
+			withdrawnOrders: ordersMap.get('withdraw'),
+			transactions: transactions
 		};
 
 		return result;
 	}
 }
+
+/**
+ * Ignore an exception
+ * @param exception - The exception to ignore
+ */
+const ignoreException = (exception: any): void => {
+	let message = 'Ignored exception: ';
+	if (exception instanceof Error) {
+		message += exception.message;
+	} else {
+		message += exception;
+	}
+
+	console.warn(message);
+};

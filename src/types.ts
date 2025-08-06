@@ -1,10 +1,9 @@
 // noinspection JSUnusedGlobalSymbols
 
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
-import { DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
+import {AccountData, DirectSecp256k1Wallet} from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
 import BN from "bn.js";
-import { GasPrice } from '@cosmjs/stargate';
 import { properties } from './properties';
 import { List, Map } from 'immutable';
 import { MList, MMap } from './extensions/immutablejs/types';
@@ -12,6 +11,7 @@ import { MList, MMap } from './extensions/immutablejs/types';
 export { List, Map, MList, MMap };
 
 export const DECIMAL_0 = new Decimal(0);
+export const DECIMAL_1 = new Decimal(1);
 export const DECIMAL_100 = new Decimal(100);
 export const DECIMAL_INFINITY = new Decimal(Number.POSITIVE_INFINITY);
 export const DECIMAL_NEGATIVE_INFINITY = new Decimal(Number.NEGATIVE_INFINITY);
@@ -108,7 +108,7 @@ export type MarketPrice = Amount;
 export type OrderBookOrderPrice = Amount;
 export type OrderBookOrderAmount = Amount;
 export type OrderBookMiddlePrice = Amount;
-
+export type OrderBookPrice = Amount;
 export type TickerPrice = Amount;
 export type TickerTimestamp = Timestamp;
 
@@ -116,6 +116,11 @@ export type CandleTimestamp = Timestamp;
 export type CandlePrice = Amount;
 export type CandleVolume = Amount;
 export type CandleInterval = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w' | '1M' | '1y';
+
+export type IndicatorId = Id;
+export type IndicatorName = Name;
+export type IndicatorParameters = any[];
+export type IndicatorValue = any;
 
 export type OrderId = Id;
 export type OrderPrice = Amount;
@@ -125,7 +130,10 @@ export type OrderFilledPercentage = Percentage;
 export type OrderCreationTimestamp = Timestamp;
 export type OrderUpdateTimestamp = Timestamp;
 
-export type Wallet = DirectSecp256k1Wallet;
+export type Wallet = {
+	cosmWallet: DirectSecp256k1Wallet;
+	firstAccount: AccountData;
+};
 
 /**
  * Represents a token
@@ -302,11 +310,41 @@ export interface OrderBook {
 		 * Best ask of the order book
 		 */
 		bestAsk?: OrderBookOrder;
+	}
 
+	/**
+	 * Prices of the order book
+	 */
+	statistics: {
 		/**
 		 * Middle price of the order book
 		 */
-		middlePrice?: OrderBookMiddlePrice;
+		middlePrice: {
+			/**
+			 * Price of the base token to the quote token
+			 */
+			baseToQuote?: OrderBookPrice;
+
+			/**
+			 * Price of the quote token to the base token
+			 */
+			quoteToBase?: OrderBookPrice;
+		},
+
+		/**
+		 * Volume weighted average price (VWAP) of the order book
+		 */
+		volumeWeightedAveragePrice: {
+			/**
+			 * Price of the base token to the quote token
+			 */
+			baseToQuote?: OrderBookPrice;
+
+			/**
+			 * Price of the quote token to the base token
+			 */
+			quoteToBase?: OrderBookPrice;
+		}
 	}
 
 	/**
@@ -327,7 +365,12 @@ export interface Ticker {
 	/**
 	 * Price of the ticker
 	 */
-	price: TickerPrice;
+	middlePrice?: TickerPrice;
+
+	/**
+	 * Volume weighted average price (VWAP) of the ticker
+	 */
+	volumeWeightedAveragePrice?: TickerPrice;
 
 	/**
 	 * Timestamp of the ticker
@@ -378,6 +421,21 @@ export interface Candle {
 	 * Raw data
 	 */
 	raw: Raw;
+}
+
+/**
+ * Represents an indicator
+ */
+export interface IndicatorData {
+	/**
+	 * ID of the indicator
+	 */
+	indicator: IndicatorId;
+
+	/**
+	 * Value of the indicator
+	 */
+	value: IndicatorValue;
 }
 
 
@@ -518,7 +576,7 @@ export interface Order {
 	/**
 	 * The account which placed the order
 	 */
-	owner: WalletAddress;
+	ownerAddress: WalletAddress;
 
 	/**
 	 * Type of the order
@@ -533,7 +591,7 @@ export interface Order {
 	/**
 	 * Price of the order
 	 */
-	price: OrderPrice;
+	price?: OrderPrice;
 
 	/**
 	 * Amount of the order
@@ -602,11 +660,15 @@ export interface FinConstructorOptions {
  * Fin initialize options
  */
 export interface FinInitializeOptions {
-
 	/**
 	 * Wallet
 	 */
-	wallet: DirectSecp256k1Wallet;
+	wallet: Wallet;
+
+	/**
+	 * Wallet address
+	 */
+	walletAddress: WalletAddress;
 
 	/**
 	 * Cosm client
@@ -758,6 +820,11 @@ export interface FinGetOrderBookRequest {
 	marketSymbol?: MarketSymbol;
 
 	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
 	 * Maximum number of orders to return
 	 */
 	maximumNumberOfOrders?: Integer;
@@ -782,6 +849,11 @@ export interface FinGetTickerRequest {
 	 * Market name
 	 */
 	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
 }
 
 /**
@@ -827,13 +899,59 @@ export interface FinGetCandlesResponse extends List<Candle> {
 }
 
 /**
+ * Get indicators request
+ */
+export interface FinGetIndicatorsRequest {
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+		/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
+	 * Maximum number of candles to return
+	 */
+	maximumNumberOfCandles?: Integer;
+
+	/**
+	 * Candle interval
+	 */
+	interval?: CandleInterval;
+
+	/**
+	 * Candles
+	 */
+	candles: List<Candle>;
+}
+
+/**
+ * Get indicators response
+ */
+export interface FinGetIndicatorsResponse extends Map<IndicatorId, IndicatorData> {
+}
+
+/**
  * Get balances request
  */
 export interface FinGetBalancesRequest {
 	/**
 	 * Address
 	 */
-	walletAddress: WalletAddress;
+	walletAddress?: WalletAddress;
+
+	/**
+	 * Wallet
+	 */
+	wallet?: Wallet;
 
 	/**
 	 * Token addresses to filter balances (optional)
@@ -880,7 +998,12 @@ export interface FinGetOrderRequest {
 	/**
 	 * Owner address (wallet that owns the order)
 	 */
-	ownerAddress: WalletAddress;
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
 
 	/**
 	 * Market address
@@ -891,6 +1014,11 @@ export interface FinGetOrderRequest {
 	 * Market name
 	 */
 	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
 
 	/**
 	 * Order price
@@ -951,24 +1079,29 @@ export interface FinGetOrdersRequest {
 	orderIds?: List<OrderId> | OrderId[];
 
 	/**
+	 * Orders
+	 */
+	orders?: List<Order> | Order[];
+
+	/**
 	 * Order price
 	 */
-	orderPrice?: OrderPrice;
+	orderPrices?: List<OrderPrice> | OrderPrice[];
 
 	/**
 	 * Order type
 	 */
-	orderType?: OrderType;
+	orderTypes?: List<OrderType> | OrderType[];
 
 	/**
 	 * Order side
 	 */
-	orderSide?: OrderSide;
+	orderSides?: List<OrderSide> | OrderSide[];
 
 	/**
 	 * Order status
 	 */
-	orderStatus?: OrderStatus;
+	orderStatuses?: List<OrderStatus> | OrderStatus[];
 
 	/**
 	 * Maximum number of orders to return
@@ -1217,6 +1350,18 @@ export interface FinCancelOrdersResponse {
 }
 
 /**
+ * Cancel all orders request
+ */
+export interface FinCancelAllOrdersRequest extends FinCancelOrdersRequest {
+}
+
+/**
+ * Cancel all orders response
+ */
+export interface FinCancelAllOrdersResponse extends FinCancelOrdersResponse {
+}
+
+/**
  * Withdraw from market request
  */
 export interface FinWithdrawRequest {
@@ -1259,6 +1404,26 @@ export interface FinWithdrawResponse {
 	 * Transaction details
 	 */
 	transactions: Map<TransactionHash, Transaction>;
+}
+
+/**
+ * Unified order execution request that can handle place, replace, cancel, and withdraw operations
+ */
+export interface FinExecuteOrdersRequest {
+	/**
+	 * Owner address (wallet that will execute the orders)
+	 */
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner wallet
+	 */
+	owner?: Wallet;
+
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
 
 	/**
 	 * Last transaction details (for backward compatibility)
@@ -1266,7 +1431,67 @@ export interface FinWithdrawResponse {
 	transaction: Transaction;
 
 	/**
-	 * Raw response
+	 * Market symbol
 	 */
-	raw: Raw;
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market object
+	 */
+	market?: Market;
+
+	/**
+	 * Order operations to execute
+	 */
+	orders: {
+		/**
+		 * Place new orders
+		 */
+		place?: List<FinPlaceOrderRequest>;
+
+		/**
+		 * Replace existing orders
+		 */
+		replace?: List<FinReplaceOrderRequest>;
+
+		/**
+		 * Cancel orders by IDs or order objects
+		 */
+		cancel?: List<OrderId> | List<Order> | OrderId[] | Order[];
+
+		/**
+		 * Withdraw filled orders by IDs or order objects
+		 */
+		withdraw?: List<OrderId> | List<Order> | OrderId[] | Order[];
+	};
+}
+
+/**
+ * Unified order execution response
+ */
+export interface FinExecuteOrdersResponse {
+	/**
+	 * Placed orders (if any)
+	 */
+	placedOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Replaced orders (if any)
+	 */
+	replacedOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Cancelled orders (if any)
+	 */
+	cancelledOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Withdrawn orders (if any)
+	 */
+	withdrawnOrders?: Map<OrderId, Order>;
+
+	/**
+	 * All transactions from the execution
+	 */
+	transactions: Map<TransactionHash, Transaction>;
 }
