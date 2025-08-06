@@ -733,7 +733,7 @@ export class Fin {
 			symbols.forEach((symbol: TokenSymbol, index: number) => {
 				const token = this.tokensBySymbol.getOrThrow(symbol, undefined, true);
 				if (!token) throw new Error(`Token not found: ${symbol}`);
-				tokens.set(index.toString(), token, true);
+				tokens.set(token.address, token, true);
 			});
 		}
 
