@@ -4,20 +4,20 @@ import { Market, MarketAddress, RujiraConstructorOptions, RujiraInitializeOption
 
 (async function run() {
 	const active = {
-		getStatus: false,
-		getTransaction: false,
-		getAllTokens: false,
-		getTokens: false,
-		getToken: false,
-		getAllMarkets: false,
-		getMarkets: false,
-		getMarket: false,
+		getStatus: true,
+		getTransaction: true,
+		getAllTokens: true,
+		getTokens: true,
+		getToken: true,
+		getAllMarkets: true,
+		getMarkets: true,
+		getMarket: true,
 		getOrderBook: true,
-		getTicker: false,
-		getCandles: false,
-		getIndicators: false,
-		getBalances: false,
-		getOrder: false,
+		getTicker: true,
+		getCandles: true,
+		getIndicators: true,
+		getBalances: true,
+		getOrder: true,
 	};
 
 	const rujira = new Rujira({

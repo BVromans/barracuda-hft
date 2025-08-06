@@ -1386,21 +1386,21 @@ export class Fin {
 				if (rawOrder.filled && Number(rawOrder.filled) > 0) {
 					// TODO: check if this is correct!!!
 					const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
-					lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.get(lockedTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
+					lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.getOrThrow(lockedTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
 				}
 				if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
 					// TODO: check if this is correct!!!
 					const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // note that it's the opposite asset
-					withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.get(withdrawTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
+					withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.getOrThrow(withdrawTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
 				}
 			}
 		}
 
 		const tokensBalancesMap = MMap<TokenAddress, TokenBalance>();
 		for (const token of tokens.values()) {
-			const free = freeBalances.get(token.address, DECIMAL_0);
-			const lockedInOrders = lockedInOrdersMap.get(token.address, DECIMAL_0);
-			const withdrawable = withdrawableMap.get(token.address, DECIMAL_0);
+			const free = freeBalances.getOrThrow(token.address, DECIMAL_0);
+			const lockedInOrders = lockedInOrdersMap.getOrThrow(token.address, DECIMAL_0);
+			const withdrawable = withdrawableMap.getOrThrow(token.address, DECIMAL_0);
 			const lockedInPools = DECIMAL_0; // Not implemented
 			const total = free.plus(lockedInOrders).plus(lockedInPools).plus(withdrawable);
 
@@ -1468,19 +1468,19 @@ export class Fin {
 		}
 
 		const totalNative: BaseBalance = {
-			free: freeBalances.get(this.nativeToken.address, DECIMAL_0),
-			lockedInOrders: lockedInOrdersMap.get(this.nativeToken.address, DECIMAL_0),
+			free: freeBalances.getOrThrow(this.nativeToken.address, DECIMAL_0),
+			lockedInOrders: lockedInOrdersMap.getOrThrow(this.nativeToken.address, DECIMAL_0),
 			lockedInPools: DECIMAL_0,
-			withdrawable: withdrawableMap.get(this.nativeToken.address, DECIMAL_0),
-			total: freeBalances.get(this.nativeToken.address, DECIMAL_0).plus(lockedInOrdersMap.get(this.nativeToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.get(this.nativeToken.address, DECIMAL_0))
+			withdrawable: withdrawableMap.getOrThrow(this.nativeToken.address, DECIMAL_0),
+			total: freeBalances.getOrThrow(this.nativeToken.address, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.nativeToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.nativeToken.address, DECIMAL_0))
 		};
 
 		const totalBeacon: BaseBalance = {
-			free: freeBalances.get(this.beaconToken.address, DECIMAL_0),
-			lockedInOrders: lockedInOrdersMap.get(this.beaconToken.address, DECIMAL_0),
+			free: freeBalances.getOrThrow(this.beaconToken.address, DECIMAL_0),
+			lockedInOrders: lockedInOrdersMap.getOrThrow(this.beaconToken.address, DECIMAL_0),
 			lockedInPools: DECIMAL_0,
-			withdrawable: withdrawableMap.get(this.beaconToken.address, DECIMAL_0),
-			total: freeBalances.get(this.beaconToken.address, DECIMAL_0).plus(lockedInOrdersMap.get(this.beaconToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.get(this.beaconToken.address, DECIMAL_0))
+			withdrawable: withdrawableMap.getOrThrow(this.beaconToken.address, DECIMAL_0),
+			total: freeBalances.getOrThrow(this.beaconToken.address, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.beaconToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.beaconToken.address, DECIMAL_0))
 		};
 
 		const balances: Balances = {
