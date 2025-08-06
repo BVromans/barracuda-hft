@@ -255,6 +255,8 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
 			orders: []
 		});
+		console.log('replaceOrders:\n', replaceOrders);
+		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.cancelOrder) {
@@ -272,6 +274,8 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
 			orders: []
 		});
+		console.log('cancelOrders:\n', cancelOrders);
+		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.withdrawOrder) {
@@ -280,5 +284,7 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
 			// marketSymbol: 'RUJI/USDC',
 		});
+		console.log('withdrawOrder:\n', withdrawOrder);
+		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 })();
