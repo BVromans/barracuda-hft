@@ -20,7 +20,6 @@ import {
 	DECIMAL_0,
 	DECIMAL_1,
 	DECIMAL_INFINITY,
-	DECIMAL_NaN,
 	FinCancelAllOrdersRequest,
 	FinCancelAllOrdersResponse,
 	FinCancelOrderRequest,
@@ -28,6 +27,8 @@ import {
 	FinCancelOrdersRequest,
 	FinCancelOrdersResponse,
 	FinConstructorOptions,
+	FinExecuteOrdersRequest,
+	FinExecuteOrdersResponse,
 	FinGetAllMarketsRequest,
 	FinGetAllMarketsResponse,
 	FinGetAllTokensRequest,
@@ -67,11 +68,9 @@ import {
 	FinReplaceOrderResponse,
 	FinReplaceOrdersRequest,
 	FinReplaceOrdersResponse,
-	FinExecuteOrdersRequest,
-	FinExecuteOrdersResponse,
 	FinWithdrawRequest,
 	FinWithdrawResponse,
-	IndicatorId,
+	Indicator,
 	IndicatorData,
 	Integer,
 	List,
@@ -85,8 +84,9 @@ import {
 	Order,
 	OrderBook,
 	OrderBookOrder,
-	OrderBookOrderPrice,
+	OrderBookPrice,
 	OrderId,
+	OrderPrice,
 	OrderSide,
 	OrderStatus,
 	OrderType,
@@ -106,9 +106,7 @@ import {
 	Wallet,
 	WalletAddress,
 	WalletMnemonic,
-	WalletPrivateKey,
-	DECIMAL_10,
-	OrderPrice, Indicator, OrderBookPrice
+	WalletPrivateKey
 } from './types';
 import { getOrThrow, runWithRetryAndTimeout } from "./utils";
 
