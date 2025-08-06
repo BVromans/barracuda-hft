@@ -108,8 +108,8 @@ import {
 	WalletMnemonic,
 	WalletPrivateKey,
 	DECIMAL_10,
-	OrderPrice
-} from "./types";
+	OrderPrice, Indicator, OrderBookPrice
+} from './types';
 import { getOrThrow, runWithRetryAndTimeout } from "./utils";
 
 /**
@@ -1254,7 +1254,7 @@ export class Fin {
 		const indicators = MMap<Indicator, IndicatorData>();
 
 		for (const indicator of Indicator.getAll()) {
-			const value = (Indicators as any)[indicator.id](data, ...indicator.defaultParameters);
+			const value = (Indicators as any)[indicator.id](candles, ...indicator.parameters);
 
 			indicators.set(indicator, {
 				indicator,

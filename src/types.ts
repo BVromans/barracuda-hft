@@ -1,9 +1,10 @@
 // noinspection JSUnusedGlobalSymbols
 
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
-import { DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
+import { AccountData, DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
 import BN from "bn.js";
+import { GasPrice } from '@cosmjs/stargate';
 import { properties } from './properties';
 import { List, Map } from 'immutable';
 import { MList, MMap } from './extensions/immutablejs/types';
@@ -19,6 +20,7 @@ export const DECIMAL_NEGATIVE_INFINITY = new Decimal(Number.NEGATIVE_INFINITY);
 export const DECIMAL_NaN = new Decimal(NaN);
 export const BIG_NUMBER_0 = new BN(0);
 export const BIG_NUMBER_1 = new BN(1);
+export const BIG_NUMBER_10 = new BN(10);
 export const BIG_NUMBER_100 = new BN(100);
 export const BIG_NUMBER_NaN = new BN(NaN);
 
@@ -487,7 +489,7 @@ export class Indicator {
 		"macd",
 		"Moving Average Convergence/Divergence",
 		(candles: List<Candle>) => {
-			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray(), candles.map((candle: Candle) => candle.period.toString()).toArray()];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
 		[12, 26, 9]
 	);
@@ -651,8 +653,6 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
-					data[0].push(candle.source || 0); // Undefined
-					data[1].push(candle.period?.toString() || '');
 					return data;
 				},
 				[[], [], []] as [number[], string[], number[]]
@@ -869,7 +869,6 @@ export class Indicator {
 					data[0].push(candle.high.toNumber() || 0);
 					data[1].push(candle.low.toNumber() || 0);
 					data[2].push(candle.close.toNumber() || 0);
-					data[3].push(candle.period.toString());
 					return data;
 				},
 				[[], [], [], []] as [number[], number[], number[], string[]]
@@ -1051,7 +1050,6 @@ export class Indicator {
 					data[1].push(candle.low.toNumber());
 					data[2].push(candle.close.toNumber());
 					data[3].push(candle.volume.toNumber());
-					data[4].push(candle.period.toString());
 					return data;
 				},
 				[[], [], [], [], []] as [number[], number[], number[], number[], string[]]
@@ -1254,9 +1252,7 @@ export type CandleTimestamp = Timestamp;
 export type CandlePrice = Amount;
 export type CandleVolume = Amount;
 export type CandleInterval = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w' | '1M' | '1y';
-export type CandleSize = Amount;
-export type CandleSource = number;
-export type CandleStddev = Amount;
+
 export type IndicatorId = Id;
 export type IndicatorName = Name;
 export type IndicatorParameters = any[];
@@ -1270,7 +1266,10 @@ export type OrderFilledPercentage = Percentage;
 export type OrderCreationTimestamp = Timestamp;
 export type OrderUpdateTimestamp = Timestamp;
 
-export type Wallet = DirectSecp256k1Wallet;
+export type Wallet = {
+	cosmWallet: DirectSecp256k1Wallet;
+	firstAccount: AccountData;
+};
 
 /**
  * Represents a token
@@ -1380,14 +1379,6 @@ export interface Market {
 	 * Raw data
 	 */
 	raw: Raw;
-
-	/**
-	 * Price of the market
-	 */
-	price?: {
-    baseQuote: Decimal;
-    quoteBase: Decimal;
-};
 }
 
 /**
@@ -1550,26 +1541,6 @@ export interface Candle {
 	volume: CandleVolume;
 
 	/**
-	 * Period of the candle
-	 */
-	period: CandleInterval;
-
-	/**
-	 * Size of the candle
-	 */
-	size: CandleSize;
-
-	/**
-	 * Source of the candle
-	 */
-	source: CandleSource;
-
-	/**
-	 * Stddev of the candle
-	 */
-	stddev: CandleStddev;
-
-	/**
 	 * Raw data
 	 */
 	raw: Raw;
@@ -1728,7 +1699,7 @@ export interface Order {
 	/**
 	 * The account which placed the order
 	 */
-	owner: WalletAddress;
+	ownerAddress: WalletAddress;
 
 	/**
 	 * Type of the order
@@ -1743,7 +1714,7 @@ export interface Order {
 	/**
 	 * Price of the order
 	 */
-	price: OrderPrice;
+	price?: OrderPrice;
 
 	/**
 	 * Amount of the order
@@ -1812,11 +1783,15 @@ export interface FinConstructorOptions {
  * Fin initialize options
  */
 export interface FinInitializeOptions {
-
 	/**
 	 * Wallet
 	 */
-	wallet: DirectSecp256k1Wallet;
+	wallet: Wallet;
+
+	/**
+	 * Wallet address
+	 */
+	walletAddress: WalletAddress;
 
 	/**
 	 * Cosm client
@@ -1968,6 +1943,11 @@ export interface FinGetOrderBookRequest {
 	marketSymbol?: MarketSymbol;
 
 	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
 	 * Maximum number of orders to return
 	 */
 	maximumNumberOfOrders?: Integer;
@@ -1992,6 +1972,11 @@ export interface FinGetTickerRequest {
 	 * Market name
 	 */
 	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
 }
 
 /**
@@ -2084,7 +2069,12 @@ export interface FinGetBalancesRequest {
 	/**
 	 * Address
 	 */
-	walletAddress: WalletAddress;
+	walletAddress?: WalletAddress;
+
+	/**
+	 * Wallet
+	 */
+	wallet?: Wallet;
 
 	/**
 	 * Token addresses to filter balances (optional)
@@ -2131,7 +2121,12 @@ export interface FinGetOrderRequest {
 	/**
 	 * Owner address (wallet that owns the order)
 	 */
-	ownerAddress: WalletAddress;
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
 
 	/**
 	 * Market address
@@ -2142,6 +2137,11 @@ export interface FinGetOrderRequest {
 	 * Market name
 	 */
 	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
 
 	/**
 	 * Order price
@@ -2202,24 +2202,29 @@ export interface FinGetOrdersRequest {
 	orderIds?: List<OrderId> | OrderId[];
 
 	/**
+	 * Orders
+	 */
+	orders?: List<Order> | Order[];
+
+	/**
 	 * Order price
 	 */
-	orderPrice?: OrderPrice;
+	orderPrices?: List<OrderPrice> | OrderPrice[];
 
 	/**
 	 * Order type
 	 */
-	orderType?: OrderType;
+	orderTypes?: List<OrderType> | OrderType[];
 
 	/**
 	 * Order side
 	 */
-	orderSide?: OrderSide;
+	orderSides?: List<OrderSide> | OrderSide[];
 
 	/**
 	 * Order status
 	 */
-	orderStatus?: OrderStatus;
+	orderStatuses?: List<OrderStatus> | OrderStatus[];
 
 	/**
 	 * Maximum number of orders to return
@@ -2468,6 +2473,18 @@ export interface FinCancelOrdersResponse {
 }
 
 /**
+ * Cancel all orders request
+ */
+export interface FinCancelAllOrdersRequest extends FinCancelOrdersRequest {
+}
+
+/**
+ * Cancel all orders response
+ */
+export interface FinCancelAllOrdersResponse extends FinCancelOrdersResponse {
+}
+
+/**
  * Withdraw from market request
  */
 export interface FinWithdrawRequest {
@@ -2510,14 +2527,89 @@ export interface FinWithdrawResponse {
 	 * Transaction details
 	 */
 	transactions: Map<TransactionHash, Transaction>;
+}
+
+/**
+ * Unified order execution request that can handle place, replace, cancel, and withdraw operations
+ */
+export interface FinExecuteOrdersRequest {
+	/**
+	 * Owner address (wallet that will execute the orders)
+	 */
+	ownerAddress?: WalletAddress;
 
 	/**
-	 * Last transaction details (for backward compatibility)
+	 * Owner wallet
 	 */
-	transaction: Transaction;
+	owner?: Wallet;
 
 	/**
-	 * Raw response
+	 * Market address
 	 */
-	raw: Raw;
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market symbol
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market object
+	 */
+	market?: Market;
+
+	/**
+	 * Order operations to execute
+	 */
+	orders: {
+		/**
+		 * Place new orders
+		 */
+		place?: List<FinPlaceOrderRequest>;
+
+		/**
+		 * Replace existing orders
+		 */
+		replace?: List<FinReplaceOrderRequest>;
+
+		/**
+		 * Cancel orders by IDs or order objects
+		 */
+		cancel?: List<OrderId> | List<Order> | OrderId[] | Order[];
+
+		/**
+		 * Withdraw filled orders by IDs or order objects
+		 */
+		withdraw?: List<OrderId> | List<Order> | OrderId[] | Order[];
+	};
+}
+
+/**
+ * Unified order execution response
+ */
+export interface FinExecuteOrdersResponse {
+	/**
+	 * Placed orders (if any)
+	 */
+	placedOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Replaced orders (if any)
+	 */
+	replacedOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Cancelled orders (if any)
+	 */
+	cancelledOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Withdrawn orders (if any)
+	 */
+	withdrawnOrders?: Map<OrderId, Order>;
+
+	/**
+	 * All transactions from the execution
+	 */
+	transactions: Map<TransactionHash, Transaction>;
 }
