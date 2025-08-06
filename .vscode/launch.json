@@ -16,6 +16,17 @@
 			"type": "bun",
 			"internalConsoleOptions": "neverOpen",
 			"request": "launch",
+			"name": "rujira-hft-bot:demonstration",
+			"runtimeExecutable": "bun",
+			"runtimeArgs": ["run", "demonstration"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"watchMode": true
+		},
+		{
+			"type": "bun",
+			"internalConsoleOptions": "neverOpen",
+			"request": "launch",
 			"name": "rujira-hft-bot:build",
 			"runtimeExecutable": "bun",
 			"runtimeArgs": ["run", "build"],

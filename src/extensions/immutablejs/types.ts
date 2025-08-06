@@ -11,12 +11,38 @@ declare module 'immutable' {
 	}
 
   interface Map<K, V> {
+		/**
+		 * Check if a key is present in the map
+		 * @param key - The key to check
+		 * @param hasAsRawKey - Whether to treat the key as a raw key
+		 * @returns True if the key is present, false otherwise
+		 */
+		has(key: K, hasAsRawKey?: boolean): boolean;
+
+		/**
+		 * Get a value from the map or throw if not found
+		 * @param key - The key to get the value from
+		 * @param notSetValue - The value to return if the key is not set
+		 * @param getAsRawKey - Whether to treat the key as a raw key
+		 * @returns The value from the map
+		 */
+		get(key: K, notSetValue?: V, getAsRawKey?: boolean): V | undefined;
+
     /**
      * Like get(), but throws if the key isn’t present.
      * @param key The key to look up
      * @param notSetValue The value to return if the key is not set
      */
-    getOrThrow(key: K, notSetValue?: V): V;
+    getOrThrow(key: K, notSetValue?: V, getAsRawKey?: boolean): V;
+
+		/**
+		 * Set a value in the map
+		 * @param key - The key to set the value for
+		 * @param value - The value to set
+		 * @param putAsRawKey - Whether to treat the key as a raw key
+		 * @returns The map with the value set
+		 */
+		set(key: K, value: V, putAsRawKey?: boolean): Map<K, V>;
   }
 }
 
@@ -70,21 +96,46 @@ function MMap(entries?: any): Map<any, any> {
 
 	map = map.asMutable();
 
+	const originalHas = map.has as any;
 	const originalGet = map.get as any;
 	const originalSet = map.set as any;
+
+	/**
+	 * Check if a key is present in the map
+	 * @param key - The key to check
+	 * @param hasAsRawKey - Whether to treat the key as a raw key
+	 * @returns True if the key is present, false otherwise
+	 */
+	map.has = function<K, V>(key: K, hasAsRawKey: boolean = false): boolean {
+		if (Array.isArray(key)) {
+			return originalHas.call(this, key) as boolean;
+		}
+
+		if (typeof key === 'string' && !hasAsRawKey) {
+			const path = key.trim().split('.');
+			if (path.length === 1) {
+				return originalHas.call(this, path[0]) as boolean;
+			}
+
+			return map.hasIn(path) as boolean;
+		}
+
+		return originalHas.call(this, key) as boolean;
+	}
 
 	/**
 	 * Get a value from the map
 	 * @param key - The key to get the value from
 	 * @param notSetValue - The value to return if the key is not set
+	 * @param getAsRawKey - Whether to treat the key as a raw key
 	 * @returns The value from the map
 	 */
-	map.get = function<K, V, NSV = any>(key: K, notSetValue?: NSV): V | NSV {
+	map.get = function<K, V, NSV = any>(key: K, notSetValue?: NSV, getAsRawKey: boolean = false): V | NSV {
 		if (Array.isArray(key)) {
 			return originalGet.call(this, key, notSetValue) as V | NSV;
 		}
 
-		if (typeof key === 'string') {
+		if (typeof key === 'string' && !getAsRawKey) {
 			const path = key.trim().split('.');
 			if (path.length === 1) {
 				return originalGet.call(this, path[0], notSetValue) as V | NSV;
@@ -100,11 +151,13 @@ function MMap(entries?: any): Map<any, any> {
 	 * Get a value from the map or throw if not found
 	 * @param key - The key to get the value from
 	 * @param notSetValue - The value to return if the key is not set
+	 * @param getAsRawKey - Whether to treat the key as a raw key
 	 * @returns The value from the map
 	 */
 	// @ts-ignore
-	map.getOrThrow = function<K, V, NSV = any>(key: K, notSetValue?: NSV): V | NSV {
-		const value = map.get(key, notSetValue);
+	map.getOrThrow = function<K, V, NSV = any>(key: K, notSetValue?: NSV, getAsRawKey: boolean = false): V | NSV {
+		// @ts-ignore
+		const value = map.get(key, notSetValue, getAsRawKey);
 
 		if (value === undefined || value === null) {
 			if (notSetValue === undefined) {
@@ -121,6 +174,7 @@ function MMap(entries?: any): Map<any, any> {
 	 * Set a value in the map
 	 * @param key - The key to set the value for
 	 * @param value - The value to set
+	 * @param putAsRawKey - Whether to treat the key as a raw key
 	 * @returns The map with the value set
 	 */
 	// @ts-ignore
