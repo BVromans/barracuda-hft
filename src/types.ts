@@ -1590,26 +1590,6 @@ export interface Candle {
 	volume: CandleVolume;
 
 	/**
-	 * Period of the candle
-	 */
-	period: CandleInterval;
-
-	/**
-	 * Size of the candle
-	 */
-	size: CandleSize;
-
-	/**
-	 * Source of the candle
-	 */
-	source: CandleSource;
-
-	/**
-	 * Stddev of the candle
-	 */
-	stddev: CandleStddev;
-
-	/**
 	 * Raw data
 	 */
 	raw: Raw;
