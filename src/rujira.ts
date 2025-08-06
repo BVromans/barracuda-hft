@@ -670,9 +670,9 @@ export class Fin {
 		}
 
 		if (address) {
-			return this.tokensByAddress.getOrThrow(address);
+			return this.tokensByAddress.getOrThrow(address, undefined, true);
 		} else if (symbol) {
-			return this.tokensBySymbol.getOrThrow(symbol);
+			return this.tokensBySymbol.getOrThrow(symbol, undefined, true);
 		}
 
 		throw new Error(`Token not found: ${address || symbol}`);
@@ -723,17 +723,17 @@ export class Fin {
 
 		if (addresses?.size) {
 			addresses.forEach((address: TokenAddress) => {
-				const token = this.tokensByAddress.getOrThrow(address);
+				const token = this.tokensByAddress.getOrThrow(address, undefined, true);
 				if (!token) throw new Error(`Token not found: ${address}`);
-				tokens.set(token.address, token);
+				tokens.set(token.address, token, true);
 			});
 		}
 
 		if (symbols?.size) {
 			symbols.forEach((symbol: TokenSymbol, index: number) => {
-				const token = this.tokensBySymbol.getOrThrow(symbol);
+				const token = this.tokensBySymbol.getOrThrow(symbol, undefined, true);
 				if (!token) throw new Error(`Token not found: ${symbol}`);
-				tokens.set(index.toString(), token);
+				tokens.set(token.address, token, true);
 			});
 		}
 
@@ -758,22 +758,20 @@ export class Fin {
 		// Extract all unique tokens from the markets
 		for (const market of markets.values()) {
 			// Add base token if not already added
-			if (!tokens.has(market.tokens.base.address)) {
-				// @ts-ignore
+			if (!tokens.has(market.tokens.base.address, true)) {
 				tokens.set(market.tokens.base.address, market.tokens.base, true);
 			}
 
 			// Add quote token if not already added
-			if (!tokens.has(market.tokens.quote.address)) {
-				// @ts-ignore
+			if (!tokens.has(market.tokens.quote.address, true)) {
 				tokens.set(market.tokens.quote.address, market.tokens.quote, true);
 			}
 		}
 
 		// Update internal maps
 		for (const token of tokens.values()) {
-			this.tokensByAddress.set(token.address, token);
-			this.tokensBySymbol.set(token.symbol.toUpperCase(), token);
+			this.tokensByAddress.set(token.address, token, true);
+			this.tokensBySymbol.set(token.symbol.toUpperCase(), token, true);
 		}
 
 		return tokens;
