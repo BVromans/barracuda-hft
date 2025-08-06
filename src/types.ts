@@ -12,6 +12,7 @@ export { List, Map, MList, MMap };
 
 export const DECIMAL_0 = new Decimal(0);
 export const DECIMAL_1 = new Decimal(1);
+export const DECIMAL_10 = new Decimal(10);
 export const DECIMAL_100 = new Decimal(100);
 export const DECIMAL_INFINITY = new Decimal(Number.POSITIVE_INFINITY);
 export const DECIMAL_NEGATIVE_INFINITY = new Decimal(Number.NEGATIVE_INFINITY);
@@ -188,7 +189,17 @@ export class Indicator {
 		"atr",
 		"Average True Range",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber());
+					data[1].push(candle.low.toNumber());
+					data[2].push(candle.close.toNumber());
+					data[3].push(candle.period.toString());
+					return data;
+				},
+				[[], [], [], []] as [number[], number[], number[], string[]]
+			);
+			return result;
 		},
 		[]
 	);
@@ -629,9 +640,17 @@ export class Indicator {
 		"rsi",
 		"Relative Strength Index",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.source || 0); // Undefined
+					data[1].push(candle.period?.toString() || '');
+					return data;
+				},
+				[[], [], []] as [number[], string[], number[]]
+			);
+			return result;
 		},
-		[]
+		[14]
 	);
 
 	static simple_moving_average = new Indicator(
@@ -836,9 +855,19 @@ export class Indicator {
 		"willr",
 		"Williams %R",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					data[3].push(candle.period.toString());
+					return data;
+				},
+				[[], [], [], []] as [number[], number[], number[], string[]]
+			);
+			return result;
 		},
-		[]
+		[14]
 	);
 
 	static weighted_moving_average = new Indicator(
@@ -1007,10 +1036,66 @@ export class Indicator {
 		"vwap",
 		"Volume-Weighted Average Price",
 		(candles: List<Candle>) => {
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber());
+					data[1].push(candle.low.toNumber());
+					data[2].push(candle.close.toNumber());
+					data[3].push(candle.volume.toNumber());
+					data[4].push(candle.period.toString());
+					return data;
+				},
+				[[], [], [], [], []] as [number[], number[], number[], number[], string[]]
+			);
+			return result;
+		},
+		[]
+	);
+
+	static cumulative_volume_delta = new Indicator(
+		"cvdelta",
+		"Cumulative Volume Delta",
+		(candles: List<Candle>) => {
 			return [];
 		},
 		[]
 	);
+
+  static williams_alligator = new Indicator(
+    "wagi",
+    "Williams Alligator",
+    (candles: List<Candle>) => {
+			return [];
+		},
+		[]
+	);
+
+  static williams_fractal = new Indicator(
+    "wfr",
+    "Williams Fractal",
+    (candles: List<Candle>) => {
+      return [];
+    },
+		[]
+  );
+
+  static zig_zag = new Indicator(
+    "zz",
+    "Zig Zag",
+    (candles: List<Candle>) => {
+      return [];
+    },
+		[]
+  );
+
+  static woodies_CCI = new Indicator(
+    "wcci",
+    "Woodies CCI",
+    (candles: List<Candle>) => {
+      return [];
+    },
+		[]
+  );
 
 	/**
 	 * ID of the indicator
@@ -1051,7 +1136,7 @@ export class Indicator {
 	 */
 	static getAll(): Indicator[] {
 		return [
-			Indicator.ease_of_movement,
+			// Indicator.ease_of_movement,
 			// Indicator.accumulation_distribution_line,
 			// Indicator.accumulation_distribution_oscillator,
 			// Indicator.average_directional_movement_index,
@@ -1149,6 +1234,11 @@ export class Indicator {
 			// Indicator.stochastic_momentum_index,
 			// Indicator.true_strength_index,
 			// Indicator.volume_weighted_average_price,
+			// Indicator.williams_alligator,
+			// Indicator.williams_fractal,
+			// Indicator.commodity_channel_index,
+			// Indicator.zig_zag,
+			// Indicator.woodies_CCI
 		];
 	}
 }
@@ -1199,7 +1289,9 @@ export type CandleTimestamp = Timestamp;
 export type CandlePrice = Amount;
 export type CandleVolume = Amount;
 export type CandleInterval = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w' | '1M' | '1y';
-
+export type CandleSize = Amount;
+export type CandleSource = number;
+export type CandleStddev = Amount;
 export type IndicatorId = Id;
 export type IndicatorName = Name;
 export type IndicatorParameters = any[];
@@ -1496,6 +1588,26 @@ export interface Candle {
 	 * Volume of the candle
 	 */
 	volume: CandleVolume;
+
+	/**
+	 * Period of the candle
+	 */
+	period: CandleInterval;
+
+	/**
+	 * Size of the candle
+	 */
+	size: CandleSize;
+
+	/**
+	 * Source of the candle
+	 */
+	source: CandleSource;
+
+	/**
+	 * Stddev of the candle
+	 */
+	stddev: CandleStddev;
 
 	/**
 	 * Raw data
