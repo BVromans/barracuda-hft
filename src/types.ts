@@ -1,9 +1,10 @@
 // noinspection JSUnusedGlobalSymbols
 
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
-import { DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
+import { AccountData, DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
 import BN from "bn.js";
+import { GasPrice } from '@cosmjs/stargate';
 import { properties } from './properties';
 import { List, Map } from 'immutable';
 import { MList, MMap } from './extensions/immutablejs/types';
@@ -19,6 +20,7 @@ export const DECIMAL_NEGATIVE_INFINITY = new Decimal(Number.NEGATIVE_INFINITY);
 export const DECIMAL_NaN = new Decimal(NaN);
 export const BIG_NUMBER_0 = new BN(0);
 export const BIG_NUMBER_1 = new BN(1);
+export const BIG_NUMBER_10 = new BN(10);
 export const BIG_NUMBER_100 = new BN(100);
 export const BIG_NUMBER_NaN = new BN(NaN);
 
@@ -33,58 +35,37 @@ export enum Chain {
 	THORCHAIN = 'thorchain',
 }
 
-/**
- * System status
- */
 export enum SystemStatus {
 	UP = 'up',
 	DOWN = 'down',
 }
 
-/**
- * Network
- */
 export enum Network {
 	MAINNET = 'mainnet',
 	TESTNET = 'testnet'
 }
 
-/**
- * Transaction status
- */
 export enum TransactionStatus {
 	PENDING = 'pending',
 	SUCCESS = 'success',
 	FAILED = 'failed'
 }
 
-/**
- * Market status
- */
 export enum MarketStatus {
 	ACTIVE = 'active',
 	INACTIVE = 'inactive'
 }
 
-/**
- * Order side
- */
 export enum OrderSide {
 	BUY = 'buy',
 	SELL = 'sell'
 }
 
-/**
- * Order type
- */
 export enum OrderType {
 	MARKET = 'market',
 	LIMIT = 'limit'
 }
 
-/**
- * Order status
- */
 export enum OrderStatus {
 	OPEN = 'open',
 	CANCELLED = 'cancelled',
@@ -93,1154 +74,6 @@ export enum OrderStatus {
 	CREATION_PENDING = 'creation_pending',
 	CANCELLATION_PENDING = 'cancellation_pending',
 	UNKNOWN = 'unknown'
-}
-
-/**
- * Strategy status
- */
-export enum StrategyStatus {
-	CREATED = 'created',
-	INITIALIZING = 'initializing',
-	IDLE = 'idle',
-	RUNNING = 'running',
-	STOP_REQUESTED = 'stop_requested',
-	STOPPING = 'stopping',
-	STOPPED = 'stopped'
-}
-
-/**
- * Represents an indicator
- */
-export class Indicator {
-
-	static accumulation_distribution_line = new Indicator(
-		"ad",
-		"Accumulation/Distribution Line",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static accumulation_distribution_oscillator = new Indicator(
-		"adosc",
-		"Accumulation/Distribution Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static average_directional_movement_index = new Indicator(
-		"adx",
-		"Average Directional Movement Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static average_directional_movement_rating = new Indicator(
-		"adxr",
-		"Average Directional Movement Rating",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static awesome_oscillator = new Indicator(
-		"ao",
-		"Awesome Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static absolute_price_oscillator = new Indicator(
-		"apo",
-		"Absolute Price Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static aroon = new Indicator(
-		"aroon",
-		"Aroon",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static aroon_oscillator = new Indicator(
-		"aroonosc",
-		"Aroon Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static average_true_range = new Indicator(
-		"atr",
-		"Average True Range",
-		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					data[0].push(candle.high.toNumber());
-					data[1].push(candle.low.toNumber());
-					data[2].push(candle.close.toNumber());
-					data[3].push(candle.period.toString());
-					return data;
-				},
-				[[], [], [], []] as [number[], number[], number[], string[]]
-			);
-			return result;
-		},
-		[]
-	);
-
-	static average_price = new Indicator(
-		"avgprice",
-		"Average Price",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static bollinger_bands = new Indicator(
-		"bbands",
-		"Bollinger Bands",
-		(candles: List<Candle>) => {
-			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
-		},
-		[20, 2]
-	);
-
-	static balance_of_power = new Indicator(
-		"bop",
-		"Balance of Power",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static commodity_channel_index = new Indicator(
-		"cci",
-		"Commodity Channel Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static chande_momentum_oscillator = new Indicator(
-		"cmo",
-		"Chande Momentum Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static crossany = new Indicator(
-		"crossany",
-		"Crossany",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static crossover = new Indicator(
-		"crossover",
-		"Crossover",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static crossunder = new Indicator(
-		"crossunder",
-		"Crossunder",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static cross_over_number = new Indicator(
-		"crossOverNumber",
-		"Crossover a number",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static cross_under_number = new Indicator(
-		"crossUnderNumber",
-		"Crossunder a number",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static chaikins_volatility = new Indicator(
-		"cvi",
-		"Chaikins Volatility",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static linear_decay = new Indicator(
-		"decay",
-		"Linear Decay",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static double_exponential_moving_average = new Indicator(
-		"dema",
-		"Double Exponential Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static directional_indicator = new Indicator(
-		"di",
-		"Directional Indicator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static directional_movement = new Indicator(
-		"dm",
-		"Directional Movement",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static detrended_price_oscillator = new Indicator(
-		"dpo",
-		"Detrended Price Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static directional_movement_index = new Indicator(
-		"dx",
-		"Directional Movement Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static exponential_decay = new Indicator(
-		"edecay",
-		"Exponential Decay",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static exponential_moving_average = new Indicator(
-		"ema",
-		"Exponential Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static ease_of_movement = new Indicator(
-		"emv",
-		"Ease of Movement",
-		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					data[0].push(candle.high.toNumber());
-					data[1].push(candle.low.toNumber());
-					data[2].push(candle.volume.toNumber());
-					return data;
-				},
-				[[], [], []] as [number[], number[], number[]]
-			);
-			return result;
-		},
-		[]
-	);
-
-	static fisher_transform = new Indicator(
-		"fisher",
-		"Fisher Transform",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static forecast_oscillator = new Indicator(
-		"fosc",
-		"Forecast Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static hull_moving_average = new Indicator(
-		"hma",
-		"Hull Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static kaufman_adaptive_moving_average = new Indicator(
-		"kama",
-		"Kaufman Adaptive Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static klinger_volume_oscillator = new Indicator(
-		"kvo",
-		"Klinger Volume Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static lag = new Indicator(
-		"lag",
-		"Lag",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static linear_regression = new Indicator(
-		"linreg",
-		"Linear Regression",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static linear_regression_intercept = new Indicator(
-		"linregintercept",
-		"Linear Regression Intercept",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static linear_regression_slope = new Indicator(
-		"linregslope",
-		"Linear Regression Slope",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static moving_average_convergence_divergence = new Indicator(
-		"macd",
-		"Moving Average Convergence/Divergence",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static market_facilitation_index = new Indicator(
-		"marketfi",
-		"Market Facilitation Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static mass_index = new Indicator(
-		"mass",
-		"Mass Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static maximum_in_period = new Indicator(
-		"max",
-		"Maximum In Period",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static mean_deviation_over_period = new Indicator(
-		"md",
-		"Mean Deviation Over Period",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static median_price = new Indicator(
-		"medprice",
-		"Median Price",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static money_flow_index = new Indicator(
-		"mfi",
-		"Money Flow Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static minimum_in_period = new Indicator(
-		"min",
-		"Minimum In Period",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static momentum = new Indicator(
-		"mom",
-		"Momentum",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static normalized_average_true_range = new Indicator(
-		"natr",
-		"Normalized Average True Range",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static negative_volume_index = new Indicator(
-		"nvi",
-		"Negative Volume Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static on_balance_volume = new Indicator(
-		"obv",
-		"On Balance Volume",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static percentage_price_oscillator = new Indicator(
-		"ppo",
-		"Percentage Price Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static parabolic_sar = new Indicator(
-		"psar",
-		"Parabolic SAR",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static positive_volume_index = new Indicator(
-		"pvi",
-		"Positive Volume Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static qstick = new Indicator(
-		"qstick",
-		"Qstick",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static rate_of_change = new Indicator(
-		"roc",
-		"Rate of Change",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static rate_of_change_ratio = new Indicator(
-		"rocr",
-		"Rate of Change Ratio",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static relative_strength_index = new Indicator(
-		"rsi",
-		"Relative Strength Index",
-		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					data[0].push(candle.source || 0); // Undefined
-					data[1].push(candle.period?.toString() || '');
-					return data;
-				},
-				[[], [], []] as [number[], string[], number[]]
-			);
-			return result;
-		},
-		[14]
-	);
-
-	static simple_moving_average = new Indicator(
-		"sma",
-		"Simple Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static standard_deviation_over_period = new Indicator(
-		"stddev",
-		"Standard Deviation Over Period",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static standard_error_over_period = new Indicator(
-		"stderr",
-		"Standard Error Over Period",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static stochastic_oscillator = new Indicator(
-		"stoch",
-		"Stochastic Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static stochastic_rsi = new Indicator(
-		"stochrsi",
-		"Stochastic RSI",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static sum_over_period = new Indicator(
-		"sum",
-		"Sum Over Period",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static triple_exponential_moving_average = new Indicator(
-		"tema",
-		"Triple Exponential Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static true_range = new Indicator(
-		"tr",
-		"True Range",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static triangular_moving_average = new Indicator(
-		"trima",
-		"Triangular Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static trix = new Indicator(
-		"trix",
-		"Trix",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static time_series_forecast = new Indicator(
-		"tsf",
-		"Time Series Forecast",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static typical_price = new Indicator(
-		"typprice",
-		"Typical Price",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static ultimate_oscillator = new Indicator(
-		"ultosc",
-		"Ultimate Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static variance_over_period = new Indicator(
-		"var",
-		"Variance Over Period",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static vertical_horizontal_filter = new Indicator(
-		"vhf",
-		"Vertical Horizontal Filter",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static variable_index_dynamic_average = new Indicator(
-		"vidya",
-		"Variable Index Dynamic Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static annualized_historical_volatility = new Indicator(
-		"volatility",
-		"Annualized Historical Volatility",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static volume_oscillator = new Indicator(
-		"vosc",
-		"Volume Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static volume_weighted_moving_average = new Indicator(
-		"vwma",
-		"Volume Weighted Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static williams_accumulation_distribution = new Indicator(
-		"wad",
-		"Williams Accumulation/Distribution",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static weighted_close_price = new Indicator(
-		"wcprice",
-		"Weighted Close Price",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static wilders_smoothing = new Indicator(
-		"wilders",
-		"Wilders Smoothing",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static williams_r = new Indicator(
-		"willr",
-		"Williams %R",
-		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					data[0].push(candle.high.toNumber() || 0);
-					data[1].push(candle.low.toNumber() || 0);
-					data[2].push(candle.close.toNumber() || 0);
-					data[3].push(candle.period.toString());
-					return data;
-				},
-				[[], [], [], []] as [number[], number[], number[], string[]]
-			);
-			return result;
-		},
-		[14]
-	);
-
-	static weighted_moving_average = new Indicator(
-		"wma",
-		"Weighted Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static zero_lag_exponential_moving_average = new Indicator(
-		"zlema",
-		"Zero-Lag Exponential Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static abands = new Indicator(
-		"abands",
-		"?",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static arnaud_legoux_moving_average = new Indicator(
-		"alma",
-		"Arnaud Legoux Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static chandelier_exit = new Indicator(
-		"ce",
-		"Chandelier Exit",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static chaikin_money_flow = new Indicator(
-		"cmf",
-		"Chaikin money flow",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static donchian_channels = new Indicator(
-		"dc",
-		"Donchian Channels",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static force_index = new Indicator(
-		"fi",
-		"Force index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static keltner_channels = new Indicator(
-		"kc",
-		"Keltner Channels",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static know_sure_thing = new Indicator(
-		"kst",
-		"Know Sure Thing",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static pbands = new Indicator(
-		"pbands",
-		"?",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static polarized_fractal_efficiency = new Indicator(
-		"pfe",
-		"Polarized Fractal Efficiency",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static poscillator = new Indicator(
-		"posc",
-		"?",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static relative_momentum_index = new Indicator(
-		"rmi",
-		"Relative Momentum Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static recursive_moving_trend_average = new Indicator(
-		"rmta",
-		"Recursive Moving Trend Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static relative_vigor_index = new Indicator(
-		"rvi",
-		"Relative Vigor Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static stochastic_momentum_index = new Indicator(
-		"smi",
-		"Stochastic Momentum Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static true_strength_index = new Indicator(
-		"tsi",
-		"True Strength Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static volume_weighted_average_price = new Indicator(
-		"vwap",
-		"Volume-Weighted Average Price",
-		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					data[0].push(candle.high.toNumber());
-					data[1].push(candle.low.toNumber());
-					data[2].push(candle.close.toNumber());
-					data[3].push(candle.volume.toNumber());
-					data[4].push(candle.period.toString());
-					return data;
-				},
-				[[], [], [], [], []] as [number[], number[], number[], number[], string[]]
-			);
-			return result;
-		},
-		[]
-	);
-
-	static cumulative_volume_delta = new Indicator(
-		"cvdelta",
-		"Cumulative Volume Delta",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-  static williams_alligator = new Indicator(
-    "wagi",
-    "Williams Alligator",
-    (candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-  static williams_fractal = new Indicator(
-    "wfr",
-    "Williams Fractal",
-    (candles: List<Candle>) => {
-      return [];
-    },
-		[]
-  );
-
-  static zig_zag = new Indicator(
-    "zz",
-    "Zig Zag",
-    (candles: List<Candle>) => {
-      return [];
-    },
-		[]
-  );
-
-  static woodies_CCI = new Indicator(
-    "wcci",
-    "Woodies CCI",
-    (candles: List<Candle>) => {
-      return [];
-    },
-		[]
-  );
-
-	/**
-	 * ID of the indicator
-	 */
-	id: IndicatorId;
-
-	/**
-	 * Name of the indicator
-	 */
-	name: IndicatorName;
-
-	/**
-	 * Transform the candles to the indicator
-	 */
-	candlesTransform: (candles: List<Candle>) => any[];
-
-	/**
-	 * Default parameters of the indicator
-	 */
-	parameters: IndicatorParameters;
-
-	/**
-	 *
-	 * @param id
-	 * @param name
-	 * @param parameters
-	 */
-	constructor(id: string, name: string, candlesTransform: (candles: List<Candle>) => any[], parameters: IndicatorParameters) {
-		this.id = id;
-		this.name = name;
-		this.candlesTransform = candlesTransform;
-		this.parameters = parameters;
-	}
-
-	/**
-	 * Get all indicators
-	 * @returns All indicators
-	 */
-	static getAll(): Indicator[] {
-		return [
-			// Indicator.ease_of_movement,
-			// Indicator.accumulation_distribution_line,
-			// Indicator.accumulation_distribution_oscillator,
-			// Indicator.average_directional_movement_index,
-			// Indicator.average_directional_movement_rating,
-			// Indicator.awesome_oscillator,
-			// Indicator.absolute_price_oscillator,
-			// Indicator.aroon,
-			// Indicator.aroon_oscillator,
-			// Indicator.average_true_range,
-			// Indicator.average_price,
-			// Indicator.bollinger_bands,
-			// Indicator.balance_of_power,
-			// Indicator.commodity_channel_index,
-			// Indicator.chande_momentum_oscillator,
-			// Indicator.crossany,
-			// Indicator.crossover,
-			// Indicator.crossunder,
-			// Indicator.cross_over_number,
-			// Indicator.cross_under_number,
-			// Indicator.chaikins_volatility,
-			// Indicator.linear_decay,
-			// Indicator.double_exponential_moving_average,
-			// Indicator.directional_indicator,
-			// Indicator.directional_movement,
-			// Indicator.detrended_price_oscillator,
-			// Indicator.directional_movement_index,
-			// Indicator.exponential_decay,
-			// Indicator.exponential_moving_average,
-			// Indicator.forecast_oscillator,
-			// Indicator.fisher_transform,
-			// Indicator.klinger_volume_oscillator,
-			// Indicator.kaufman_adaptive_moving_average,
-			// Indicator.klinger_volume_oscillator,
-			// Indicator.lag,
-			// Indicator.linear_regression,
-			// Indicator.linear_regression_intercept,
-			// Indicator.linear_regression_slope,
-			// Indicator.moving_average_convergence_divergence,
-			// Indicator.market_facilitation_index,
-			// Indicator.mass_index,
-			// Indicator.maximum_in_period,
-			// Indicator.mean_deviation_over_period,
-			// Indicator.median_price,
-			// Indicator.money_flow_index,
-			// Indicator.minimum_in_period,
-			// Indicator.momentum,
-			// Indicator.normalized_average_true_range,
-			// Indicator.negative_volume_index,
-			// Indicator.on_balance_volume,
-			// Indicator.percentage_price_oscillator,
-			// Indicator.parabolic_sar,
-			// Indicator.positive_volume_index,
-			// Indicator.qstick,
-			// Indicator.rate_of_change,
-			// Indicator.rate_of_change_ratio,
-			// Indicator.relative_strength_index,
-			// Indicator.simple_moving_average,
-			// Indicator.standard_deviation_over_period,
-			// Indicator.standard_error_over_period,
-			// Indicator.stochastic_oscillator,
-			// Indicator.stochastic_rsi,
-			// Indicator.sum_over_period,
-			// Indicator.triple_exponential_moving_average,
-			// Indicator.true_range,
-			// Indicator.triangular_moving_average,
-			// Indicator.trix,
-			// Indicator.time_series_forecast,
-			// Indicator.typical_price,
-			// Indicator.ultimate_oscillator,
-			// Indicator.variance_over_period,
-			// Indicator.vertical_horizontal_filter,
-			// Indicator.variable_index_dynamic_average,
-			// Indicator.annualized_historical_volatility,
-			// Indicator.volume_oscillator,
-			// Indicator.volume_weighted_moving_average,
-			// Indicator.williams_accumulation_distribution,
-			// Indicator.weighted_close_price,
-			// Indicator.wilders_smoothing,
-			// Indicator.williams_r,
-			// Indicator.weighted_moving_average,
-			// Indicator.zero_lag_exponential_moving_average,
-			// Indicator.arnaud_legoux_moving_average,
-			// Indicator.chandelier_exit,
-			// Indicator.chaikin_money_flow,
-			// Indicator.donchian_channels,
-			// Indicator.force_index,
-			// Indicator.keltner_channels,
-			// Indicator.know_sure_thing,
-			// Indicator.pbands,
-			// Indicator.polarized_fractal_efficiency,
-			// Indicator.positive_volume_index,
-			// Indicator.relative_momentum_index,
-			// Indicator.recursive_moving_trend_average,
-			// Indicator.relative_vigor_index,
-			// Indicator.stochastic_momentum_index,
-			// Indicator.true_strength_index,
-			// Indicator.volume_weighted_average_price,
-			// Indicator.williams_alligator,
-			// Indicator.williams_fractal,
-			// Indicator.commodity_channel_index,
-			// Indicator.zig_zag,
-			// Indicator.woodies_CCI
-		];
-	}
 }
 
 export type Boolean = boolean;
@@ -1280,7 +113,7 @@ export type MarketPrice = Amount;
 
 export type OrderBookOrderPrice = Amount;
 export type OrderBookOrderAmount = Amount;
-export type OrderBookPrice = Amount;
+export type OrderBookMiddlePrice = Amount;
 
 export type TickerPrice = Amount;
 export type TickerTimestamp = Timestamp;
@@ -1289,9 +122,7 @@ export type CandleTimestamp = Timestamp;
 export type CandlePrice = Amount;
 export type CandleVolume = Amount;
 export type CandleInterval = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w' | '1M' | '1y';
-export type CandleSize = Amount;
-export type CandleSource = number;
-export type CandleStddev = Amount;
+
 export type IndicatorId = Id;
 export type IndicatorName = Name;
 export type IndicatorParameters = any[];
@@ -1305,7 +136,10 @@ export type OrderFilledPercentage = Percentage;
 export type OrderCreationTimestamp = Timestamp;
 export type OrderUpdateTimestamp = Timestamp;
 
-export type Wallet = DirectSecp256k1Wallet;
+export type Wallet = {
+	cosmWallet: DirectSecp256k1Wallet;
+	firstAccount: AccountData;
+};
 
 /**
  * Represents a token
@@ -1590,26 +424,6 @@ export interface Candle {
 	volume: CandleVolume;
 
 	/**
-	 * Period of the candle
-	 */
-	period: CandleInterval;
-
-	/**
-	 * Size of the candle
-	 */
-	size: CandleSize;
-
-	/**
-	 * Source of the candle
-	 */
-	source: CandleSource;
-
-	/**
-	 * Stddev of the candle
-	 */
-	stddev: CandleStddev;
-
-	/**
 	 * Raw data
 	 */
 	raw: Raw;
@@ -1622,7 +436,7 @@ export interface IndicatorData {
 	/**
 	 * ID of the indicator
 	 */
-	indicator: Indicator;
+	indicator: IndicatorId;
 
 	/**
 	 * Value of the indicator
@@ -1768,7 +582,7 @@ export interface Order {
 	/**
 	 * The account which placed the order
 	 */
-	owner: WalletAddress;
+	ownerAddress: WalletAddress;
 
 	/**
 	 * Type of the order
@@ -1783,7 +597,7 @@ export interface Order {
 	/**
 	 * Price of the order
 	 */
-	price: OrderPrice;
+	price?: OrderPrice;
 
 	/**
 	 * Amount of the order
@@ -1852,11 +666,15 @@ export interface FinConstructorOptions {
  * Fin initialize options
  */
 export interface FinInitializeOptions {
-
 	/**
 	 * Wallet
 	 */
-	wallet: DirectSecp256k1Wallet;
+	wallet: Wallet;
+
+	/**
+	 * Wallet address
+	 */
+	walletAddress: WalletAddress;
 
 	/**
 	 * Cosm client
@@ -2008,6 +826,11 @@ export interface FinGetOrderBookRequest {
 	marketSymbol?: MarketSymbol;
 
 	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
 	 * Maximum number of orders to return
 	 */
 	maximumNumberOfOrders?: Integer;
@@ -2032,6 +855,11 @@ export interface FinGetTickerRequest {
 	 * Market name
 	 */
 	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
 }
 
 /**
@@ -2124,7 +952,12 @@ export interface FinGetBalancesRequest {
 	/**
 	 * Address
 	 */
-	walletAddress: WalletAddress;
+	walletAddress?: WalletAddress;
+
+	/**
+	 * Wallet
+	 */
+	wallet?: Wallet;
 
 	/**
 	 * Token addresses to filter balances (optional)
@@ -2171,7 +1004,12 @@ export interface FinGetOrderRequest {
 	/**
 	 * Owner address (wallet that owns the order)
 	 */
-	ownerAddress: WalletAddress;
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
 
 	/**
 	 * Market address
@@ -2182,6 +1020,11 @@ export interface FinGetOrderRequest {
 	 * Market name
 	 */
 	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
 
 	/**
 	 * Order price
@@ -2242,24 +1085,29 @@ export interface FinGetOrdersRequest {
 	orderIds?: List<OrderId> | OrderId[];
 
 	/**
+	 * Orders
+	 */
+	orders?: List<Order> | Order[];
+
+	/**
 	 * Order price
 	 */
-	orderPrice?: OrderPrice;
+	orderPrices?: List<OrderPrice> | OrderPrice[];
 
 	/**
 	 * Order type
 	 */
-	orderType?: OrderType;
+	orderTypes?: List<OrderType> | OrderType[];
 
 	/**
 	 * Order side
 	 */
-	orderSide?: OrderSide;
+	orderSides?: List<OrderSide> | OrderSide[];
 
 	/**
 	 * Order status
 	 */
-	orderStatus?: OrderStatus;
+	orderStatuses?: List<OrderStatus> | OrderStatus[];
 
 	/**
 	 * Maximum number of orders to return
@@ -2508,6 +1356,18 @@ export interface FinCancelOrdersResponse {
 }
 
 /**
+ * Cancel all orders request
+ */
+export interface FinCancelAllOrdersRequest extends FinCancelOrdersRequest {
+}
+
+/**
+ * Cancel all orders response
+ */
+export interface FinCancelAllOrdersResponse extends FinCancelOrdersResponse {
+}
+
+/**
  * Withdraw from market request
  */
 export interface FinWithdrawRequest {
@@ -2550,14 +1410,89 @@ export interface FinWithdrawResponse {
 	 * Transaction details
 	 */
 	transactions: Map<TransactionHash, Transaction>;
+}
+
+/**
+ * Unified order execution request that can handle place, replace, cancel, and withdraw operations
+ */
+export interface FinExecuteOrdersRequest {
+	/**
+	 * Owner address (wallet that will execute the orders)
+	 */
+	ownerAddress?: WalletAddress;
 
 	/**
-	 * Last transaction details (for backward compatibility)
+	 * Owner wallet
 	 */
-	transaction: Transaction;
+	owner?: Wallet;
 
 	/**
-	 * Raw response
+	 * Market address
 	 */
-	raw: Raw;
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market symbol
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market object
+	 */
+	market?: Market;
+
+	/**
+	 * Order operations to execute
+	 */
+	orders: {
+		/**
+		 * Place new orders
+		 */
+		place?: List<FinPlaceOrderRequest>;
+
+		/**
+		 * Replace existing orders
+		 */
+		replace?: List<FinReplaceOrderRequest>;
+
+		/**
+		 * Cancel orders by IDs or order objects
+		 */
+		cancel?: List<OrderId> | List<Order> | OrderId[] | Order[];
+
+		/**
+		 * Withdraw filled orders by IDs or order objects
+		 */
+		withdraw?: List<OrderId> | List<Order> | OrderId[] | Order[];
+	};
+}
+
+/**
+ * Unified order execution response
+ */
+export interface FinExecuteOrdersResponse {
+	/**
+	 * Placed orders (if any)
+	 */
+	placedOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Replaced orders (if any)
+	 */
+	replacedOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Cancelled orders (if any)
+	 */
+	cancelledOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Withdrawn orders (if any)
+	 */
+	withdrawnOrders?: Map<OrderId, Order>;
+
+	/**
+	 * All transactions from the execution
+	 */
+	transactions: Map<TransactionHash, Transaction>;
 }

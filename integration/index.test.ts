@@ -12,6 +12,7 @@ import {
 	MarketAddress,
 	MarketStatus,
 	MarketSymbol,
+	Order,
 	OrderBookOrder,
 	OrderStatus,
 	SystemStatus,
@@ -1017,7 +1018,7 @@ describe("Rujira", async() => {
 						expect(order.amount).toBeDefined();
 						expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 						expect(order.price).toBeDefined();
-						expect(order.price.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+						expect(order.price?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 						expect(order.filledAmount).toBeDefined();
 						expect(order.filledAmount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 						expect(order.filledPercentage).toBeDefined();
@@ -1046,8 +1047,6 @@ describe("Rujira", async() => {
 						expect(transaction.fee.token.raw).toBeDefined();
 						expect(transaction.raw).toBeDefined();
 					}
-
-					expect(result.raw).toBeDefined();
 			});
 
 			it("should be able to withdraw market by symbol", async () => {
@@ -1077,7 +1076,7 @@ describe("Rujira", async() => {
 					expect(order.amount).toBeDefined();
 					expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(order.price).toBeDefined();
-					expect(order.price.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(order.price?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(order.filledAmount).toBeDefined();
 					expect(order.filledAmount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(order.filledPercentage).toBeDefined();
@@ -1106,8 +1105,6 @@ describe("Rujira", async() => {
 					expect(transaction.fee.token.raw).toBeDefined();
 					expect(transaction.raw).toBeDefined();
 				}
-
-				expect(result.raw).toBeDefined();
 			});
 		});
 

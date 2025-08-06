@@ -35,6 +35,19 @@ export const sleep = (milliseconds: number) =>
 	new Promise((callback) => setTimeout(callback, milliseconds));
 
 /**
+ *
+ * @param task
+ * @param interval
+ */
+export const runAndRepeat = async (task: (...args: any[]) => any | Promise<any>, interval: number): Promise<NodeJS.Timeout> => {
+	await task();
+
+	const intervalId = setInterval(task, interval);
+
+	return intervalId;
+};
+
+/**
  * Same as Promise.all(items.map(item => task(item))), but it waits for
  * the first {batchSize} promises to finish before starting the next batch.
  *
