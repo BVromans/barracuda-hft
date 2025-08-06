@@ -1254,8 +1254,6 @@ export class Fin {
 			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
 		}
 
-		const data = candles.map((candle: Candle) => candle.close.toNumber());
-
 		const indicators = MMap<Indicator, IndicatorData>();
 
 		for (const indicator of Indicator.getAll()) {
