@@ -223,18 +223,26 @@ export class Indicator {
 		"aroon",
 		"Aroon",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber());
+					data[1].push(candle.low.toNumber());
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[25, 10]
 	);
 
 	static aroon_oscillator = new Indicator(
 		"aroonosc",
 		"Aroon Oscillator",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[14]
 	);
 
 	static average_true_range = new Indicator(
@@ -278,7 +286,17 @@ export class Indicator {
 		"bop",
 		"Balance of Power",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.open.toNumber());
+					data[1].push(candle.high.toNumber());
+					data[2].push(candle.low.toNumber());
+					data[3].push(candle.close.toNumber());
+					return data;
+				},
+				[[], [], [], []] as [number[], number[], number[], number[]]
+			);
+			return result;
 		},
 		[]
 	);
@@ -305,34 +323,26 @@ export class Indicator {
 		"cmo",
 		"Chande Momentum Oscillator",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[20]
 	);
 
-	static crossany = new Indicator(
-		"crossany",
-		"Crossany",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
+	// TODO: ver como fazer o crossany
+	// static crossany = new Indicator(
+	// 	"crossany",
+	// 	"Crossany",
+	// 	(candles: List<Candle>) => {
+	// 		return [];
+	// 	},
+	// 	[]
+	// );
 
 	static crossover = new Indicator(
 		"crossover",
 		"Crossover",
 		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static crossunder = new Indicator(
-		"crossunder",
-		"Crossunder",
-		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
 		[]
 	);
@@ -341,99 +351,148 @@ export class Indicator {
 		"crossOverNumber",
 		"Crossover a number",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[100, 50]
 	);
 
 	static cross_under_number = new Indicator(
 		"crossUnderNumber",
 		"Crossunder a number",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[100]
 	);
 
 	static chaikins_volatility = new Indicator(
 		"cvi",
 		"Chaikins Volatility",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[20]
 	);
 
 	static linear_decay = new Indicator(
 		"decay",
 		"Linear Decay",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[14]
 	);
 
 	static double_exponential_moving_average = new Indicator(
 		"dema",
 		"Double Exponential Moving Average",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[20]
 	);
 
 	static directional_indicator = new Indicator(
 		"di",
 		"Directional Indicator",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+		);
+		return result;
 		},
-		[]
+		[20]
 	);
 
 	static directional_movement = new Indicator(
 		"dm",
 		"Directional Movement",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+		);
+		return result;
 		},
-		[]
+		[28, 14]
 	);
 
 	static detrended_price_oscillator = new Indicator(
 		"dpo",
 		"Detrended Price Oscillator",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[20]
 	);
 
 	static directional_movement_index = new Indicator(
 		"dx",
 		"Directional Movement Index",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+		);
+		return result;
 		},
-		[]
-	);
+		[20]
+		);
 
 	static exponential_decay = new Indicator(
 		"edecay",
 		"Exponential Decay",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+		);
+		return result;
 		},
-		[]
+		[20]
 	);
 
 	static exponential_moving_average = new Indicator(
 		"ema",
 		"Exponential Moving Average",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+		);
+		return result;
 		},
-		[]
+		[20]
 	);
 
 	static ease_of_movement = new Indicator(
@@ -458,81 +517,115 @@ export class Indicator {
 		"fisher",
 		"Fisher Transform",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+		);
+		return result;
 		},
-		[]
+		[20]
 	);
 
 	static forecast_oscillator = new Indicator(
 		"fosc",
 		"Forecast Oscillator",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+		);
+		return result;
 		},
-		[]
+		[20]
 	);
 
 	static hull_moving_average = new Indicator(
 		"hma",
 		"Hull Moving Average",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[20]
 	);
 
 	static kaufman_adaptive_moving_average = new Indicator(
 		"kama",
 		"Kaufman Adaptive Moving Average",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+		);
+		return result;
 		},
-		[]
+		[20]
 	);
 
 	static klinger_volume_oscillator = new Indicator(
 		"kvo",
 		"Klinger Volume Oscillator",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					data[3].push(candle.volume.toNumber() || 0);
+					return data;
+				},
+				[[], [], [], []] as [number[], number[], number[], number[]]
+		);
+		return [result]
 		},
-		[]
+		[34, 55]
 	);
 
 	static lag = new Indicator(
 		"lag",
 		"Lag",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[20]
 	);
 
 	static linear_regression = new Indicator(
 		"linreg",
 		"Linear Regression",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[20]
 	);
 
 	static linear_regression_intercept = new Indicator(
 		"linregintercept",
 		"Linear Regression Intercept",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[20]
 	);
 
 	static linear_regression_slope = new Indicator(
 		"linregslope",
 		"Linear Regression Slope",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[2, 20]
 	);
 
 	static moving_average_convergence_divergence = new Indicator(
