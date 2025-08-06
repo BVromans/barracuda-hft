@@ -1,23 +1,33 @@
+import Decimal from "decimal.js";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
-import { Market, MarketAddress, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenAddress, WalletMnemonic, WalletPrivateKey } from "./types";
+import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenAddress, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
 
 (async function run() {
 	const active = {
-		getStatus: true,
-		getTransaction: true,
-		getAllTokens: true,
-		getTokens: true,
-		getToken: true,
-		getAllMarkets: true,
-		getMarkets: true,
-		getMarket: true,
-		getOrderBook: true,
-		getTicker: true,
-		getCandles: true,
-		getIndicators: true,
-		getBalances: true,
-		getOrder: true,
+		getStatus: false,
+		getTransaction: false,
+		getAllTokens: false,
+		getTokens: false,
+		getToken: false,
+		getAllMarkets: false,
+		getMarkets: false,
+		getMarket: false,
+		getOrderBook: false,
+		getTicker: false,
+		getCandles: false,
+		getIndicators: false,
+		getBalances: false,
+		getOrder: false,
+		getOrders: false,
+		placeOrder: false,
+		placeOrders: false,
+		replaceOrder: false,
+		replaceOrders: false,
+		cancelOrder: false,
+		cancelOrders: false,
+		withdrawOrder: false,
+		withdrawOrders: false,
 	};
 
 	const rujira = new Rujira({
@@ -128,5 +138,147 @@ import { Market, MarketAddress, RujiraConstructorOptions, RujiraInitializeOption
 		});
 		console.log('getOrderBook:\n', getOrderBook);
 		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.getTicker) {
+		const getTicker = await rujira.fin.getTicker({
+			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
+			// marketSymbol: 'RUJI/USDC',
+		});
+		console.log('getTicker:\n', getTicker);
+		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.getCandles) {
+		const getCandles = await rujira.fin.getCandles({
+			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
+			// marketSymbol: 'RUJI/USDC',
+		});
+		console.log('getCandles:\n', getCandles);
+		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.getIndicators) {
+		const getIndicators = await rujira.fin.getIndicators({
+			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
+			// marketSymbol: 'RUJI/USDC',
+		});
+		console.log('getIndicators:\n', getIndicators);
+		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.getBalances) {
+		const getBalances = await rujira.fin.getBalances({
+			walletAddress: properties.getAs<WalletAddress>('rujira.wallet.address')
+		});
+		console.log('getBalances:\n', getBalances);
+		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.getOrder) {
+		const getOrder = await rujira.fin.getOrder({
+			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
+			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
+			// marketSymbol: 'RUJI/USDC',
+			orderPrice: Decimal('0.000001')
+		});
+		console.log('getOrder:\n', getOrder);
+		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.getOrders) {
+		const getOrders = await rujira.fin.getOrders({
+			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
+			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
+			// marketSymbol: 'RUJI/USDC',
+		});
+		console.log('getOrders:\n', getOrders);
+		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.placeOrder) {
+		const placeOrder = await rujira.fin.placeOrder({
+			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
+			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
+			// marketSymbol: 'RUJI/USDC',
+			side: OrderSide.BUY,
+			type: OrderType.LIMIT,
+			amount: Decimal('0.000001'),
+			price: Decimal('0.000001')
+		});
+		console.log('placeOrder:\n', placeOrder);
+		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.placeOrders) {
+		const placeOrders = await rujira.fin.placeOrders({
+			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
+			orders: [
+				{
+					marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
+					// marketSymbol: 'RUJI/USDC',
+					side: OrderSide.BUY,
+					type: OrderType.LIMIT,
+					amount: Decimal('0.000001'),
+					price: Decimal('0.000001')
+				},
+				{
+					marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
+					// marketSymbol: 'RUJI/USDC',
+					side: OrderSide.BUY,
+					type: OrderType.LIMIT,
+					amount: Decimal('0.000001'),
+					price: Decimal('0.000001')
+				}
+			]
+		});
+		console.log('placeOrders:\n', placeOrders);
+		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.replaceOrder) {
+		const replaceOrder = await rujira.fin.replaceOrder({
+			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
+			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
+			// marketSymbol: 'RUJI/USDC',
+			side: OrderSide.BUY,
+			type: OrderType.LIMIT,
+			amount: Decimal('0.000001'),
+			price: Decimal('0.000001')
+		});
+		console.log('replaceOrder:\n', replaceOrder);
+		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.replaceOrders) {
+		const replaceOrders = await rujira.fin.replaceOrders({
+			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
+			orders: []
+		});
+	}
+
+	if (active.cancelOrder) {
+		const cancelOrder = await rujira.fin.cancelOrder({
+			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
+			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
+			// marketSymbol: 'RUJI/USDC',
+		});
+		console.log('cancelOrder:\n', cancelOrder);
+		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.cancelOrders) {
+		const cancelOrders = await rujira.fin.cancelOrders({
+			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
+			orders: []
+		});
+	}
+
+	if (active.withdrawOrder) {
+		const withdrawOrder = await rujira.fin.withdrawOrders({
+			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
+			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
+			// marketSymbol: 'RUJI/USDC',
+		});
 	}
 })();

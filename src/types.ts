@@ -2053,7 +2053,7 @@ export interface FinGetIndicatorsRequest {
 	/**
 	 * Candles
 	 */
-	candles: List<Candle>;
+	candles?: List<Candle>;
 }
 
 /**

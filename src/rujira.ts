@@ -68,8 +68,8 @@ import {
 	FinReplaceOrderResponse,
 	FinReplaceOrdersRequest,
 	FinReplaceOrdersResponse,
-	FinWithdrawRequest,
-	FinWithdrawResponse,
+	FinWithdrawRequest as FinWithdrawOrdersRequest,
+	FinWithdrawResponse as FinWithdrawOrdersResponse,
 	Indicator,
 	IndicatorData,
 	Integer,
@@ -1936,7 +1936,7 @@ export class Fin {
 	 * @param request - The request object
 	 * @returns The response for the withdrawn orders
 	 */
-	async withdrawFromMarket(request: FinWithdrawRequest): Promise<FinWithdrawResponse> {
+	async withdrawOrders(request: FinWithdrawOrdersRequest): Promise<FinWithdrawOrdersResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
 		const allFilledOrders = await this.getOrders({
