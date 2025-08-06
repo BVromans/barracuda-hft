@@ -1,9 +1,10 @@
 // noinspection JSUnusedGlobalSymbols
 
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
-import {AccountData, DirectSecp256k1Wallet} from '@cosmjs/proto-signing';
+import { AccountData, DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
 import BN from "bn.js";
+import { GasPrice } from '@cosmjs/stargate';
 import { properties } from './properties';
 import { List, Map } from 'immutable';
 import { MList, MMap } from './extensions/immutablejs/types';
@@ -12,12 +13,14 @@ export { List, Map, MList, MMap };
 
 export const DECIMAL_0 = new Decimal(0);
 export const DECIMAL_1 = new Decimal(1);
+export const DECIMAL_10 = new Decimal(10);
 export const DECIMAL_100 = new Decimal(100);
 export const DECIMAL_INFINITY = new Decimal(Number.POSITIVE_INFINITY);
 export const DECIMAL_NEGATIVE_INFINITY = new Decimal(Number.NEGATIVE_INFINITY);
 export const DECIMAL_NaN = new Decimal(NaN);
 export const BIG_NUMBER_0 = new BN(0);
 export const BIG_NUMBER_1 = new BN(1);
+export const BIG_NUMBER_10 = new BN(10);
 export const BIG_NUMBER_100 = new BN(100);
 export const BIG_NUMBER_NaN = new BN(NaN);
 
@@ -70,6 +73,246 @@ export enum OrderStatus {
 	UNKNOWN = 'unknown'
 }
 
+/**
+ * Represents an indicator
+ */
+export class Indicator {
+	static accumulation_distribution_line = new Indicator("ad", "Accumulation/Distribution Line", []);
+	static adosc = new Indicator("adosc", "Accumulation/Distribution Oscillator", []);
+	static adx = new Indicator("adx", "Average Directional Movement Index", []);
+	static adxr = new Indicator("adxr", "Average Directional Movement Rating", []);
+	static ao = new Indicator("ao", "Awesome Oscillator", []);
+	static apo = new Indicator("apo", "Absolute Price Oscillator", []);
+	static aroon = new Indicator("aroon", "Aroon", []);
+	static aroonosc = new Indicator("aroonosc", "Aroon Oscillator", []);
+	static atr = new Indicator("atr", "Average True Range", []);
+	static avgprice = new Indicator("avgprice", "Average Price", []);
+	static bbands = new Indicator("bbands", "Bollinger Bands", [20, 2]);
+	static bop = new Indicator("bop", "Balance of Power", []);
+	static cci = new Indicator("cci", "Commodity Channel Index", []);
+	static cmo = new Indicator("cmo", "Chande Momentum Oscillator", []);
+	static crossany = new Indicator("crossany", "Crossany", []);
+	static crossover = new Indicator("crossover", "Crossover", []);
+	static crossunder = new Indicator("crossunder", "Crossunder", []);
+	static crossOverNumber = new Indicator("crossOverNumber", "Crossover a number", []);
+	static crossUnderNumber = new Indicator("crossUnderNumber", "Crossunder a number", []);
+	static cvi = new Indicator("cvi", "Chaikins Volatility", []);
+	static decay = new Indicator("decay", "Linear Decay", []);
+	static dema = new Indicator("dema", "Double Exponential Moving Average", []);
+	static di = new Indicator("di", "Directional Indicator", []);
+	static dm = new Indicator("dm", "Directional Movement", []);
+	static dpo = new Indicator("dpo", "Detrended Price Oscillator", []);
+	static dx = new Indicator("dx", "Directional Movement Index", []);
+	static edecay = new Indicator("edecay", "Exponential Decay", []);
+	static ema = new Indicator("ema", "Exponential Moving Average", []);
+	static emv = new Indicator("emv", "Ease of Movement", []);
+	static fisher = new Indicator("fisher", "Fisher Transform", []);
+	static fosc = new Indicator("fosc", "Forecast Oscillator", []);
+	static hma = new Indicator("hma", "Hull Moving Average", []);
+	static kama = new Indicator("kama", "Kaufman Adaptive Moving Average", []);
+	static kvo = new Indicator("kvo", "Klinger Volume Oscillator", []);
+	static lag = new Indicator("lag", "Lag", []);
+	static linreg = new Indicator("linreg", "Linear Regression", []);
+	static linregintercept = new Indicator("linregintercept", "Linear Regression Intercept", []);
+	static linregslope = new Indicator("linregslope", "Linear Regression Slope", []);
+	static macd = new Indicator("macd", "Moving Average Convergence/Divergence", []);
+	static marketfi = new Indicator("marketfi", "Market Facilitation Index", []);
+	static mass = new Indicator("mass", "Mass Index", []);
+	static max = new Indicator("max", "Maximum In Period", []);
+	static md = new Indicator("md", "Mean Deviation Over Period", []);
+	static medprice = new Indicator("medprice", "Median Price", []);
+	static mfi = new Indicator("mfi", "Money Flow Index", []);
+	static min = new Indicator("min", "Minimum In Period", []);
+	static mom = new Indicator("mom", "Momentum", []);
+	static natr = new Indicator("natr", "Normalized Average True Range", []);
+	static nvi = new Indicator("nvi", "Negative Volume Index", []);
+	static obv = new Indicator("obv", "On Balance Volume", []);
+	static ppo = new Indicator("ppo", "Percentage Price Oscillator", []);
+	static psar = new Indicator("psar", "Parabolic SAR", []);
+	static pvi = new Indicator("pvi", "Positive Volume Index", []);
+	static qstick = new Indicator("qstick", "Qstick", []);
+	static roc = new Indicator("roc", "Rate of Change", []);
+	static rocr = new Indicator("rocr", "Rate of Change Ratio", []);
+	static rsi = new Indicator("rsi", "Relative Strength Index", []);
+	static sma = new Indicator("sma", "Simple Moving Average", []);
+	static stddev = new Indicator("stddev", "Standard Deviation Over Period", []);
+	static stderr = new Indicator("stderr", "Standard Error Over Period", []);
+	static stoch = new Indicator("stoch", "Stochastic Oscillator", []);
+	static stochrsi = new Indicator("stochrsi", "Stochastic RSI", []);
+	static sum = new Indicator("sum", "Sum Over Period", []);
+	static tema = new Indicator("tema", "Triple Exponential Moving Average", []);
+	static tr = new Indicator("tr", "True Range", []);
+	static trima = new Indicator("trima", "Triangular Moving Average", []);
+	static trix = new Indicator("trix", "Trix", []);
+	static tsf = new Indicator("tsf", "Time Series Forecast", []);
+	static typprice = new Indicator("typprice", "Typical Price", []);
+	static ultosc = new Indicator("ultosc", "Ultimate Oscillator", []);
+	static var = new Indicator("var", "Variance Over Period", []);
+	static vhf = new Indicator("vhf", "Vertical Horizontal Filter", []);
+	static vidya = new Indicator("vidya", "Variable Index Dynamic Average", []);
+	static volatility = new Indicator("volatility", "Annualized Historical Volatility", []);
+	static vosc = new Indicator("vosc", "Volume Oscillator", []);
+	static vwma = new Indicator("vwma", "Volume Weighted Moving Average", []);
+	static wad = new Indicator("wad", "Williams Accumulation/Distribution", []);
+	static wcprice = new Indicator("wcprice", "Weighted Close Price", []);
+	static wilders = new Indicator("wilders", "Wilders Smoothing", []);
+	static willr = new Indicator("willr", "Williams %R", []);
+	static wma = new Indicator("wma", "Weighted Moving Average", []);
+	static zlema = new Indicator("zlema", "Zero-Lag Exponential Moving Average", []);
+	static abands = new Indicator("abands", "?", []);
+	static alma = new Indicator("alma", "Arnaud Legoux Moving Average", []);
+	static ce = new Indicator("ce", "Chandelier Exit", []);
+	static cmf = new Indicator("cmf", "Chaikin money flow", []);
+	static dc = new Indicator("dc", "Donchian Channels", []);
+	static fi = new Indicator("fi", "Force index", []);
+	static kc = new Indicator("kc", "Keltner Channels", []);
+	static kst = new Indicator("kst", "Know Sure Thing", []);
+	static pbands = new Indicator("pbands", "?", []);
+	static pfe = new Indicator("pfe", "Polarized Fractal Efficiency", []);
+	static posc = new Indicator("posc", "?", []);
+	static rmi = new Indicator("rmi", "Relative Momentum Index", []);
+	static rmta = new Indicator("rmta", "Recursive Moving Trend Average", []);
+	static rvi = new Indicator("rvi", "Relative Vigor Index", []);
+	static smi = new Indicator("smi", "Stochastic Momentum Index", []);
+	static tsi = new Indicator("tsi", "True Strength Index", []);
+	static vwap = new Indicator("vwap", "Volume-Weighted Average Price", []);
+
+	/**
+	 * ID of the indicator
+	 */
+	id: IndicatorId;
+
+	/**
+	 * Name of the indicator
+	 */
+	name: IndicatorName;
+
+	/**
+	 * Default parameters of the indicator
+	 */
+	defaultParameters: IndicatorParameters;
+
+	/**
+	 *
+	 * @param id
+	 * @param name
+	 * @param defaultParameters
+	 */
+	constructor(id: string, name: string, defaultParameters: IndicatorParameters) {
+		this.id = id;
+		this.name = name;
+		this.defaultParameters = defaultParameters;
+	}
+
+	/**
+	 * Get all indicators
+	 * @returns All indicators
+	 */
+	static getAll(): Indicator[] {
+		return [
+			Indicator.accumulation_distribution_line,
+			Indicator.adosc,
+			Indicator.adx,
+			Indicator.adxr,
+			Indicator.ao,
+			Indicator.apo,
+			Indicator.aroon,
+			Indicator.aroonosc,
+			Indicator.atr,
+			Indicator.avgprice,
+			Indicator.bbands,
+			Indicator.bop,
+			Indicator.cci,
+			Indicator.cmo,
+			Indicator.crossany,
+			Indicator.crossover,
+			Indicator.crossunder,
+			Indicator.crossOverNumber,
+			Indicator.crossUnderNumber,
+			Indicator.cvi,
+			Indicator.decay,
+			Indicator.dema,
+			Indicator.di,
+			Indicator.dm,
+			Indicator.dpo,
+			Indicator.dx,
+			Indicator.edecay,
+			Indicator.ema,
+			Indicator.emv,
+			Indicator.fisher,
+			Indicator.fosc,
+			Indicator.hma,
+			Indicator.kama,
+			Indicator.kvo,
+			Indicator.lag,
+			Indicator.linreg,
+			Indicator.linregintercept,
+			Indicator.linregslope,
+			Indicator.macd,
+			Indicator.marketfi,
+			Indicator.mass,
+			Indicator.max,
+			Indicator.md,
+			Indicator.medprice,
+			Indicator.mfi,
+			Indicator.min,
+			Indicator.mom,
+			Indicator.natr,
+			Indicator.nvi,
+			Indicator.obv,
+			Indicator.ppo,
+			Indicator.psar,
+			Indicator.pvi,
+			Indicator.qstick,
+			Indicator.roc,
+			Indicator.rocr,
+			Indicator.rsi,
+			Indicator.sma,
+			Indicator.stddev,
+			Indicator.stderr,
+			Indicator.stoch,
+			Indicator.stochrsi,
+			Indicator.sum,
+			Indicator.tema,
+			Indicator.tr,
+			Indicator.trima,
+			Indicator.trix,
+			Indicator.tsf,
+			Indicator.typprice,
+			Indicator.ultosc,
+			Indicator.var,
+			Indicator.vhf,
+			Indicator.vidya,
+			Indicator.volatility,
+			Indicator.vosc,
+			Indicator.vwma,
+			Indicator.wad,
+			Indicator.wcprice,
+			Indicator.wilders,
+			Indicator.willr,
+			Indicator.wma,
+			Indicator.zlema,
+			Indicator.abands,
+			Indicator.alma,
+			Indicator.ce,
+			Indicator.cmf,
+			Indicator.dc,
+			Indicator.fi,
+			Indicator.kc,
+			Indicator.kst,
+			Indicator.pbands,
+			Indicator.pfe,
+			Indicator.posc,
+			Indicator.rmi,
+			Indicator.rmta,
+			Indicator.rvi,
+			Indicator.smi,
+			Indicator.tsi,
+			Indicator.vwap,
+		];
+	}
+}
+
 export type Boolean = boolean;
 export type Raw = any;
 export type Id = string;
@@ -107,8 +350,8 @@ export type MarketPrice = Amount;
 
 export type OrderBookOrderPrice = Amount;
 export type OrderBookOrderAmount = Amount;
-export type OrderBookMiddlePrice = Amount;
 export type OrderBookPrice = Amount;
+
 export type TickerPrice = Amount;
 export type TickerTimestamp = Timestamp;
 
@@ -243,14 +486,6 @@ export interface Market {
 	 * Raw data
 	 */
 	raw: Raw;
-
-	/**
-	 * Price of the market
-	 */
-	price?: {
-    baseQuote: Decimal;
-    quoteBase: Decimal;
-};
 }
 
 /**
@@ -430,7 +665,7 @@ export interface IndicatorData {
 	/**
 	 * ID of the indicator
 	 */
-	indicator: IndicatorId;
+	indicator: Indicator;
 
 	/**
 	 * Value of the indicator
@@ -936,7 +1171,7 @@ export interface FinGetIndicatorsRequest {
 /**
  * Get indicators response
  */
-export interface FinGetIndicatorsResponse extends Map<IndicatorId, IndicatorData> {
+export interface FinGetIndicatorsResponse extends Map<Indicator, IndicatorData> {
 }
 
 /**
@@ -1424,11 +1659,6 @@ export interface FinExecuteOrdersRequest {
 	 * Market address
 	 */
 	marketAddress?: MarketAddress;
-
-	/**
-	 * Last transaction details (for backward compatibility)
-	 */
-	transaction: Transaction;
 
 	/**
 	 * Market symbol
