@@ -2223,7 +2223,7 @@ export class Fin {
 					updateTimestamp: Date.now(),
 					raw: order
 				};
-				placeOrdersMap.set(orderId, orderObject);
+				placeOrdersMap.set(orderId, orderObject, true);
 			});
 			ordersMap.set('place', placeOrdersMap);
 		}
@@ -2260,7 +2260,7 @@ export class Fin {
 					updateTimestamp: Date.now(),
 					raw: order
 				};
-				replaceOrdersMap.set(orderId, orderObject);
+				replaceOrdersMap.set(orderId, orderObject, true);
 			});
 			ordersMap.set('replace', replaceOrdersMap);
 		}
@@ -2293,7 +2293,7 @@ export class Fin {
 					status: OrderStatus.CANCELLED,
 					updateTimestamp: Date.now()
 				};
-				cancelOrdersMap.set(orderId, cancelledOrder);
+				cancelOrdersMap.set(orderId, cancelledOrder, true);
 			});
 			ordersMap.set('cancel', cancelOrdersMap);
 		}
@@ -2325,7 +2325,7 @@ export class Fin {
 					...existingOrder,
 					updateTimestamp: Date.now()
 				};
-				withdrawOrdersMap.set(orderId, withdrawnOrder);
+				withdrawOrdersMap.set(orderId, withdrawnOrder, true);
 			});
 			ordersMap.set('withdraw', withdrawOrdersMap);
 		}
@@ -2364,11 +2364,11 @@ export class Fin {
 			// Convert to raw amount (no buffer needed - contract handles fees)
 			const rawQuoteAmount = totalQuoteAmount.mul(10 ** market.tokens.quote.decimals).toFixed(0);
 
-			console.debug('Funds calculation for BUY orders:', {
-				totalQuoteAmount: totalQuoteAmount.toString(),
-				rawQuoteAmount,
-				buyOrdersCount: allBuyOrders.size
-			});
+			// console.debug('Funds calculation for BUY orders:', {
+			// 	totalQuoteAmount: totalQuoteAmount.toString(),
+			// 	rawQuoteAmount,
+			// 	buyOrdersCount: allBuyOrders.size
+			// });
 
 			funds = [{
 				denom: market.tokens.quote.address,
@@ -2435,7 +2435,7 @@ export class Fin {
 
 		// Get the transaction details
 		const transaction = await this.getTransaction({ hash: response.transactionHash });
-		transactions.set(transaction.hash, transaction);
+		transactions.set(transaction.hash, transaction, true);
 
 		// Build the response
 		const result: FinExecuteOrdersResponse = {
