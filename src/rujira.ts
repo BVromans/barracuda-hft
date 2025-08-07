@@ -1063,8 +1063,8 @@ export class Fin {
 		);
 
 		const parseOrder = (entry: any): OrderBookOrder => ({
-			price: new Decimal(entry.price),
-			amount: new Decimal(entry.total),
+			price: Decimal(entry.price),
+			amount: Decimal(entry.total).div(DECIMAL_10.pow(market.decimals)),
 			raw: entry
 		});
 
@@ -1221,18 +1221,14 @@ export class Fin {
 			throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
 		}
 
-		// TODO: check if this is correct!!!
 		const rawCandles = data?.node?.candles?.edges?.map((edge: any) => edge.node) || [];
 
-		// TODO: check if this is correct!!!
 		const candles = MList<Candle>(rawCandles).map((entry: any): Candle => ({
-			timestamp: typeof entry.bin === 'string'
-				? new Date(entry.bin).getTime()
-				:typeof entry.bin === 'number' ? entry.bin : Date.now(),
-			open: Decimal(entry.open || 0),
-			high: Decimal(entry.high || 0),
-			low: Decimal(entry.low || 0),
-			close: Decimal(entry.close || 0),
+			timestamp: new Date(entry.bin).getTime(),
+			open: Decimal(entry.open || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
+			high: Decimal(entry.high || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
+			low: Decimal(entry.low || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
+			close: Decimal(entry.close || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
 			volume: Decimal(entry.volume || 0),
 			raw: entry
 		}));
@@ -1328,7 +1324,7 @@ export class Fin {
 			for (const rawBalance of freeBalanceResponseData.balances) {
 				const token = await this.getToken({ address: rawBalance.denom });
 
-				freeBalances.set(token.address, new Decimal(rawBalance.amount));
+				freeBalances.set(token.address, Decimal(rawBalance.amount));
 			}
 		}
 
@@ -1385,12 +1381,12 @@ export class Fin {
 				if (rawOrder.filled && Number(rawOrder.filled) > 0) {
 					// TODO: check if this is correct!!!
 					const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
-					lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.getOrThrow(lockedTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
+					lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.getOrThrow(lockedTokenAddress, DECIMAL_0)).plus(Decimal(rawOrder.filled)));
 				}
 				if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
 					// TODO: check if this is correct!!!
 					const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // note that it's the opposite asset
-					withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.getOrThrow(withdrawTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
+					withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.getOrThrow(withdrawTokenAddress, DECIMAL_0)).plus(Decimal(rawOrder.filled)));
 				}
 			}
 		}
@@ -1664,9 +1660,9 @@ export class Fin {
 		for (const rawOrder of rawOrders) {
 			const type = OrderType.LIMIT;
 			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
-			const price = new Decimal(rawOrder.price.fixed);
-			const amount = new Decimal(rawOrder.offer).div(DECIMAL_10.pow(market.decimals));
-			const filledAmount = new Decimal(rawOrder.filled).div(DECIMAL_10.pow(market.decimals)); // TODO: understand why the filled amount can be greater than the amount!!!
+			const price = Decimal(rawOrder.price.fixed);
+			const amount = Decimal(rawOrder.offer).div(DECIMAL_10.pow(market.decimals));
+			const filledAmount = Decimal(rawOrder.filled).div(DECIMAL_10.pow(market.decimals)); // TODO: understand why the filled amount can be greater than the amount!!!
 			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(amount)));
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 
