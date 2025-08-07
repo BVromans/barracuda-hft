@@ -20,13 +20,13 @@ rujira:
     tokens:
       native:
         address: "THOR.RUJI"
-        symbol: "RUJI"
+        symbol: "THOR-RUJI"
       usd:
         address: "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
-        symbol: "USDC"
+        symbol: "ETH-USDC"
       feePayment:
         address: "THOR.RUNE"
-        symbol: "RUNE"
+        symbol: "THOR-RUNE"
   default:
     cache:
       ttlSeconds: 60
@@ -50,19 +50,19 @@ tests:
   integration:
     timeout: 60_000 # 60 seconds
     transaction_hash: "EDF881BCB440DA84C6197C563BB7313FD04AED6D0E477676661B901EEFC87E3E"
-    first_market_symbol: "NAMI/USDC"
+    first_market_symbol: "THOR-NAMI/ETH-USDC"
     first_market_address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
     first_market_base_token_address: "QXNzZXQ6VEhPUi5OQU1J"
     first_market_quote_token_address: "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4"
-    first_market_base_token_symbol: "NAMI"
-    first_market_quote_token_symbol: "USDC"
+    first_market_base_token_symbol: "THOR-NAMI"
+    first_market_quote_token_symbol: "ETH-USDC"
     first_market_base_token_amount: "0.000001"
     first_market_quote_token_amount: "0.000001"
-    second_market_symbol: "NAMI/USDC"
+    second_market_symbol: "THOR-NAMI/ETH-USDC"
     second_market_address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
     second_market_base_token_address: "QXNzZXQ6VEhPUi5OQU1J"
     second_market_quote_token_address: "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4"
-    second_market_base_token_symbol: "NAMI"
-    second_market_quote_token_symbol: "USDC"
+    second_market_base_token_symbol: "THOR-NAMI"
+    second_market_quote_token_symbol: "ETH-USDC"
     second_market_base_token_amount: "0.000001"
     second_market_quote_token_amount: "0.000001"
