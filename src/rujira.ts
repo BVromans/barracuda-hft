@@ -20,6 +20,7 @@ import {
 	DECIMAL_0,
 	DECIMAL_1,
 	DECIMAL_10,
+	DECIMAL_100,
 	DECIMAL_INFINITY,
 	FinCancelAllOrdersRequest,
 	FinCancelAllOrdersResponse,
@@ -1564,7 +1565,7 @@ export class Fin {
 		orderSides = orderSides ? MList(orderSides?.map((orderSide: OrderSide) => OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide])) : undefined;
 		orderStatuses = orderStatuses ? MList(orderStatuses?.map((orderStatus: OrderStatus) => OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus])) : undefined;
 		orderPrices = orderPrices ? MList(orderPrices?.map((orderPrice: OrderPrice) => Decimal(orderPrice))) : undefined;
-		maximumNumberOfOrders = maximumNumberOfOrders || Number(properties.getAs<string>('rujira.orders.maximumNumberOfOrders'));
+		maximumNumberOfOrders = maximumNumberOfOrders ? Number(maximumNumberOfOrders) : undefined;
 
 		if (!ownerAddress && !owner) {
 			throw new Error("Owner address is required");
@@ -1620,7 +1621,7 @@ export class Fin {
 		const query = {
 			orders: {
 				owner: ownerAddress,
-				limit: maximumNumberOfOrders,
+				limit: Number(properties.getAs<string>('rujira.orders.maximumNumberOfOrders')),
 				offset: 0
 			}
 		} as {
@@ -1665,9 +1666,9 @@ export class Fin {
 			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
 			const price = new Decimal(rawOrder.price.fixed);
 			const amount = new Decimal(rawOrder.offer).div(DECIMAL_10.pow(market.decimals));
-			const filledAmount = new Decimal(rawOrder.filled);
-			const filledPercentage = filledAmount.div(amount);
-			const status = filledAmount.eq(DECIMAL_0) ? OrderStatus.OPEN : filledAmount.eq(amount) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
+			const filledAmount = new Decimal(rawOrder.filled).div(DECIMAL_10.pow(market.decimals)); // TODO: understand why the filled amount can be greater than the amount!!!
+			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(amount)));
+			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 
 			const order = {
 				id: `${ownerAddress}-${market.address}-${side.toString().toLowerCase()}-${price.toString()}`,
@@ -1683,7 +1684,7 @@ export class Fin {
 				raw: rawOrder
 			} as Order;
 
-			filteredOrders.set(getOrThrow<OrderId>(order.id), order);
+			filteredOrders.set(getOrThrow<OrderId>(order.id), order, true);
 		}
 
 		filteredOrders = filteredOrders.filter((order: Order) => {
@@ -1732,7 +1733,7 @@ export class Fin {
 			return true;
 		});
 
-		if (maximumNumberOfOrders > 0) {
+		if (maximumNumberOfOrders && maximumNumberOfOrders > 0) {
 			filteredOrders = filteredOrders.slice(0, maximumNumberOfOrders);
 		}
 

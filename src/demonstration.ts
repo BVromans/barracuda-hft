@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
-import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenAddress, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
+import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenAddress, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
 
 (async function run() {
 	const active = {
@@ -18,8 +18,8 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 		getCandles: false,
 		getIndicators: false,
 		getBalances: false,
-		getOrder: true,
-		getOrders: false,
+		getOrder: false,
+		getOrders: true,
 		placeOrder: false,
 		placeOrders: false,
 		replaceOrder: false,
@@ -194,9 +194,14 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
 			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
 			// marketSymbol: 'RUJI/USDC',
-			maximumNumberOfOrders: 10
+			orderTypes: [OrderType.LIMIT],
+			orderSides: [OrderSide.BUY],
+			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED],
+			// orderPrices: [Decimal('0.9')],
+			// maximumNumberOfOrders: 2
 		});
 		console.log('getOrders:size:', getOrders.size);
+		console.log('getOrders:ids:\n', getOrders.keySeq().toJS());
 		console.log('getOrders:\n', getOrders.toJS());
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
