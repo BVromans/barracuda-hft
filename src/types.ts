@@ -202,7 +202,7 @@ export class Indicator {
 				);
 			return result;
 		},
-		[14	]
+		[14]
 	);
 
 	static average_price = new Indicator(
@@ -666,9 +666,9 @@ export class Indicator {
 		"sma",
 		"Simple Moving Average",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[20]
 	);
 
 	static standard_deviation_over_period = new Indicator(
@@ -1108,9 +1108,9 @@ export class Indicator {
 			// Indicator.absolute_price_oscillator,
 			// Indicator.aroon,
 			// Indicator.aroon_oscillator,
-			// Indicator.average_true_range,
+			Indicator.average_true_range,
 			// Indicator.average_price,
-			// Indicator.bollinger_bands,
+			Indicator.bollinger_bands,
 			// Indicator.balance_of_power,
 			// Indicator.commodity_channel_index,
 			// Indicator.chande_momentum_oscillator,
@@ -2059,7 +2059,7 @@ export interface FinGetIndicatorsRequest {
 /**
  * Get indicators response
  */
-export interface FinGetIndicatorsResponse extends Map<Indicator, IndicatorData> {
+export interface FinGetIndicatorsResponse extends Map<IndicatorId, IndicatorData> {
 }
 
 /**
