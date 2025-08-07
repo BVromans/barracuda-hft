@@ -72,6 +72,7 @@ import {
 	FinWithdrawResponse as FinWithdrawOrdersResponse,
 	Indicator,
 	IndicatorData,
+	IndicatorId,
 	Integer,
 	List,
 	Map,
@@ -1201,7 +1202,7 @@ export class Fin {
 					after,
 					before,
 					resolution,
-					last: maximumNumberOfCandles
+					last: maximumNumberOfCandles // TODO: it seems this field is not being respected!!!
 				}
 			})
 		});
@@ -1249,12 +1250,12 @@ export class Fin {
 			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
 		}
 
-		const indicators = MMap<Indicator, IndicatorData>();
+		const indicators = MMap<IndicatorId, IndicatorData>();
 
 		for (const indicator of Indicator.getAll()) {
-			const value = (Indicators as any)[indicator.id](candles, ...indicator.parameters);
+			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(candles), ...indicator.parameters);
 
-			indicators.set(indicator, {
+			indicators.set(indicator.id, {
 				indicator,
 				value
 			});
