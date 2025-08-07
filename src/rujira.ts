@@ -1131,13 +1131,19 @@ export class Fin {
 			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 		}
 
-		const orderBook = await this.getOrderBook({ marketAddress: market.address, marketSymbol: market.symbol, market: market, maximumNumberOfOrders: 1 });
+		const orderBook = await this.getOrderBook({ marketAddress: market.address, marketSymbol: market.symbol, market: market });
 		const timestamp = Date.now();
 
 		const ticker: Ticker = {
 			market,
-			middlePrice: orderBook.statistics.middlePrice.baseToQuote,
-			volumeWeightedAveragePrice: orderBook.statistics.volumeWeightedAveragePrice.baseToQuote,
+			middlePrice: {
+				baseToQuote: orderBook.statistics.middlePrice.baseToQuote,
+				quoteToBase: orderBook.statistics.middlePrice.quoteToBase
+			},
+			volumeWeightedAveragePrice: {
+				baseToQuote: orderBook.statistics.volumeWeightedAveragePrice.baseToQuote,
+				quoteToBase: orderBook.statistics.volumeWeightedAveragePrice.quoteToBase
+			},
 			timestamp,
 			raw: orderBook.raw
 		};
@@ -1412,7 +1418,7 @@ export class Fin {
 				try {
 					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` });
 
-					conversionRateNativeToken = quotingMarketTicker.middlePrice || DECIMAL_0;
+					conversionRateNativeToken = quotingMarketTicker.middlePrice.baseToQuote || DECIMAL_0;
 				} catch (exception) {
 					ignoreException(exception);
 				}
@@ -1425,7 +1431,7 @@ export class Fin {
 				try {
 					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.beaconToken.symbol}` });
 
-					conversionRateBeacon = quotingMarketTicker.middlePrice || DECIMAL_0;
+					conversionRateBeacon = quotingMarketTicker.middlePrice.baseToQuote || DECIMAL_0;
 				} catch (exception) {
 					ignoreException(exception);
 				}
@@ -1638,9 +1644,9 @@ export class Fin {
 		// 		},
 		// 		"rate": "0.04",
 		// 		"updated_at": "1753359648989354207",
-		// 		"offer": "5400000",
-		// 		"remaining": "5400000",
-		// 		"filled": "0"
+		// 		"offer": "5400000", // The amount of the order (it's the direct asset)
+		// 		"remaining": "5400000", // The remaining amount of the order (it's the direct asset)
+		// 		"filled": "0" // The amount of the order that has been filled (it's the opposite asset)
 		// 	}
 		const rawOrders = result.orders as [{
       owner: string,
@@ -1662,8 +1668,7 @@ export class Fin {
 			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
 			const price = Decimal(rawOrder.price.fixed);
 			const amount = Decimal(rawOrder.offer).div(DECIMAL_10.pow(market.decimals));
-			const filledAmount = Decimal(rawOrder.filled).div(DECIMAL_10.pow(market.decimals)); // TODO: understand why the filled amount can be greater than the amount!!!
-			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(amount)));
+			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(Decimal(rawOrder.offer))));
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 
 			const order = {
@@ -1674,7 +1679,6 @@ export class Fin {
 				side: side,
 				price: price,
 				amount: amount,
-				filledAmount: filledAmount,
 				filledPercentage: filledPercentage,
 				status: status,
 				raw: rawOrder
@@ -2212,7 +2216,6 @@ export class Fin {
 					side: order.side,
 					price: order.price,
 					amount: order.amount,
-					filledAmount: DECIMAL_0,
 					filledPercentage: DECIMAL_0,
 					status: OrderStatus.OPEN,
 					creationTimestamp: Date.now(),
@@ -2249,7 +2252,6 @@ export class Fin {
 					side: order.side,
 					price: order.price,
 					amount: order.amount,
-					filledAmount: DECIMAL_0,
 					filledPercentage: DECIMAL_0,
 					status: OrderStatus.OPEN,
 					creationTimestamp: Date.now(),

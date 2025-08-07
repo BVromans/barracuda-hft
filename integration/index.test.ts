@@ -1013,8 +1013,6 @@ describe("Rujira", async() => {
 						expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 						expect(order.price).toBeDefined();
 						expect(order.price?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-						expect(order.filledAmount).toBeDefined();
-						expect(order.filledAmount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 						expect(order.filledPercentage).toBeDefined();
 						expect(order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 						expect(order.status).toBe(OrderStatus.FILLED);
@@ -1071,8 +1069,6 @@ describe("Rujira", async() => {
 					expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(order.price).toBeDefined();
 					expect(order.price?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(order.filledAmount).toBeDefined();
-					expect(order.filledAmount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(order.filledPercentage).toBeDefined();
 					expect(order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(order.status).toBe(OrderStatus.FILLED);

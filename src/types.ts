@@ -1488,12 +1488,32 @@ export interface Ticker {
 	/**
 	 * Price of the ticker
 	 */
-	middlePrice?: TickerPrice;
+	middlePrice: {
+		/**
+		 * Price of the base token to the quote token
+		 */
+		baseToQuote?: TickerPrice;
+
+		/**
+		 * Price of the quote token to the base token
+		 */
+		quoteToBase?: TickerPrice;
+	};
 
 	/**
 	 * Volume weighted average price (VWAP) of the ticker
 	 */
-	volumeWeightedAveragePrice?: TickerPrice;
+	volumeWeightedAveragePrice: {
+		/**
+		 * Price of the base token to the quote token
+		 */
+		baseToQuote?: TickerPrice;
+
+		/**
+		 * Price of the quote token to the base token
+		 */
+		quoteToBase?: TickerPrice;
+	};
 
 	/**
 	 * Timestamp of the ticker
@@ -1720,11 +1740,6 @@ export interface Order {
 	 * Amount of the order
 	 */
 	amount: OrderAmount;
-
-	/**
-	 * Amount of filled order awaiting withdrawal
-	 */
-	filledAmount: OrderFilledAmount;
 
 	/**
 	 * Filled percentage of the order
