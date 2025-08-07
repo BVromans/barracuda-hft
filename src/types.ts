@@ -150,7 +150,7 @@ export class Indicator {
 			);
 			return result;
 		},
-		[28, 14]
+		[14, 28]
 	);
 
 	static average_directional_movement_index = new Indicator(
@@ -208,13 +208,7 @@ export class Indicator {
 		"apo",
 		"Absolute Price Oscillator",
 		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					return data;
-				},
-				[[], []] as [number[], number[]]
-			);
-			return result;
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
 		[12, 26]
 	);
@@ -225,8 +219,8 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
-					data[0].push(candle.high.toNumber());
-					data[1].push(candle.low.toNumber());
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
 					return data;
 				},
 				[[], []] as [number[], number[]]
@@ -267,9 +261,19 @@ export class Indicator {
 		"avgprice",
 		"Average Price",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+					(data, candle) => {
+				data[0].push(candle.open.toNumber() || 0);
+				data[1].push(candle.high.toNumber() || 0);
+				data[2].push(candle.low.toNumber() || 0)
+				data[3].push(candle.close.toNumber() || 0)
+				return data;
+					},
+					[[], [], [], []] as [number[], number[], number[], number[]]
+			)
+			return result;
 		},
-		[]
+		[20]
 	);
 
 	static bollinger_bands = new Indicator(
@@ -288,17 +292,17 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
-					data[0].push(candle.open.toNumber());
-					data[1].push(candle.high.toNumber());
-					data[2].push(candle.low.toNumber());
-					data[3].push(candle.close.toNumber());
+					data[0].push(candle.open.toNumber() || 0);
+					data[1].push(candle.high.toNumber() || 0);
+					data[2].push(candle.low.toNumber() || 0);
+					data[3].push(candle.close.toNumber() || 0);
 					return data;
 				},
 				[[], [], [], []] as [number[], number[], number[], number[]]
 			);
 			return result;
 		},
-		[]
+		[14]
 	);
 
 	static commodity_channel_index = new Indicator(
@@ -307,9 +311,9 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
-					data[0].push(candle.high.toNumber());
-					data[1].push(candle.low.toNumber());
-					data[2].push(candle.close.toNumber());
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
 					return data;
 				},
 				[[], [], []] as [number[], number[], number[]]
@@ -328,23 +332,13 @@ export class Indicator {
 		[20]
 	);
 
-	// TODO: ver como fazer o crossany
-	// static crossany = new Indicator(
-	// 	"crossany",
-	// 	"Crossany",
-	// 	(candles: List<Candle>) => {
-	// 		return [];
-	// 	},
-	// 	[]
-	// );
-
-	static crossover = new Indicator(
+	static cross_over = new Indicator(
 		"crossover",
 		"Crossover",
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[100, 50]
 	);
 
 	static cross_over_number = new Indicator(
@@ -499,11 +493,11 @@ export class Indicator {
 		"emv",
 		"Ease of Movement",
 		(candles: List<Candle>) => {
-			const result = candles.reduce(
+				const result = candles.reduce(
 				(data, candle) => {
-					data[0].push(candle.high.toNumber());
-					data[1].push(candle.low.toNumber());
-					data[2].push(candle.volume.toNumber());
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.volume.toNumber() || 0);
 					return data;
 				},
 				[[], [], []] as [number[], number[], number[]]
@@ -641,166 +635,168 @@ export class Indicator {
 		"marketfi",
 		"Market Facilitation Index",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			)
+			return [result];
 		},
-		[]
+		[28, 14]
 	);
 
 	static mass_index = new Indicator(
 		"mass",
 		"Mass Index",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0)
+					data[1].push(candle.low.toNumber() || 0)
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			)
+			return [result];
 		},
-		[]
+		[25, 9]
 	);
 
 	static maximum_in_period = new Indicator(
 		"max",
 		"Maximum In Period",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.high.toNumber()).toArray()]
 		},
-		[]
+		[20]
 	);
 
 	static mean_deviation_over_period = new Indicator(
 		"md",
 		"Mean Deviation Over Period",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[]
+		[20]
 	);
 
 	static median_price = new Indicator(
 		"medprice",
 		"Median Price",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0)
+					data[1].push(candle.low.toNumber() || 0)
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			)
+			return [result];
 		},
-		[]
+		[20]
 	);
 
 	static money_flow_index = new Indicator(
 		"mfi",
 		"Money Flow Index",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					data[3].push(candle.volume.toNumber() || 0);
+					return data;
+				},
+				[[], [], [], []] as [number[], number[], number[], number[]]
+			)
+			return [result];
 		},
-		[]
+		[28, 14]
 	);
 
 	static minimum_in_period = new Indicator(
 		"min",
 		"Minimum In Period",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.high.toNumber()).toArray()];
 		},
-		[]
+		[20]
 	);
 
 	static momentum = new Indicator(
 		"mom",
 		"Momentum",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
+		[20]
 	);
 
 	static normalized_average_true_range = new Indicator(
 		"natr",
 		"Normalized Average True Range",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push( candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+				    return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			)
+			return [result];
 		},
-		[]
+		[20]
 	);
 
 	static negative_volume_index = new Indicator(
 		"nvi",
 		"Negative Volume Index",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
+		[20]
 	);
 
 	static on_balance_volume = new Indicator(
 		"obv",
 		"On Balance Volume",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
+		[20]
 	);
 
-	static percentage_price_oscillator = new Indicator(
-		"ppo",
-		"Percentage Price Oscillator",
+	static volume_weighted_average_price = new Indicator(
+		"vwap",
+		"Volume-Weighted Average Price",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					data[3].push(candle.volume.toNumber() || 0);
+					return data;
+				},
+				[[], [], [], []] as [number[], number[], number[], number[]]
+			);
+			return result;
 		},
-		[]
-	);
-
-	static parabolic_sar = new Indicator(
-		"psar",
-		"Parabolic SAR",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static positive_volume_index = new Indicator(
-		"pvi",
-		"Positive Volume Index",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static qstick = new Indicator(
-		"qstick",
-		"Qstick",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static rate_of_change = new Indicator(
-		"roc",
-		"Rate of Change",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static rate_of_change_ratio = new Indicator(
-		"rocr",
-		"Rate of Change Ratio",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
+		[20, 14]
 	);
 
 	static relative_strength_index = new Indicator(
 		"rsi",
 		"Relative Strength Index",
 		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					return data;
-				},
-				[[], [], []] as [number[], string[], number[]]
-			);
-			return result;
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
 		[14]
 	);
@@ -814,195 +810,6 @@ export class Indicator {
 		[20]
 	);
 
-	static standard_deviation_over_period = new Indicator(
-		"stddev",
-		"Standard Deviation Over Period",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static standard_error_over_period = new Indicator(
-		"stderr",
-		"Standard Error Over Period",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static stochastic_oscillator = new Indicator(
-		"stoch",
-		"Stochastic Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static stochastic_rsi = new Indicator(
-		"stochrsi",
-		"Stochastic RSI",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static sum_over_period = new Indicator(
-		"sum",
-		"Sum Over Period",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static triple_exponential_moving_average = new Indicator(
-		"tema",
-		"Triple Exponential Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static true_range = new Indicator(
-		"tr",
-		"True Range",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static triangular_moving_average = new Indicator(
-		"trima",
-		"Triangular Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static trix = new Indicator(
-		"trix",
-		"Trix",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static time_series_forecast = new Indicator(
-		"tsf",
-		"Time Series Forecast",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static typical_price = new Indicator(
-		"typprice",
-		"Typical Price",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static ultimate_oscillator = new Indicator(
-		"ultosc",
-		"Ultimate Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static variance_over_period = new Indicator(
-		"var",
-		"Variance Over Period",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static vertical_horizontal_filter = new Indicator(
-		"vhf",
-		"Vertical Horizontal Filter",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static variable_index_dynamic_average = new Indicator(
-		"vidya",
-		"Variable Index Dynamic Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static annualized_historical_volatility = new Indicator(
-		"volatility",
-		"Annualized Historical Volatility",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static volume_oscillator = new Indicator(
-		"vosc",
-		"Volume Oscillator",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static volume_weighted_moving_average = new Indicator(
-		"vwma",
-		"Volume Weighted Moving Average",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static williams_accumulation_distribution = new Indicator(
-		"wad",
-		"Williams Accumulation/Distribution",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static weighted_close_price = new Indicator(
-		"wcprice",
-		"Weighted Close Price",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
-	static wilders_smoothing = new Indicator(
-		"wilders",
-		"Wilders Smoothing",
-		(candles: List<Candle>) => {
-			return [];
-		},
-		[]
-	);
-
 	static williams_r = new Indicator(
 		"willr",
 		"Williams %R",
@@ -1014,192 +821,568 @@ export class Indicator {
 					data[2].push(candle.close.toNumber() || 0);
 					return data;
 				},
-				[[], [], [], []] as [number[], number[], number[], string[]]
+				[[], [], []] as [number[], number[], number[]]
 			);
 			return result;
 		},
 		[14]
 	);
 
+	static percentage_price_oscillator = new Indicator(
+		"ppo",
+		"Percentage Price Oscillator",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[12, 26]
+	);
+
+	static parabolic_sar = new Indicator(
+		"psar",
+		"Parabolic SAR",
+		(candles: List<Candle>) => {
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			);
+			return result;
+		},
+		[12, 26]
+	);
+
+	static positive_volume_index = new Indicator(
+		"pvi",
+		"Positive Volume Index",
+		(candles: List<Candle>) => {
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.close.toNumber() || 0);
+					data[1].push(candle.volume.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			);
+			return result;
+		},
+		[12, 26]
+	);
+
+	static qstick = new Indicator(
+		"qstick",
+		"Qstick",
+		(candles: List<Candle>) => {
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.open.toNumber() || 0);
+					data[1].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			);
+			return result;
+		},
+		[20]
+	);
+
+	static rate_of_change = new Indicator(
+		"roc",
+		"Rate of Change",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[20]
+	);
+
+	static rate_of_change_ratio = new Indicator(
+		"rocr",
+		"Rate of Change Ratio",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[20]
+	);
+
+
+	static standard_deviation_over_period = new Indicator(
+		"stddev",
+		"Standard Deviation Over Period",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[20]
+	);
+
+	static standard_error_over_period = new Indicator(
+		"stderr",
+		"Standard Error Over Period",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[20]
+	);
+
+	static stochastic_oscillator = new Indicator(
+		"stoch",
+		"Stochastic Oscillator",
+		(candles: List<Candle>) => {
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			);
+			return result;
+		},
+		[14, 14]
+	);
+
+	static stochastic_rsi = new Indicator(
+		"stochrsi",
+		"Stochastic RSI",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[14, 14]
+	);
+
+	static sum_over_period = new Indicator(
+		"sum",
+		"Sum Over Period",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[14, 14]
+	);
+
+	static triple_exponential_moving_average = new Indicator(
+		"tema",
+		"Triple Exponential Moving Average",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[20]
+	);
+
+	static true_range = new Indicator(
+		"tr",
+		"True Range",
+		(candles: List<Candle>) => {
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			);
+			return result;
+		},
+		[20, 14]
+	);
+
+	static triangular_moving_average = new Indicator(
+		"trima",
+		"Triangular Moving Average",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[20]
+	);
+
+	static trix = new Indicator(
+		"trix",
+		"Trix",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[20]
+	);
+
+	static time_series_forecast = new Indicator(
+		"tsf",
+		"Time Series Forecast",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[20]
+	);
+
+	static typical_price = new Indicator(
+		"typprice",
+		"Typical Price",
+		(candles: List<Candle>) => {
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			);
+			return result;
+		},
+		[20, 14]
+	);
+
+	static ultimate_oscillator = new Indicator(
+		"ultosc",
+		"Ultimate Oscillator",
+		(candles: List<Candle>) => {
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			);
+			return result;
+		},
+		[20, 14]
+	);
+
+	static variance_over_period = new Indicator(
+		"var",
+		"Variance Over Period",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[20]
+	);
+
+	static vertical_horizontal_filter = new Indicator(
+		"vhf",
+		"Vertical Horizontal Filter",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[20]
+	);
+
+	static variable_index_dynamic_average = new Indicator(
+		"vidya",
+		"Variable Index Dynamic Average",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[14, 20, 0.5]
+	);
+
+	static annualized_historical_volatility = new Indicator(
+		"volatility",
+		"Annualized Historical Volatility",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[20]
+	);
+
+	static volume_oscillator = new Indicator(
+		"vosc",
+		"Volume Oscillator",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[12, 26]
+	);
+
+	static volume_weighted_moving_average = new Indicator(
+		"vwma",
+		"Volume Weighted Moving Average",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[1, 26]
+	);
+
+	static williams_accumulation_distribution = new Indicator(
+		"wad",
+		"Williams Accumulation/Distribution",
+		(candles: List<Candle>) => {
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			);
+			return result;
+		},
+		[14, 20]
+	);
+
+	static weighted_close_price = new Indicator(
+		"wcprice",
+		"Weighted Close Price",
+		(candles: List<Candle>) => {
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			);
+			return result;
+		},
+		[14, 20]
+	);
+
+	static wilders_smoothing = new Indicator(
+		"wilders",
+		"Wilders Smoothing",
+		(candles: List<Candle>) => {
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
+		},
+		[20]
+	);
+
+
 	static weighted_moving_average = new Indicator(
 		"wma",
 		"Weighted Moving Average",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
+		[20]
 	);
 
 	static zero_lag_exponential_moving_average = new Indicator(
 		"zlema",
 		"Zero-Lag Exponential Moving Average",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
+		[20]
 	);
 
 	static abands = new Indicator(
 		"abands",
 		"?",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[20, 14]
 	);
 
 	static arnaud_legoux_moving_average = new Indicator(
 		"alma",
 		"Arnaud Legoux Moving Average",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
+		[1, 7, 0.5, 6.0]
 	);
 
 	static chandelier_exit = new Indicator(
 		"ce",
 		"Chandelier Exit",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[20, 10]
 	);
 
 	static chaikin_money_flow = new Indicator(
 		"cmf",
 		"Chaikin money flow",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					data[3].push(candle.volume.toNumber() || 0);
+					return data;
+				},
+				[[], [], [], []] as [number[], number[], number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[20, 10]
 	);
 
 	static donchian_channels = new Indicator(
 		"dc",
 		"Donchian Channels",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[20, 10]
 	);
 
 	static force_index = new Indicator(
 		"fi",
 		"Force index",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.close.toNumber() || 0);
+					data[1].push(candle.volume.toNumber() || 0);
+					return data;
+				},
+				[[], []] as [number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[20, 10]
 	);
 
 	static keltner_channels = new Indicator(
 		"kc",
 		"Keltner Channels",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[20, 2.0]
 	);
 
 	static know_sure_thing = new Indicator(
 		"kst",
 		"Know Sure Thing",
 		(candles: List<Candle>) => {
-			return [];
+
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
+		[10, 15, 20, 30, 10, 10, 10, 15]
 	);
 
 	static pbands = new Indicator(
 		"pbands",
 		"?",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[20, 10]
 	);
 
 	static polarized_fractal_efficiency = new Indicator(
 		"pfe",
 		"Polarized Fractal Efficiency",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
+		[14, 9]
 	);
 
 	static poscillator = new Indicator(
 		"posc",
 		"?",
 		(candles: List<Candle>) => {
-			return [];
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			);
+			return result;
 		},
-		[]
+		[20, 10]
 	);
 
 	static relative_momentum_index = new Indicator(
 		"rmi",
 		"Relative Momentum Index",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
+		[14, 5]
 	);
 
 	static recursive_moving_trend_average = new Indicator(
 		"rmta",
 		"Recursive Moving Trend Average",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
+		[14]
 	);
 
 	static relative_vigor_index = new Indicator(
 		"rvi",
 		"Relative Vigor Index",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
+		[10, 14]
 	);
 
 	static stochastic_momentum_index = new Indicator(
 		"smi",
 		"Stochastic Momentum Index",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
+		[20]
 	);
 
 	static true_strength_index = new Indicator(
 		"tsi",
 		"True Strength Index",
 		(candles: List<Candle>) => {
-			return [];
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[]
-	);
-
-	static volume_weighted_average_price = new Indicator(
-		"vwap",
-		"Volume-Weighted Average Price",
-		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					data[0].push(candle.high.toNumber());
-					data[1].push(candle.low.toNumber());
-					data[2].push(candle.close.toNumber());
-					data[3].push(candle.volume.toNumber());
-					return data;
-				},
-				[[], [], [], [], []] as [number[], number[], number[], number[], string[]]
-			);
-			return result;
-		},
-		[]
+		[20, 14]
 	);
 
 
@@ -1243,7 +1426,7 @@ export class Indicator {
 	static getAll(): Indicator[] {
 		return [
 			// Indicator.ease_of_movement,
-			// Indicator.accumulation_distribution_line,
+			Indicator.accumulation_distribution_line,
 			// Indicator.accumulation_distribution_oscillator,
 			// Indicator.average_directional_movement_index,
 			// Indicator.average_directional_movement_rating,
@@ -1251,9 +1434,9 @@ export class Indicator {
 			// Indicator.absolute_price_oscillator,
 			// Indicator.aroon,
 			// Indicator.aroon_oscillator,
-			Indicator.average_true_range,
+			// Indicator.average_true_range,
 			// Indicator.average_price,
-			Indicator.bollinger_bands,
+			// Indicator.bollinger_bands,
 			// Indicator.balance_of_power,
 			// Indicator.commodity_channel_index,
 			// Indicator.chande_momentum_oscillator,
