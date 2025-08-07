@@ -154,7 +154,8 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
 			// marketSymbol: 'RUJI/USDC',
 		});
-		console.log('getCandles:\n', getCandles);
+		console.log('getCandles:size:', getCandles.size);
+		console.log('getCandles:\n', getCandles.toJS());
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
@@ -163,7 +164,8 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
 			// marketSymbol: 'RUJI/USDC',
 		});
-		console.log('getIndicators:\n', getIndicators);
+		console.log('getIndicators:size:', getIndicators.size);
+		console.log('getIndicators:\n', getIndicators.toJS());
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
