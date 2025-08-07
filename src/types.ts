@@ -152,12 +152,12 @@ export class Indicator {
 			);
 			return result;
 		},
-		[14, 28]
+		[20, 14]
 	);
 
-	static average_directional_movement_index = new Indicator(
+	static average_directional_index = new Indicator(
 		"adx",
-		"Average Directional Movement Index",
+		"Average Directional Index",
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
@@ -169,7 +169,7 @@ export class Indicator {
 			);
 			return result;
 		},
-		[14, 14]
+		[14]
 	);
 
 	static average_directional_movement_rating = new Indicator(
@@ -219,17 +219,9 @@ export class Indicator {
 		"aroon",
 		"Aroon",
 		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					data[0].push(candle.high.toNumber() || 0);
-					data[1].push(candle.low.toNumber() || 0);
-					return data;
-				},
-				[[], []] as [number[], number[]]
-			);
-			return result;
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[25, 10]
+		[20, 14]
 	);
 
 	static aroon_oscillator = new Indicator(
@@ -238,7 +230,7 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[14]
+		[20, 14]
 	);
 
 	static average_true_range = new Indicator(
@@ -478,15 +470,7 @@ export class Indicator {
 		"ema",
 		"Exponential Moving Average",
 		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					data[0].push(candle.high.toNumber() || 0);
-					data[1].push(candle.low.toNumber() || 0);
-					return data;
-				},
-				[[], []] as [number[], number[]]
-		);
-		return result;
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
 		[20]
 	);
@@ -1195,7 +1179,7 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[1, 7, 0.5, 6.0]
+		[20, 0.5, 6.0]
 	);
 
 	static chandelier_exit = new Indicator(
@@ -1427,109 +1411,102 @@ export class Indicator {
 	 */
 	static getAll(): Indicator[] {
 		return [
-			// Indicator.ease_of_movement,
-			Indicator.accumulation_distribution_line,
-			// Indicator.accumulation_distribution_oscillator,
-			// Indicator.average_directional_movement_index,
+			// Indicator.abands, ok
+			// Indicator.absolute_price_oscillator, ok
+			// Indicator.accumulation_distribution_line, ok
+			// Indicator.annualized_historical_volatility, ok
+			// Indicator.aroon, ok
+			// Indicator.aroon_oscillator, ok
+			// Indicator.arnaud_legoux_moving_average, ok
+			// Indicator.average_directional_index,
 			// Indicator.average_directional_movement_rating,
-			// Indicator.awesome_oscillator,
-			// Indicator.absolute_price_oscillator,
-			// Indicator.aroon,
-			// Indicator.aroon_oscillator,
-			// Indicator.average_true_range,
 			// Indicator.average_price,
-			// Indicator.bollinger_bands,
+			// Indicator.average_true_range,
+			// Indicator.awesome_oscillator,
 			// Indicator.balance_of_power,
-			// Indicator.commodity_channel_index,
+			// Indicator.bollinger_bands,
+			// Indicator.chandelier_exit,
+			// Indicator.chaikin_money_flow,
+			// Indicator.chaikins_volatility,
 			// Indicator.chande_momentum_oscillator,
-			// Indicator.crossany,
-			// Indicator.crossover,
-			// Indicator.crossunder,
+			// Indicator.commodity_channel_index,
+			// Indicator.cross_over,
 			// Indicator.cross_over_number,
 			// Indicator.cross_under_number,
-			// Indicator.chaikins_volatility,
-			// Indicator.linear_decay,
-			// Indicator.double_exponential_moving_average,
+			// Indicator.detrended_price_oscillator,
 			// Indicator.directional_indicator,
 			// Indicator.directional_movement,
-			// Indicator.detrended_price_oscillator,
 			// Indicator.directional_movement_index,
+			// Indicator.donchian_channels,
+			// Indicator.double_exponential_moving_average,
+			// Indicator.ease_of_movement,
 			// Indicator.exponential_decay,
-			// Indicator.exponential_moving_average,
-			// Indicator.forecast_oscillator,
+			// Indicator.exponential_moving_average, ok
 			// Indicator.fisher_transform,
-			// Indicator.klinger_volume_oscillator,
+			// Indicator.force_index,
+			// Indicator.forecast_oscillator,
+			// Indicator.hull_moving_average,
 			// Indicator.kaufman_adaptive_moving_average,
+			// Indicator.keltner_channels,
 			// Indicator.klinger_volume_oscillator,
+			// Indicator.know_sure_thing,
 			// Indicator.lag,
+			// Indicator.linear_decay,
 			// Indicator.linear_regression,
 			// Indicator.linear_regression_intercept,
 			// Indicator.linear_regression_slope,
-			// Indicator.moving_average_convergence_divergence,
-			// Indicator.market_facilitation_index,
 			// Indicator.mass_index,
+			// Indicator.market_facilitation_index,
 			// Indicator.maximum_in_period,
 			// Indicator.mean_deviation_over_period,
 			// Indicator.median_price,
-			// Indicator.money_flow_index,
 			// Indicator.minimum_in_period,
 			// Indicator.momentum,
-			// Indicator.normalized_average_true_range,
+			// Indicator.money_flow_index,
+			// Indicator.moving_average_convergence_divergence,
 			// Indicator.negative_volume_index,
+			// Indicator.normalized_average_true_range,
 			// Indicator.on_balance_volume,
-			// Indicator.percentage_price_oscillator,
+			// Indicator.pbands,
 			// Indicator.parabolic_sar,
+			// Indicator.percentage_price_oscillator,
+			// Indicator.polarized_fractal_efficiency,
+			// Indicator.poscillator,
 			// Indicator.positive_volume_index,
 			// Indicator.qstick,
 			// Indicator.rate_of_change,
 			// Indicator.rate_of_change_ratio,
+			// Indicator.recursive_moving_trend_average,
+			// Indicator.relative_momentum_index,
 			// Indicator.relative_strength_index,
+			// Indicator.relative_vigor_index,
 			// Indicator.simple_moving_average,
 			// Indicator.standard_deviation_over_period,
 			// Indicator.standard_error_over_period,
+			// Indicator.stochastic_momentum_index,
 			// Indicator.stochastic_oscillator,
 			// Indicator.stochastic_rsi,
 			// Indicator.sum_over_period,
-			// Indicator.triple_exponential_moving_average,
-			// Indicator.true_range,
+			// Indicator.time_series_forecast,
 			// Indicator.triangular_moving_average,
 			// Indicator.trix,
-			// Indicator.time_series_forecast,
+			// Indicator.true_range,
+			// Indicator.true_strength_index,
+			// Indicator.triple_exponential_moving_average,
 			// Indicator.typical_price,
 			// Indicator.ultimate_oscillator,
 			// Indicator.variance_over_period,
-			// Indicator.vertical_horizontal_filter,
 			// Indicator.variable_index_dynamic_average,
-			// Indicator.annualized_historical_volatility,
+			// Indicator.vertical_horizontal_filter,
 			// Indicator.volume_oscillator,
-			// Indicator.volume_weighted_moving_average,
-			// Indicator.williams_accumulation_distribution,
-			// Indicator.weighted_close_price,
-			// Indicator.wilders_smoothing,
-			// Indicator.williams_r,
-			// Indicator.weighted_moving_average,
-			// Indicator.zero_lag_exponential_moving_average,
-			// Indicator.arnaud_legoux_moving_average,
-			// Indicator.chandelier_exit,
-			// Indicator.chaikin_money_flow,
-			// Indicator.donchian_channels,
-			// Indicator.force_index,
-			// Indicator.keltner_channels,
-			// Indicator.know_sure_thing,
-			// Indicator.pbands,
-			// Indicator.polarized_fractal_efficiency,
-			// Indicator.positive_volume_index,
-			// Indicator.relative_momentum_index,
-			// Indicator.recursive_moving_trend_average,
-			// Indicator.relative_vigor_index,
-			// Indicator.stochastic_momentum_index,
-			// Indicator.true_strength_index,
 			// Indicator.volume_weighted_average_price,
-			// Indicator.williams_alligator,
-			// Indicator.williams_fractal,
-			// Indicator.commodity_channel_index,
-			// Indicator.zig_zag,
-			// Indicator.woodies_CCI
+			// Indicator.volume_weighted_moving_average,
+			// Indicator.weighted_close_price,
+			// Indicator.weighted_moving_average,
+			// Indicator.williams_accumulation_distribution,
+			// Indicator.williams_r,
+			// Indicator.wilders_smoothing,
+			// Indicator.zero_lag_exponential_moving_average,
 		];
 	}
 }
