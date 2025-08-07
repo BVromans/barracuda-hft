@@ -1143,7 +1143,7 @@ export class Fin {
 		return ticker;
 	}
 
-		/**
+	/**
 	 * Get candles
 	 * @param request - The request object
 	 * @returns The candles response
@@ -1735,6 +1735,9 @@ export class Fin {
 		const executedOrders = await this.executeOrders({
 			ownerAddress,
 			owner,
+			marketAddress,
+			marketSymbol,
+			market,
 			orders: {
 				place: MList<FinPlaceOrderRequest>(
 					[
@@ -1795,6 +1798,9 @@ export class Fin {
 		const executedOrders = await this.executeOrders({
 			ownerAddress,
 			owner,
+			marketAddress,
+			marketSymbol,
+			market,
 			orders: {
 				replace: MList<FinPlaceOrderRequest>([{
 					ownerAddress,
@@ -2178,7 +2184,9 @@ export class Fin {
 				// Create message
 				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
 				const price = order.price?.toString() || '0';
-				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString();
+				// For BUY orders, amount should be in quote token decimals (Ex.: USDC = 6)
+				// For SELL orders, amount should be in base token decimals (Ex.: RUJI = 6)
+				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toFixed(0);
 
 				executeMessages.push([side, { fixed: price }, amount]);
 
@@ -2213,7 +2221,9 @@ export class Fin {
 				// Create message
 				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
 				const price = order.price?.toString() || '0';
-				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString();
+				// For BUY orders, amount should be in quote token decimals (Ex.: USDC = 6)
+				// For SELL orders, amount should be in base token decimals (Ex.: RUJI = 6)
+				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toFixed(0);
 
 				executeMessages.push([side, { fixed: price }, amount]);
 
@@ -2307,6 +2317,93 @@ export class Fin {
 			throw new Error("No valid orders to execute");
 		}
 
+		// Calculate funds for orders
+		let funds: readonly Coin[] | undefined;
+		const buyOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
+		const sellOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
+		const buyReplaceOrders = orders.replace?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
+		const sellReplaceOrders = orders.replace?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
+
+		// For BUY orders (place only), we need quote tokens (USDC)
+		// Replace orders don't need additional funds as they modify existing orders
+		const allBuyOrders = buyOrders; // Only include place orders
+		if (allBuyOrders && allBuyOrders.size > 0) {
+			let totalQuoteAmount = DECIMAL_0;
+
+			// For place orders, use the full amount
+			buyOrders.forEach((order: FinPlaceOrderRequest) => {
+				totalQuoteAmount = totalQuoteAmount.plus(order.amount);
+			});
+
+			// For replace orders, we need to calculate the difference from existing orders
+			// Since we don't have access to existing order amounts here, we'll skip funds calculation
+			// The contract will handle the actual difference calculation
+			// buyReplaceOrders.forEach((order: FinPlaceOrderRequest) => {
+			// 	// For replace orders, we'll use a very conservative estimate
+			// 	// The contract will handle the actual difference
+			// 	totalQuoteAmount = totalQuoteAmount.plus(order.amount.mul(0.01)); // 1% of new amount as estimate
+			// });
+
+			// Convert to raw amount (no buffer needed - contract handles fees)
+			const rawQuoteAmount = totalQuoteAmount.mul(10 ** market.tokens.quote.decimals).toFixed(0);
+
+			console.debug('Funds calculation for BUY orders:', {
+				totalQuoteAmount: totalQuoteAmount.toString(),
+				rawQuoteAmount,
+				buyOrdersCount: allBuyOrders.size
+			});
+
+			funds = [{
+				denom: market.tokens.quote.address,
+				amount: rawQuoteAmount
+			}];
+		}
+
+		// For SELL orders (place + replace), we need base tokens (RUJI)
+		const allSellOrders = sellOrders.concat(sellReplaceOrders);
+		if (allSellOrders && allSellOrders.size > 0) {
+			let totalBaseAmount = DECIMAL_0;
+
+			// For place orders, use the full amount
+			sellOrders.forEach((order: FinPlaceOrderRequest) => {
+				totalBaseAmount = totalBaseAmount.plus(order.amount);
+			});
+
+			// For replace orders, we need to calculate the difference from existing orders
+			// Since we don't have access to existing order amounts here, we'll skip funds calculation
+			// The contract will handle the actual difference calculation
+			// sellReplaceOrders.forEach((order: FinPlaceOrderRequest) => {
+			// 	// For replace orders, we'll use a very conservative estimate
+			// 	// The contract will handle the actual difference
+			// 	totalBaseAmount = totalBaseAmount.plus(order.amount.mul(0.01)); // 1% of new amount as estimate
+			// });
+
+			// Convert to raw amount (no buffer needed - contract handles fees)
+			const rawBaseAmount = totalBaseAmount.mul(10 ** market.tokens.base.decimals).toFixed(0);
+
+			console.debug('Funds calculation for SELL orders:', {
+				totalBaseAmount: totalBaseAmount.toString(),
+				rawBaseAmount,
+				sellOrdersCount: allSellOrders.size
+			});
+
+			// If we already have funds for BUY orders, add to it, otherwise create new
+			if (funds) {
+				funds = [
+					...funds,
+					{
+						denom: market.tokens.base.address,
+						amount: rawBaseAmount
+					}
+				];
+			} else {
+				funds = [{
+					denom: market.tokens.base.address,
+					amount: rawBaseAmount
+				}];
+			}
+		}
+
 		// Execute the transaction
 		const response = await this.cosmClient.execute(
 			ownerAddress,
@@ -2314,7 +2411,9 @@ export class Fin {
 			{
 				order: [executeMessages, null]
 			},
-			'auto'
+			'auto',
+			undefined,
+			funds
 		);
 
 		// Get the transaction details
