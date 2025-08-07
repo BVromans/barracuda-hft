@@ -81,7 +81,9 @@ export enum OrderSide {
  */
 export enum OrderType {
 	MARKET = 'market',
-	LIMIT = 'limit'
+	LIMIT = 'limit',
+	FIXED_PRICE = 'fixed_price', // TODO: ask more about this!!!
+	TRACKING_ORDER = 'tracking_order' // TODO: ask more about this!!!
 }
 
 /**
@@ -1874,7 +1876,7 @@ export interface FinGetTokensRequest {
 /**
  * Get tokens response
  */
-export interface FinGetTokensResponse extends Map<TokenAddress, Token> {
+export interface FinGetTokensResponse extends Map<TokenSymbol, Token> {
 }
 
 /**
@@ -1886,7 +1888,7 @@ export interface FinGetAllTokensRequest {
 /**
  * Get all tokens response
  */
-export interface FinGetAllTokensResponse extends Map<TokenAddress, Token> {
+export interface FinGetAllTokensResponse extends Map<TokenSymbol, Token> {
 }
 
 /**

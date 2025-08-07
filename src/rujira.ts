@@ -637,7 +637,7 @@ export class Fin {
 			throw new Error(`Transaction is still pending: ${hash}`);
 		}
 
-		const feeToken = await this.getToken({ symbol: rawTransaction.tx.auth_info.fee.amount[0].denom.toUpperCase() });
+		const feeToken = await this.getToken({ symbol: `THOR-${rawTransaction.tx.auth_info.fee.amount[0].denom.toUpperCase()}` });
 		const feeAmount = rawTransaction.tx.auth_info.fee.amount[0].amount ? Decimal(rawTransaction.tx.auth_info.fee.amount[0].amount).div(Decimal(10).pow(feeToken.decimals)) : DECIMAL_0;
 
 		const result = {
@@ -720,13 +720,13 @@ export class Fin {
 			symbols = getOrThrow<List<TokenSymbol>>(symbols);
 		}
 
-		const tokens = MMap<TokenAddress, Token>();
+		const tokens = MMap<TokenSymbol, Token>();
 
 		if (addresses?.size) {
 			addresses.forEach((address: TokenAddress) => {
 				const token = this.tokensByAddress.getOrThrow(address, undefined, true);
 				if (!token) throw new Error(`Token not found: ${address}`);
-				tokens.set(token.address, token, true);
+				tokens.set(token.symbol, token, true);
 			});
 		}
 
@@ -734,7 +734,7 @@ export class Fin {
 			symbols.forEach((symbol: TokenSymbol, index: number) => {
 				const token = this.tokensBySymbol.getOrThrow(symbol, undefined, true);
 				if (!token) throw new Error(`Token not found: ${symbol}`);
-				tokens.set(token.address, token, true);
+				tokens.set(token.symbol, token, true);
 			});
 		}
 
@@ -754,18 +754,18 @@ export class Fin {
 		// Get all markets first (this already contains all token data)
 		const markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
-		const tokens = MMap<TokenAddress, Token>();
+		const tokens = MMap<TokenSymbol, Token>();
 
 		// Extract all unique tokens from the markets
 		for (const market of markets.values()) {
 			// Add base token if not already added
-			if (!tokens.has(market.tokens.base.address, true)) {
-				tokens.set(market.tokens.base.address, market.tokens.base, true);
+			if (!tokens.has(market.tokens.base.symbol, true)) {
+				tokens.set(market.tokens.base.symbol, market.tokens.base, true);
 			}
 
 			// Add quote token if not already added
-			if (!tokens.has(market.tokens.quote.address, true)) {
-				tokens.set(market.tokens.quote.address, market.tokens.quote, true);
+			if (!tokens.has(market.tokens.quote.symbol, true)) {
+				tokens.set(market.tokens.quote.symbol, market.tokens.quote, true);
 			}
 		}
 
@@ -988,7 +988,7 @@ export class Fin {
 			// Create base token
 			const baseToken: Token = {
 				address: pair.assetBase.asset.toLowerCase(),
-				symbol: pair.assetBase.metadata?.symbol?.toUpperCase() || pair.assetBase.asset?.toUpperCase(),
+				symbol: `${pair.assetBase.chain?.toUpperCase()}-${pair.assetBase.metadata?.symbol?.toUpperCase() || pair.assetBase.asset?.toUpperCase()}`,
 				name: pair.assetBase.metadata?.name || pair.assetBase.metadata?.symbol || pair.assetBase.asset,
 				decimals: pair.assetBase.metadata?.decimals,
 				raw: pair.assetBase
@@ -997,7 +997,7 @@ export class Fin {
 			// Create quote token
 			const quoteToken: Token = {
 				address: pair.assetQuote.asset.toLowerCase(),
-				symbol: pair.assetQuote.metadata?.symbol?.toUpperCase() || pair.assetQuote.asset?.toUpperCase(),
+				symbol: `${pair.assetQuote.chain?.toUpperCase()}-${pair.assetQuote.metadata?.symbol?.toUpperCase() || pair.assetQuote.asset?.toUpperCase()}`,
 				name: pair.assetQuote.metadata?.name || pair.assetQuote.metadata?.symbol || pair.assetQuote.asset,
 				decimals: pair.assetQuote.metadata?.decimals,
 				raw: pair.assetQuote
@@ -1530,7 +1530,14 @@ export class Fin {
 			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 		}
 
-		const orderId = `${ownerAddress}-${market.address}-${orderSide.toString().toLowerCase()}-${orderPrice.toString()}`;
+		const orderId = this.getOrderId({
+			ownerAddress,
+			owner,
+			marketSymbol: market.symbol,
+			orderType,
+			orderSide,
+			orderPrice
+		});
 		const orders = await this.getOrders({
 			ownerAddress,
 			owner,
@@ -1672,7 +1679,14 @@ export class Fin {
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 
 			const order = {
-				id: `${ownerAddress}-${market.address}-${side.toString().toLowerCase()}-${price.toString()}`,
+				id: this.getOrderId({
+					ownerAddress,
+					owner,
+					marketSymbol: market.symbol,
+					orderType: type,
+					orderSide: side,
+					orderPrice: price
+				}),
 				market: market,
 				ownerAddress: ownerAddress,
 				type: type,
@@ -1991,6 +2005,36 @@ export class Fin {
 		return result;
 	}
 
+	private getOrderId(options: {
+		ownerAddress?: WalletAddress;
+		owner?: Wallet;
+		marketSymbol?: MarketSymbol;
+		orderType?: OrderType;
+		orderSide?: OrderSide;
+		orderPrice?: Decimal;
+		order?: Order;
+	}): OrderId {
+		let { ownerAddress, owner, marketSymbol, orderType, orderSide, orderPrice, order } = options;
+
+		if (!ownerAddress) {
+			ownerAddress = getOrThrow<Wallet>(owner).firstAccount.address;
+		}
+
+		if (!orderType) {
+			orderType = getOrThrow<Order>(order).type;
+		}
+
+		if (!orderSide) {
+			orderSide = getOrThrow<Order>(order).side;
+		}
+
+		if (!orderPrice) {
+			orderPrice = getOrThrow<Order>(order).price;
+		}
+
+		return `${ownerAddress}-${marketSymbol}-${orderType}-${orderSide}-${orderPrice}`;
+	}
+
 	/**
 	 * Fetch a resource
 	 * @param input - The input to fetch
@@ -2045,7 +2089,7 @@ export class Fin {
 	 * @param request - The unified request object
 	 * @returns The unified response object
 	 */
-	async executeOrders(request: FinExecuteOrdersRequest): Promise<FinExecuteOrdersResponse> {
+	private async executeOrders(request: FinExecuteOrdersRequest): Promise<FinExecuteOrdersResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market, orders } = request;
 
 		// ===== SANITIZATION =====
@@ -2196,7 +2240,13 @@ export class Fin {
 			const placeOrdersMap = MMap<OrderId, Order>();
 
 			orders.place.forEach((order: FinPlaceOrderRequest) => {
-				const orderId = `${ownerAddress}-${order.side.toString().toLowerCase()}-${order.price?.toString()}`;
+				const orderId = this.getOrderId({
+					ownerAddress,
+					marketSymbol: market.symbol,
+					orderType: order.type,
+					orderSide: order.side,
+					orderPrice: order.price
+				});
 
 				// Create message
 				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
@@ -2232,7 +2282,13 @@ export class Fin {
 			const replaceOrdersMap = MMap<OrderId, Order>();
 
 			orders.replace.forEach((order: FinReplaceOrderRequest) => {
-				const orderId = `${ownerAddress}-${order.side.toString().toLowerCase()}-${order.price?.toString()}`;
+				const orderId = this.getOrderId({
+					ownerAddress,
+					marketSymbol: market.symbol,
+					orderType: order.type,
+					orderSide: order.side,
+					orderPrice: order.price
+				});
 
 				// Create message
 				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
