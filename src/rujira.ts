@@ -989,7 +989,7 @@ export class Fin {
 			const baseToken: Token = {
 				address: pair.assetBase.asset.toLowerCase(),
 				symbol: `${pair.assetBase.chain?.toUpperCase()}-${pair.assetBase.metadata?.symbol?.toUpperCase() || pair.assetBase.asset?.toUpperCase()}`,
-				name: pair.assetBase.metadata?.name || pair.assetBase.metadata?.symbol || pair.assetBase.asset,
+				name: `${pair.assetBase.chain?.toUpperCase()} ${pair.assetBase.metadata?.name || pair.assetBase.metadata?.symbol?.toUpperCase() || pair.assetBase.asset?.toUpperCase()}`,
 				decimals: pair.assetBase.metadata?.decimals,
 				raw: pair.assetBase
 			};
@@ -998,7 +998,7 @@ export class Fin {
 			const quoteToken: Token = {
 				address: pair.assetQuote.asset.toLowerCase(),
 				symbol: `${pair.assetQuote.chain?.toUpperCase()}-${pair.assetQuote.metadata?.symbol?.toUpperCase() || pair.assetQuote.asset?.toUpperCase()}`,
-				name: pair.assetQuote.metadata?.name || pair.assetQuote.metadata?.symbol || pair.assetQuote.asset,
+				name: `${pair.assetQuote.chain?.toUpperCase()} ${pair.assetQuote.metadata?.name || pair.assetQuote.metadata?.symbol?.toUpperCase() || pair.assetQuote.asset?.toUpperCase()}`,
 				decimals: pair.assetQuote.metadata?.decimals,
 				raw: pair.assetQuote
 			};
@@ -1530,14 +1530,6 @@ export class Fin {
 			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 		}
 
-		const orderId = this.getOrderId({
-			ownerAddress,
-			owner,
-			marketSymbol: market.symbol,
-			orderType,
-			orderSide,
-			orderPrice
-		});
 		const orders = await this.getOrders({
 			ownerAddress,
 			owner,
@@ -1550,10 +1542,10 @@ export class Fin {
 			orderPrices: orderPrice ? [orderPrice] : undefined,
 			maximumNumberOfOrders: 1
 		});
-		const order = orders.get(orderId);
+		const order = orders.first();
 
 		if (!order) {
-			throw new Error(`Order not found: ${orderId}`);
+			throw new Error(`Order not found: ${request.toString()}`);
 		}
 
 		return order as FinGetOrderResponse;
