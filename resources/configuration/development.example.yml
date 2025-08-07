@@ -21,7 +21,7 @@ rujira:
       native:
         address: "THOR.RUJI"
         symbol: "RUJI"
-      beacon:
+      usd:
         address: "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
         symbol: "USDC"
       feePayment:

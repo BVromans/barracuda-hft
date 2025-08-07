@@ -1652,9 +1652,9 @@ export interface BaseTokenBalance {
 	nativeToken: BaseBalanceWithQuotation;
 
 	/**
-	 * Balance of the beacon token
+	 * Balance of the usd token
 	 */
-	beaconToken: BaseBalanceWithQuotation;
+	usdToken: BaseBalanceWithQuotation;
 }
 
 /**
@@ -1682,9 +1682,9 @@ export interface TotalBalances {
 	nativeToken: BaseBalance;
 
 	/**
-	 * Balance of the beacon token
+	 * Balance of the usd token
 	 */
-	beaconToken: BaseBalance;
+	usdToken: BaseBalance;
 }
 
 /**

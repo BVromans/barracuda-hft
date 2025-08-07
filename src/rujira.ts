@@ -359,9 +359,9 @@ export class Fin {
 	public nativeToken: Token;
 
 	/**
-	 * Beacon token
+	 * USD token
 	 */
-	public beaconToken: Token;
+	public usdToken: Token;
 
 	/**
 	 * Fee payment token
@@ -383,7 +383,7 @@ export class Fin {
 		this.marketsBySymbol = MMap<MarketSymbol, Market>();
 
 		this.nativeToken = undefined as unknown as Token;
-		this.beaconToken = undefined as unknown as Token;
+		this.usdToken = undefined as unknown as Token;
 		this.feePaymentToken = undefined as unknown as Token;
 	}
 
@@ -422,11 +422,11 @@ export class Fin {
 		await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
 		this.nativeToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.native.address') });
-		this.beaconToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.beacon.address') });
+		this.usdToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.usd.address') });
 		this.feePaymentToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.feePayment.address') });
 
 		properties.set('rujira.tokens.native', this.nativeToken);
-		properties.set('rujira.tokens.beacon', this.beaconToken);
+		properties.set('rujira.tokens.usd', this.usdToken);
 		properties.set('rujira.tokens.feePayment', this.feePaymentToken);
 	}
 
@@ -1426,17 +1426,17 @@ export class Fin {
 				conversionRateNativeToken = DECIMAL_1;
 			}
 
-			let conversionRateBeacon: TickerPrice = DECIMAL_0;
-			if (token.address !== this.beaconToken.address) {
+			let conversionRateUSD: TickerPrice = DECIMAL_0;
+			if (token.address !== this.usdToken.address) {
 				try {
-					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.beaconToken.symbol}` });
+					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` });
 
-					conversionRateBeacon = quotingMarketTicker.middlePrice.baseToQuote || DECIMAL_0;
+					conversionRateUSD = quotingMarketTicker.middlePrice.baseToQuote || DECIMAL_0;
 				} catch (exception) {
 					ignoreException(exception);
 				}
 			} else {
-				conversionRateBeacon = DECIMAL_1;
+				conversionRateUSD = DECIMAL_1;
 			}
 
 			const baseBalanceWithNativeQuotation: BaseBalanceWithQuotation = {
@@ -1447,19 +1447,19 @@ export class Fin {
 					quoteToToken: conversionRateNativeToken.gt(DECIMAL_0) ? DECIMAL_1.div(conversionRateNativeToken) : DECIMAL_0
 				}
 			};
-			const baseBalanceWithBeaconQuotation: BaseBalanceWithQuotation = {
+			const baseBalanceWithUSDQuotation: BaseBalanceWithQuotation = {
 				...tokenBalance,
 				quotation: {
-					token: this.beaconToken || token,
-					tokenToQuote: conversionRateBeacon,
-					quoteToToken: conversionRateBeacon.gt(DECIMAL_0) ? DECIMAL_1.div(conversionRateBeacon) : DECIMAL_0
+					token: this.usdToken || token,
+					tokenToQuote: conversionRateUSD,
+					quoteToToken: conversionRateUSD.gt(DECIMAL_0) ? DECIMAL_1.div(conversionRateUSD) : DECIMAL_0
 				}
 			};
 
 			const baseTokenBalance: BaseTokenBalance = {
 				token: tokenBalance,
 				nativeToken: baseBalanceWithNativeQuotation,
-				beaconToken: baseBalanceWithBeaconQuotation
+				usdToken: baseBalanceWithUSDQuotation
 			};
 
 			tokensBalancesMap.set(token.address, {
@@ -1476,19 +1476,19 @@ export class Fin {
 			total: freeBalances.getOrThrow(this.nativeToken.address, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.nativeToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.nativeToken.address, DECIMAL_0))
 		};
 
-		const totalBeacon: BaseBalance = {
-			free: freeBalances.getOrThrow(this.beaconToken.address, DECIMAL_0),
-			lockedInOrders: lockedInOrdersMap.getOrThrow(this.beaconToken.address, DECIMAL_0),
+		const totalUSD: BaseBalance = {
+			free: freeBalances.getOrThrow(this.usdToken.address, DECIMAL_0),
+			lockedInOrders: lockedInOrdersMap.getOrThrow(this.usdToken.address, DECIMAL_0),
 			lockedInPools: DECIMAL_0,
-			withdrawable: withdrawableMap.getOrThrow(this.beaconToken.address, DECIMAL_0),
-			total: freeBalances.getOrThrow(this.beaconToken.address, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.beaconToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.beaconToken.address, DECIMAL_0))
+			withdrawable: withdrawableMap.getOrThrow(this.usdToken.address, DECIMAL_0),
+			total: freeBalances.getOrThrow(this.usdToken.address, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.usdToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.usdToken.address, DECIMAL_0))
 		};
 
 		const balances: Balances = {
 			tokens: tokensBalancesMap,
 			total: {
 				nativeToken: totalNative,
-				beaconToken: totalBeacon
+				usdToken: totalUSD
 			}
 		};
 
