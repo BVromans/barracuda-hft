@@ -19,6 +19,7 @@ import {
 	CandleInterval,
 	DECIMAL_0,
 	DECIMAL_1,
+	DECIMAL_10,
 	DECIMAL_INFINITY,
 	FinCancelAllOrdersRequest,
 	FinCancelAllOrdersResponse,
@@ -1012,7 +1013,7 @@ export class Fin {
 					base: baseToken,
 					quote: quoteToken
 				},
-				decimals: Number(pair.tick) || 8, // Use tick as decimals, ensure it's a number
+				decimals: 8, // Number(pair.tick), // TODO: verify a better way to get the market decimals!!!
 				status: MarketStatus.ACTIVE, // LIVE markets are active
 				raw: pair
 			};
@@ -1522,8 +1523,23 @@ export class Fin {
 			throw new Error("Order side is required, since it's used to compose the order ID.");
 		}
 
-		const orderId = `${ownerAddress}-${orderSide.toString().toLowerCase()}-${orderPrice.toString()}`;
-		const orders = await this.getOrders({ ownerAddress, owner, marketAddress, marketSymbol, market, orderTypes: [orderType], orderSides: [orderSide], orderStatuses: [orderStatus], orderPrices: [orderPrice], maximumNumberOfOrders: 1 });
+		if (!market) {
+			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
+
+		const orderId = `${ownerAddress}-${market.address}-${orderSide.toString().toLowerCase()}-${orderPrice.toString()}`;
+		const orders = await this.getOrders({
+			ownerAddress,
+			owner,
+			marketAddress,
+			marketSymbol,
+			market,
+			orderTypes: orderType ? [orderType] : undefined,
+			orderSides: orderSide ? [orderSide] : undefined,
+			orderStatuses: orderStatus ? [orderStatus] : undefined,
+			orderPrices: orderPrice ? [orderPrice] : undefined,
+			maximumNumberOfOrders: 1
+		});
 		const order = orders.get(orderId);
 
 		if (!order) {
@@ -1544,10 +1560,10 @@ export class Fin {
 		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase() || undefined;
 		marketSymbol = marketSymbol?.trim().toUpperCase() || undefined;
-		orderTypes = MList(orderTypes?.map((orderType: OrderType) => OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType])) || undefined;
-		orderSides = MList(orderSides?.map((orderSide: OrderSide) => OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide])) || undefined;
-		orderStatuses = MList(orderStatuses?.map((orderStatus: OrderStatus) => OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus])) || undefined;
-		orderPrices = MList(orderPrices?.map((orderPrice: OrderPrice) => Decimal(orderPrice))) || undefined;
+		orderTypes = orderTypes ? MList(orderTypes?.map((orderType: OrderType) => OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType])) : undefined;
+		orderSides = orderSides ? MList(orderSides?.map((orderSide: OrderSide) => OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide])) : undefined;
+		orderStatuses = orderStatuses ? MList(orderStatuses?.map((orderStatus: OrderStatus) => OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus])) : undefined;
+		orderPrices = orderPrices ? MList(orderPrices?.map((orderPrice: OrderPrice) => Decimal(orderPrice))) : undefined;
 		maximumNumberOfOrders = maximumNumberOfOrders || Number(properties.getAs<string>('rujira.orders.maximumNumberOfOrders'));
 
 		if (!ownerAddress && !owner) {
@@ -1646,9 +1662,9 @@ export class Fin {
 
 		for (const rawOrder of rawOrders) {
 			const type = OrderType.LIMIT;
-			const side = rawOrder.side === 'quote' ? OrderSide.SELL : OrderSide.BUY;
+			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
 			const price = new Decimal(rawOrder.price.fixed);
-			const amount = new Decimal(rawOrder.offer);
+			const amount = new Decimal(rawOrder.offer).div(DECIMAL_10.pow(market.decimals));
 			const filledAmount = new Decimal(rawOrder.filled);
 			const filledPercentage = filledAmount.div(amount);
 			const status = filledAmount.eq(DECIMAL_0) ? OrderStatus.OPEN : filledAmount.eq(amount) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
@@ -1694,22 +1710,22 @@ export class Fin {
 			}
 
 			// Filter by order types
-			if (orderTypes && !orderTypes.isEmpty() && !orderTypes.includes(order.type)) {
+			if (orderTypes && !orderTypes.includes(order.type)) {
 				return false;
 			}
 
 			// Filter by order sides
-			if (orderSides && !orderSides.isEmpty() && !orderSides.includes(order.side)) {
+			if (orderSides && !orderSides.includes(order.side)) {
 				return false;
 			}
 
 			// Filter by order statuses
-			if (orderStatuses && !orderStatuses.isEmpty() && !orderStatuses.includes(order.status)) {
+			if (orderStatuses && !orderStatuses.includes(order.status)) {
 				return false;
 			}
 
 			// Filter by order prices
-			if (orderPrices && !orderPrices.isEmpty() && (!order.price || !orderPrices.includes(getOrThrow<OrderPrice>(order.price)))) {
+			if (orderPrices && (!order.price || !orderPrices.includes(getOrThrow<OrderPrice>(order.price)))) {
 				return false;
 			}
 

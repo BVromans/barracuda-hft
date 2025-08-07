@@ -18,7 +18,7 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 		getCandles: false,
 		getIndicators: false,
 		getBalances: false,
-		getOrder: false,
+		getOrder: true,
 		getOrders: false,
 		placeOrder: false,
 		placeOrders: false,
@@ -182,7 +182,8 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
 			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
 			// marketSymbol: 'RUJI/USDC',
-			orderPrice: Decimal('0.000001')
+			orderSide: OrderSide.SELL,
+			orderPrice: Decimal('99')
 		});
 		console.log('getOrder:\n', getOrder);
 		console.log('\n--------------------------------------------------------------------------------\n');
@@ -193,8 +194,10 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
 			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
 			// marketSymbol: 'RUJI/USDC',
+			maximumNumberOfOrders: 10
 		});
-		console.log('getOrders:\n', getOrders);
+		console.log('getOrders:size:', getOrders.size);
+		console.log('getOrders:\n', getOrders.toJS());
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
