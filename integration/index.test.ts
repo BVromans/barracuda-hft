@@ -301,15 +301,15 @@ describe("Rujira", async() => {
 					throw new Error(`Native token not found: ${rujira.fin.nativeToken.address}`);
 				}
 
-				// Find beacon and fee payment tokens using entries() to avoid MMap issues
-				const beaconTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === rujira.fin.beaconToken.address.toLowerCase());
+				// Find usd and fee payment tokens using entries() to avoid MMap issues
+				const usdTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === rujira.fin.usdToken.address.toLowerCase());
 				const feePaymentTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === rujira.fin.feePaymentToken.address.toLowerCase());
 
-				const beaconToken = beaconTokenEntry ? beaconTokenEntry[1] : null;
+				const usdToken = usdTokenEntry ? usdTokenEntry[1] : null;
 				const feePaymentToken = feePaymentTokenEntry ? feePaymentTokenEntry[1] : null;
 
-				if (!beaconToken) {
-					throw new Error(`Beacon token not found: ${rujira.fin.beaconToken.address}`);
+				if (!usdToken) {
+					throw new Error(`USD token not found: ${rujira.fin.usdToken.address}`);
 				}
 				if (!feePaymentToken) {
 					throw new Error(`Fee payment token not found: ${rujira.fin.feePaymentToken.address}`);
@@ -336,12 +336,12 @@ describe("Rujira", async() => {
 				expect(nativeToken.decimals).toBeGreaterThan(0);
 				expect(nativeToken.raw).toBeDefined();
 
-				expect(beaconToken).toBeDefined();
-				expect(beaconToken.address.toLowerCase()).toBe(rujira.fin.beaconToken.address.toLowerCase());
-				expect(beaconToken.symbol).toBe(rujira.fin.beaconToken.symbol);
-				expect(beaconToken.name).toBeDefined();
-				expect(beaconToken.decimals).toBeGreaterThan(0);
-				expect(beaconToken.raw).toBeDefined();
+				expect(usdToken).toBeDefined();
+				expect(usdToken.address.toLowerCase()).toBe(rujira.fin.usdToken.address.toLowerCase());
+				expect(usdToken.symbol).toBe(rujira.fin.usdToken.symbol);
+				expect(usdToken.name).toBeDefined();
+				expect(usdToken.decimals).toBeGreaterThan(0);
+				expect(usdToken.raw).toBeDefined();
 
 				expect(feePaymentToken).toBeDefined();
 				expect(feePaymentToken.address.toLowerCase()).toBe(rujira.fin.feePaymentToken.address.toLowerCase());
@@ -830,11 +830,11 @@ describe("Rujira", async() => {
 				let accumulatedNativeWithdrawable = DECIMAL_0;
 				let accumulatedNativeTotal = DECIMAL_0;
 
-				let accumulatedBeaconFree = DECIMAL_0;
-				let accumulatedBeaconLockedInOrders = DECIMAL_0;
-				let accumulatedBeaconLockedInPools = DECIMAL_0;
-				let accumulatedBeaconWithdrawable = DECIMAL_0;
-				let accumulatedBeaconTotal = DECIMAL_0;
+				let accumulatedUSDFree = DECIMAL_0;
+				let accumulatedUSDLockedInOrders = DECIMAL_0;
+				let accumulatedUSDLockedInPools = DECIMAL_0;
+				let accumulatedUSDWithdrawable = DECIMAL_0;
+				let accumulatedUSDTotal = DECIMAL_0;
 
 				for (const [tokenAddress, tokenBalance] of result.tokens.entries()) {
 					expect(tokenBalance).toBeDefined();
@@ -848,7 +848,7 @@ describe("Rujira", async() => {
 					expect(tokenBalance.balances).toBeDefined();
 					expect(tokenBalance.balances.token).toBeDefined();
 					expect(tokenBalance.balances.nativeToken).toBeDefined();
-					expect(tokenBalance.balances.beaconToken).toBeDefined();
+					expect(tokenBalance.balances.usdToken).toBeDefined();
 
 					const tokenBalanceData = tokenBalance.balances.token;
 					expect(tokenBalanceData.free).toBeDefined();
@@ -885,28 +885,28 @@ describe("Rujira", async() => {
 					expect(nativeTokenBalance.quotation.quoteToToken).toBeDefined();
 					expect(nativeTokenBalance.quotation.quoteToToken.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
-					const beaconTokenBalance = tokenBalance.balances.beaconToken;
-					expect(beaconTokenBalance.free).toBeDefined();
-					expect(beaconTokenBalance.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(beaconTokenBalance.lockedInOrders).toBeDefined();
-					expect(beaconTokenBalance.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(beaconTokenBalance.lockedInPools).toBeDefined();
-					expect(beaconTokenBalance.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(beaconTokenBalance.withdrawable).toBeDefined();
-					expect(beaconTokenBalance.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(beaconTokenBalance.total).toBeDefined();
-					expect(beaconTokenBalance.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(beaconTokenBalance.quotation).toBeDefined();
-					expect(beaconTokenBalance.quotation.token).toBeDefined();
-					expect(beaconTokenBalance.quotation.token.address).toBeDefined();
-					expect(beaconTokenBalance.quotation.token.symbol).toBeDefined();
-					expect(beaconTokenBalance.quotation.token.name).toBeDefined();
-					expect(beaconTokenBalance.quotation.token.decimals).toBeGreaterThan(0);
-					expect(beaconTokenBalance.quotation.token.raw).toBeDefined();
-					expect(beaconTokenBalance.quotation.tokenToQuote).toBeDefined();
-					expect(beaconTokenBalance.quotation.tokenToQuote.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(beaconTokenBalance.quotation.quoteToToken).toBeDefined();
-					expect(beaconTokenBalance.quotation.quoteToToken.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					const usdTokenBalance = tokenBalance.balances.usdToken;
+					expect(usdTokenBalance.free).toBeDefined();
+					expect(usdTokenBalance.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(usdTokenBalance.lockedInOrders).toBeDefined();
+					expect(usdTokenBalance.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(usdTokenBalance.lockedInPools).toBeDefined();
+					expect(usdTokenBalance.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(usdTokenBalance.withdrawable).toBeDefined();
+					expect(usdTokenBalance.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(usdTokenBalance.total).toBeDefined();
+					expect(usdTokenBalance.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(usdTokenBalance.quotation).toBeDefined();
+					expect(usdTokenBalance.quotation.token).toBeDefined();
+					expect(usdTokenBalance.quotation.token.address).toBeDefined();
+					expect(usdTokenBalance.quotation.token.symbol).toBeDefined();
+					expect(usdTokenBalance.quotation.token.name).toBeDefined();
+					expect(usdTokenBalance.quotation.token.decimals).toBeGreaterThan(0);
+					expect(usdTokenBalance.quotation.token.raw).toBeDefined();
+					expect(usdTokenBalance.quotation.tokenToQuote).toBeDefined();
+					expect(usdTokenBalance.quotation.tokenToQuote.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(usdTokenBalance.quotation.quoteToToken).toBeDefined();
+					expect(usdTokenBalance.quotation.quoteToToken.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 					accumulatedNativeFree = accumulatedNativeFree.plus(nativeTokenBalance.free);
 					accumulatedNativeLockedInOrders = accumulatedNativeLockedInOrders.plus(nativeTokenBalance.lockedInOrders);
@@ -914,11 +914,11 @@ describe("Rujira", async() => {
 					accumulatedNativeWithdrawable = accumulatedNativeWithdrawable.plus(nativeTokenBalance.withdrawable);
 					accumulatedNativeTotal = accumulatedNativeTotal.plus(nativeTokenBalance.total);
 
-					accumulatedBeaconFree = accumulatedBeaconFree.plus(beaconTokenBalance.free);
-					accumulatedBeaconLockedInOrders = accumulatedBeaconLockedInOrders.plus(beaconTokenBalance.lockedInOrders);
-					accumulatedBeaconLockedInPools = accumulatedBeaconLockedInPools.plus(beaconTokenBalance.lockedInPools);
-					accumulatedBeaconWithdrawable = accumulatedBeaconWithdrawable.plus(beaconTokenBalance.withdrawable);
-					accumulatedBeaconTotal = accumulatedBeaconTotal.plus(beaconTokenBalance.total);
+					accumulatedUSDFree = accumulatedUSDFree.plus(usdTokenBalance.free);
+					accumulatedUSDLockedInOrders = accumulatedUSDLockedInOrders.plus(usdTokenBalance.lockedInOrders);
+					accumulatedUSDLockedInPools = accumulatedUSDLockedInPools.plus(usdTokenBalance.lockedInPools);
+					accumulatedUSDWithdrawable = accumulatedUSDWithdrawable.plus(usdTokenBalance.withdrawable);
+					accumulatedUSDTotal = accumulatedUSDTotal.plus(usdTokenBalance.total);
 				}
 
 				const marketBaseTokenBalance = result.tokens.getOrThrow(firstMarketBaseTokenAddress);
@@ -935,16 +935,16 @@ describe("Rujira", async() => {
 				expect(nativeTokenBalance.token.address).toBe(rujira.fin.nativeToken.address);
 				expect(nativeTokenBalance.token.symbol).toBe(rujira.fin.nativeToken.symbol);
 
-				const beaconTokenBalance = result.tokens.getOrThrow(rujira.fin.beaconToken.address);
-				expect(beaconTokenBalance.token.address).toBe(rujira.fin.beaconToken.address);
-				expect(beaconTokenBalance.token.symbol).toBe(rujira.fin.beaconToken.symbol);
+				const usdTokenBalance = result.tokens.getOrThrow(rujira.fin.usdToken.address);
+				expect(usdTokenBalance.token.address).toBe(rujira.fin.usdToken.address);
+				expect(usdTokenBalance.token.symbol).toBe(rujira.fin.usdToken.symbol);
 
 				const feePaymentTokenBalance = result.tokens.getOrThrow(rujira.fin.feePaymentToken.address);
 				expect(feePaymentTokenBalance.token.address).toBe(rujira.fin.feePaymentToken.address);
 				expect(feePaymentTokenBalance.token.symbol).toBe(rujira.fin.feePaymentToken.symbol);
 
 				expect(result.total.nativeToken).toBeDefined();
-				expect(result.total.beaconToken).toBeDefined();
+				expect(result.total.usdToken).toBeDefined();
 
 				const totalNativeToken = result.total.nativeToken;
 				expect(totalNativeToken.free).toBeDefined();
@@ -958,17 +958,17 @@ describe("Rujira", async() => {
 				expect(totalNativeToken.total).toBeDefined();
 				expect(totalNativeToken.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
-				const totalBeaconToken = result.total.beaconToken;
-				expect(totalBeaconToken.free).toBeDefined();
-				expect(totalBeaconToken.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(totalBeaconToken.lockedInOrders).toBeDefined();
-				expect(totalBeaconToken.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(totalBeaconToken.lockedInPools).toBeDefined();
-				expect(totalBeaconToken.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(totalBeaconToken.withdrawable).toBeDefined();
-				expect(totalBeaconToken.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(totalBeaconToken.total).toBeDefined();
-				expect(totalBeaconToken.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				const totalUSDToken = result.total.usdToken;
+				expect(totalUSDToken.free).toBeDefined();
+				expect(totalUSDToken.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(totalUSDToken.lockedInOrders).toBeDefined();
+				expect(totalUSDToken.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(totalUSDToken.lockedInPools).toBeDefined();
+				expect(totalUSDToken.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(totalUSDToken.withdrawable).toBeDefined();
+				expect(totalUSDToken.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(totalUSDToken.total).toBeDefined();
+				expect(totalUSDToken.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(accumulatedNativeFree.toNumber()).toBe(totalNativeToken.free.toNumber());
 				expect(accumulatedNativeLockedInOrders.toNumber()).toBe(totalNativeToken.lockedInOrders.toNumber());
@@ -976,11 +976,11 @@ describe("Rujira", async() => {
 				expect(accumulatedNativeWithdrawable.toNumber()).toBe(totalNativeToken.withdrawable.toNumber());
 				expect(accumulatedNativeTotal.toNumber()).toBe(totalNativeToken.total.toNumber());
 
-				expect(accumulatedBeaconFree.toNumber()).toBe(totalBeaconToken.free.toNumber());
-				expect(accumulatedBeaconLockedInOrders.toNumber()).toBe(totalBeaconToken.lockedInOrders.toNumber());
-				expect(accumulatedBeaconLockedInPools.toNumber()).toBe(totalBeaconToken.lockedInPools.toNumber());
-				expect(accumulatedBeaconWithdrawable.toNumber()).toBe(totalBeaconToken.withdrawable.toNumber());
-				expect(accumulatedBeaconTotal.toNumber()).toBe(totalBeaconToken.total.toNumber());
+				expect(accumulatedUSDFree.toNumber()).toBe(totalUSDToken.free.toNumber());
+				expect(accumulatedUSDLockedInOrders.toNumber()).toBe(totalUSDToken.lockedInOrders.toNumber());
+				expect(accumulatedUSDLockedInPools.toNumber()).toBe(totalUSDToken.lockedInPools.toNumber());
+				expect(accumulatedUSDWithdrawable.toNumber()).toBe(totalUSDToken.withdrawable.toNumber());
+				expect(accumulatedUSDTotal.toNumber()).toBe(totalUSDToken.total.toNumber());
 			});
 		});
 
@@ -1013,8 +1013,6 @@ describe("Rujira", async() => {
 						expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 						expect(order.price).toBeDefined();
 						expect(order.price?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-						expect(order.filledAmount).toBeDefined();
-						expect(order.filledAmount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 						expect(order.filledPercentage).toBeDefined();
 						expect(order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 						expect(order.status).toBe(OrderStatus.FILLED);
@@ -1071,8 +1069,6 @@ describe("Rujira", async() => {
 					expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(order.price).toBeDefined();
 					expect(order.price?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(order.filledAmount).toBeDefined();
-					expect(order.filledAmount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(order.filledPercentage).toBeDefined();
 					expect(order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(order.status).toBe(OrderStatus.FILLED);

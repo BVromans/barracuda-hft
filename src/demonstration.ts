@@ -1,34 +1,37 @@
 import Decimal from "decimal.js";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
-import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenAddress, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
+import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenAddress, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
 
 (async function run() {
 	const active = {
-		getStatus: false,
-		getTransaction: false,
-		getAllTokens: false,
-		getTokens: false,
-		getToken: false,
-		getAllMarkets: false,
-		getMarkets: false,
-		getMarket: false,
-		getOrderBook: false,
-		getTicker: false,
-		getCandles: false,
-		getIndicators: false,
+		getStatus: true,
+		getTransaction: true,
+		getAllTokens: true,
+		getTokens: true,
+		getToken: true,
+		getAllMarkets: true,
+		getMarkets: true,
+		getMarket: true,
+		getOrderBook: true,
+		getTicker: true,
+		getCandles: true,
+		getIndicators: true,
 		getBalances: false,
-		getOrder: false,
-		getOrders: false,
-		placeOrder: false,
-		placeOrders: false,
-		replaceOrder: false,
-		replaceOrders: false,
-		cancelOrder: false,
-		cancelOrders: false,
-		withdrawOrder: false,
-		withdrawOrders: false,
+		getOrder: true,
+		getOrders: true,
+		placeOrder: undefined,
+		placeOrders: undefined,
+		replaceOrder: undefined,
+		replaceOrders: undefined,
+		cancelOrder: undefined,
+		cancelOrders: undefined,
+		withdrawOrders: undefined,
 	};
+
+	const walletAddress = properties.getAs<WalletAddress>('rujira.wallet.publicKeys.thor');
+
+	const RUJIUSDCMarketAddress = 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a';
 
 	const rujira = new Rujira({
 		walletMnemonic: properties.getAs<WalletMnemonic | undefined>('rujira.wallet.mnemonic'),
@@ -66,12 +69,12 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 	if (active.getTokens) {
 		const getTokens = await rujira.fin.getTokens({
 			addresses: [
-				'thor.ruji', // RUJI
-				'bsc-usdt-0x55d398326f99059ff775485246999027b3197955', // USDT
+				'thor.ruji', // THOR-RUJI
+				'bsc-usdt-0x55d398326f99059ff775485246999027b3197955', // ETH-USDT
 			],
 			symbols: [
-				'NAMI',
-				'RUNE',
+				'THOR-NAMI',
+				'THOR-RUNE',
 			]
 		});
 		console.log('getTokens:size:', getTokens.size);
@@ -83,8 +86,8 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.getToken) {
 		const getToken = await rujira.fin.getToken({
-			address: 'avax-avax', // AVAX
-			// symbol: 'AVAX'
+			address: 'avax-avax', // AVAX-AVAX
+			// symbol: 'AVAX-AVAX'
 		});
 		console.log('getToken:address:', getToken.address);
 		console.log('getToken:symbol:', getToken.symbol);
@@ -105,12 +108,12 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 	if (active.getMarkets) {
 		const getMarkets = await rujira.fin.getMarkets({
 			addresses: [
-				'thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz', // BTC/USDC
-				'thor1ax94w4rldvdgc4xgsfwgve7g7xfyxhvuvquvx57vtmr6y4alev0qw3mlvr', // LQDY/USDC
+				'thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz', // BTC-BTC/ETH-USDC
+				'thor1ax94w4rldvdgc4xgsfwgve7g7xfyxhvuvquvx57vtmr6y4alev0qw3mlvr', // THOR-LQDY/ETH-USDC
 			],
 			symbols: [
-				'RUJI/USDC',
-				'RUJI/RUNE',
+				'THOR-RUJI/ETH-USDC',
+				'THOR-RUJI/THOR-RUNE',
 			]
 		});
 		console.log('getMarkets:size:', getMarkets.size);
@@ -123,7 +126,7 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 	if (active.getMarket) {
 		const getMarket = await rujira.fin.getMarket({
 			// address: 'thor12ds7fxj5g47jwzfzvzzhzxxd3cp6v55flgwxva0803r8k5mzm44skth6wa',
-				symbol: 'TCY/RUNE'
+				symbol: 'THOR-TCY/THOR-RUNE'
 		});
 		console.log('getMarket:address:', getMarket.address);
 		console.log('getMarket:symbol:', getMarket.symbol);
@@ -133,8 +136,8 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.getOrderBook) {
 		const getOrderBook = await rujira.fin.getOrderBook({
-			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
-			// marketSymbol: 'RUJI/USDC',
+			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
+			// marketSymbol: 'THOR-RUJI/ETH-USDC',
 		});
 		console.log('getOrderBook:\n', getOrderBook);
 		console.log('\n--------------------------------------------------------------------------------\n');
@@ -142,8 +145,8 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.getTicker) {
 		const getTicker = await rujira.fin.getTicker({
-			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
-			// marketSymbol: 'RUJI/USDC',
+			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
+			// marketSymbol: 'THOR-RUJI/ETH-USDC',
 		});
 		console.log('getTicker:\n', getTicker);
 		console.log('\n--------------------------------------------------------------------------------\n');
@@ -151,8 +154,8 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.getCandles) {
 		const getCandles = await rujira.fin.getCandles({
-			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
-			// marketSymbol: 'RUJI/USDC',
+			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
+			// marketSymbol: 'THOR-RUJI/ETH-USDC',
 		});
 		console.log('getCandles:size:', getCandles.size);
 		console.log('getCandles:\n', getCandles.toJS());
@@ -161,8 +164,8 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.getIndicators) {
 		const getIndicators = await rujira.fin.getIndicators({
-			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
-			// marketSymbol: 'RUJI/USDC',
+			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
+			// marketSymbol: 'THOR-RUJI/ETH-USDC',
 		});
 		console.log('getIndicators:size:', getIndicators.size);
 		console.log('getIndicators:\n', getIndicators.toJS());
@@ -171,7 +174,7 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.getBalances) {
 		const getBalances = await rujira.fin.getBalances({
-			walletAddress: properties.getAs<WalletAddress>('rujira.wallet.address')
+			walletAddress
 		});
 		console.log('getBalances:\n', getBalances);
 		console.log('\n--------------------------------------------------------------------------------\n');
@@ -179,10 +182,11 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.getOrder) {
 		const getOrder = await rujira.fin.getOrder({
-			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
-			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
-			// marketSymbol: 'RUJI/USDC',
-			orderPrice: Decimal('0.000001')
+			ownerAddress: walletAddress,
+			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
+			// marketSymbol: 'THOR-RUJI/ETH-USDC',
+			orderSide: OrderSide.SELL,
+			orderPrice: Decimal('99')
 		});
 		console.log('getOrder:\n', getOrder);
 		console.log('\n--------------------------------------------------------------------------------\n');
@@ -190,21 +194,28 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.getOrders) {
 		const getOrders = await rujira.fin.getOrders({
-			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
-			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
-			// marketSymbol: 'RUJI/USDC',
+			ownerAddress: walletAddress,
+			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
+			// marketSymbol: 'THOR-RUJI/ETH-USDC',
+			orderTypes: [OrderType.LIMIT],
+			orderSides: [OrderSide.BUY],
+			orderStatuses: [OrderStatus.FILLED],
+			// orderPrices: [Decimal('0.9')],
+			// maximumNumberOfOrders: 2
 		});
-		console.log('getOrders:\n', getOrders);
+		console.log('getOrders:size:', getOrders.size);
+		console.log('getOrders:ids:\n', getOrders.keySeq().toJS());
+		console.log('getOrders:\n', getOrders.toJS());
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.placeOrder) {
 		const placeOrder = await rujira.fin.placeOrder({
-			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
-			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
-			// marketSymbol: 'RUJI/USDC',
-			side: OrderSide.BUY,
+			ownerAddress: walletAddress,
+			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
+			// marketSymbol: 'THOR-RUJI/ETH-USDC',
 			type: OrderType.LIMIT,
+			side: OrderSide.BUY,
 			amount: Decimal('0.000001'),
 			price: Decimal('0.000001')
 		});
@@ -214,23 +225,23 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.placeOrders) {
 		const placeOrders = await rujira.fin.placeOrders({
-			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
+			ownerAddress: walletAddress,
 			orders: [
 				{
-					marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
-					// marketSymbol: 'RUJI/USDC',
-					side: OrderSide.BUY,
+					marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
+					// marketSymbol: 'THOR-RUJI/ETH-USDC',
 					type: OrderType.LIMIT,
+					side: OrderSide.BUY,
 					amount: Decimal('0.000001'),
-					price: Decimal('0.000001')
+					price: Decimal('0.000002')
 				},
 				{
-					marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
-					// marketSymbol: 'RUJI/USDC',
-					side: OrderSide.BUY,
+					marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
+					// marketSymbol: 'THOR-RUJI/ETH-USDC',
 					type: OrderType.LIMIT,
+					side: OrderSide.BUY,
 					amount: Decimal('0.000001'),
-					price: Decimal('0.000001')
+					price: Decimal('0.000003')
 				}
 			]
 		});
@@ -240,12 +251,12 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.replaceOrder) {
 		const replaceOrder = await rujira.fin.replaceOrder({
-			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
-			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
-			// marketSymbol: 'RUJI/USDC',
+			ownerAddress: walletAddress,
+			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
+			// marketSymbol: 'THOR-RUJI/ETH-USDC',
 			side: OrderSide.BUY,
 			type: OrderType.LIMIT,
-			amount: Decimal('0.000001'),
+			amount: Decimal('0.000002'),
 			price: Decimal('0.000001')
 		});
 		console.log('replaceOrder:\n', replaceOrder);
@@ -254,7 +265,7 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.replaceOrders) {
 		const replaceOrders = await rujira.fin.replaceOrders({
-			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
+			ownerAddress: walletAddress,
 			orders: []
 		});
 		console.log('replaceOrders:\n', replaceOrders);
@@ -263,9 +274,10 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.cancelOrder) {
 		const cancelOrder = await rujira.fin.cancelOrder({
-			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
-			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
-			// marketSymbol: 'RUJI/USDC',
+			ownerAddress: walletAddress,
+			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
+			// marketSymbol: 'THOR-RUJI/ETH-USDC',
+			orderId: `${walletAddress}-${RUJIUSDCMarketAddress}-${OrderSide.BUY}-${Decimal('0.80')}}`
 		});
 		console.log('cancelOrder:\n', cancelOrder);
 		console.log('\n--------------------------------------------------------------------------------\n');
@@ -273,20 +285,20 @@ import { Market, MarketAddress, OrderSide, OrderType, RujiraConstructorOptions, 
 
 	if (active.cancelOrders) {
 		const cancelOrders = await rujira.fin.cancelOrders({
-			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
+			ownerAddress: walletAddress,
 			orders: []
 		});
 		console.log('cancelOrders:\n', cancelOrders);
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
-	if (active.withdrawOrder) {
-		const withdrawOrder = await rujira.fin.withdrawOrders({
-			ownerAddress: properties.getAs<WalletAddress>('rujira.wallet.address'),
-			marketAddress: 'thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a ', // RUJI/USDC
-			// marketSymbol: 'RUJI/USDC',
+	if (active.withdrawOrders) {
+		const withdrawOrders = await rujira.fin.withdrawOrders({
+			ownerAddress: walletAddress,
+			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
+			// marketSymbol: 'THOR-RUJI/ETH-USDC',
 		});
-		console.log('withdrawOrder:\n', withdrawOrder);
+		console.log('withdrawOrders:\n', withdrawOrders);
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 })();

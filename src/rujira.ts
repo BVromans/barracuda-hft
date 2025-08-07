@@ -19,6 +19,8 @@ import {
 	CandleInterval,
 	DECIMAL_0,
 	DECIMAL_1,
+	DECIMAL_10,
+	DECIMAL_100,
 	DECIMAL_INFINITY,
 	FinCancelAllOrdersRequest,
 	FinCancelAllOrdersResponse,
@@ -357,9 +359,9 @@ export class Fin {
 	public nativeToken: Token;
 
 	/**
-	 * Beacon token
+	 * USD token
 	 */
-	public beaconToken: Token;
+	public usdToken: Token;
 
 	/**
 	 * Fee payment token
@@ -381,7 +383,7 @@ export class Fin {
 		this.marketsBySymbol = MMap<MarketSymbol, Market>();
 
 		this.nativeToken = undefined as unknown as Token;
-		this.beaconToken = undefined as unknown as Token;
+		this.usdToken = undefined as unknown as Token;
 		this.feePaymentToken = undefined as unknown as Token;
 	}
 
@@ -420,11 +422,11 @@ export class Fin {
 		await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
 		this.nativeToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.native.address') });
-		this.beaconToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.beacon.address') });
+		this.usdToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.usd.address') });
 		this.feePaymentToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.feePayment.address') });
 
 		properties.set('rujira.tokens.native', this.nativeToken);
-		properties.set('rujira.tokens.beacon', this.beaconToken);
+		properties.set('rujira.tokens.usd', this.usdToken);
 		properties.set('rujira.tokens.feePayment', this.feePaymentToken);
 	}
 
@@ -635,7 +637,7 @@ export class Fin {
 			throw new Error(`Transaction is still pending: ${hash}`);
 		}
 
-		const feeToken = await this.getToken({ symbol: rawTransaction.tx.auth_info.fee.amount[0].denom.toUpperCase() });
+		const feeToken = await this.getToken({ symbol: `THOR-${rawTransaction.tx.auth_info.fee.amount[0].denom.toUpperCase()}` });
 		const feeAmount = rawTransaction.tx.auth_info.fee.amount[0].amount ? Decimal(rawTransaction.tx.auth_info.fee.amount[0].amount).div(Decimal(10).pow(feeToken.decimals)) : DECIMAL_0;
 
 		const result = {
@@ -718,13 +720,13 @@ export class Fin {
 			symbols = getOrThrow<List<TokenSymbol>>(symbols);
 		}
 
-		const tokens = MMap<TokenAddress, Token>();
+		const tokens = MMap<TokenSymbol, Token>();
 
 		if (addresses?.size) {
 			addresses.forEach((address: TokenAddress) => {
 				const token = this.tokensByAddress.getOrThrow(address, undefined, true);
 				if (!token) throw new Error(`Token not found: ${address}`);
-				tokens.set(token.address, token, true);
+				tokens.set(token.symbol, token, true);
 			});
 		}
 
@@ -732,7 +734,7 @@ export class Fin {
 			symbols.forEach((symbol: TokenSymbol, index: number) => {
 				const token = this.tokensBySymbol.getOrThrow(symbol, undefined, true);
 				if (!token) throw new Error(`Token not found: ${symbol}`);
-				tokens.set(token.address, token, true);
+				tokens.set(token.symbol, token, true);
 			});
 		}
 
@@ -752,18 +754,18 @@ export class Fin {
 		// Get all markets first (this already contains all token data)
 		const markets = await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
-		const tokens = MMap<TokenAddress, Token>();
+		const tokens = MMap<TokenSymbol, Token>();
 
 		// Extract all unique tokens from the markets
 		for (const market of markets.values()) {
 			// Add base token if not already added
-			if (!tokens.has(market.tokens.base.address, true)) {
-				tokens.set(market.tokens.base.address, market.tokens.base, true);
+			if (!tokens.has(market.tokens.base.symbol, true)) {
+				tokens.set(market.tokens.base.symbol, market.tokens.base, true);
 			}
 
 			// Add quote token if not already added
-			if (!tokens.has(market.tokens.quote.address, true)) {
-				tokens.set(market.tokens.quote.address, market.tokens.quote, true);
+			if (!tokens.has(market.tokens.quote.symbol, true)) {
+				tokens.set(market.tokens.quote.symbol, market.tokens.quote, true);
 			}
 		}
 
@@ -986,8 +988,8 @@ export class Fin {
 			// Create base token
 			const baseToken: Token = {
 				address: pair.assetBase.asset.toLowerCase(),
-				symbol: pair.assetBase.metadata?.symbol?.toUpperCase() || pair.assetBase.asset?.toUpperCase(),
-				name: pair.assetBase.metadata?.name || pair.assetBase.metadata?.symbol || pair.assetBase.asset,
+				symbol: `${pair.assetBase.chain?.toUpperCase()}-${pair.assetBase.metadata?.symbol?.toUpperCase() || pair.assetBase.asset?.toUpperCase()}`,
+				name: `${pair.assetBase.chain?.toUpperCase()} ${pair.assetBase.metadata?.name || pair.assetBase.metadata?.symbol?.toUpperCase() || pair.assetBase.asset?.toUpperCase()}`,
 				decimals: pair.assetBase.metadata?.decimals,
 				raw: pair.assetBase
 			};
@@ -995,8 +997,8 @@ export class Fin {
 			// Create quote token
 			const quoteToken: Token = {
 				address: pair.assetQuote.asset.toLowerCase(),
-				symbol: pair.assetQuote.metadata?.symbol?.toUpperCase() || pair.assetQuote.asset?.toUpperCase(),
-				name: pair.assetQuote.metadata?.name || pair.assetQuote.metadata?.symbol || pair.assetQuote.asset,
+				symbol: `${pair.assetQuote.chain?.toUpperCase()}-${pair.assetQuote.metadata?.symbol?.toUpperCase() || pair.assetQuote.asset?.toUpperCase()}`,
+				name: `${pair.assetQuote.chain?.toUpperCase()} ${pair.assetQuote.metadata?.name || pair.assetQuote.metadata?.symbol?.toUpperCase() || pair.assetQuote.asset?.toUpperCase()}`,
 				decimals: pair.assetQuote.metadata?.decimals,
 				raw: pair.assetQuote
 			};
@@ -1012,7 +1014,7 @@ export class Fin {
 					base: baseToken,
 					quote: quoteToken
 				},
-				decimals: Number(pair.tick) || 8, // Use tick as decimals, ensure it's a number
+				decimals: 8, // Number(pair.tick), // TODO: verify a better way to get the market decimals!!!
 				status: MarketStatus.ACTIVE, // LIVE markets are active
 				raw: pair
 			};
@@ -1061,8 +1063,8 @@ export class Fin {
 		);
 
 		const parseOrder = (entry: any): OrderBookOrder => ({
-			price: new Decimal(entry.price),
-			amount: new Decimal(entry.total),
+			price: Decimal(entry.price),
+			amount: Decimal(entry.total).div(DECIMAL_10.pow(market.decimals)),
 			raw: entry
 		});
 
@@ -1129,13 +1131,19 @@ export class Fin {
 			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 		}
 
-		const orderBook = await this.getOrderBook({ marketAddress: market.address, marketSymbol: market.symbol, market: market, maximumNumberOfOrders: 1 });
+		const orderBook = await this.getOrderBook({ marketAddress: market.address, marketSymbol: market.symbol, market: market });
 		const timestamp = Date.now();
 
 		const ticker: Ticker = {
 			market,
-			middlePrice: orderBook.statistics.middlePrice.baseToQuote,
-			volumeWeightedAveragePrice: orderBook.statistics.volumeWeightedAveragePrice.baseToQuote,
+			middlePrice: {
+				baseToQuote: orderBook.statistics.middlePrice.baseToQuote,
+				quoteToBase: orderBook.statistics.middlePrice.quoteToBase
+			},
+			volumeWeightedAveragePrice: {
+				baseToQuote: orderBook.statistics.volumeWeightedAveragePrice.baseToQuote,
+				quoteToBase: orderBook.statistics.volumeWeightedAveragePrice.quoteToBase
+			},
 			timestamp,
 			raw: orderBook.raw
 		};
@@ -1143,7 +1151,7 @@ export class Fin {
 		return ticker;
 	}
 
-		/**
+	/**
 	 * Get candles
 	 * @param request - The request object
 	 * @returns The candles response
@@ -1219,18 +1227,14 @@ export class Fin {
 			throw new Error(`GraphQL errors: ${JSON.stringify(errors)}`);
 		}
 
-		// TODO: check if this is correct!!!
 		const rawCandles = data?.node?.candles?.edges?.map((edge: any) => edge.node) || [];
 
-		// TODO: check if this is correct!!!
 		const candles = MList<Candle>(rawCandles).map((entry: any): Candle => ({
-			timestamp: typeof entry.bin === 'string'
-				? new Date(entry.bin).getTime()
-				:typeof entry.bin === 'number' ? entry.bin : Date.now(),
-			open: Decimal(entry.open || 0),
-			high: Decimal(entry.high || 0),
-			low: Decimal(entry.low || 0),
-			close: Decimal(entry.close || 0),
+			timestamp: new Date(entry.bin).getTime(),
+			open: Decimal(entry.open || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
+			high: Decimal(entry.high || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
+			low: Decimal(entry.low || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
+			close: Decimal(entry.close || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
 			volume: Decimal(entry.volume || 0),
 			raw: entry
 		}));
@@ -1326,7 +1330,7 @@ export class Fin {
 			for (const rawBalance of freeBalanceResponseData.balances) {
 				const token = await this.getToken({ address: rawBalance.denom });
 
-				freeBalances.set(token.address, new Decimal(rawBalance.amount));
+				freeBalances.set(token.address, Decimal(rawBalance.amount));
 			}
 		}
 
@@ -1383,12 +1387,12 @@ export class Fin {
 				if (rawOrder.filled && Number(rawOrder.filled) > 0) {
 					// TODO: check if this is correct!!!
 					const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
-					lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.getOrThrow(lockedTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
+					lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.getOrThrow(lockedTokenAddress, DECIMAL_0)).plus(Decimal(rawOrder.filled)));
 				}
 				if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
 					// TODO: check if this is correct!!!
 					const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // note that it's the opposite asset
-					withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.getOrThrow(withdrawTokenAddress, DECIMAL_0)).plus(new Decimal(rawOrder.filled)));
+					withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.getOrThrow(withdrawTokenAddress, DECIMAL_0)).plus(Decimal(rawOrder.filled)));
 				}
 			}
 		}
@@ -1414,7 +1418,7 @@ export class Fin {
 				try {
 					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` });
 
-					conversionRateNativeToken = quotingMarketTicker.middlePrice || DECIMAL_0;
+					conversionRateNativeToken = quotingMarketTicker.middlePrice.baseToQuote || DECIMAL_0;
 				} catch (exception) {
 					ignoreException(exception);
 				}
@@ -1422,17 +1426,17 @@ export class Fin {
 				conversionRateNativeToken = DECIMAL_1;
 			}
 
-			let conversionRateBeacon: TickerPrice = DECIMAL_0;
-			if (token.address !== this.beaconToken.address) {
+			let conversionRateUSD: TickerPrice = DECIMAL_0;
+			if (token.address !== this.usdToken.address) {
 				try {
-					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.beaconToken.symbol}` });
+					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` });
 
-					conversionRateBeacon = quotingMarketTicker.middlePrice || DECIMAL_0;
+					conversionRateUSD = quotingMarketTicker.middlePrice.baseToQuote || DECIMAL_0;
 				} catch (exception) {
 					ignoreException(exception);
 				}
 			} else {
-				conversionRateBeacon = DECIMAL_1;
+				conversionRateUSD = DECIMAL_1;
 			}
 
 			const baseBalanceWithNativeQuotation: BaseBalanceWithQuotation = {
@@ -1443,19 +1447,19 @@ export class Fin {
 					quoteToToken: conversionRateNativeToken.gt(DECIMAL_0) ? DECIMAL_1.div(conversionRateNativeToken) : DECIMAL_0
 				}
 			};
-			const baseBalanceWithBeaconQuotation: BaseBalanceWithQuotation = {
+			const baseBalanceWithUSDQuotation: BaseBalanceWithQuotation = {
 				...tokenBalance,
 				quotation: {
-					token: this.beaconToken || token,
-					tokenToQuote: conversionRateBeacon,
-					quoteToToken: conversionRateBeacon.gt(DECIMAL_0) ? DECIMAL_1.div(conversionRateBeacon) : DECIMAL_0
+					token: this.usdToken || token,
+					tokenToQuote: conversionRateUSD,
+					quoteToToken: conversionRateUSD.gt(DECIMAL_0) ? DECIMAL_1.div(conversionRateUSD) : DECIMAL_0
 				}
 			};
 
 			const baseTokenBalance: BaseTokenBalance = {
 				token: tokenBalance,
 				nativeToken: baseBalanceWithNativeQuotation,
-				beaconToken: baseBalanceWithBeaconQuotation
+				usdToken: baseBalanceWithUSDQuotation
 			};
 
 			tokensBalancesMap.set(token.address, {
@@ -1472,19 +1476,19 @@ export class Fin {
 			total: freeBalances.getOrThrow(this.nativeToken.address, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.nativeToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.nativeToken.address, DECIMAL_0))
 		};
 
-		const totalBeacon: BaseBalance = {
-			free: freeBalances.getOrThrow(this.beaconToken.address, DECIMAL_0),
-			lockedInOrders: lockedInOrdersMap.getOrThrow(this.beaconToken.address, DECIMAL_0),
+		const totalUSD: BaseBalance = {
+			free: freeBalances.getOrThrow(this.usdToken.address, DECIMAL_0),
+			lockedInOrders: lockedInOrdersMap.getOrThrow(this.usdToken.address, DECIMAL_0),
 			lockedInPools: DECIMAL_0,
-			withdrawable: withdrawableMap.getOrThrow(this.beaconToken.address, DECIMAL_0),
-			total: freeBalances.getOrThrow(this.beaconToken.address, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.beaconToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.beaconToken.address, DECIMAL_0))
+			withdrawable: withdrawableMap.getOrThrow(this.usdToken.address, DECIMAL_0),
+			total: freeBalances.getOrThrow(this.usdToken.address, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.usdToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.usdToken.address, DECIMAL_0))
 		};
 
 		const balances: Balances = {
 			tokens: tokensBalancesMap,
 			total: {
 				nativeToken: totalNative,
-				beaconToken: totalBeacon
+				usdToken: totalUSD
 			}
 		};
 
@@ -1522,12 +1526,26 @@ export class Fin {
 			throw new Error("Order side is required, since it's used to compose the order ID.");
 		}
 
-		const orderId = `${ownerAddress}-${orderSide.toString().toLowerCase()}-${orderPrice.toString()}`;
-		const orders = await this.getOrders({ ownerAddress, owner, marketAddress, marketSymbol, market, orderTypes: [orderType], orderSides: [orderSide], orderStatuses: [orderStatus], orderPrices: [orderPrice], maximumNumberOfOrders: 1 });
-		const order = orders.get(orderId);
+		if (!market) {
+			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
+
+		const orders = await this.getOrders({
+			ownerAddress,
+			owner,
+			marketAddress,
+			marketSymbol,
+			market,
+			orderTypes: orderType ? [orderType] : undefined,
+			orderSides: orderSide ? [orderSide] : undefined,
+			orderStatuses: orderStatus ? [orderStatus] : undefined,
+			orderPrices: orderPrice ? [orderPrice] : undefined,
+			maximumNumberOfOrders: 1
+		});
+		const order = orders.first();
 
 		if (!order) {
-			throw new Error(`Order not found: ${orderId}`);
+			throw new Error(`Order not found: ${request.toString()}`);
 		}
 
 		return order as FinGetOrderResponse;
@@ -1544,11 +1562,11 @@ export class Fin {
 		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase() || undefined;
 		marketSymbol = marketSymbol?.trim().toUpperCase() || undefined;
-		orderTypes = MList(orderTypes?.map((orderType: OrderType) => OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType])) || undefined;
-		orderSides = MList(orderSides?.map((orderSide: OrderSide) => OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide])) || undefined;
-		orderStatuses = MList(orderStatuses?.map((orderStatus: OrderStatus) => OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus])) || undefined;
-		orderPrices = MList(orderPrices?.map((orderPrice: OrderPrice) => Decimal(orderPrice))) || undefined;
-		maximumNumberOfOrders = maximumNumberOfOrders || Number(properties.getAs<string>('rujira.orders.maximumNumberOfOrders'));
+		orderTypes = orderTypes ? MList(orderTypes?.map((orderType: OrderType) => OrderType[orderType?.trim().toUpperCase() as keyof typeof OrderType])) : undefined;
+		orderSides = orderSides ? MList(orderSides?.map((orderSide: OrderSide) => OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide])) : undefined;
+		orderStatuses = orderStatuses ? MList(orderStatuses?.map((orderStatus: OrderStatus) => OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus])) : undefined;
+		orderPrices = orderPrices ? MList(orderPrices?.map((orderPrice: OrderPrice) => Decimal(orderPrice))) : undefined;
+		maximumNumberOfOrders = maximumNumberOfOrders ? Number(maximumNumberOfOrders) : undefined;
 
 		if (!ownerAddress && !owner) {
 			throw new Error("Owner address is required");
@@ -1604,7 +1622,7 @@ export class Fin {
 		const query = {
 			orders: {
 				owner: ownerAddress,
-				limit: maximumNumberOfOrders,
+				limit: Number(properties.getAs<string>('rujira.orders.maximumNumberOfOrders')),
 				offset: 0
 			}
 		} as {
@@ -1625,9 +1643,9 @@ export class Fin {
 		// 		},
 		// 		"rate": "0.04",
 		// 		"updated_at": "1753359648989354207",
-		// 		"offer": "5400000",
-		// 		"remaining": "5400000",
-		// 		"filled": "0"
+		// 		"offer": "5400000", // The amount of the order (it's the direct asset)
+		// 		"remaining": "5400000", // The remaining amount of the order (it's the direct asset)
+		// 		"filled": "0" // The amount of the order that has been filled (it's the opposite asset)
 		// 	}
 		const rawOrders = result.orders as [{
       owner: string,
@@ -1646,28 +1664,33 @@ export class Fin {
 
 		for (const rawOrder of rawOrders) {
 			const type = OrderType.LIMIT;
-			const side = rawOrder.side === 'quote' ? OrderSide.SELL : OrderSide.BUY;
-			const price = new Decimal(rawOrder.price.fixed);
-			const amount = new Decimal(rawOrder.offer);
-			const filledAmount = new Decimal(rawOrder.filled);
-			const filledPercentage = filledAmount.div(amount);
-			const status = filledAmount.eq(DECIMAL_0) ? OrderStatus.OPEN : filledAmount.eq(amount) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
+			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
+			const price = Decimal(rawOrder.price.fixed);
+			const amount = Decimal(rawOrder.offer).div(DECIMAL_10.pow(market.decimals));
+			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(Decimal(rawOrder.offer))));
+			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 
 			const order = {
-				id: `${ownerAddress}-${market.address}-${side.toString().toLowerCase()}-${price.toString()}`,
+				id: this.getOrderId({
+					ownerAddress,
+					owner,
+					marketSymbol: market.symbol,
+					orderType: type,
+					orderSide: side,
+					orderPrice: price
+				}),
 				market: market,
 				ownerAddress: ownerAddress,
 				type: type,
 				side: side,
 				price: price,
 				amount: amount,
-				filledAmount: filledAmount,
 				filledPercentage: filledPercentage,
 				status: status,
 				raw: rawOrder
 			} as Order;
 
-			filteredOrders.set(getOrThrow<OrderId>(order.id), order);
+			filteredOrders.set(getOrThrow<OrderId>(order.id), order, true);
 		}
 
 		filteredOrders = filteredOrders.filter((order: Order) => {
@@ -1694,29 +1717,29 @@ export class Fin {
 			}
 
 			// Filter by order types
-			if (orderTypes && !orderTypes.isEmpty() && !orderTypes.includes(order.type)) {
+			if (orderTypes && !orderTypes.includes(order.type)) {
 				return false;
 			}
 
 			// Filter by order sides
-			if (orderSides && !orderSides.isEmpty() && !orderSides.includes(order.side)) {
+			if (orderSides && !orderSides.includes(order.side)) {
 				return false;
 			}
 
 			// Filter by order statuses
-			if (orderStatuses && !orderStatuses.isEmpty() && !orderStatuses.includes(order.status)) {
+			if (orderStatuses && !orderStatuses.includes(order.status)) {
 				return false;
 			}
 
 			// Filter by order prices
-			if (orderPrices && !orderPrices.isEmpty() && (!order.price || !orderPrices.includes(getOrThrow<OrderPrice>(order.price)))) {
+			if (orderPrices && (!order.price || !orderPrices.includes(getOrThrow<OrderPrice>(order.price)))) {
 				return false;
 			}
 
 			return true;
 		});
 
-		if (maximumNumberOfOrders > 0) {
+		if (maximumNumberOfOrders && maximumNumberOfOrders > 0) {
 			filteredOrders = filteredOrders.slice(0, maximumNumberOfOrders);
 		}
 
@@ -1735,6 +1758,9 @@ export class Fin {
 		const executedOrders = await this.executeOrders({
 			ownerAddress,
 			owner,
+			marketAddress,
+			marketSymbol,
+			market,
 			orders: {
 				place: MList<FinPlaceOrderRequest>(
 					[
@@ -1795,6 +1821,9 @@ export class Fin {
 		const executedOrders = await this.executeOrders({
 			ownerAddress,
 			owner,
+			marketAddress,
+			marketSymbol,
+			market,
 			orders: {
 				replace: MList<FinPlaceOrderRequest>([{
 					ownerAddress,
@@ -1968,6 +1997,36 @@ export class Fin {
 		return result;
 	}
 
+	private getOrderId(options: {
+		ownerAddress?: WalletAddress;
+		owner?: Wallet;
+		marketSymbol?: MarketSymbol;
+		orderType?: OrderType;
+		orderSide?: OrderSide;
+		orderPrice?: Decimal;
+		order?: Order;
+	}): OrderId {
+		let { ownerAddress, owner, marketSymbol, orderType, orderSide, orderPrice, order } = options;
+
+		if (!ownerAddress) {
+			ownerAddress = getOrThrow<Wallet>(owner).firstAccount.address;
+		}
+
+		if (!orderType) {
+			orderType = getOrThrow<Order>(order).type;
+		}
+
+		if (!orderSide) {
+			orderSide = getOrThrow<Order>(order).side;
+		}
+
+		if (!orderPrice) {
+			orderPrice = getOrThrow<Order>(order).price;
+		}
+
+		return `${ownerAddress}-${marketSymbol}-${orderType}-${orderSide}-${orderPrice}`;
+	}
+
 	/**
 	 * Fetch a resource
 	 * @param input - The input to fetch
@@ -2022,7 +2081,7 @@ export class Fin {
 	 * @param request - The unified request object
 	 * @returns The unified response object
 	 */
-	async executeOrders(request: FinExecuteOrdersRequest): Promise<FinExecuteOrdersResponse> {
+	private async executeOrders(request: FinExecuteOrdersRequest): Promise<FinExecuteOrdersResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market, orders } = request;
 
 		// ===== SANITIZATION =====
@@ -2173,12 +2232,20 @@ export class Fin {
 			const placeOrdersMap = MMap<OrderId, Order>();
 
 			orders.place.forEach((order: FinPlaceOrderRequest) => {
-				const orderId = `${ownerAddress}-${order.side.toString().toLowerCase()}-${order.price?.toString()}`;
+				const orderId = this.getOrderId({
+					ownerAddress,
+					marketSymbol: market.symbol,
+					orderType: order.type,
+					orderSide: order.side,
+					orderPrice: order.price
+				});
 
 				// Create message
 				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
 				const price = order.price?.toString() || '0';
-				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString();
+				// For BUY orders, amount should be in quote token decimals (Ex.: USDC = 6)
+				// For SELL orders, amount should be in base token decimals (Ex.: RUJI = 6)
+				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toFixed(0);
 
 				executeMessages.push([side, { fixed: price }, amount]);
 
@@ -2191,14 +2258,13 @@ export class Fin {
 					side: order.side,
 					price: order.price,
 					amount: order.amount,
-					filledAmount: DECIMAL_0,
 					filledPercentage: DECIMAL_0,
 					status: OrderStatus.OPEN,
 					creationTimestamp: Date.now(),
 					updateTimestamp: Date.now(),
 					raw: order
 				};
-				placeOrdersMap.set(orderId, orderObject);
+				placeOrdersMap.set(orderId, orderObject, true);
 			});
 			ordersMap.set('place', placeOrdersMap);
 		}
@@ -2208,12 +2274,20 @@ export class Fin {
 			const replaceOrdersMap = MMap<OrderId, Order>();
 
 			orders.replace.forEach((order: FinReplaceOrderRequest) => {
-				const orderId = `${ownerAddress}-${order.side.toString().toLowerCase()}-${order.price?.toString()}`;
+				const orderId = this.getOrderId({
+					ownerAddress,
+					marketSymbol: market.symbol,
+					orderType: order.type,
+					orderSide: order.side,
+					orderPrice: order.price
+				});
 
 				// Create message
 				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
 				const price = order.price?.toString() || '0';
-				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toString();
+				// For BUY orders, amount should be in quote token decimals (Ex.: USDC = 6)
+				// For SELL orders, amount should be in base token decimals (Ex.: RUJI = 6)
+				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toFixed(0);
 
 				executeMessages.push([side, { fixed: price }, amount]);
 
@@ -2226,14 +2300,13 @@ export class Fin {
 					side: order.side,
 					price: order.price,
 					amount: order.amount,
-					filledAmount: DECIMAL_0,
 					filledPercentage: DECIMAL_0,
 					status: OrderStatus.OPEN,
 					creationTimestamp: Date.now(),
 					updateTimestamp: Date.now(),
 					raw: order
 				};
-				replaceOrdersMap.set(orderId, orderObject);
+				replaceOrdersMap.set(orderId, orderObject, true);
 			});
 			ordersMap.set('replace', replaceOrdersMap);
 		}
@@ -2266,7 +2339,7 @@ export class Fin {
 					status: OrderStatus.CANCELLED,
 					updateTimestamp: Date.now()
 				};
-				cancelOrdersMap.set(orderId, cancelledOrder);
+				cancelOrdersMap.set(orderId, cancelledOrder, true);
 			});
 			ordersMap.set('cancel', cancelOrdersMap);
 		}
@@ -2298,13 +2371,100 @@ export class Fin {
 					...existingOrder,
 					updateTimestamp: Date.now()
 				};
-				withdrawOrdersMap.set(orderId, withdrawnOrder);
+				withdrawOrdersMap.set(orderId, withdrawnOrder, true);
 			});
 			ordersMap.set('withdraw', withdrawOrdersMap);
 		}
 
 		if (executeMessages.length === 0) {
 			throw new Error("No valid orders to execute");
+		}
+
+		// Calculate funds for orders
+		let funds: readonly Coin[] | undefined;
+		const buyOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
+		const sellOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
+		const buyReplaceOrders = orders.replace?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
+		const sellReplaceOrders = orders.replace?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
+
+		// For BUY orders (place only), we need quote tokens (USDC)
+		// Replace orders don't need additional funds as they modify existing orders
+		const allBuyOrders = buyOrders; // Only include place orders
+		if (allBuyOrders && allBuyOrders.size > 0) {
+			let totalQuoteAmount = DECIMAL_0;
+
+			// For place orders, use the full amount
+			buyOrders.forEach((order: FinPlaceOrderRequest) => {
+				totalQuoteAmount = totalQuoteAmount.plus(order.amount);
+			});
+
+			// For replace orders, we need to calculate the difference from existing orders
+			// Since we don't have access to existing order amounts here, we'll skip funds calculation
+			// The contract will handle the actual difference calculation
+			// buyReplaceOrders.forEach((order: FinPlaceOrderRequest) => {
+			// 	// For replace orders, we'll use a very conservative estimate
+			// 	// The contract will handle the actual difference
+			// 	totalQuoteAmount = totalQuoteAmount.plus(order.amount.mul(0.01)); // 1% of new amount as estimate
+			// });
+
+			// Convert to raw amount (no buffer needed - contract handles fees)
+			const rawQuoteAmount = totalQuoteAmount.mul(10 ** market.tokens.quote.decimals).toFixed(0);
+
+			// console.debug('Funds calculation for BUY orders:', {
+			// 	totalQuoteAmount: totalQuoteAmount.toString(),
+			// 	rawQuoteAmount,
+			// 	buyOrdersCount: allBuyOrders.size
+			// });
+
+			funds = [{
+				denom: market.tokens.quote.address,
+				amount: rawQuoteAmount
+			}];
+		}
+
+		// For SELL orders (place + replace), we need base tokens (RUJI)
+		const allSellOrders = sellOrders.concat(sellReplaceOrders);
+		if (allSellOrders && allSellOrders.size > 0) {
+			let totalBaseAmount = DECIMAL_0;
+
+			// For place orders, use the full amount
+			sellOrders.forEach((order: FinPlaceOrderRequest) => {
+				totalBaseAmount = totalBaseAmount.plus(order.amount);
+			});
+
+			// For replace orders, we need to calculate the difference from existing orders
+			// Since we don't have access to existing order amounts here, we'll skip funds calculation
+			// The contract will handle the actual difference calculation
+			// sellReplaceOrders.forEach((order: FinPlaceOrderRequest) => {
+			// 	// For replace orders, we'll use a very conservative estimate
+			// 	// The contract will handle the actual difference
+			// 	totalBaseAmount = totalBaseAmount.plus(order.amount.mul(0.01)); // 1% of new amount as estimate
+			// });
+
+			// Convert to raw amount (no buffer needed - contract handles fees)
+			const rawBaseAmount = totalBaseAmount.mul(10 ** market.tokens.base.decimals).toFixed(0);
+
+			console.debug('Funds calculation for SELL orders:', {
+				totalBaseAmount: totalBaseAmount.toString(),
+				rawBaseAmount,
+				sellOrdersCount: allSellOrders.size
+			});
+
+			// If we already have funds for BUY orders, add to it, otherwise create new
+			if (funds) {
+				funds = [
+					...funds,
+					{
+						denom: market.tokens.base.address,
+						amount: rawBaseAmount
+					}
+				];
+			} else {
+				funds = [{
+					denom: market.tokens.base.address,
+					amount: rawBaseAmount
+				}];
+			}
 		}
 
 		// Execute the transaction
@@ -2314,12 +2474,14 @@ export class Fin {
 			{
 				order: [executeMessages, null]
 			},
-			'auto'
+			'auto',
+			undefined,
+			funds
 		);
 
 		// Get the transaction details
 		const transaction = await this.getTransaction({ hash: response.transactionHash });
-		transactions.set(transaction.hash, transaction);
+		transactions.set(transaction.hash, transaction, true);
 
 		// Build the response
 		const result: FinExecuteOrdersResponse = {

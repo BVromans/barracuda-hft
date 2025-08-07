@@ -81,7 +81,9 @@ export enum OrderSide {
  */
 export enum OrderType {
 	MARKET = 'market',
-	LIMIT = 'limit'
+	LIMIT = 'limit',
+	FIXED_PRICE = 'fixed_price', // TODO: ask more about this!!!
+	TRACKING_ORDER = 'tracking_order' // TODO: ask more about this!!!
 }
 
 /**
@@ -1814,12 +1816,32 @@ export interface Ticker {
 	/**
 	 * Price of the ticker
 	 */
-	middlePrice?: TickerPrice;
+	middlePrice: {
+		/**
+		 * Price of the base token to the quote token
+		 */
+		baseToQuote?: TickerPrice;
+
+		/**
+		 * Price of the quote token to the base token
+		 */
+		quoteToBase?: TickerPrice;
+	};
 
 	/**
 	 * Volume weighted average price (VWAP) of the ticker
 	 */
-	volumeWeightedAveragePrice?: TickerPrice;
+	volumeWeightedAveragePrice: {
+		/**
+		 * Price of the base token to the quote token
+		 */
+		baseToQuote?: TickerPrice;
+
+		/**
+		 * Price of the quote token to the base token
+		 */
+		quoteToBase?: TickerPrice;
+	};
 
 	/**
 	 * Timestamp of the ticker
@@ -1958,9 +1980,9 @@ export interface BaseTokenBalance {
 	nativeToken: BaseBalanceWithQuotation;
 
 	/**
-	 * Balance of the beacon token
+	 * Balance of the usd token
 	 */
-	beaconToken: BaseBalanceWithQuotation;
+	usdToken: BaseBalanceWithQuotation;
 }
 
 /**
@@ -1988,9 +2010,9 @@ export interface TotalBalances {
 	nativeToken: BaseBalance;
 
 	/**
-	 * Balance of the beacon token
+	 * Balance of the usd token
 	 */
-	beaconToken: BaseBalance;
+	usdToken: BaseBalance;
 }
 
 /**
@@ -2046,11 +2068,6 @@ export interface Order {
 	 * Amount of the order
 	 */
 	amount: OrderAmount;
-
-	/**
-	 * Amount of filled order awaiting withdrawal
-	 */
-	filledAmount: OrderFilledAmount;
 
 	/**
 	 * Filled percentage of the order
@@ -2185,7 +2202,7 @@ export interface FinGetTokensRequest {
 /**
  * Get tokens response
  */
-export interface FinGetTokensResponse extends Map<TokenAddress, Token> {
+export interface FinGetTokensResponse extends Map<TokenSymbol, Token> {
 }
 
 /**
@@ -2197,7 +2214,7 @@ export interface FinGetAllTokensRequest {
 /**
  * Get all tokens response
  */
-export interface FinGetAllTokensResponse extends Map<TokenAddress, Token> {
+export interface FinGetAllTokensResponse extends Map<TokenSymbol, Token> {
 }
 
 /**
