@@ -5,21 +5,21 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 
 (async function run() {
 	const active = {
-		getStatus: false,
-		getTransaction: false,
-		getAllTokens: false,
-		getTokens: false,
-		getToken: false,
-		getAllMarkets: false,
-		getMarkets: false,
-		getMarket: false,
-		getOrderBook: false,
-		getTicker: false,
-		getCandles: false,
-		getIndicators: false,
-		getBalances: true,
-		getOrder: false,
-		getOrders: false,
+		getStatus: true,
+		getTransaction: true,
+		getAllTokens: true,
+		getTokens: true,
+		getToken: true,
+		getAllMarkets: true,
+		getMarkets: true,
+		getMarket: true,
+		getOrderBook: true,
+		getTicker: true,
+		getCandles: true,
+		getIndicators: true,
+		getBalances: false,
+		getOrder: true,
+		getOrders: true,
 		placeOrder: undefined,
 		placeOrders: undefined,
 		replaceOrder: undefined,
@@ -176,7 +176,7 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 		const getBalances = await rujira.fin.getBalances({
 			walletAddress
 		});
-		console.log('getBalances:\n', getBalances);
+		console.log('getBalances:\n', JSON.stringify(getBalances, null, 2));
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
@@ -186,7 +186,7 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
 			// marketSymbol: 'THOR-RUJI/ETH-USDC',
 			orderSide: OrderSide.BUY,
-			orderPrice: Decimal('0.85')
+			orderPrice: Decimal('0.000002')
 		});
 		console.log('getOrder:\n', getOrder);
 		console.log('\n--------------------------------------------------------------------------------\n');
