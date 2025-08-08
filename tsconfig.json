@@ -1,18 +1,40 @@
 {
-	"compilerOptions": {
-		"target": "ESNext",
-		"module": "ESNext",
-		"moduleResolution": "node",
-		"lib": ["ESNext"],
-		"strict": true,
-		"esModuleInterop": true,
-		"resolveJsonModule": true,
-		"outDir": "dist",
-		"rootDir": ".",
-		"skipLibCheck": true,
-		"types": ["bun-types"],
-		"experimentalDecorators": true
-	},
-	"include": ["src", "integration", "tests", "temporary/playground"],
-	"exclude": ["node_modules", "dist"]
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "lib": ["ESNext"],
+
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+
+    "rootDir": ".",
+    "outDir": "dist",
+    "skipLibCheck": true,
+    "types": ["bun-types"],
+
+    "experimentalDecorators": true,
+    // "emitDecoratorMetadata": true,
+
+    "declaration": true,
+    "declarationMap": true,
+
+    "sourceMap": true,
+    "inlineSources": true,
+
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo"
+  },
+
+  "include": [
+    "src",
+    "integration",
+    "tests",
+    "temporary/playground"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

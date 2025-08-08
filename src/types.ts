@@ -4,11 +4,9 @@ import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { AccountData, DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
 import BN from "bn.js";
-import { GasPrice } from '@cosmjs/stargate';
 import { properties } from './properties';
 import { List, Map } from 'immutable';
 import { MList, MMap } from './extensions/immutablejs';
-import { Rujira } from './rujira';
 
 export { List, Map, MList, MMap };
 
@@ -1804,7 +1802,7 @@ export interface FinInitializeOptions {
 	/**
 	 * Parent
 	 */
-	parent: Rujira;
+	parent: any;
 
 	/**
 	 * Wallet
