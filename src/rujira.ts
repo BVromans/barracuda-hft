@@ -921,7 +921,11 @@ export class Fin {
 		}
 
 		const feeToken = await this.getToken({ symbol: `THOR-${rawTransaction.tx.auth_info.fee.amount[0].denom.toUpperCase()}` });
+
 		// TODO: check if we should use the gas price and the gas limit instead of the amount below (GasPrice already has a method for calculating the fees, if needed)!!!
+		// const gasLimit = rawTransaction.tx.auth_info.fee.gas_limit.toString() ? Decimal(rawTransaction.tx.auth_info.fee.gas_limit.toString()) : DECIMAL_0;
+		// const gasPrice = Decimal((await this.parent.getGasPrice()).amount.toString());
+		// const feeAmount = gasPrice.mul(gasLimit).div(Decimal(10).pow(feeToken.decimals));
 		const feeAmount = rawTransaction.tx.auth_info.fee.amount[0].amount ? Decimal(rawTransaction.tx.auth_info.fee.amount[0].amount).div(Decimal(10).pow(feeToken.decimals)) : DECIMAL_0;
 
 		const result = {
