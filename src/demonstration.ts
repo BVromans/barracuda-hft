@@ -5,18 +5,18 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 
 (async function run() {
 	const active = {
-		getStatus: true,
-		getTransaction: true,
-		getAllTokens: true,
-		getTokens: true,
-		getToken: true,
-		getAllMarkets: true,
-		getMarkets: true,
-		getMarket: true,
-		getOrderBook: true,
-		getTicker: true,
-		getCandles: true,
-		getIndicators: true,
+		getStatus: false,
+		getTransaction: false,
+		getAllTokens: false,
+		getTokens: false,
+		getToken: false,
+		getAllMarkets: false,
+		getMarkets: false,
+		getMarket: false,
+		getOrderBook: false,
+		getTicker: false,
+		getCandles: false,
+		getIndicators: false,
 		getBalances: false,
 		getOrder: true,
 		getOrders: true,
@@ -185,8 +185,8 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 			ownerAddress: walletAddress,
 			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
 			// marketSymbol: 'THOR-RUJI/ETH-USDC',
-			orderSide: OrderSide.SELL,
-			orderPrice: Decimal('99')
+			orderSide: OrderSide.BUY,
+			orderPrice: Decimal('0.85')
 		});
 		console.log('getOrder:\n', getOrder);
 		console.log('\n--------------------------------------------------------------------------------\n');
@@ -199,7 +199,7 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 			// marketSymbol: 'THOR-RUJI/ETH-USDC',
 			orderTypes: [OrderType.LIMIT],
 			orderSides: [OrderSide.BUY],
-			orderStatuses: [OrderStatus.FILLED],
+			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED],
 			// orderPrices: [Decimal('0.9')],
 			// maximumNumberOfOrders: 2
 		});

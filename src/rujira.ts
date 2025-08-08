@@ -1669,25 +1669,24 @@ export class Fin {
 			const amount = Decimal(rawOrder.offer).div(DECIMAL_10.pow(market.decimals));
 			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(Decimal(rawOrder.offer))));
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
+			const id = this.getOrderId({
+				ownerAddress,
+				market,
+				orderType: type,
+				orderSide: side,
+				orderPrice: price
+			});
 
 			const order = {
-				id: this.getOrderId({
-					ownerAddress,
-					owner,
-					baseTokenSymbol: market.tokens.base.symbol,
-					quoteTokenSymbol: market.tokens.quote.symbol,
-					orderType: type,
-					orderSide: side,
-					orderPrice: price
-				}),
-				market: market,
-				ownerAddress: ownerAddress,
-				type: type,
-				side: side,
-				price: price,
-				amount: amount,
-				filledPercentage: filledPercentage,
-				status: status,
+				id,
+				market,
+				ownerAddress,
+				type,
+				side,
+				price,
+				amount,
+				filledPercentage,
+				status,
 				raw: rawOrder
 			} as Order;
 
@@ -2000,19 +1999,19 @@ export class Fin {
 
 	private getOrderId(options: {
 		ownerAddress?: WalletAddress;
-		owner?: Wallet;
-		baseTokenSymbol?: TokenSymbol;
-		quoteTokenSymbol?: TokenSymbol;
+		market?: Market;
+		order?: Order | FinPlaceOrderRequest | FinReplaceOrderRequest;
 		orderType?: OrderType;
 		orderSide?: OrderSide;
 		orderPrice?: Decimal;
-		order?: Order;
 	}): OrderId {
-		let { ownerAddress, owner, baseTokenSymbol, quoteTokenSymbol, orderType, orderSide, orderPrice, order } = options;
+		let { ownerAddress, market, order, orderType, orderSide, orderPrice } = options;
 
 		if (!ownerAddress) {
-			ownerAddress = getOrThrow<Wallet>(owner).firstAccount.address;
+			ownerAddress = getOrThrow<Order>(order).ownerAddress;
 		}
+
+		const marketSymbol: MarketSymbol = order?.market?.symbol || getOrThrow<Market>(market).symbol;
 
 		if (!orderType) {
 			orderType = getOrThrow<Order>(order).type;
@@ -2026,7 +2025,7 @@ export class Fin {
 			orderPrice = getOrThrow<Order>(order).price;
 		}
 
-		return `${ownerAddress}_${baseTokenSymbol}_${quoteTokenSymbol}_${orderType}_${orderSide}_${orderPrice}`;
+		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice}`;
 	}
 
 	/**
@@ -2236,11 +2235,8 @@ export class Fin {
 			orders.place.forEach((order: FinPlaceOrderRequest) => {
 				const orderId = this.getOrderId({
 					ownerAddress,
-					baseTokenSymbol: market.tokens.base.symbol,
-					quoteTokenSymbol: market.tokens.quote.symbol,
-					orderType: order.type,
-					orderSide: order.side,
-					orderPrice: order.price
+					market,
+					order
 				});
 
 				// Create message
@@ -2279,11 +2275,8 @@ export class Fin {
 			orders.replace.forEach((order: FinReplaceOrderRequest) => {
 				const orderId = this.getOrderId({
 					ownerAddress,
-					baseTokenSymbol: market.tokens.base.symbol,
-					quoteTokenSymbol: market.tokens.quote.symbol,
-					orderType: order.type,
-					orderSide: order.side,
-					orderPrice: order.price
+					market,
+					order
 				});
 
 				// Create message
