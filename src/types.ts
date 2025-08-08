@@ -155,7 +155,7 @@ export class Indicator {
 		[20, 14]
 	);
 
-	static average_directional_index = new Indicator(
+		static average_directional_index = new Indicator(
 		"adx",
 		"Average Directional Index",
 		(candles: List<Candle>) => {
@@ -163,13 +163,14 @@ export class Indicator {
 				(data, candle) => {
 					data[0].push(candle.high.toNumber() || 0);
 					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
 					return data;
 				},
-				[[], []] as [number[], number[]]
+				[[], [], []] as [number[], number[], number[]]
 			);
 			return result;
 		},
-		[14]
+		[20]
 	);
 
 	static average_directional_movement_rating = new Indicator(
@@ -203,7 +204,7 @@ export class Indicator {
 			);
 			return result;
 		},
-		[34]
+		[20]
 	);
 
 	static absolute_price_oscillator = new Indicator(
@@ -239,9 +240,9 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
-					data[0].push(candle.high.toNumber());
-					data[1].push(candle.low.toNumber());
-					data[2].push(candle.close.toNumber());
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
 					return data;
 				},
 					[[], [], []] as [number[], number[], number[]]
@@ -296,7 +297,7 @@ export class Indicator {
 			);
 			return result;
 		},
-		[14]
+		[20]
 	);
 
 	static commodity_channel_index = new Indicator(
@@ -323,16 +324,16 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[20]
+		[50]
 	);
 
-	static cross_over = new Indicator(
+	static crossover = new Indicator(
 		"crossover",
 		"Crossover",
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[100, 50]
+		[20]
 	);
 
 	static cross_over_number = new Indicator(
@@ -341,7 +342,7 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[100, 50]
+		[20]
 	);
 
 	static cross_under_number = new Indicator(
@@ -420,7 +421,7 @@ export class Indicator {
 		);
 		return result;
 		},
-		[28, 14]
+		[20]
 	);
 
 	static detrended_price_oscillator = new Indicator(
@@ -479,18 +480,29 @@ export class Indicator {
 		"emv",
 		"Ease of Movement",
 		(candles: List<Candle>) => {
-				const result = candles.reduce(
+			const result = candles.reduce(
 				(data, candle) => {
-					data[0].push(candle.high.toNumber() || 0);
-					data[1].push(candle.low.toNumber() || 0);
-					data[2].push(candle.volume.toNumber() || 0);
+					const high = candle.high.toNumber();
+					const low = candle.low.toNumber();
+					const volume = candle.volume.toNumber();
+
+					if (high > 0 && low > 0 && volume > 0 && high >= low) {
+						data[0].push(high);
+						data[1].push(low);
+						data[2].push(volume);
+					}
 					return data;
 				},
 				[[], [], []] as [number[], number[], number[]]
 			);
+
+			if (result[0].length < 2) {
+				return [[]];
+			}
+
 			return result;
 		},
-		[]
+		[14]
 	);
 
 	static fisher_transform = new Indicator(
@@ -514,15 +526,7 @@ export class Indicator {
 		"fosc",
 		"Forecast Oscillator",
 		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					data[0].push(candle.high.toNumber() || 0);
-					data[1].push(candle.low.toNumber() || 0);
-					return data;
-				},
-				[[], []] as [number[], number[]]
-		);
-		return result;
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
 		[20]
 	);
@@ -540,15 +544,7 @@ export class Indicator {
 		"kama",
 		"Kaufman Adaptive Moving Average",
 		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					data[0].push(candle.high.toNumber() || 0);
-					data[1].push(candle.low.toNumber() || 0);
-					return data;
-				},
-				[[], []] as [number[], number[]]
-		);
-		return result;
+			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
 		[20]
 	);
@@ -559,15 +555,27 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
-					data[0].push(candle.high.toNumber() || 0);
-					data[1].push(candle.low.toNumber() || 0);
-					data[2].push(candle.close.toNumber() || 0);
-					data[3].push(candle.volume.toNumber() || 0);
+					const high = candle.high.toNumber();
+					const low = candle.low.toNumber();
+					const close = candle.close.toNumber();
+					const volume = candle.volume.toNumber();
+
+					if (high > 0 && low > 0 && close > 0 && volume > 0 && high >= low) {
+						data[0].push(high);
+						data[1].push(low);
+						data[2].push(close);
+						data[3].push(volume);
+					}
 					return data;
 				},
 				[[], [], [], []] as [number[], number[], number[], number[]]
-		);
-		return [result]
+			);
+
+			if (result[0].length < 2) {
+				return [[]];
+			}
+
+			return result;
 		},
 		[34, 55]
 	);
@@ -642,9 +650,10 @@ export class Indicator {
 				(data, candle) => {
 					data[0].push(candle.high.toNumber() || 0)
 					data[1].push(candle.low.toNumber() || 0)
+					data[2].push(candle.close.toNumber() || 0)
 					return data;
 				},
-				[[], []] as [number[], number[]]
+				[[], [], []] as [number[], number[], number[]]
 			)
 			return [result];
 		},
@@ -729,13 +738,26 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
-					data[0].push( candle.high.toNumber() || 0);
-					data[1].push(candle.low.toNumber() || 0);
-					data[2].push(candle.close.toNumber() || 0);
-				    return data;
+					const high = candle.high.toNumber();
+					const low = candle.low.toNumber();
+					const close = candle.close.toNumber();
+
+					// Only add data if we have valid OHLC values
+					if (high > 0 && low > 0 && close > 0 && high >= low) {
+						data[0].push(high);
+						data[1].push(low);
+						data[2].push(close);
+					}
+					return data;
 				},
 				[[], [], []] as [number[], number[], number[]]
-			)
+			);
+
+			// Ensure we have enough data points for the indicator calculation
+			if (result[0].length < 20) {
+				return [[]];
+			}
+
 			return [result];
 		},
 		[20]
@@ -775,7 +797,7 @@ export class Indicator {
 			);
 			return result;
 		},
-		[20, 14]
+		[50]
 	);
 
 	static relative_strength_index = new Indicator(
@@ -784,7 +806,7 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[14]
+		[50]
 	);
 
 	static simple_moving_average = new Indicator(
@@ -1216,7 +1238,7 @@ export class Indicator {
 			);
 			return result;
 		},
-		[20, 10]
+		[20]
 	);
 
 	static donchian_channels = new Indicator(
@@ -1250,7 +1272,7 @@ export class Indicator {
 			);
 			return result;
 		},
-		[20, 10]
+		[20]
 	);
 
 	static keltner_channels = new Indicator(
@@ -1418,44 +1440,44 @@ export class Indicator {
 			// Indicator.aroon, ok
 			// Indicator.aroon_oscillator, ok
 			// Indicator.arnaud_legoux_moving_average, ok
-			// Indicator.average_directional_index,
-			// Indicator.average_directional_movement_rating,
-			// Indicator.average_price,
-			// Indicator.average_true_range,
-			// Indicator.awesome_oscillator,
-			// Indicator.balance_of_power,
-			// Indicator.bollinger_bands,
-			// Indicator.chandelier_exit,
-			// Indicator.chaikin_money_flow,
-			// Indicator.chaikins_volatility,
-			// Indicator.chande_momentum_oscillator,
-			// Indicator.commodity_channel_index,
-			// Indicator.cross_over,
-			// Indicator.cross_over_number,
-			// Indicator.cross_under_number,
-			// Indicator.detrended_price_oscillator,
-			// Indicator.directional_indicator,
-			// Indicator.directional_movement,
-			// Indicator.directional_movement_index,
-			// Indicator.donchian_channels,
-			// Indicator.double_exponential_moving_average,
-			// Indicator.ease_of_movement,
-			// Indicator.exponential_decay,
+			// Indicator.average_directional_index, ok but adding implementation on rujira.ts
+			// Indicator.average_directional_movement_rating, ok
+			// Indicator.average_price, ok
+			// Indicator.average_true_range, ok
+			// Indicator.awesome_oscillator, ok
+			// Indicator.balance_of_power, ok
+			// Indicator.bollinger_bands, ok
+			// Indicator.chandelier_exit, ok
+			// Indicator.chaikin_money_flow, ok
+			// Indicator.chaikins_volatility, ok
+			// Indicator.chande_momentum_oscillator, ok
+			// Indicator.commodity_channel_index, ok
+			// Indicator.crossover, false
+			// Indicator.cross_over_number, false
+			// Indicator.cross_under_number, false
+			// Indicator.detrended_price_oscillator, ok
+			// Indicator.directional_indicator, ok
+			// Indicator.directional_movement, ok
+			// Indicator.directional_movement_index, ok
+			// Indicator.donchian_channels, ok
+			// Indicator.double_exponential_moving_average, ok
+			// Indicator.ease_of_movement, ok
+			// Indicator.exponential_decay, ok
 			// Indicator.exponential_moving_average, ok
-			// Indicator.fisher_transform,
-			// Indicator.force_index,
-			// Indicator.forecast_oscillator,
+			// Indicator.fisher_transform, ok
+			// Indicator.force_index, ok
+			// Indicator.forecast_oscillator, ok
 			// Indicator.hull_moving_average,
-			// Indicator.kaufman_adaptive_moving_average,
-			// Indicator.keltner_channels,
-			// Indicator.klinger_volume_oscillator,
+			// Indicator.kaufman_adaptive_moving_average, ok
+			// Indicator.keltner_channels, ok
+			// Indicator.klinger_volume_oscillator, ok
 			// Indicator.know_sure_thing,
-			// Indicator.lag,
-			// Indicator.linear_decay,
-			// Indicator.linear_regression,
-			// Indicator.linear_regression_intercept,
-			// Indicator.linear_regression_slope,
-			// Indicator.mass_index,
+			// Indicator.lag, ok
+			// Indicator.linear_decay, ok
+			// Indicator.linear_regression, ok
+			// Indicator.linear_regression_intercept, ok
+			// Indicator.linear_regression_slope, ok
+			Indicator.mass_index,
 			// Indicator.market_facilitation_index,
 			// Indicator.maximum_in_period,
 			// Indicator.mean_deviation_over_period,
@@ -1463,7 +1485,7 @@ export class Indicator {
 			// Indicator.minimum_in_period,
 			// Indicator.momentum,
 			// Indicator.money_flow_index,
-			// Indicator.moving_average_convergence_divergence,
+			// Indicator.moving_average_convergence_divergence, ok
 			// Indicator.negative_volume_index,
 			// Indicator.normalized_average_true_range,
 			// Indicator.on_balance_volume,
@@ -1478,7 +1500,7 @@ export class Indicator {
 			// Indicator.rate_of_change_ratio,
 			// Indicator.recursive_moving_trend_average,
 			// Indicator.relative_momentum_index,
-			// Indicator.relative_strength_index,
+			// Indicator.relative_strength_index, ok
 			// Indicator.relative_vigor_index,
 			// Indicator.simple_moving_average,
 			// Indicator.standard_deviation_over_period,
@@ -1499,7 +1521,7 @@ export class Indicator {
 			// Indicator.variable_index_dynamic_average,
 			// Indicator.vertical_horizontal_filter,
 			// Indicator.volume_oscillator,
-			// Indicator.volume_weighted_average_price,
+			// Indicator.volume_weighted_average_price, ok
 			// Indicator.volume_weighted_moving_average,
 			// Indicator.weighted_close_price,
 			// Indicator.weighted_moving_average,
