@@ -7,7 +7,7 @@ import BN from "bn.js";
 import { GasPrice } from '@cosmjs/stargate';
 import { properties } from './properties';
 import { List, Map } from 'immutable';
-import { MList, MMap } from './extensions/immutablejs/types';
+import { MList, MMap } from './extensions/immutablejs';
 import { Rujira } from './rujira';
 
 export { List, Map, MList, MMap };

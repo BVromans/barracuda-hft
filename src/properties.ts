@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import * as path from 'path';
 import { parse } from 'yaml';
 import { Map } from 'immutable';
-import { MMap } from './extensions/immutablejs/types';
+import { MMap } from './extensions/immutablejs';
 
 /**
  * Centralized, singleton application properties/configuration.
