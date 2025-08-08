@@ -319,11 +319,6 @@ export class Rujira {
  */
 export class Fin {
 	/**
-	 * Wallet address
-	 */
-	private walletAddress: WalletAddress;
-
-	/**
 	 * Wallet
 	 */
 	private wallet: Wallet;
@@ -373,7 +368,6 @@ export class Fin {
 	 * @param options - The constructor options
 	 */
 	constructor(options: FinConstructorOptions) {
-		this.walletAddress = undefined as unknown as WalletAddress;
 		this.wallet = undefined as unknown as Wallet;
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 
@@ -414,7 +408,6 @@ export class Fin {
 	 * @param options - The initialize options
 	 */
 	async initialize(options: FinInitializeOptions): Promise<void> {
-		this.walletAddress = options.walletAddress;
 		this.wallet = options.wallet;
 		this.cosmClient = options.cosmClient;
 

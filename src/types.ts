@@ -1806,11 +1806,6 @@ export interface FinInitializeOptions {
 	wallet: Wallet;
 
 	/**
-	 * Wallet address
-	 */
-	walletAddress: WalletAddress;
-
-	/**
 	 * Cosm client
 	 */
 	cosmClient: SigningCosmWasmClient;
