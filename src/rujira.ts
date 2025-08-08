@@ -201,6 +201,7 @@ export class Rujira {
 		this.walletAddress = this.wallet.firstAccount.address;
 
 		const gasPrice = await this.getGasPrice();
+		properties.set('rujira.gasPrice', gasPrice); // Use automatically calculated gas price
 
 		this.cosmClient = await this.signingCosmWasmClientConnectWithSigner(
 			properties.getAs<URL>('rujira.endpoints.rpc'),
@@ -231,11 +232,12 @@ export class Rujira {
 		let gasPriceString = thorChainConfiguration[thorChainConfigurationKey];
 
 		if (!gasPriceString) {
-			gasPriceString = properties.getAs<GasPrice>('rujira.default.network.gasPrice');
+			gasPriceString = properties.getAs<string>('rujira.default.network.gasPrice');
 		}
 
 		if (!gasPriceString) {
-			throw new Error('No gas price found');
+			// Fallback to working gas price value if configuration is not found
+			gasPriceString = '0.025';
 		}
 
 		const denom = properties.getAs<string>('rujira.constants.tokens.feePayment.symbol').toLowerCase().replace(/thor[.-]/, '');
@@ -704,9 +706,27 @@ export class Fin {
 		await this.getAllTokens({} as FinGetAllTokensRequest);
 		await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
-		this.nativeToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.native.address') });
-		this.usdToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.usd.address') });
-		this.feePaymentToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.feePayment.address') });
+		// Try to get tokens by address, fallback to symbol if address not found
+		try {
+			this.nativeToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.native.address') });
+		} catch (error) {
+			console.debug(`Failed to get native token by address, trying symbol: ${properties.getAs<TokenSymbol>('rujira.constants.tokens.native.symbol')}`);
+			this.nativeToken = await this.getToken({ symbol: properties.getAs<TokenSymbol>('rujira.constants.tokens.native.symbol') });
+		}
+
+		try {
+			this.usdToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.usd.address') });
+		} catch (error) {
+			console.debug(`Failed to get USD token by address, trying symbol: ${properties.getAs<TokenSymbol>('rujira.constants.tokens.usd.symbol')}`);
+			this.usdToken = await this.getToken({ symbol: properties.getAs<TokenSymbol>('rujira.constants.tokens.usd.symbol') });
+		}
+
+		try {
+			this.feePaymentToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.feePayment.address') });
+		} catch (error) {
+			console.debug(`Failed to get fee payment token by address, trying symbol: ${properties.getAs<TokenSymbol>('rujira.constants.tokens.feePayment.symbol')}`);
+			this.feePaymentToken = await this.getToken({ symbol: properties.getAs<TokenSymbol>('rujira.constants.tokens.feePayment.symbol') });
+		}
 
 		properties.set('rujira.tokens.native', this.nativeToken);
 		properties.set('rujira.tokens.usd', this.usdToken);
@@ -1059,7 +1079,7 @@ export class Fin {
 
 		// Update internal maps
 		for (const token of tokens.values()) {
-			this.tokensByAddress.set(token.address, token, true);
+			this.tokensByAddress.set(token.address.toLowerCase(), token, true);
 			this.tokensBySymbol.set(token.symbol.toUpperCase(), token, true);
 		}
 
@@ -1985,8 +2005,8 @@ export class Fin {
 			// Filter by sanitized order IDs (merged from orderIds and orders)
 			if (sanitizedOrderIds && !sanitizedOrderIds.isEmpty()) {
 				if (!order.id || !sanitizedOrderIds.includes(order.id)) {
-					return false;
-				}
+				return false;
+			}
 			}
 
 			// Filter by owner address
@@ -2143,9 +2163,18 @@ export class Fin {
 	async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersResponse> {
 		let { ownerAddress, owner, orders } = request;
 
+		// Extract market information from the first order since all orders should be in the same market
+		const firstOrder = Array.isArray(orders) ? orders[0] : orders.first();
+		if (!firstOrder) {
+			throw new Error("At least one order is required for replacement");
+		}
+
 		const executedOrders = await this.executeOrders({
 			ownerAddress,
 			owner,
+			marketSymbol: firstOrder.marketSymbol,
+			marketAddress: firstOrder.marketAddress,
+			market: firstOrder.market,
 			orders: {
 				replace: MList<FinPlaceOrderRequest>(orders)
 			}
@@ -2194,6 +2223,16 @@ export class Fin {
 	async cancelOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
 		let { orderIds, orders, ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
+		// Handle both orderIds and orders parameters correctly
+		let cancelList: List<OrderId> | List<Order>;
+		if (orderIds && (Array.isArray(orderIds) ? orderIds.length > 0 : orderIds.size > 0)) {
+			cancelList = MList<OrderId>(orderIds);
+		} else if (orders && (Array.isArray(orders) ? orders.length > 0 : orders.size > 0)) {
+			cancelList = MList<Order>(orders);
+		} else {
+			throw new Error("Either orderIds or orders must be provided for cancellation");
+		}
+
 		const executedOrders = await this.executeOrders({
 			ownerAddress,
 			owner,
@@ -2201,7 +2240,7 @@ export class Fin {
 			marketSymbol,
 			market,
 			orders: {
-				cancel: MList<OrderId>(orderIds) || MList<Order>(orders)
+				cancel: cancelList
 			}
 		})
 
@@ -2286,64 +2325,6 @@ export class Fin {
 	}
 
 	/**
-	 * Get wallet address
-	 * @param walletAddress - The wallet address
-	 * @param wallet - The wallet
-	 * @returns The wallet address
-	 */
-	private getWalletAddress(walletAddress?: WalletAddress, wallet?: Wallet): WalletAddress {
-		if (walletAddress) {
-			return walletAddress.trim().toLowerCase();
-		}
-
-		if (wallet) {
-			return wallet.firstAccount.address.trim().toLowerCase();
-		}
-
-		if (this.wallet.firstAccount) {
-			return this.wallet.firstAccount.address.trim().toLowerCase();
-		}
-
-		throw new Error('No wallet address provided');
-	}
-
-	/**
-	 * Get the order id
-	 * @param options - The options
-	 * @returns The order id
-	 */
-	private getOrderId(options: {
-		ownerAddress?: WalletAddress;
-		market?: Market;
-		order?: Order | FinPlaceOrderRequest | FinReplaceOrderRequest;
-		orderType?: OrderType;
-		orderSide?: OrderSide;
-		orderPrice?: Decimal;
-	}): OrderId {
-		let { ownerAddress, market, order, orderType, orderSide, orderPrice } = options;
-
-		if (!ownerAddress) {
-			ownerAddress = getOrThrow<Order>(order).ownerAddress;
-		}
-
-		const marketSymbol: MarketSymbol = order?.market?.symbol || getOrThrow<Market>(market).symbol;
-
-		if (!orderType) {
-			orderType = getOrThrow<Order>(order).type;
-		}
-
-		if (!orderSide) {
-			orderSide = getOrThrow<Order>(order).side;
-		}
-
-		if (!orderPrice) {
-			orderPrice = getOrThrow<Order>(order).price;
-		}
-
-		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice}`;
-	}
-
-	/**
 	 * Unified method to execute order operations (place, replace, cancel, withdraw)
 	 * @param request - The unified request object
 	 * @returns The unified response object
@@ -2389,9 +2370,9 @@ export class Fin {
 			const cancelOrderIds = MList<OrderId>();
 			orders.cancel.forEach((item: OrderId | Order) => {
 				if (typeof item === 'string') {
-					cancelOrderIds.push(item.trim().toLowerCase());
+					cancelOrderIds.push(item.trim()); // Keep original case for order IDs
 				} else if (item.id) {
-					cancelOrderIds.push(item.id.trim().toLowerCase());
+					cancelOrderIds.push(item.id.trim()); // Keep original case for order IDs
 				}
 			});
 			orders.cancel = cancelOrderIds;
@@ -2402,9 +2383,9 @@ export class Fin {
 			const withdrawOrderIds = MList<OrderId>();
 			orders.withdraw.forEach((item: OrderId | Order) => {
 				if (typeof item === 'string') {
-					withdrawOrderIds.push(item.trim().toLowerCase());
+					withdrawOrderIds.push(item.trim()); // Keep original case for order IDs
 				} else if (item.id) {
-					withdrawOrderIds.push(item.id.trim().toLowerCase());
+					withdrawOrderIds.push(item.id.trim()); // Keep original case for order IDs
 				}
 			});
 			orders.withdraw = withdrawOrderIds;
@@ -2505,9 +2486,10 @@ export class Fin {
 					order
 				});
 
-				// Create message
+				// Create message with exact format from playground
 				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
-				const price = order.price?.toString() || '0';
+				// Use precise price formatting like playgrounds
+				const price = order.price ? order.price.toFixed(18) : '0.000000000000000000';
 				// For BUY orders, amount should be in quote token decimals (Ex.: USDC = 6)
 				// For SELL orders, amount should be in base token decimals (Ex.: RUJI = 6)
 				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toFixed(0);
@@ -2541,13 +2523,27 @@ export class Fin {
 			orders.replace.forEach((order: FinReplaceOrderRequest) => {
 				const orderId = this.getOrderId({
 					ownerAddress,
-					market,
-					order
+					market: market,
+					orderType: order.type,
+					orderSide: order.side,
+					orderPrice: order.price
 				});
 
-				// Create message
+				// Check if order exists in existing orders (same validation as cancel orders)
+				const existingOrder = existingOrders.get(orderId);
+				if (!existingOrder) {
+					throw new Error(`Order not found for replacement: ${orderId}`);
+				}
+
+				// Validate order status for replacement (same validation as cancel orders)
+				if (existingOrder.status !== OrderStatus.OPEN) {
+					throw new Error(`Cannot replace order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.OPEN}`);
+				}
+
+				// Create message with exact format from playground
 				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
-				const price = order.price?.toString() || '0';
+				// Use precise price formatting like playgrounds
+				const price = order.price ? order.price.toFixed(18) : '0.000000000000000000';
 				// For BUY orders, amount should be in quote token decimals (Ex.: USDC = 6)
 				// For SELL orders, amount should be in base token decimals (Ex.: RUJI = 6)
 				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toFixed(0);
@@ -2565,8 +2561,8 @@ export class Fin {
 					amount: order.amount,
 					filledPercentage: DECIMAL_0,
 					status: OrderStatus.OPEN,
-					creationTimestamp: Date.now(),
-					updateTimestamp: Date.now(),
+					creationTimestamp: existingOrder.creationTimestamp, // Keep original creation time
+					updateTimestamp: Date.now(), // Update the timestamp
 					raw: order
 				};
 				replaceOrdersMap.set(orderId, orderObject, true);
@@ -2590,9 +2586,10 @@ export class Fin {
 					throw new Error(`Cannot cancel order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.OPEN}`);
 				}
 
-				// Create cancel message: [side, { fixed: price }, '0']
+				// Create cancel message with exact format from playground: [side, { fixed: price }, '0']
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
-				const price = existingOrder.price?.toString() || '0';
+				// Use precise price formatting like playgrounds
+				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
 				executeMessages.push([side, { fixed: price }, '0']);
 
@@ -2623,9 +2620,10 @@ export class Fin {
 					throw new Error(`Cannot withdraw order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.FILLED}`);
 				}
 
-				// For withdraw, we use the same structure as place/replace but with null amount
+				// Create withdraw message with exact format from playground: [side, { fixed: price }, null]
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
-				const price = existingOrder.price?.toString() || '0';
+				// Use precise price formatting like playgrounds
+				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
 				executeMessages.push([side, { fixed: price }, null]);
 
@@ -2644,16 +2642,18 @@ export class Fin {
 		}
 
 		// Calculate funds for orders
+		// IMPORTANT: Only PLACE orders need funds. Replace, cancel and withdraw operations send NO funds.
 		let funds: readonly Coin[] | undefined;
-		const buyOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
-		const sellOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
-		const buyReplaceOrders = orders.replace?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
-		const sellReplaceOrders = orders.replace?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
+
+		// Only calculate funds if we have place orders (NOT replace orders)
+		const hasPlaceOrders = (orders.place && !orders.place.isEmpty());
+
+		if (hasPlaceOrders) {
+			const buyOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
+			const sellOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
 
 		// For BUY orders (place only), we need quote tokens (USDC)
-		// Replace orders don't need additional funds as they modify existing orders
-		const allBuyOrders = buyOrders; // Only include place orders
-		if (allBuyOrders && allBuyOrders.size > 0) {
+		if (buyOrders && buyOrders.size > 0) {
 			let totalQuoteAmount = DECIMAL_0;
 
 			// For place orders, use the full amount
@@ -2661,23 +2661,14 @@ export class Fin {
 				totalQuoteAmount = totalQuoteAmount.plus(order.amount);
 			});
 
-			// For replace orders, we need to calculate the difference from existing orders
-			// Since we don't have access to existing order amounts here, we'll skip funds calculation
-			// The contract will handle the actual difference calculation
-			// buyReplaceOrders.forEach((order: FinPlaceOrderRequest) => {
-			// 	// For replace orders, we'll use a very conservative estimate
-			// 	// The contract will handle the actual difference
-			// 	totalQuoteAmount = totalQuoteAmount.plus(order.amount.mul(0.01)); // 1% of new amount as estimate
-			// });
-
 			// Convert to raw amount (no buffer needed - contract handles fees)
 			const rawQuoteAmount = totalQuoteAmount.mul(10 ** market.tokens.quote.decimals).toFixed(0);
 
-			// console.debug('Funds calculation for BUY orders:', {
-			// 	totalQuoteAmount: totalQuoteAmount.toString(),
-			// 	rawQuoteAmount,
-			// 	buyOrdersCount: allBuyOrders.size
-			// });
+			console.debug('Funds calculation for BUY orders:', {
+				totalQuoteAmount: totalQuoteAmount.toString(),
+				rawQuoteAmount,
+				buyOrdersCount: buyOrders.size
+			});
 
 			funds = [{
 				denom: market.tokens.quote.address,
@@ -2685,9 +2676,8 @@ export class Fin {
 			}];
 		}
 
-		// For SELL orders (place + replace), we need base tokens (RUJI)
-		const allSellOrders = sellOrders.concat(sellReplaceOrders);
-		if (allSellOrders && allSellOrders.size > 0) {
+		// For SELL orders (place only), we need base tokens (RUJI)
+		if (sellOrders && sellOrders.size > 0) {
 			let totalBaseAmount = DECIMAL_0;
 
 			// For place orders, use the full amount
@@ -2695,22 +2685,13 @@ export class Fin {
 				totalBaseAmount = totalBaseAmount.plus(order.amount);
 			});
 
-			// For replace orders, we need to calculate the difference from existing orders
-			// Since we don't have access to existing order amounts here, we'll skip funds calculation
-			// The contract will handle the actual difference calculation
-			// sellReplaceOrders.forEach((order: FinPlaceOrderRequest) => {
-			// 	// For replace orders, we'll use a very conservative estimate
-			// 	// The contract will handle the actual difference
-			// 	totalBaseAmount = totalBaseAmount.plus(order.amount.mul(0.01)); // 1% of new amount as estimate
-			// });
-
 			// Convert to raw amount (no buffer needed - contract handles fees)
 			const rawBaseAmount = totalBaseAmount.mul(10 ** market.tokens.base.decimals).toFixed(0);
 
 			console.debug('Funds calculation for SELL orders:', {
 				totalBaseAmount: totalBaseAmount.toString(),
 				rawBaseAmount,
-				sellOrdersCount: allSellOrders.size
+				sellOrdersCount: sellOrders.size
 			});
 
 			// If we already have funds for BUY orders, add to it, otherwise create new
@@ -2729,6 +2710,7 @@ export class Fin {
 				}];
 			}
 		}
+		} // End of hasPlaceOrders conditional
 
 		// Execute the transaction
 		const response = await this.cosmClient.execute(
@@ -2756,6 +2738,64 @@ export class Fin {
 		};
 
 		return result;
+	}
+
+	/**
+	 * Get wallet address
+	 * @param walletAddress - The wallet address
+	 * @param wallet - The wallet
+	 * @returns The wallet address
+	 */
+	private getWalletAddress(walletAddress?: WalletAddress, wallet?: Wallet): WalletAddress {
+		if (walletAddress) {
+			return walletAddress.trim().toLowerCase();
+		}
+
+		if (wallet) {
+			return wallet.firstAccount.address.trim().toLowerCase();
+		}
+
+		if (this.wallet.firstAccount) {
+			return this.wallet.firstAccount.address.trim().toLowerCase();
+		}
+
+		throw new Error('No wallet address provided');
+	}
+
+	/**
+	 * Get the order id
+	 * @param options - The options
+	 * @returns The order id
+	 */
+	private getOrderId(options: {
+		ownerAddress?: WalletAddress;
+		market?: Market;
+		order?: Order | FinPlaceOrderRequest | FinReplaceOrderRequest;
+		orderType?: OrderType;
+		orderSide?: OrderSide;
+		orderPrice?: Decimal;
+	}): OrderId {
+		let { ownerAddress, market, order, orderType, orderSide, orderPrice } = options;
+
+		if (!ownerAddress) {
+			ownerAddress = getOrThrow<Order>(order).ownerAddress;
+		}
+
+		const marketSymbol: MarketSymbol = order?.market?.symbol || getOrThrow<Market>(market).symbol;
+
+		if (!orderType) {
+			orderType = getOrThrow<Order>(order).type;
+		}
+
+		if (!orderSide) {
+			orderSide = getOrThrow<Order>(order).side;
+		}
+
+		if (!orderPrice) {
+			orderPrice = getOrThrow<Order>(order).price;
+		}
+
+		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice}`;
 	}
 }
 
