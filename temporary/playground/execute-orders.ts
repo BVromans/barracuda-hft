@@ -39,14 +39,14 @@ async function testPlaceOrder(rujira: Rujira) {
 				{
 					marketSymbol: "RUJI/USDC",
 					side: OrderSide.BUY,
-					type: OrderType.LIMIT,
+					type: OrderType.FIXED_PRICE,
 					amount: new Decimal("0.004"), // Small amount
 					price: new Decimal("0.85")
 				},
 				{
 					marketSymbol: "RUJI/USDC",
 					side: OrderSide.BUY,
-					type: OrderType.LIMIT,
+					type: OrderType.FIXED_PRICE,
 					amount: new Decimal("0.005"), // Small amount
 					price: new Decimal("0.80")
 				}
@@ -306,7 +306,7 @@ async function testGetOrders(rujira: Rujira) {
 		const limitOrders = await rujira.fin.getOrders({
 			ownerAddress: rujira.walletAddress,
 			marketSymbol: "RUJI/USDC",
-			orderTypes: [OrderType.LIMIT],
+			orderTypes: [OrderType.FIXED_PRICE],
 			maximumNumberOfOrders: 5
 		});
 

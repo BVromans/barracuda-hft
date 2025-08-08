@@ -81,9 +81,9 @@ export enum OrderSide {
  */
 export enum OrderType {
 	MARKET = 'market',
+	FIXED_PRICE = 'fixed_price',
 	LIMIT = 'limit',
-	FIXED_PRICE = 'fixed_price', // TODO: ask more about this!!!
-	TRACKING_ORDER = 'tracking_order' // TODO: ask more about this!!!
+	TRACKING_ORDER = 'tracking_order' // They are also called "oracle orders"
 }
 
 /**

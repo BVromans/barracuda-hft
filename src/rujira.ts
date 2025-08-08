@@ -1663,7 +1663,7 @@ export class Fin {
 		let filteredOrders = MMap<OrderId, Order>();
 
 		for (const rawOrder of rawOrders) {
-			const type = OrderType.LIMIT;
+			const type = OrderType.FIXED_PRICE;
 			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
 			const price = Decimal(rawOrder.price.fixed);
 			const amount = Decimal(rawOrder.offer).div(DECIMAL_10.pow(market.decimals));
@@ -2180,7 +2180,7 @@ export class Fin {
 				if (!order.side || !order.type || !order.amount) {
 					throw new Error("Order side, type, and amount are required for place orders");
 				}
-				if (order.type === OrderType.LIMIT && !order.price) {
+				if (order.type === OrderType.FIXED_PRICE && !order.price) {
 					throw new Error("Order price is required for limit place orders");
 				}
 			});
@@ -2192,7 +2192,7 @@ export class Fin {
 				if (!order.side || !order.type || !order.amount) {
 					throw new Error("Order side, type, and amount are required for replace orders");
 				}
-				if (order.type === OrderType.LIMIT && !order.price) {
+				if (order.type === OrderType.FIXED_PRICE && !order.price) {
 					throw new Error("Order price is required for limit replace orders");
 				}
 			});
@@ -2221,7 +2221,7 @@ export class Fin {
 		const existingOrders = await this.getOrders({
 			ownerAddress,
 			market,
-			orderTypes: [OrderType.LIMIT],
+			orderTypes: [OrderType.FIXED_PRICE],
 			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED]
 		});
 

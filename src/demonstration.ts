@@ -197,7 +197,7 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 			ownerAddress: walletAddress,
 			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
 			// marketSymbol: 'THOR-RUJI/ETH-USDC',
-			orderTypes: [OrderType.LIMIT],
+			orderTypes: [OrderType.FIXED_PRICE],
 			orderSides: [OrderSide.BUY],
 			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED],
 			// orderPrices: [Decimal('0.9')],
@@ -214,7 +214,7 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 			ownerAddress: walletAddress,
 			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
 			// marketSymbol: 'THOR-RUJI/ETH-USDC',
-			type: OrderType.LIMIT,
+			type: OrderType.FIXED_PRICE,
 			side: OrderSide.BUY,
 			amount: Decimal('0.000001'),
 			price: Decimal('0.000001')
@@ -230,7 +230,7 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 				{
 					marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
 					// marketSymbol: 'THOR-RUJI/ETH-USDC',
-					type: OrderType.LIMIT,
+					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
 					amount: Decimal('0.000001'),
 					price: Decimal('0.000002')
@@ -238,7 +238,7 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 				{
 					marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
 					// marketSymbol: 'THOR-RUJI/ETH-USDC',
-					type: OrderType.LIMIT,
+					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
 					amount: Decimal('0.000001'),
 					price: Decimal('0.000003')
@@ -255,7 +255,7 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
 			// marketSymbol: 'THOR-RUJI/ETH-USDC',
 			side: OrderSide.BUY,
-			type: OrderType.LIMIT,
+			type: OrderType.FIXED_PRICE,
 			amount: Decimal('0.000002'),
 			price: Decimal('0.000001')
 		});
