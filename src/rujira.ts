@@ -202,13 +202,11 @@ export class Rujira {
 
 		const gasPrice = await this.getGasPrice();
 
-		properties.set('rujira.gasPrice', gasPrice);
-
 		this.cosmClient = await this.signingCosmWasmClientConnectWithSigner(
 			properties.getAs<URL>('rujira.endpoints.rpc'),
 			this.wallet.cosmWallet,
 			{
-				gasPrice: properties.getAs<GasPrice>('rujira.gasPrice')
+				gasPrice
 			}
 		);
 
@@ -923,6 +921,7 @@ export class Fin {
 		}
 
 		const feeToken = await this.getToken({ symbol: `THOR-${rawTransaction.tx.auth_info.fee.amount[0].denom.toUpperCase()}` });
+		// TODO: check if we should use the gas price and the gas limit instead of the amount below (GasPrice already has a method for calculating the fees, if needed)!!!
 		const feeAmount = rawTransaction.tx.auth_info.fee.amount[0].amount ? Decimal(rawTransaction.tx.auth_info.fee.amount[0].amount).div(Decimal(10).pow(feeToken.decimals)) : DECIMAL_0;
 
 		const result = {
