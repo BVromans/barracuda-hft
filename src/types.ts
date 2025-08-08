@@ -631,13 +631,26 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
-					data[0].push(candle.high.toNumber() || 0);
-					data[1].push(candle.low.toNumber() || 0);
+					const high = candle.high.toNumber();
+					const low = candle.low.toNumber();
+					const volume = candle.volume.toNumber();
+
+					// Only add data if we have valid high, low, volume values
+					if (high > 0 && low > 0 && volume > 0 && high >= low) {
+						data[0].push(high);
+						data[1].push(low);
+						data[2].push(volume);
+					}
 					return data;
 				},
-				[[], []] as [number[], number[]]
-			)
-			return [result];
+				[[], [], []] as [number[], number[], number[]]
+			);
+
+			if (result[0].length < 1) {
+				return [[]];
+			}
+
+			return result;
 		},
 		[28, 14]
 	);
@@ -648,16 +661,19 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
-					data[0].push(candle.high.toNumber() || 0)
-					data[1].push(candle.low.toNumber() || 0)
-					data[2].push(candle.close.toNumber() || 0)
+					const high = candle.high.toNumber();
+					const low = candle.low.toNumber();
+					if (high > 0 && low > 0 && high >= low) {
+						data[0].push(high);
+						data[1].push(low);
+					}
 					return data;
 				},
-				[[], [], []] as [number[], number[], number[]]
-			)
-			return [result];
+				[[], []] as [number[], number[]]
+			);
+			return result;
 		},
-		[25, 9]
+		[20, 25]
 	);
 
 	static maximum_in_period = new Indicator(
@@ -1478,7 +1494,7 @@ export class Indicator {
 			// Indicator.linear_regression_intercept, ok
 			// Indicator.linear_regression_slope, ok
 			Indicator.mass_index,
-			// Indicator.market_facilitation_index,
+			// Indicator.market_facilitation_index, ok
 			// Indicator.maximum_in_period,
 			// Indicator.mean_deviation_over_period,
 			// Indicator.median_price,
