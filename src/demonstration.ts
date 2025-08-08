@@ -5,18 +5,18 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 
 (async function run() {
 	const active = {
-		getStatus: false,
-		getTransaction: false,
-		getAllTokens: false,
-		getTokens: false,
-		getToken: false,
-		getAllMarkets: false,
-		getMarkets: false,
-		getMarket: false,
-		getOrderBook: false,
-		getTicker: false,
-		getCandles: false,
-		getIndicators: false,
+		getStatus: true,
+		getTransaction: true,
+		getAllTokens: true,
+		getTokens: true,
+		getToken: true,
+		getAllMarkets: true,
+		getMarkets: true,
+		getMarket: true,
+		getOrderBook: true,
+		getTicker: true,
+		getCandles: true,
+		getIndicators: true,
 		getBalances: false,
 		getOrder: true,
 		getOrders: true,
@@ -44,7 +44,7 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 
 	if (active.getStatus) {
 		const getStatus = await rujira.fin.getStatus({});
-		console.log('getStatus:n', getStatus);
+		console.log('getStatus:\n', getStatus);
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 

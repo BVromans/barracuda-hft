@@ -27,7 +27,10 @@ rujira:
       feePayment:
         address: "THOR.RUNE"
         symbol: "THOR-RUNE"
+        thorChainConfigurationKey: "WASMMINGASPRICE"
   default:
+    network:
+      gasPrice: '0' # A possible value is '0.02'
     cache:
       ttlSeconds: 60
     parallel:

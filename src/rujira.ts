@@ -200,7 +200,9 @@ export class Rujira {
 
 		this.walletAddress = this.wallet.firstAccount.address;
 
-		properties.set('rujira.gasPrice', GasPrice.fromString(`0.02${properties.getAs<string>('rujira.constants.tokens.feePayment.symbol').toLowerCase()}`));
+		const gasPrice = await this.getGasPrice();
+
+		properties.set('rujira.gasPrice', gasPrice);
 
 		this.cosmClient = await this.signingCosmWasmClientConnectWithSigner(
 			properties.getAs<URL>('rujira.endpoints.rpc'),
@@ -212,10 +214,37 @@ export class Rujira {
 
 		await this.fin.initialize(
 			{
+				parent: this,
 				wallet: this.wallet,
 				cosmClient: this.cosmClient
 			} as FinInitializeOptions
 		);
+	}
+
+	/**
+	 * Get the gas price
+	 * @returns The gas price
+	 */
+	public async getGasPrice(): Promise<GasPrice> {
+		const thorChainConfiguration = await this.getThorChainConfiguration();
+
+		const thorChainConfigurationKey = properties.getAs<string>('rujira.constants.tokens.feePayment.thorChainConfigurationKey');
+
+		let gasPriceString = thorChainConfiguration[thorChainConfigurationKey];
+
+		if (!gasPriceString) {
+			gasPriceString = properties.getAs<GasPrice>('rujira.default.network.gasPrice');
+		}
+
+		if (!gasPriceString) {
+			throw new Error('No gas price found');
+		}
+
+		const denom = properties.getAs<string>('rujira.constants.tokens.feePayment.symbol').toLowerCase().replace(/thor[.-]/, '');
+
+		const gasPrice = GasPrice.fromString(`${gasPriceString}${denom}`);
+
+		return gasPrice;
 	}
 
 	/**
@@ -270,6 +299,234 @@ export class Rujira {
 	}
 
 	/**
+	 * Get the ThorChain configuration
+	 * @returns The ThorChain configuration
+	 */
+	@runWithRetryAndTimeout()
+	@Cacheable({
+		cacheKey: () => `getThorChainConfiguration()`,
+		ttlSeconds: properties.getAs<number>('rujira.cache.rujira.getThorChainConfiguration'),
+	})
+	private async getThorChainConfiguration(): Promise<any> {
+		const response = await this.fetch(`${properties.getAs<URL>('rujira.endpoints.rest')}/thorchain/mimir`);
+
+		/*
+			Example response:
+				{
+					"ADD-CHAIN-BASE": 1,
+					"ADD-CHAIN-XRP": 1,
+					"ADR012": 1,
+					"ADR18": 1,
+					"ASGARDSIZE": 20,
+					"ATTESTATIONMAXBATCHSIZE": 200,
+					"ATTESTATIONPEERCONCURRENTRECEIVES": 9,
+					"ATTESTATIONPEERCONCURRENTSENDS": 8,
+					"BADVALIDATORREDLINE": 20,
+					"BANKSENDENABLED": 1,
+					"BURNSYNTHS": 1,
+					"CHURNINTERVAL": 43200,
+					"CHURNMIGRATEROUNDS": 2,
+					"CLOUTLIMIT": 5000000000000,
+					"DEPRECATEILP": 1,
+					"DERIVEDDEPTHBASISPTS": 10000,
+					"DERIVEDMINDEPTH": 1000,
+					"DERIVEDSLIPMINBPS": 15,
+					"DESIREDVALIDATORSET": 120,
+					"DYNAMICMAXANCHORTARGET": 9500,
+					"EMISSIONCURVE": 100000,
+					"ENABLEAVAXCHAIN": 1,
+					"ENABLEBSC": 1,
+					"ENABLESAVINGSVAULTS": 1,
+					"ENABLESWITCH-GAIA-AUTO": 1,
+					"ENABLESWITCH-GAIA-FUZN": 1,
+					"ENABLESWITCH-GAIA-KUJI": 1,
+					"ENABLESWITCH-GAIA-LQDY": 1,
+					"ENABLESWITCH-GAIA-LVN": 1,
+					"ENABLESWITCH-GAIA-NAMI": 1,
+					"ENABLESWITCH-GAIA-NSTK": 1,
+					"ENABLESWITCH-GAIA-RKUJI": 1,
+					"ENABLESWITCH-GAIA-WINK": 1,
+					"EVMDISABLECONTRACTWHITELIST": 1,
+					"FULLIMPLOSSPROTECTIONBLOCKS": 0,
+					"FUNDMIGRATIONINTERVAL": 720,
+					"HALTAVAXCHAIN": 0,
+					"HALTAVAXTRADING": 0,
+					"HALTBASETRADING": 0,
+					"HALTBCHCHAIN": 0,
+					"HALTBCHTRADING": 0,
+					"HALTBSCCHAIN": 0,
+					"HALTBSCTRADING": 0,
+					"HALTBTCCHAIN": 0,
+					"HALTBTCTRADING": 0,
+					"HALTCHAINGLOBAL": 0,
+					"HALTCHURNING": 0,
+					"HALTDOGECHAIN": 0,
+					"HALTDOGETRADING": 0,
+					"HALTETHCHAIN": 0,
+					"HALTETHSIGNING": 1,
+					"HALTETHTRADING": 0,
+					"HALTGAIACHAIN": 0,
+					"HALTGAIATRADING": 0,
+					"HALTLTCCHAIN": 0,
+					"HALTLTCTRADING": 0,
+					"HALTRADING": 1,
+					"HALTSIGNING": 0,
+					"HALTSIGNINGAVAX": 0,
+					"HALTSIGNINGBCH": 0,
+					"HALTSIGNINGBSC": 0,
+					"HALTSIGNINGBTC": 0,
+					"HALTSIGNINGDOGE": 0,
+					"HALTSIGNINGETH": 0,
+					"HALTSIGNINGGAIA": 0,
+					"HALTSIGNINGLTC": 0,
+					"HALTSIGNINGXRP": 0,
+					"HALTTCYTRADING": 0,
+					"HALTTHORCHAIN": 0,
+					"HALTTRADING": 0,
+					"HALTXRPCHAIN": 0,
+					"HALTXRPTRADING": 0,
+					"ILPCUTOFF": 9450000,
+					"KEYGENRETRYINTERVAL": 100,
+					"KILLSWITCHSTART": 6500000,
+					"L1SLIPMINBPS": 5,
+					"LENDING-THOR-BTC": 0,
+					"LENDING-THOR-ETH": 0,
+					"LENDINGLEVER": 3333,
+					"LIQUIDITYLOCKUPBLOCKS": 600,
+					"LOANREPAYMENTMATURITY": 432000,
+					"LOANSTREAMINGSWAPSINTERVAL": 1,
+					"MANUALSWAPSTOSYNTHDISABLED": 1,
+					"MAXANCHORBLOCKS": 300,
+					"MAXANCHORSLIP": 72000,
+					"MAXBONDPROVIDERS": 100,
+					"MAXCONFIRMATIONS-BCH": 3,
+					"MAXCONFIRMATIONS-BTC": 2,
+					"MAXCONFIRMATIONS-DOGE": 15,
+					"MAXCONFIRMATIONS-ETH": 14,
+					"MAXCONFIRMATIONS-LTC": 6,
+					"MAXCR": 20000,
+					"MAXIMUMLIQUIDITYRUNE": 50000000000000000,
+					"MAXNODETOCHURNOUTFORLOWVERSION": 3,
+					"MAXOUTBOUNDATTEMPTS": 10000,
+					"MAXOUTBOUNDFEEMULTIPLIERBASISPOINTS": 30000,
+					"MAXRUNESUPPLY": 49915291999331106,
+					"MAXSYNTHPERPOOLDEPTH": 6000,
+					"MAXSYNTHSFORSAVERSYIELD": 0,
+					"MAXTXOUTOFFSET": 450,
+					"MAXUTXOSTOSPEND": 10,
+					"MINCR": 20000,
+					"MINIMUMBONDINRUNE": 30000000000000,
+					"MINIMUML1OUTBOUNDFEEUSD": 100000000,
+					"MINOUTBOUNDFEEMULTIPLIERBASISPOINTS": 1000,
+					"MINRUNEPOOLDEPTH": 1000000000000,
+					"MINTSYNTHS": 1,
+					"MINTXOUTVOLUMETHRESHOLD": 1000000000000,
+					"NODEOPERATORFEE": 0,
+					"NODEPAUSECHAINGLOBAL": 22142824,
+					"NUMBEROFNEWNODESPERCHURN": 4,
+					"OBSERVATIONDELAYFLEXIBILITY": 20,
+					"PAUSELOANS": 1,
+					"PAUSELP": 0,
+					"PAUSELPAVAX": 0,
+					"PAUSELPBCH": 0,
+					"PAUSELPBSC": 0,
+					"PAUSELPBTC": 0,
+					"PAUSELPDEPOSIT-AVAX-AVAX": 1,
+					"PAUSELPDEPOSIT-BCH-BCH": 1,
+					"PAUSELPDEPOSIT-BSC-BNB": 1,
+					"PAUSELPDEPOSIT-BTC-BTC": 1,
+					"PAUSELPDEPOSIT-DOGE-DOGE": 1,
+					"PAUSELPDEPOSIT-ETH-ETH": 1,
+					"PAUSELPDEPOSIT-ETH-FLIP-0X826180541412D574CF1336D22C0C0A287822678A": 1,
+					"PAUSELPDEPOSIT-ETH-TGT-0X108A850856DB3F85D0269A2693D896B394C80325": 1,
+					"PAUSELPDEPOSIT-ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48": 1,
+					"PAUSELPDEPOSIT-ETH-USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7": 1,
+					"PAUSELPDEPOSIT-GAIA-ATOM": 1,
+					"PAUSELPDEPOSIT-LTC-LTC": 1,
+					"PAUSELPDOGE": 0,
+					"PAUSELPETH": 0,
+					"PAUSELPGAIA": 0,
+					"PAUSELPLTC": 0,
+					"PAUSEUNBOND": 0,
+					"PENDINGLIQUIDITYAGELIMIT": 100800,
+					"PENDULUMUSEEFFECTIVESECURITY": 1,
+					"POL-AVAX-AVAX": 1,
+					"POL-AVAX-USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E": 1,
+					"POL-BCH-BCH": 1,
+					"POL-BSC-BNB": 1,
+					"POL-BSC-USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D": 1,
+					"POL-BTC-BTC": 1,
+					"POL-DOGE-DOGE": 1,
+					"POL-ETH-DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F": 1,
+					"POL-ETH-ETH": 1,
+					"POL-ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48": 1,
+					"POL-ETH-USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7": 1,
+					"POL-GAIA-ATOM": 1,
+					"POL-LTC-LTC": 1,
+					"POLBUFFER": 2000,
+					"POLMAXNETWORKDEPOSIT": 600000000000000,
+					"POLMAXPOOLMOVEMENT": 10,
+					"POLTARGETSYNTHPERPOOLDEPTH": 3000,
+					"POOLCYCLE": 43200,
+					"PREFERREDASSETOUTBOUNDFEEMULTIPLIER": 200,
+					"PROPOSAL6": 1,
+					"PROTOCOLAFFILIATEFEEBASISPOINTS": 1200,
+					"RESCHEDULECOALESCEBLOCKS": 20,
+					"RUNEPOOLDEPOSITMATURITYBLOCKS": 432000,
+					"RUNEPOOLENABLED": 1,
+					"SAVERSSTREAMINGSWAPSINTERVAL": 1,
+					"SIGNERCONCURRENCY": 20,
+					"SLASHPENALTY": 20000,
+					"SOLVENCYHALTAVAXCHAIN": 0,
+					"SOLVENCYHALTBCHCHAIN": 0,
+					"SOLVENCYHALTBSCCHAIN": 0,
+					"SOLVENCYHALTBTCCHAIN": 0,
+					"SOLVENCYHALTDOGECHAIN": 0,
+					"SOLVENCYHALTETHCHAIN": 0,
+					"SOLVENCYHALTGAIACHAIN": 0,
+					"SOLVENCYHALTXRPCHAIN": 0,
+					"STOPSOLVENCYCHECK": 0,
+					"STOPSOLVENCYCHECKAVAX": 0,
+					"STOPSOLVENCYCHECKBSC": 0,
+					"STOPSOLVENCYCHECKBTC": 0,
+					"STOPSOLVENCYCHECKDOGE": 0,
+					"STOPSOLVENCYCHECKETH": 0,
+					"STOPSOLVENCYCHECKGAIA": 0,
+					"STREAMINGSWAPMAXLENGTH": 14400,
+					"STREAMINGSWAPMAXLENGTHNATIVE": 14400,
+					"STREAMINGSWAPMINBPFEE": 5,
+					"SYNTHSLIPMINBPS": 15,
+					"SYNTHYIELDBASISPOINTS": 0,
+					"SYSTEMINCOMEBURNRATEBPS": 500,
+					"TARGETOUTBOUNDFEESURPLUSRUNE": 5000000000000,
+					"TCYCLAIMINGHALT": 0,
+					"TCYCLAIMINGSWAPHALT": 0,
+					"TCYSTAKEDISTRIBUTIONHALT": 0,
+					"TCYSTAKINGHALT": 0,
+					"TCYUNSTAKINGHALT": 0,
+					"THORNAMES": 1,
+					"TORANCHOR-AVAX-USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E": 1,
+					"TORANCHOR-AVAX-USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7": 1,
+					"TORANCHOR-BSC-USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D": 1,
+					"TORANCHOR-ETH-DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F": 1,
+					"TORANCHOR-ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48": 1,
+					"TORANCHOR-ETH-USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7": 1,
+					"TRADEACCOUNTSENABLED": 1,
+					"TRADEACCOUNTSSLIPMINBPS": 5,
+					"TVLCAPBASISPOINTS": 10000,
+					"TXOUTDELAYRATE": 50000000000,
+					"VIRTUALMULTSYNTHS": 1,
+					"VOTEDOFM": 1,
+					"VOTELENDING": 1,
+					"VOTEMAXSYNTHSFORSAVERSYIELD": 1
+				}
+		*/
+		const data = await response.json();
+
+		return data;
+	}
+
+	/**
 	 * Get the accounts from a direct secp256k1 wallet
 	 * @param wallet - The wallet to get the accounts from
 	 * @returns The accounts
@@ -312,12 +569,66 @@ export class Rujira {
 	private async directSecp256k1WalletFromKeyfromKey(privkey: Uint8Array, prefix?: string): Promise<DirectSecp256k1Wallet> {
 		return DirectSecp256k1Wallet.fromKey(privkey, prefix);
 	}
+
+	/**
+	 * Fetch a resource
+	 * @param input - The input to fetch
+	 * @param init - The init to fetch
+	 * @returns The response
+	 */
+	@runWithRetryAndTimeout()
+	public async fetch(
+		input: string | URL | globalThis.Request,
+		init?: RequestInit,
+	): Promise<Response> {
+		return fetch(input, init);
+	}
+
+	/**
+	 * Execute a message on the cosm client
+	 * @param senderAddress - The address of the sender
+	 * @param contractAddress - The address of the contract
+	 * @param msg - The message to execute
+	 * @param fee - The fee to pay
+	 * @param memo - The memo to add to the transaction
+	 * @param funds - The funds to transfer
+	 * @returns The result of the execution
+	 */
+	@runWithRetryAndTimeout()
+	public async cosmClientExecute(senderAddress: string, contractAddress: string, msg: JsonObject, fee: StdFee | "auto" | number, memo?: string, funds?: readonly Coin[]): Promise<ExecuteResult> {
+		return this.cosmClient.execute(senderAddress, contractAddress, msg, fee, memo, funds);
+	}
+
+	/**
+	 * Query a contract on the cosm client
+	 * @param contractAddress - The address of the contract
+	 * @param queryMsg - The query message
+	 * @returns The result of the query
+	 */
+	@runWithRetryAndTimeout()
+	public async cosmClientQueryContractSmart(contractAddress: string, queryMsg: JsonObject): Promise<JsonObject> {
+		return this.cosmClient.queryContractSmart(contractAddress, queryMsg);
+	}
+
+	/**
+	 * Get the height of the cosm client
+	 * @returns The height
+	 */
+	@runWithRetryAndTimeout()
+	public async cosmClientGetHeight(): Promise<number> {
+		return this.cosmClient.getHeight();
+	}
 }
 
 /**
  * Fin client
  */
 export class Fin {
+	/**
+	 * Parent
+	 */
+	private parent: Rujira;
+
 	/**
 	 * Wallet
 	 */
@@ -368,6 +679,8 @@ export class Fin {
 	 * @param options - The constructor options
 	 */
 	constructor(options: FinConstructorOptions) {
+		this.parent = undefined as unknown as Rujira;
+
 		this.wallet = undefined as unknown as Wallet;
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 
@@ -382,32 +695,11 @@ export class Fin {
 	}
 
 	/**
-	 * Get wallet address
-	 * @param walletAddress - The wallet address
-	 * @param wallet - The wallet
-	 * @returns The wallet address
-	 */
-	private getWalletAddress(walletAddress?: WalletAddress, wallet?: Wallet): WalletAddress {
-		if (walletAddress) {
-			return walletAddress.trim().toLowerCase();
-		}
-
-		if (wallet) {
-			return wallet.firstAccount.address.trim().toLowerCase();
-		}
-
-		if (this.wallet.firstAccount) {
-			return this.wallet.firstAccount.address.trim().toLowerCase();
-		}
-
-		throw new Error('No wallet address provided');
-	}
-
-	/**
 	 * Initialize the client
 	 * @param options - The initialize options
 	 */
 	async initialize(options: FinInitializeOptions): Promise<void> {
+		this.parent = options.parent;
 		this.wallet = options.wallet;
 		this.cosmClient = options.cosmClient;
 
@@ -439,7 +731,7 @@ export class Fin {
 			}
 
 			// Try to get chain height to verify connection
-			await this.cosmClientGetHeight;
+			await this.parent.cosmClientGetHeight();
 
 			return {
 				status: SystemStatus.UP
@@ -478,7 +770,7 @@ export class Fin {
 
 		const url = `${properties.getAs<URL>('rujira.endpoints.rest')}/cosmos/tx/v1beta1/txs/${hash}`;
 		// TODO: add a example response!!!
-		const response = await this.fetch(url, {
+		const response = await this.parent.fetch(url, {
 			method: 'GET',
 			headers: { 'Content-Type': 'application/json' }
 		});
@@ -952,7 +1244,7 @@ export class Fin {
 				}
 			}`;
 
-		const response = await this.fetch(graphQLEndPoint, {
+		const response = await this.parent.fetch(graphQLEndPoint, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ query })
@@ -1046,7 +1338,7 @@ export class Fin {
 
 		// TODO: add an example response!!!
 		// TODO: add an interface for the response!!!
-		const rawOrderBook = await this.cosmClientQueryContractSmart(
+		const rawOrderBook = await this.parent.cosmClientQueryContractSmart(
 			market.address,
 			{
 				book: {
@@ -1173,7 +1465,7 @@ export class Fin {
 		const after = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
 		// TODO: add a example response!!!
-		const response = await this.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
+		const response = await this.parent.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -1292,7 +1584,7 @@ export class Fin {
 		}
 
 		const freeBalances = MMap<TokenAddress, Amount>();
-		const freeBalanceResponse = await this.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
+		const freeBalanceResponse = await this.parent.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
 		if (freeBalanceResponse.ok) {
 			/*
 			Example response:
@@ -1350,7 +1642,7 @@ export class Fin {
 					]
 				}
 			*/
-			const ordersResponse = await this.cosmClientQueryContractSmart(
+			const ordersResponse = await this.parent.cosmClientQueryContractSmart(
 				market.address,
 				{
 					orders: {
@@ -1626,7 +1918,7 @@ export class Fin {
 			}
 		};
 
-		const result = await this.cosmClientQueryContractSmart(market.address, query);
+		const result = await this.parent.cosmClientQueryContractSmart(market.address, query);
 		// Example response:
 		// 	{
 		// 		"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
@@ -1990,6 +2282,33 @@ export class Fin {
 		return result;
 	}
 
+	/**
+	 * Get wallet address
+	 * @param walletAddress - The wallet address
+	 * @param wallet - The wallet
+	 * @returns The wallet address
+	 */
+	private getWalletAddress(walletAddress?: WalletAddress, wallet?: Wallet): WalletAddress {
+		if (walletAddress) {
+			return walletAddress.trim().toLowerCase();
+		}
+
+		if (wallet) {
+			return wallet.firstAccount.address.trim().toLowerCase();
+		}
+
+		if (this.wallet.firstAccount) {
+			return this.wallet.firstAccount.address.trim().toLowerCase();
+		}
+
+		throw new Error('No wallet address provided');
+	}
+
+	/**
+	 * Get the order id
+	 * @param options - The options
+	 * @returns The order id
+	 */
 	private getOrderId(options: {
 		ownerAddress?: WalletAddress;
 		market?: Market;
@@ -2019,55 +2338,6 @@ export class Fin {
 		}
 
 		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice}`;
-	}
-
-	/**
-	 * Fetch a resource
-	 * @param input - The input to fetch
-	 * @param init - The init to fetch
-	 * @returns The response
-	 */
-	@runWithRetryAndTimeout()
-	private async fetch(
-		input: string | URL | globalThis.Request,
-		init?: RequestInit,
-	): Promise<Response> {
-		return fetch(input, init);
-	}
-
-	/**
-	 * Execute a message on the cosm client
-	 * @param senderAddress - The address of the sender
-	 * @param contractAddress - The address of the contract
-	 * @param msg - The message to execute
-	 * @param fee - The fee to pay
-	 * @param memo - The memo to add to the transaction
-	 * @param funds - The funds to transfer
-	 * @returns The result of the execution
-	 */
-	@runWithRetryAndTimeout()
-	private async cosmClientExecute(senderAddress: string, contractAddress: string, msg: JsonObject, fee: StdFee | "auto" | number, memo?: string, funds?: readonly Coin[]): Promise<ExecuteResult> {
-		return this.cosmClient.execute(senderAddress, contractAddress, msg, fee, memo, funds);
-	}
-
-	/**
-	 * Query a contract on the cosm client
-	 * @param contractAddress - The address of the contract
-	 * @param queryMsg - The query message
-	 * @returns The result of the query
-	 */
-	@runWithRetryAndTimeout()
-	private async cosmClientQueryContractSmart(contractAddress: string, queryMsg: JsonObject): Promise<JsonObject> {
-		return this.cosmClient.queryContractSmart(contractAddress, queryMsg);
-	}
-
-	/**
-	 * Get the height of the cosm client
-	 * @returns The height
-	 */
-	@runWithRetryAndTimeout()
-	private async cosmClientGetHeight(): Promise<number> {
-		return this.cosmClient.getHeight();
 	}
 
 	/**
