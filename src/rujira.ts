@@ -1674,7 +1674,8 @@ export class Fin {
 				id: this.getOrderId({
 					ownerAddress,
 					owner,
-					marketSymbol: market.symbol,
+					baseTokenSymbol: market.tokens.base.symbol,
+					quoteTokenSymbol: market.tokens.quote.symbol,
 					orderType: type,
 					orderSide: side,
 					orderPrice: price
@@ -2000,13 +2001,14 @@ export class Fin {
 	private getOrderId(options: {
 		ownerAddress?: WalletAddress;
 		owner?: Wallet;
-		marketSymbol?: MarketSymbol;
+		baseTokenSymbol?: TokenSymbol;
+		quoteTokenSymbol?: TokenSymbol;
 		orderType?: OrderType;
 		orderSide?: OrderSide;
 		orderPrice?: Decimal;
 		order?: Order;
 	}): OrderId {
-		let { ownerAddress, owner, marketSymbol, orderType, orderSide, orderPrice, order } = options;
+		let { ownerAddress, owner, baseTokenSymbol, quoteTokenSymbol, orderType, orderSide, orderPrice, order } = options;
 
 		if (!ownerAddress) {
 			ownerAddress = getOrThrow<Wallet>(owner).firstAccount.address;
@@ -2024,7 +2026,7 @@ export class Fin {
 			orderPrice = getOrThrow<Order>(order).price;
 		}
 
-		return `${ownerAddress}-${marketSymbol}-${orderType}-${orderSide}-${orderPrice}`;
+		return `${ownerAddress}_${baseTokenSymbol}_${quoteTokenSymbol}_${orderType}_${orderSide}_${orderPrice}`;
 	}
 
 	/**
@@ -2234,7 +2236,8 @@ export class Fin {
 			orders.place.forEach((order: FinPlaceOrderRequest) => {
 				const orderId = this.getOrderId({
 					ownerAddress,
-					marketSymbol: market.symbol,
+					baseTokenSymbol: market.tokens.base.symbol,
+					quoteTokenSymbol: market.tokens.quote.symbol,
 					orderType: order.type,
 					orderSide: order.side,
 					orderPrice: order.price
@@ -2276,7 +2279,8 @@ export class Fin {
 			orders.replace.forEach((order: FinReplaceOrderRequest) => {
 				const orderId = this.getOrderId({
 					ownerAddress,
-					marketSymbol: market.symbol,
+					baseTokenSymbol: market.tokens.base.symbol,
+					quoteTokenSymbol: market.tokens.quote.symbol,
 					orderType: order.type,
 					orderSide: order.side,
 					orderPrice: order.price
