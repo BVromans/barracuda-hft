@@ -1606,7 +1606,7 @@ export class Fin {
 			tokens = tokens.filter((token: Token) => tokenAddresses.includes(token.address) || tokenSymbols.includes(token.symbol));
 		}
 
-		const freeBalances = MMap<TokenAddress, Amount>();
+		const freeBalances = MMap<TokenSymbol, Amount>();
 		const freeBalanceResponse = await this.parent.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
 		if (freeBalanceResponse.ok) {
 			/*
@@ -1636,14 +1636,17 @@ export class Fin {
 			};
 
 			for (const rawBalance of freeBalanceResponseData.balances) {
-				const token = await this.getToken({ address: rawBalance.denom });
-
-				freeBalances.set(token.address, Decimal(rawBalance.amount));
+				try {
+					const token = await this.getToken({ address: rawBalance.denom });
+					freeBalances.set(token.symbol, Decimal(rawBalance.amount), true);
+				} catch (exception: any) {
+					ignoreException(exception, `Balance token ${rawBalance.denom} not found, ignoring this balance.`);
+				}
 			}
 		}
 
-		const lockedInOrdersMap = MMap<TokenAddress, Amount>();
-		const withdrawableMap = MMap<TokenAddress, Amount>();
+		const lockedInOrdersMap = MMap<TokenSymbol, Amount>();
+		const withdrawableMap = MMap<TokenSymbol, Amount>();
 
 		for (const market of markets.values()) {
 			/*
@@ -1689,27 +1692,27 @@ export class Fin {
 			};
 
 			for (const rawOrder of ordersResponse.orders) {
-				const baseTokenAddress = market.tokens.base.address;
-				const quoteTokenAddress = market.tokens.quote.address;
+				const baseTokenSymbol = market.tokens.base.symbol;
+				const quoteTokenSymbol = market.tokens.quote.symbol;
 
 				if (rawOrder.filled && Number(rawOrder.filled) > 0) {
 					// TODO: check if this is correct!!!
-					const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
-					lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.getOrThrow(lockedTokenAddress, DECIMAL_0)).plus(Decimal(rawOrder.filled)));
+					const lockedTokenSymbol = rawOrder.side === 'base' ? baseTokenSymbol : quoteTokenSymbol;
+					lockedInOrdersMap.get(lockedTokenSymbol, (lockedInOrdersMap.getOrThrow(lockedTokenSymbol, DECIMAL_0)).plus(Decimal(rawOrder.filled)));
 				}
 				if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
 					// TODO: check if this is correct!!!
-					const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // note that it's the opposite asset
-					withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.getOrThrow(withdrawTokenAddress, DECIMAL_0)).plus(Decimal(rawOrder.filled)));
+					const withdrawTokenSymbol = rawOrder.side === 'base' ? quoteTokenSymbol : baseTokenSymbol; // note that it's the opposite asset
+					withdrawableMap.set(withdrawTokenSymbol, (withdrawableMap.getOrThrow(withdrawTokenSymbol, DECIMAL_0)).plus(Decimal(rawOrder.filled)), true);
 				}
 			}
 		}
 
-		const tokensBalancesMap = MMap<TokenAddress, TokenBalance>();
+		const tokensBalancesMap = MMap<TokenSymbol, TokenBalance>();
 		for (const token of tokens.values()) {
-			const free = freeBalances.getOrThrow(token.address, DECIMAL_0);
-			const lockedInOrders = lockedInOrdersMap.getOrThrow(token.address, DECIMAL_0);
-			const withdrawable = withdrawableMap.getOrThrow(token.address, DECIMAL_0);
+			const free = freeBalances.getOrThrow(token.symbol, DECIMAL_0);
+			const lockedInOrders = lockedInOrdersMap.getOrThrow(token.symbol, DECIMAL_0);
+			const withdrawable = withdrawableMap.getOrThrow(token.symbol, DECIMAL_0);
 			const lockedInPools = DECIMAL_0; // Not implemented
 			const total = free.plus(lockedInOrders).plus(lockedInPools).plus(withdrawable);
 
@@ -1722,26 +1725,26 @@ export class Fin {
 			};
 
 			let conversionRateNativeToken: TickerPrice = DECIMAL_0;
-			if (token.address !== this.nativeToken.address) {
+			if (token.symbol !== this.nativeToken.symbol) {
 				try {
 					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` });
 
 					conversionRateNativeToken = quotingMarketTicker.middlePrice.baseToQuote || DECIMAL_0;
 				} catch (exception) {
-					ignoreException(exception);
+					ignoreException(exception, `Conversion rate for token ${token.symbol} to native token not found, ignoring this conversion rate.`);
 				}
 			} else {
 				conversionRateNativeToken = DECIMAL_1;
 			}
 
 			let conversionRateUSD: TickerPrice = DECIMAL_0;
-			if (token.address !== this.usdToken.address) {
+			if (token.symbol !== this.usdToken.symbol) {
 				try {
 					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` });
 
 					conversionRateUSD = quotingMarketTicker.middlePrice.baseToQuote || DECIMAL_0;
 				} catch (exception) {
-					ignoreException(exception);
+					ignoreException(exception, `Conversion rate for token ${token.symbol} to USD not found, ignoring this conversion rate.`);
 				}
 			} else {
 				conversionRateUSD = DECIMAL_1;
@@ -1770,26 +1773,30 @@ export class Fin {
 				usdToken: baseBalanceWithUSDQuotation
 			};
 
-			tokensBalancesMap.set(token.address, {
-				token,
-				balances: baseTokenBalance
-			});
+			tokensBalancesMap.set(
+				token.symbol,
+				{
+					token,
+					balances: baseTokenBalance
+				},
+				true
+			);
 		}
 
 		const totalNative: BaseBalance = {
-			free: freeBalances.getOrThrow(this.nativeToken.address, DECIMAL_0),
-			lockedInOrders: lockedInOrdersMap.getOrThrow(this.nativeToken.address, DECIMAL_0),
+			free: freeBalances.getOrThrow(this.nativeToken.symbol, DECIMAL_0),
+			lockedInOrders: lockedInOrdersMap.getOrThrow(this.nativeToken.symbol, DECIMAL_0),
 			lockedInPools: DECIMAL_0,
-			withdrawable: withdrawableMap.getOrThrow(this.nativeToken.address, DECIMAL_0),
-			total: freeBalances.getOrThrow(this.nativeToken.address, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.nativeToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.nativeToken.address, DECIMAL_0))
+			withdrawable: withdrawableMap.getOrThrow(this.nativeToken.symbol, DECIMAL_0),
+			total: freeBalances.getOrThrow(this.nativeToken.symbol, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.nativeToken.symbol, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.nativeToken.symbol, DECIMAL_0))
 		};
 
 		const totalUSD: BaseBalance = {
-			free: freeBalances.getOrThrow(this.usdToken.address, DECIMAL_0),
-			lockedInOrders: lockedInOrdersMap.getOrThrow(this.usdToken.address, DECIMAL_0),
+			free: freeBalances.getOrThrow(this.usdToken.symbol, DECIMAL_0),
+			lockedInOrders: lockedInOrdersMap.getOrThrow(this.usdToken.symbol, DECIMAL_0),
 			lockedInPools: DECIMAL_0,
-			withdrawable: withdrawableMap.getOrThrow(this.usdToken.address, DECIMAL_0),
-			total: freeBalances.getOrThrow(this.usdToken.address, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.usdToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.usdToken.address, DECIMAL_0))
+			withdrawable: withdrawableMap.getOrThrow(this.usdToken.symbol, DECIMAL_0),
+			total: freeBalances.getOrThrow(this.usdToken.symbol, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.usdToken.symbol, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.usdToken.symbol, DECIMAL_0))
 		};
 
 		const balances: Balances = {
@@ -2803,10 +2810,10 @@ export class Fin {
  * Ignore an exception
  * @param exception - The exception to ignore
  */
-const ignoreException = (exception: any): void => {
-	let message = 'Ignored exception: ';
+const ignoreException = (exception: any, message?: string): void => {
+	message = message || 'Ignored exception: ';
 	if (exception instanceof Error) {
-		message += exception.message;
+		message += `\n${exception.message}\n${exception.stack}`;
 	} else {
 		message += exception;
 	}
