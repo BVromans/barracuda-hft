@@ -970,13 +970,20 @@ export class Indicator {
 		[14, 3]
 	);
 
+	/**
+	 * Stochastic RSI
+	 * RSI Length: 14
+	 * Stochastic Length: 14
+	 * %K: 3
+	 * %D: 3
+	 */
 	static stochastic_rsi = new Indicator(
 		"stochrsi",
 		"Stochastic RSI",
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[14, 14]
+		[14, 14, 3, 3] // [RSI Length, Stochastic Length, %K, %D]
 	);
 
 	static sum_over_period = new Indicator(
@@ -985,7 +992,7 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[14, 14]
+		[14]
 	);
 
 	static triple_exponential_moving_average = new Indicator(
@@ -1531,11 +1538,11 @@ export class Indicator {
 			// Indicator.standard_deviation_over_period, ok
 			// Indicator.standard_error_over_period, ok
 			// Indicator.stochastic_momentum_index, NaN
-			Indicator.stochastic_oscillator,
-			// Indicator.stochastic_rsi,
-			// Indicator.sum_over_period,
-			// Indicator.time_series_forecast,
-			// Indicator.triangular_moving_average,
+			// Indicator.stochastic_oscillator, []
+			// Indicator.stochastic_rsi, []
+			// Indicator.sum_over_period, ok
+			// Indicator.time_series_forecast, ok
+			// Indicator.triangular_moving_average, ok
 			// Indicator.trix,
 			// Indicator.true_range,
 			// Indicator.true_strength_index,
