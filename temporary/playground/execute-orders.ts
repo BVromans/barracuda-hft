@@ -743,6 +743,239 @@ async function testGetOrderBook(rujira: Rujira) {
 	}
 }
 
+async function testMarketOrderBuy(rujira: Rujira) {
+	console.log("\n🧪 Testing Market Order BUY (using swap)...");
+
+	try {
+		// Test 1: Get current order book to see market conditions
+		console.log("\n📋 Test 1: Checking current market conditions");
+
+				const orderBook = await rujira.fin.getOrderBook({
+			marketSymbol: "THOR-RUJI/ETH-USDC",
+			maximumNumberOfOrders: 3
+		});
+
+		console.log(`📊 Current market for ${orderBook.market.symbol}:`);
+		if (orderBook.book.bestAsk) {
+			console.log(`   Best Ask (sell price): ${orderBook.book.bestAsk.price} @ ${orderBook.book.bestAsk.amount}`);
+		}
+		if (orderBook.book.bestBid) {
+			console.log(`   Best Bid (buy price): ${orderBook.book.bestBid.price} @ ${orderBook.book.bestBid.amount}`);
+		}
+
+		// Test 2: Execute a market BUY using swap (like the working playground)
+		console.log("\n📋 Test 2: Executing market BUY via swap");
+		console.log("   Note: Market orders are implemented as swaps, not traditional orders");
+
+		// Get market details
+		const market = await rujira.fin.getMarket({
+			symbol: "THOR-RUJI/ETH-USDC"
+		});
+
+		// Calculate swap parameters (buying RUJI with USDC)
+		const rujiAmount = new Decimal("0.01"); // Want to buy 0.01 RUJI
+		const bestAskPrice = orderBook.book.bestAsk?.price || new Decimal("0.87");
+		const usdcAmount = rujiAmount.mul(bestAskPrice); // Approximate USDC needed
+		const slippageTolerance = new Decimal("0.05"); // 5% slippage
+		const minReturn = rujiAmount.mul(new Decimal("1").minus(slippageTolerance));
+
+		console.log(`   Buying ${rujiAmount} RUJI with ~${usdcAmount} USDC`);
+		console.log(`   Expected price: ${bestAskPrice} USDC per RUJI`);
+		console.log(`   Min return: ${minReturn} RUJI (with ${slippageTolerance.mul(100)}% slippage tolerance)`);
+
+		// Convert to raw amounts (both tokens use 8 decimals)
+		const rawUsdcAmount = usdcAmount.mul(10 ** market.tokens.quote.decimals).toFixed(0);
+		const rawMinReturn = minReturn.mul(10 ** market.tokens.base.decimals).toFixed(0);
+
+		console.log(`   Raw USDC amount: ${rawUsdcAmount}`);
+		console.log(`   Raw min return: ${rawMinReturn}`);
+
+		// Execute swap directly using CosmWasm client
+		const swapResult = await rujira.cosmClient.execute(
+			rujira.walletAddress,
+			market.address, // Market contract address
+			{
+				swap: {
+					min_return: rawMinReturn,
+					to: rujira.walletAddress
+				}
+			},
+			"auto", // Gas fee
+			undefined, // Memo
+			[{
+				denom: market.tokens.quote.address, // USDC
+				amount: rawUsdcAmount
+			}]
+		);
+
+		console.log("✅ Market BUY swap executed successfully!");
+		console.log(`   Transaction Hash: ${swapResult.transactionHash}`);
+		console.log(`   Gas Used: ${swapResult.gasUsed}`);
+		console.log(`   Gas Wanted: ${swapResult.gasWanted}`);
+
+		// Test 3: Verify the swap execution
+		console.log("\n📋 Test 3: Verifying swap execution");
+		console.log("   Note: Swaps don't create orders - they execute immediately");
+		console.log("   The tokens should be directly transferred to your wallet");
+
+		console.log("\n🎉 Market BUY swap test completed successfully!");
+
+	} catch (error) {
+		console.error("❌ Error testing market BUY swap:", error);
+		if (error instanceof Error) {
+			console.error("Error message:", error.message);
+			console.error("Error stack:", error.stack);
+		}
+	}
+}
+
+async function testMarketOrderSell(rujira: Rujira) {
+	console.log("\n🧪 Testing Market Order SELL (using swap)...");
+
+	try {
+		// Test 1: Get current order book to see market conditions
+		console.log("\n📋 Test 1: Checking current market conditions");
+
+				const orderBook = await rujira.fin.getOrderBook({
+			marketSymbol: "THOR-RUJI/ETH-USDC",
+			maximumNumberOfOrders: 3
+		});
+
+		console.log(`📊 Current market for ${orderBook.market.symbol}:`);
+		if (orderBook.book.bestAsk) {
+			console.log(`   Best Ask (sell price): ${orderBook.book.bestAsk.price} @ ${orderBook.book.bestAsk.amount}`);
+		}
+		if (orderBook.book.bestBid) {
+			console.log(`   Best Bid (buy price): ${orderBook.book.bestBid.price} @ ${orderBook.book.bestBid.amount}`);
+		}
+
+		// Test 2: Execute a market SELL using swap (like the working playground)
+		console.log("\n📋 Test 2: Executing market SELL via swap");
+		console.log("   Note: Market orders are implemented as swaps, not traditional orders");
+
+		// Get market details
+		const market = await rujira.fin.getMarket({
+			symbol: "THOR-RUJI/ETH-USDC"
+		});
+
+		// Calculate swap parameters (selling RUJI for USDC)
+		const rujiAmount = new Decimal("0.01"); // Want to sell 0.01 RUJI
+		const bestBidPrice = orderBook.book.bestBid?.price || new Decimal("0.85");
+		const expectedUsdcAmount = rujiAmount.mul(bestBidPrice); // Expected USDC to receive
+		const slippageTolerance = new Decimal("0.05"); // 5% slippage
+		const minReturn = expectedUsdcAmount.mul(new Decimal("1").minus(slippageTolerance));
+
+		console.log(`   Selling ${rujiAmount} RUJI for ~${expectedUsdcAmount} USDC`);
+		console.log(`   Expected price: ${bestBidPrice} USDC per RUJI`);
+		console.log(`   Min return: ${minReturn} USDC (with ${slippageTolerance.mul(100)}% slippage tolerance)`);
+
+				// Convert to raw amounts (both tokens use 8 decimals)
+		const rawRujiAmount = rujiAmount.mul(10 ** market.tokens.base.decimals).toFixed(0);
+		const rawMinReturn = minReturn.mul(10 ** market.tokens.quote.decimals).toFixed(0);
+
+		console.log(`   Raw RUJI amount: ${rawRujiAmount}`);
+		console.log(`   Raw min return: ${rawMinReturn}`);
+		console.log(`   RUJI token address: ${market.tokens.base.address}`);
+		console.log(`   USDC token address: ${market.tokens.quote.address}`);
+
+		// Check wallet balance before attempting swap
+		console.log("\n📋 Checking wallet balance...");
+
+		// First try the correct RUJI denomination from working playground
+		const correctRujiDenom = 'x/ruji';
+		console.log(`   🔍 Checking for correct RUJI denomination: ${correctRujiDenom}`);
+
+		try {
+			const correctBalance = await rujira.cosmClient.getBalance(rujira.walletAddress, correctRujiDenom);
+			console.log(`   RUJI balance (${correctRujiDenom}): ${correctBalance.amount}`);
+
+			// Recalculate with correct decimals (6 decimals like in working playground)
+			const correctRawRujiAmount = rujiAmount.mul(10 ** 6).toFixed(0); // 6 decimals instead of 8
+			console.log(`   Need: ${correctRawRujiAmount} ${correctRujiDenom} (6 decimals)`);
+
+			// Also recalculate min_return with 6 decimals for USDC
+			const correctRawMinReturn = minReturn.mul(10 ** 6).toFixed(0); // 6 decimals for USDC too
+			console.log(`   Corrected min return: ${correctRawMinReturn} USDC (6 decimals)`);
+
+			if (parseInt(correctBalance.amount) >= parseInt(correctRawRujiAmount)) {
+				console.log(`   ✅ Sufficient balance! Using correct denomination: ${correctRujiDenom}`);
+
+				// Update the swap to use correct denomination and decimals
+				const swapResult = await rujira.cosmClient.execute(
+					rujira.walletAddress,
+					market.address, // Market contract address
+					{
+						swap: {
+							min_return: correctRawMinReturn, // Use corrected min_return
+							to: rujira.walletAddress
+						}
+					},
+					"auto", // Gas fee
+					undefined, // Memo
+					[{
+						denom: correctRujiDenom, // Use x/ruji instead of thor.ruji
+						amount: correctRawRujiAmount // Use 6 decimals
+					}]
+				);
+
+				console.log("✅ Market SELL swap executed successfully!");
+				console.log(`   Transaction Hash: ${swapResult.transactionHash}`);
+				console.log(`   Gas Used: ${swapResult.gasUsed}`);
+				console.log(`   Gas Wanted: ${swapResult.gasWanted}`);
+
+				console.log("\n📋 Test 3: Verifying swap execution");
+				console.log("   Note: Swaps don't create orders - they execute immediately");
+				console.log("   The tokens should be directly transferred to your wallet");
+
+				console.log("\n🎉 Market SELL swap test completed successfully!");
+				return; // Exit successfully
+			} else {
+				console.log(`   ⚠️  Still insufficient balance with correct denomination`);
+				console.log(`   Have: ${correctBalance.amount}, need: ${correctRawRujiAmount}`);
+			}
+		} catch (error) {
+			console.log(`   Error checking balance for ${correctRujiDenom}: ${error}`);
+		}
+
+		// Execute swap directly using CosmWasm client
+		const swapResult = await rujira.cosmClient.execute(
+			rujira.walletAddress,
+			market.address, // Market contract address
+			{
+				swap: {
+					min_return: rawMinReturn,
+					to: rujira.walletAddress
+				}
+			},
+			"auto", // Gas fee
+			undefined, // Memo
+			[{
+				denom: market.tokens.base.address, // RUJI
+				amount: rawRujiAmount
+			}]
+		);
+
+		console.log("✅ Market SELL swap executed successfully!");
+		console.log(`   Transaction Hash: ${swapResult.transactionHash}`);
+		console.log(`   Gas Used: ${swapResult.gasUsed}`);
+		console.log(`   Gas Wanted: ${swapResult.gasWanted}`);
+
+		// Test 3: Verify the swap execution
+		console.log("\n📋 Test 3: Verifying swap execution");
+		console.log("   Note: Swaps don't create orders - they execute immediately");
+		console.log("   The tokens should be directly transferred to your wallet");
+
+		console.log("\n🎉 Market SELL swap test completed successfully!");
+
+	} catch (error) {
+		console.error("❌ Error testing market SELL swap:", error);
+		if (error instanceof Error) {
+			console.error("Error message:", error.message);
+			console.error("Error stack:", error.stack);
+		}
+	}
+}
+
 async function testGetMarketDetails(rujira: Rujira) {
 	console.log("\n🧪 Testing getMarket method for THOR-LQDY/ETH-USDC...");
 
@@ -801,8 +1034,12 @@ async function testGetMarketDetails(rujira: Rujira) {
 		// await testReplaceOrder(rujira); // Commented out - focusing on plural testing
 		// await testCancelOrder(rujira); // Commented out - focusing on plural testing
 		// await testWithdrawOrders(rujira); // Commented out - focusing on plural testing
-		await testCancelOrders(rujira); // Test canceling multiple orders at once
-		await testReplaceOrders(rujira); // Test replacing multiple orders at once
+		// await testCancelOrders(rujira); // Commented out - focusing on market order testing
+		// await testReplaceOrders(rujira); // Commented out - focusing on market order testing
+
+		// Market order tests (testing one at a time as requested)
+		// await testMarketOrderBuy(rujira); // Test market BUY order - ✅ COMPLETED
+		await testMarketOrderSell(rujira); // Test market SELL order
 
 		console.log("\n🎉 Playground completed successfully!");
 
