@@ -11,9 +11,9 @@ import { Candle, List, RujiraConstructorOptions, RujiraInitializeOptions, Wallet
 	await rujira.initialize({} as RujiraInitializeOptions);
 
 	const candles = await rujira.fin.getCandles({
-		marketSymbol: 'RUJI/USDC',
+		marketSymbol: 'THOR-NAMI/ETH-USDC',
 		maximumNumberOfCandles: 1000,
-		interval: '1h',
+		interval: '1d',
 	})
 
 	console.log('Candles count:', candles.size);
@@ -66,7 +66,7 @@ import { Candle, List, RujiraConstructorOptions, RujiraInitializeOptions, Wallet
 	// console.log(data);
 
 	const indicators = await rujira.fin.getIndicators({
-		marketSymbol: 'RUJI/USDC',
+		marketSymbol: 'THOR-NAMI/ETH-USDC',
 		candles,
 	})
 

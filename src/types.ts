@@ -673,7 +673,7 @@ export class Indicator {
 			);
 			return result;
 		},
-		[20, 25]
+		[25, 9]
 	);
 
 	static maximum_in_period = new Indicator(
@@ -700,15 +700,19 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
-					data[0].push(candle.high.toNumber() || 0)
-					data[1].push(candle.low.toNumber() || 0)
+					const high = candle.high.toNumber();
+					const low = candle.low.toNumber();
+					if (high > 0 && low > 0 && high >= low) {
+						data[0].push(high);
+						data[1].push(low);
+					}
 					return data;
 				},
 				[[], []] as [number[], number[]]
-			)
-			return [result];
+			);
+			return result;
 		},
-		[20]
+		[14]
 	);
 
 	static money_flow_index = new Indicator(
@@ -717,17 +721,23 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
-					data[0].push(candle.high.toNumber() || 0);
-					data[1].push(candle.low.toNumber() || 0);
-					data[2].push(candle.close.toNumber() || 0);
-					data[3].push(candle.volume.toNumber() || 0);
+					const high = candle.high.toNumber();
+					const low = candle.low.toNumber();
+					const close = candle.close.toNumber();
+					const volume = candle.volume.toNumber();
+					if (high > 0 && low > 0 && close > 0 && volume > 0 && high >= low) {
+						data[0].push(high);
+						data[1].push(low);
+						data[2].push(close);
+						data[3].push(volume);
+					}
 					return data;
 				},
 				[[], [], [], []] as [number[], number[], number[], number[]]
-			)
+			);
 			return [result];
 		},
-		[28, 14]
+		[14]
 	);
 
 	static minimum_in_period = new Indicator(
@@ -758,7 +768,6 @@ export class Indicator {
 					const low = candle.low.toNumber();
 					const close = candle.close.toNumber();
 
-					// Only add data if we have valid OHLC values
 					if (high > 0 && low > 0 && close > 0 && high >= low) {
 						data[0].push(high);
 						data[1].push(low);
@@ -768,15 +777,9 @@ export class Indicator {
 				},
 				[[], [], []] as [number[], number[], number[]]
 			);
-
-			// Ensure we have enough data points for the indicator calculation
-			if (result[0].length < 20) {
-				return [[]];
-			}
-
-			return [result];
+			return result;
 		},
-		[20]
+		[14]
 	);
 
 	static negative_volume_index = new Indicator(
@@ -794,7 +797,7 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[20]
+		[14]
 	);
 
 	static volume_weighted_average_price = new Indicator(
@@ -875,7 +878,7 @@ export class Indicator {
 			);
 			return result;
 		},
-		[12, 26]
+		[0.02, 0.2]
 	);
 
 	static positive_volume_index = new Indicator(
@@ -892,7 +895,7 @@ export class Indicator {
 			);
 			return result;
 		},
-		[12, 26]
+		[14]
 	);
 
 	static qstick = new Indicator(
@@ -918,7 +921,7 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[20]
+		[9]
 	);
 
 	static rate_of_change_ratio = new Indicator(
@@ -962,9 +965,9 @@ export class Indicator {
 				},
 				[[], [], []] as [number[], number[], number[]]
 			);
-			return result;
+			return [result];
 		},
-		[14, 14]
+		[14, 3]
 	);
 
 	static stochastic_rsi = new Indicator(
@@ -1309,6 +1312,12 @@ export class Indicator {
 		[20, 2.0]
 	);
 
+/** Know Sure Thing
+ * Daily (10, 15, 20, 30, 10, 10, 10, 15, 9)
+ * Weekly (10, 13, 15, 20, 10, 13, 15, 20, 9)
+ * Monthly (9, 12, 18, 24, 6, 6, 6, 9, 9)
+ */
+
 	static know_sure_thing = new Indicator(
 		"kst",
 		"Know Sure Thing",
@@ -1316,7 +1325,7 @@ export class Indicator {
 
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[10, 15, 20, 30, 10, 10, 10, 15]
+		[10, 13, 15, 20, 10, 13, 15, 20, 9]
 	);
 
 	static pbands = new Indicator(
@@ -1370,7 +1379,7 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[14, 5]
+		[10, 14]
 	);
 
 	static recursive_moving_trend_average = new Indicator(
@@ -1379,7 +1388,7 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[14]
+		[14, 20]
 	);
 
 	static relative_vigor_index = new Indicator(
@@ -1397,7 +1406,7 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[20]
+		[10, 3]
 	);
 
 	static true_strength_index = new Indicator(
@@ -1487,42 +1496,42 @@ export class Indicator {
 			// Indicator.kaufman_adaptive_moving_average, ok
 			// Indicator.keltner_channels, ok
 			// Indicator.klinger_volume_oscillator, ok
-			// Indicator.know_sure_thing,
+			// Indicator.know_sure_thing, ok
 			// Indicator.lag, ok
 			// Indicator.linear_decay, ok
 			// Indicator.linear_regression, ok
 			// Indicator.linear_regression_intercept, ok
 			// Indicator.linear_regression_slope, ok
-			Indicator.mass_index,
+			// Indicator.mass_index, []
 			// Indicator.market_facilitation_index, ok
-			// Indicator.maximum_in_period,
-			// Indicator.mean_deviation_over_period,
-			// Indicator.median_price,
-			// Indicator.minimum_in_period,
-			// Indicator.momentum,
-			// Indicator.money_flow_index,
+			// Indicator.maximum_in_period, ok
+			// Indicator.mean_deviation_over_period, ok
+			// Indicator.median_price, ok
+			// Indicator.minimum_in_period, ok
+			// Indicator.momentum, ok
+			// Indicator.money_flow_index, ok
 			// Indicator.moving_average_convergence_divergence, ok
-			// Indicator.negative_volume_index,
-			// Indicator.normalized_average_true_range,
-			// Indicator.on_balance_volume,
-			// Indicator.pbands,
-			// Indicator.parabolic_sar,
-			// Indicator.percentage_price_oscillator,
-			// Indicator.polarized_fractal_efficiency,
-			// Indicator.poscillator,
-			// Indicator.positive_volume_index,
-			// Indicator.qstick,
-			// Indicator.rate_of_change,
-			// Indicator.rate_of_change_ratio,
-			// Indicator.recursive_moving_trend_average,
-			// Indicator.relative_momentum_index,
+			// Indicator.negative_volume_index, ok
+			// Indicator.normalized_average_true_range, ok
+			// Indicator.on_balance_volume, ok
+			// Indicator.pbands, ok
+			// Indicator.parabolic_sar, ok
+			// Indicator.percentage_price_oscillator, ok
+			// Indicator.polarized_fractal_efficiency, ok
+			// Indicator.poscillator, ok
+			// Indicator.positive_volume_index, ok
+			// Indicator.qstick, ok
+			// Indicator.rate_of_change, ok
+			// Indicator.rate_of_change_ratio, ok
+			// Indicator.recursive_moving_trend_average, ok
+			// Indicator.relative_momentum_index, NaN
 			// Indicator.relative_strength_index, ok
-			// Indicator.relative_vigor_index,
-			// Indicator.simple_moving_average,
-			// Indicator.standard_deviation_over_period,
-			// Indicator.standard_error_over_period,
-			// Indicator.stochastic_momentum_index,
-			// Indicator.stochastic_oscillator,
+			// Indicator.relative_vigor_index, ok
+			// Indicator.simple_moving_average, ok
+			// Indicator.standard_deviation_over_period, ok
+			// Indicator.standard_error_over_period, ok
+			// Indicator.stochastic_momentum_index, NaN
+			Indicator.stochastic_oscillator,
 			// Indicator.stochastic_rsi,
 			// Indicator.sum_over_period,
 			// Indicator.time_series_forecast,
@@ -1543,7 +1552,7 @@ export class Indicator {
 			// Indicator.weighted_moving_average,
 			// Indicator.williams_accumulation_distribution,
 			// Indicator.williams_r,
-			// Indicator.wilders_smoothing,
+			// IndicatRecursive or.wilders_smoothing,
 			// Indicator.zero_lag_exponential_moving_average,
 		];
 	}
