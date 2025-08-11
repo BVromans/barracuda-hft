@@ -4,10 +4,9 @@ import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { AccountData, DirectSecp256k1Wallet } from '@cosmjs/proto-signing';
 import Decimal from 'decimal.js';
 import BN from "bn.js";
-import { GasPrice } from '@cosmjs/stargate';
 import { properties } from './properties';
 import { List, Map } from 'immutable';
-import { MList, MMap } from './extensions/immutablejs/types';
+import { MList, MMap } from './extensions/immutablejs';
 
 export { List, Map, MList, MMap };
 
@@ -81,9 +80,9 @@ export enum OrderSide {
  */
 export enum OrderType {
 	MARKET = 'market',
-	LIMIT = 'limit',
-	FIXED_PRICE = 'fixed_price', // TODO: ask more about this!!!
-	TRACKING_ORDER = 'tracking_order' // TODO: ask more about this!!!
+	FIXED_PRICE = 'fixed_price',
+	// LIMIT = 'limit',
+	// TRACKING_ORDER = 'tracking_order' // They are also called "oracle orders"
 }
 
 /**
@@ -2158,14 +2157,14 @@ export interface FinConstructorOptions {
  */
 export interface FinInitializeOptions {
 	/**
+	 * Parent
+	 */
+	parent: any;
+
+	/**
 	 * Wallet
 	 */
 	wallet: Wallet;
-
-	/**
-	 * Wallet address
-	 */
-	walletAddress: WalletAddress;
 
 	/**
 	 * Cosm client

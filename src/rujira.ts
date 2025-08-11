@@ -200,22 +200,51 @@ export class Rujira {
 
 		this.walletAddress = this.wallet.firstAccount.address;
 
-		properties.set('rujira.gasPrice', GasPrice.fromString(`0.02${properties.getAs<string>('rujira.constants.tokens.feePayment.symbol').toLowerCase()}`));
+		const gasPrice = await this.getGasPrice();
+		properties.set('rujira.gasPrice', gasPrice); // Use automatically calculated gas price
 
 		this.cosmClient = await this.signingCosmWasmClientConnectWithSigner(
 			properties.getAs<URL>('rujira.endpoints.rpc'),
 			this.wallet.cosmWallet,
 			{
-				gasPrice: properties.getAs<GasPrice>('rujira.gasPrice')
+				gasPrice
 			}
 		);
 
 		await this.fin.initialize(
 			{
+				parent: this,
 				wallet: this.wallet,
 				cosmClient: this.cosmClient
 			} as FinInitializeOptions
 		);
+	}
+
+	/**
+	 * Get the gas price
+	 * @returns The gas price
+	 */
+	public async getGasPrice(): Promise<GasPrice> {
+		const thorChainConfiguration = await this.getThorChainConfiguration();
+
+		const thorChainConfigurationKey = properties.getAs<string>('rujira.constants.tokens.feePayment.thorChainConfigurationKey');
+
+		let gasPriceString = thorChainConfiguration[thorChainConfigurationKey];
+
+		if (!gasPriceString) {
+			gasPriceString = properties.getAs<string>('rujira.default.network.gasPrice');
+		}
+
+		if (!gasPriceString) {
+			// Fallback to working gas price value if configuration is not found
+			gasPriceString = '0.025';
+		}
+
+		const denom = properties.getAs<string>('rujira.constants.tokens.feePayment.symbol').toLowerCase().replace(/thor[.-]/, '');
+
+		const gasPrice = GasPrice.fromString(`${gasPriceString}${denom}`);
+
+		return gasPrice;
 	}
 
 	/**
@@ -270,6 +299,234 @@ export class Rujira {
 	}
 
 	/**
+	 * Get the ThorChain configuration
+	 * @returns The ThorChain configuration
+	 */
+	@runWithRetryAndTimeout()
+	@Cacheable({
+		cacheKey: () => `getThorChainConfiguration()`,
+		ttlSeconds: properties.getAs<number>('rujira.cache.rujira.getThorChainConfiguration'),
+	})
+	private async getThorChainConfiguration(): Promise<any> {
+		const response = await this.fetch(`${properties.getAs<URL>('rujira.endpoints.rest')}/thorchain/mimir`);
+
+		/*
+			Example response:
+				{
+					"ADD-CHAIN-BASE": 1,
+					"ADD-CHAIN-XRP": 1,
+					"ADR012": 1,
+					"ADR18": 1,
+					"ASGARDSIZE": 20,
+					"ATTESTATIONMAXBATCHSIZE": 200,
+					"ATTESTATIONPEERCONCURRENTRECEIVES": 9,
+					"ATTESTATIONPEERCONCURRENTSENDS": 8,
+					"BADVALIDATORREDLINE": 20,
+					"BANKSENDENABLED": 1,
+					"BURNSYNTHS": 1,
+					"CHURNINTERVAL": 43200,
+					"CHURNMIGRATEROUNDS": 2,
+					"CLOUTLIMIT": 5000000000000,
+					"DEPRECATEILP": 1,
+					"DERIVEDDEPTHBASISPTS": 10000,
+					"DERIVEDMINDEPTH": 1000,
+					"DERIVEDSLIPMINBPS": 15,
+					"DESIREDVALIDATORSET": 120,
+					"DYNAMICMAXANCHORTARGET": 9500,
+					"EMISSIONCURVE": 100000,
+					"ENABLEAVAXCHAIN": 1,
+					"ENABLEBSC": 1,
+					"ENABLESAVINGSVAULTS": 1,
+					"ENABLESWITCH-GAIA-AUTO": 1,
+					"ENABLESWITCH-GAIA-FUZN": 1,
+					"ENABLESWITCH-GAIA-KUJI": 1,
+					"ENABLESWITCH-GAIA-LQDY": 1,
+					"ENABLESWITCH-GAIA-LVN": 1,
+					"ENABLESWITCH-GAIA-NAMI": 1,
+					"ENABLESWITCH-GAIA-NSTK": 1,
+					"ENABLESWITCH-GAIA-RKUJI": 1,
+					"ENABLESWITCH-GAIA-WINK": 1,
+					"EVMDISABLECONTRACTWHITELIST": 1,
+					"FULLIMPLOSSPROTECTIONBLOCKS": 0,
+					"FUNDMIGRATIONINTERVAL": 720,
+					"HALTAVAXCHAIN": 0,
+					"HALTAVAXTRADING": 0,
+					"HALTBASETRADING": 0,
+					"HALTBCHCHAIN": 0,
+					"HALTBCHTRADING": 0,
+					"HALTBSCCHAIN": 0,
+					"HALTBSCTRADING": 0,
+					"HALTBTCCHAIN": 0,
+					"HALTBTCTRADING": 0,
+					"HALTCHAINGLOBAL": 0,
+					"HALTCHURNING": 0,
+					"HALTDOGECHAIN": 0,
+					"HALTDOGETRADING": 0,
+					"HALTETHCHAIN": 0,
+					"HALTETHSIGNING": 1,
+					"HALTETHTRADING": 0,
+					"HALTGAIACHAIN": 0,
+					"HALTGAIATRADING": 0,
+					"HALTLTCCHAIN": 0,
+					"HALTLTCTRADING": 0,
+					"HALTRADING": 1,
+					"HALTSIGNING": 0,
+					"HALTSIGNINGAVAX": 0,
+					"HALTSIGNINGBCH": 0,
+					"HALTSIGNINGBSC": 0,
+					"HALTSIGNINGBTC": 0,
+					"HALTSIGNINGDOGE": 0,
+					"HALTSIGNINGETH": 0,
+					"HALTSIGNINGGAIA": 0,
+					"HALTSIGNINGLTC": 0,
+					"HALTSIGNINGXRP": 0,
+					"HALTTCYTRADING": 0,
+					"HALTTHORCHAIN": 0,
+					"HALTTRADING": 0,
+					"HALTXRPCHAIN": 0,
+					"HALTXRPTRADING": 0,
+					"ILPCUTOFF": 9450000,
+					"KEYGENRETRYINTERVAL": 100,
+					"KILLSWITCHSTART": 6500000,
+					"L1SLIPMINBPS": 5,
+					"LENDING-THOR-BTC": 0,
+					"LENDING-THOR-ETH": 0,
+					"LENDINGLEVER": 3333,
+					"LIQUIDITYLOCKUPBLOCKS": 600,
+					"LOANREPAYMENTMATURITY": 432000,
+					"LOANSTREAMINGSWAPSINTERVAL": 1,
+					"MANUALSWAPSTOSYNTHDISABLED": 1,
+					"MAXANCHORBLOCKS": 300,
+					"MAXANCHORSLIP": 72000,
+					"MAXBONDPROVIDERS": 100,
+					"MAXCONFIRMATIONS-BCH": 3,
+					"MAXCONFIRMATIONS-BTC": 2,
+					"MAXCONFIRMATIONS-DOGE": 15,
+					"MAXCONFIRMATIONS-ETH": 14,
+					"MAXCONFIRMATIONS-LTC": 6,
+					"MAXCR": 20000,
+					"MAXIMUMLIQUIDITYRUNE": 50000000000000000,
+					"MAXNODETOCHURNOUTFORLOWVERSION": 3,
+					"MAXOUTBOUNDATTEMPTS": 10000,
+					"MAXOUTBOUNDFEEMULTIPLIERBASISPOINTS": 30000,
+					"MAXRUNESUPPLY": 49915291999331106,
+					"MAXSYNTHPERPOOLDEPTH": 6000,
+					"MAXSYNTHSFORSAVERSYIELD": 0,
+					"MAXTXOUTOFFSET": 450,
+					"MAXUTXOSTOSPEND": 10,
+					"MINCR": 20000,
+					"MINIMUMBONDINRUNE": 30000000000000,
+					"MINIMUML1OUTBOUNDFEEUSD": 100000000,
+					"MINOUTBOUNDFEEMULTIPLIERBASISPOINTS": 1000,
+					"MINRUNEPOOLDEPTH": 1000000000000,
+					"MINTSYNTHS": 1,
+					"MINTXOUTVOLUMETHRESHOLD": 1000000000000,
+					"NODEOPERATORFEE": 0,
+					"NODEPAUSECHAINGLOBAL": 22142824,
+					"NUMBEROFNEWNODESPERCHURN": 4,
+					"OBSERVATIONDELAYFLEXIBILITY": 20,
+					"PAUSELOANS": 1,
+					"PAUSELP": 0,
+					"PAUSELPAVAX": 0,
+					"PAUSELPBCH": 0,
+					"PAUSELPBSC": 0,
+					"PAUSELPBTC": 0,
+					"PAUSELPDEPOSIT-AVAX-AVAX": 1,
+					"PAUSELPDEPOSIT-BCH-BCH": 1,
+					"PAUSELPDEPOSIT-BSC-BNB": 1,
+					"PAUSELPDEPOSIT-BTC-BTC": 1,
+					"PAUSELPDEPOSIT-DOGE-DOGE": 1,
+					"PAUSELPDEPOSIT-ETH-ETH": 1,
+					"PAUSELPDEPOSIT-ETH-FLIP-0X826180541412D574CF1336D22C0C0A287822678A": 1,
+					"PAUSELPDEPOSIT-ETH-TGT-0X108A850856DB3F85D0269A2693D896B394C80325": 1,
+					"PAUSELPDEPOSIT-ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48": 1,
+					"PAUSELPDEPOSIT-ETH-USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7": 1,
+					"PAUSELPDEPOSIT-GAIA-ATOM": 1,
+					"PAUSELPDEPOSIT-LTC-LTC": 1,
+					"PAUSELPDOGE": 0,
+					"PAUSELPETH": 0,
+					"PAUSELPGAIA": 0,
+					"PAUSELPLTC": 0,
+					"PAUSEUNBOND": 0,
+					"PENDINGLIQUIDITYAGELIMIT": 100800,
+					"PENDULUMUSEEFFECTIVESECURITY": 1,
+					"POL-AVAX-AVAX": 1,
+					"POL-AVAX-USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E": 1,
+					"POL-BCH-BCH": 1,
+					"POL-BSC-BNB": 1,
+					"POL-BSC-USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D": 1,
+					"POL-BTC-BTC": 1,
+					"POL-DOGE-DOGE": 1,
+					"POL-ETH-DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F": 1,
+					"POL-ETH-ETH": 1,
+					"POL-ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48": 1,
+					"POL-ETH-USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7": 1,
+					"POL-GAIA-ATOM": 1,
+					"POL-LTC-LTC": 1,
+					"POLBUFFER": 2000,
+					"POLMAXNETWORKDEPOSIT": 600000000000000,
+					"POLMAXPOOLMOVEMENT": 10,
+					"POLTARGETSYNTHPERPOOLDEPTH": 3000,
+					"POOLCYCLE": 43200,
+					"PREFERREDASSETOUTBOUNDFEEMULTIPLIER": 200,
+					"PROPOSAL6": 1,
+					"PROTOCOLAFFILIATEFEEBASISPOINTS": 1200,
+					"RESCHEDULECOALESCEBLOCKS": 20,
+					"RUNEPOOLDEPOSITMATURITYBLOCKS": 432000,
+					"RUNEPOOLENABLED": 1,
+					"SAVERSSTREAMINGSWAPSINTERVAL": 1,
+					"SIGNERCONCURRENCY": 20,
+					"SLASHPENALTY": 20000,
+					"SOLVENCYHALTAVAXCHAIN": 0,
+					"SOLVENCYHALTBCHCHAIN": 0,
+					"SOLVENCYHALTBSCCHAIN": 0,
+					"SOLVENCYHALTBTCCHAIN": 0,
+					"SOLVENCYHALTDOGECHAIN": 0,
+					"SOLVENCYHALTETHCHAIN": 0,
+					"SOLVENCYHALTGAIACHAIN": 0,
+					"SOLVENCYHALTXRPCHAIN": 0,
+					"STOPSOLVENCYCHECK": 0,
+					"STOPSOLVENCYCHECKAVAX": 0,
+					"STOPSOLVENCYCHECKBSC": 0,
+					"STOPSOLVENCYCHECKBTC": 0,
+					"STOPSOLVENCYCHECKDOGE": 0,
+					"STOPSOLVENCYCHECKETH": 0,
+					"STOPSOLVENCYCHECKGAIA": 0,
+					"STREAMINGSWAPMAXLENGTH": 14400,
+					"STREAMINGSWAPMAXLENGTHNATIVE": 14400,
+					"STREAMINGSWAPMINBPFEE": 5,
+					"SYNTHSLIPMINBPS": 15,
+					"SYNTHYIELDBASISPOINTS": 0,
+					"SYSTEMINCOMEBURNRATEBPS": 500,
+					"TARGETOUTBOUNDFEESURPLUSRUNE": 5000000000000,
+					"TCYCLAIMINGHALT": 0,
+					"TCYCLAIMINGSWAPHALT": 0,
+					"TCYSTAKEDISTRIBUTIONHALT": 0,
+					"TCYSTAKINGHALT": 0,
+					"TCYUNSTAKINGHALT": 0,
+					"THORNAMES": 1,
+					"TORANCHOR-AVAX-USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E": 1,
+					"TORANCHOR-AVAX-USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7": 1,
+					"TORANCHOR-BSC-USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D": 1,
+					"TORANCHOR-ETH-DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F": 1,
+					"TORANCHOR-ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48": 1,
+					"TORANCHOR-ETH-USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7": 1,
+					"TRADEACCOUNTSENABLED": 1,
+					"TRADEACCOUNTSSLIPMINBPS": 5,
+					"TVLCAPBASISPOINTS": 10000,
+					"TXOUTDELAYRATE": 50000000000,
+					"VIRTUALMULTSYNTHS": 1,
+					"VOTEDOFM": 1,
+					"VOTELENDING": 1,
+					"VOTEMAXSYNTHSFORSAVERSYIELD": 1
+				}
+		*/
+		const data = await response.json();
+
+		return data;
+	}
+
+	/**
 	 * Get the accounts from a direct secp256k1 wallet
 	 * @param wallet - The wallet to get the accounts from
 	 * @returns The accounts
@@ -312,6 +569,55 @@ export class Rujira {
 	private async directSecp256k1WalletFromKeyfromKey(privkey: Uint8Array, prefix?: string): Promise<DirectSecp256k1Wallet> {
 		return DirectSecp256k1Wallet.fromKey(privkey, prefix);
 	}
+
+	/**
+	 * Fetch a resource
+	 * @param input - The input to fetch
+	 * @param init - The init to fetch
+	 * @returns The response
+	 */
+	@runWithRetryAndTimeout()
+	public async fetch(
+		input: string | URL | globalThis.Request,
+		init?: RequestInit,
+	): Promise<Response> {
+		return fetch(input, init);
+	}
+
+	/**
+	 * Execute a message on the cosm client
+	 * @param senderAddress - The address of the sender
+	 * @param contractAddress - The address of the contract
+	 * @param msg - The message to execute
+	 * @param fee - The fee to pay
+	 * @param memo - The memo to add to the transaction
+	 * @param funds - The funds to transfer
+	 * @returns The result of the execution
+	 */
+	@runWithRetryAndTimeout()
+	public async cosmClientExecute(senderAddress: string, contractAddress: string, msg: JsonObject, fee: StdFee | "auto" | number, memo?: string, funds?: readonly Coin[]): Promise<ExecuteResult> {
+		return this.cosmClient.execute(senderAddress, contractAddress, msg, fee, memo, funds);
+	}
+
+	/**
+	 * Query a contract on the cosm client
+	 * @param contractAddress - The address of the contract
+	 * @param queryMsg - The query message
+	 * @returns The result of the query
+	 */
+	@runWithRetryAndTimeout()
+	public async cosmClientQueryContractSmart(contractAddress: string, queryMsg: JsonObject): Promise<JsonObject> {
+		return this.cosmClient.queryContractSmart(contractAddress, queryMsg);
+	}
+
+	/**
+	 * Get the height of the cosm client
+	 * @returns The height
+	 */
+	@runWithRetryAndTimeout()
+	public async cosmClientGetHeight(): Promise<number> {
+		return this.cosmClient.getHeight();
+	}
 }
 
 /**
@@ -319,9 +625,9 @@ export class Rujira {
  */
 export class Fin {
 	/**
-	 * Wallet address
+	 * Parent
 	 */
-	private walletAddress: WalletAddress;
+	private parent: Rujira;
 
 	/**
 	 * Wallet
@@ -373,7 +679,8 @@ export class Fin {
 	 * @param options - The constructor options
 	 */
 	constructor(options: FinConstructorOptions) {
-		this.walletAddress = undefined as unknown as WalletAddress;
+		this.parent = undefined as unknown as Rujira;
+
 		this.wallet = undefined as unknown as Wallet;
 		this.cosmClient = undefined as unknown as SigningCosmWasmClient;
 
@@ -388,42 +695,38 @@ export class Fin {
 	}
 
 	/**
-	 * Get wallet address
-	 * @param walletAddress - The wallet address
-	 * @param wallet - The wallet
-	 * @returns The wallet address
-	 */
-	private getWalletAddress(walletAddress?: WalletAddress, wallet?: Wallet): WalletAddress {
-		if (walletAddress) {
-			return walletAddress.trim().toLowerCase();
-		}
-
-		if (wallet) {
-			return wallet.firstAccount.address.trim().toLowerCase();
-		}
-
-		if (this.wallet.firstAccount) {
-			return this.wallet.firstAccount.address.trim().toLowerCase();
-		}
-
-		throw new Error('No wallet address provided');
-	}
-
-	/**
 	 * Initialize the client
 	 * @param options - The initialize options
 	 */
 	async initialize(options: FinInitializeOptions): Promise<void> {
-		this.walletAddress = options.walletAddress;
+		this.parent = options.parent;
 		this.wallet = options.wallet;
 		this.cosmClient = options.cosmClient;
 
 		await this.getAllTokens({} as FinGetAllTokensRequest);
 		await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
-		this.nativeToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.native.address') });
-		this.usdToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.usd.address') });
-		this.feePaymentToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.feePayment.address') });
+		// Try to get tokens by address, fallback to symbol if address not found
+		try {
+			this.nativeToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.native.address') });
+		} catch (error) {
+			console.debug(`Failed to get native token by address, trying symbol: ${properties.getAs<TokenSymbol>('rujira.constants.tokens.native.symbol')}`);
+			this.nativeToken = await this.getToken({ symbol: properties.getAs<TokenSymbol>('rujira.constants.tokens.native.symbol') });
+		}
+
+		try {
+			this.usdToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.usd.address') });
+		} catch (error) {
+			console.debug(`Failed to get USD token by address, trying symbol: ${properties.getAs<TokenSymbol>('rujira.constants.tokens.usd.symbol')}`);
+			this.usdToken = await this.getToken({ symbol: properties.getAs<TokenSymbol>('rujira.constants.tokens.usd.symbol') });
+		}
+
+		try {
+			this.feePaymentToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.feePayment.address') });
+		} catch (error) {
+			console.debug(`Failed to get fee payment token by address, trying symbol: ${properties.getAs<TokenSymbol>('rujira.constants.tokens.feePayment.symbol')}`);
+			this.feePaymentToken = await this.getToken({ symbol: properties.getAs<TokenSymbol>('rujira.constants.tokens.feePayment.symbol') });
+		}
 
 		properties.set('rujira.tokens.native', this.nativeToken);
 		properties.set('rujira.tokens.usd', this.usdToken);
@@ -446,7 +749,7 @@ export class Fin {
 			}
 
 			// Try to get chain height to verify connection
-			await this.cosmClientGetHeight;
+			await this.parent.cosmClientGetHeight();
 
 			return {
 				status: SystemStatus.UP
@@ -485,7 +788,7 @@ export class Fin {
 
 		const url = `${properties.getAs<URL>('rujira.endpoints.rest')}/cosmos/tx/v1beta1/txs/${hash}`;
 		// TODO: add a example response!!!
-		const response = await this.fetch(url, {
+		const response = await this.parent.fetch(url, {
 			method: 'GET',
 			headers: { 'Content-Type': 'application/json' }
 		});
@@ -638,6 +941,11 @@ export class Fin {
 		}
 
 		const feeToken = await this.getToken({ symbol: `THOR-${rawTransaction.tx.auth_info.fee.amount[0].denom.toUpperCase()}` });
+
+		// TODO: check if we should use the gas price and the gas limit instead of the amount below (GasPrice already has a method for calculating the fees, if needed)!!!
+		// const gasLimit = rawTransaction.tx.auth_info.fee.gas_limit.toString() ? Decimal(rawTransaction.tx.auth_info.fee.gas_limit.toString()) : DECIMAL_0;
+		// const gasPrice = Decimal((await this.parent.getGasPrice()).amount.toString());
+		// const feeAmount = gasPrice.mul(gasLimit).div(Decimal(10).pow(feeToken.decimals));
 		const feeAmount = rawTransaction.tx.auth_info.fee.amount[0].amount ? Decimal(rawTransaction.tx.auth_info.fee.amount[0].amount).div(Decimal(10).pow(feeToken.decimals)) : DECIMAL_0;
 
 		const result = {
@@ -771,7 +1079,7 @@ export class Fin {
 
 		// Update internal maps
 		for (const token of tokens.values()) {
-			this.tokensByAddress.set(token.address, token, true);
+			this.tokensByAddress.set(token.address.toLowerCase(), token, true);
 			this.tokensBySymbol.set(token.symbol.toUpperCase(), token, true);
 		}
 
@@ -959,7 +1267,7 @@ export class Fin {
 				}
 			}`;
 
-		const response = await this.fetch(graphQLEndPoint, {
+		const response = await this.parent.fetch(graphQLEndPoint, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ query })
@@ -1053,7 +1361,7 @@ export class Fin {
 
 		// TODO: add an example response!!!
 		// TODO: add an interface for the response!!!
-		const rawOrderBook = await this.cosmClientQueryContractSmart(
+		const rawOrderBook = await this.parent.cosmClientQueryContractSmart(
 			market.address,
 			{
 				book: {
@@ -1180,7 +1488,7 @@ export class Fin {
 		const after = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
 		// TODO: add a example response!!!
-		const response = await this.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
+		const response = await this.parent.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -1298,8 +1606,8 @@ export class Fin {
 			tokens = tokens.filter((token: Token) => tokenAddresses.includes(token.address) || tokenSymbols.includes(token.symbol));
 		}
 
-		const freeBalances = MMap<TokenAddress, Amount>();
-		const freeBalanceResponse = await this.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
+		const freeBalances = MMap<TokenSymbol, Amount>();
+		const freeBalanceResponse = await this.parent.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
 		if (freeBalanceResponse.ok) {
 			/*
 			Example response:
@@ -1328,14 +1636,17 @@ export class Fin {
 			};
 
 			for (const rawBalance of freeBalanceResponseData.balances) {
-				const token = await this.getToken({ address: rawBalance.denom });
-
-				freeBalances.set(token.address, Decimal(rawBalance.amount));
+				try {
+					const token = await this.getToken({ address: rawBalance.denom });
+					freeBalances.set(token.symbol, Decimal(rawBalance.amount), true);
+				} catch (exception: any) {
+					ignoreException(exception, `Balance token ${rawBalance.denom} not found, ignoring this balance.`);
+				}
 			}
 		}
 
-		const lockedInOrdersMap = MMap<TokenAddress, Amount>();
-		const withdrawableMap = MMap<TokenAddress, Amount>();
+		const lockedInOrdersMap = MMap<TokenSymbol, Amount>();
+		const withdrawableMap = MMap<TokenSymbol, Amount>();
 
 		for (const market of markets.values()) {
 			/*
@@ -1357,7 +1668,7 @@ export class Fin {
 					]
 				}
 			*/
-			const ordersResponse = await this.cosmClientQueryContractSmart(
+			const ordersResponse = await this.parent.cosmClientQueryContractSmart(
 				market.address,
 				{
 					orders: {
@@ -1381,27 +1692,27 @@ export class Fin {
 			};
 
 			for (const rawOrder of ordersResponse.orders) {
-				const baseTokenAddress = market.tokens.base.address;
-				const quoteTokenAddress = market.tokens.quote.address;
+				const baseTokenSymbol = market.tokens.base.symbol;
+				const quoteTokenSymbol = market.tokens.quote.symbol;
 
 				if (rawOrder.filled && Number(rawOrder.filled) > 0) {
 					// TODO: check if this is correct!!!
-					const lockedTokenAddress = rawOrder.side === 'base' ? baseTokenAddress : quoteTokenAddress;
-					lockedInOrdersMap.get(lockedTokenAddress, (lockedInOrdersMap.getOrThrow(lockedTokenAddress, DECIMAL_0)).plus(Decimal(rawOrder.filled)));
+					const lockedTokenSymbol = rawOrder.side === 'base' ? baseTokenSymbol : quoteTokenSymbol;
+					lockedInOrdersMap.get(lockedTokenSymbol, (lockedInOrdersMap.getOrThrow(lockedTokenSymbol, DECIMAL_0)).plus(Decimal(rawOrder.filled)));
 				}
 				if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
 					// TODO: check if this is correct!!!
-					const withdrawTokenAddress = rawOrder.side === 'base' ? quoteTokenAddress : baseTokenAddress; // note that it's the opposite asset
-					withdrawableMap.set(withdrawTokenAddress, (withdrawableMap.getOrThrow(withdrawTokenAddress, DECIMAL_0)).plus(Decimal(rawOrder.filled)));
+					const withdrawTokenSymbol = rawOrder.side === 'base' ? quoteTokenSymbol : baseTokenSymbol; // note that it's the opposite asset
+					withdrawableMap.set(withdrawTokenSymbol, (withdrawableMap.getOrThrow(withdrawTokenSymbol, DECIMAL_0)).plus(Decimal(rawOrder.filled)), true);
 				}
 			}
 		}
 
-		const tokensBalancesMap = MMap<TokenAddress, TokenBalance>();
+		const tokensBalancesMap = MMap<TokenSymbol, TokenBalance>();
 		for (const token of tokens.values()) {
-			const free = freeBalances.getOrThrow(token.address, DECIMAL_0);
-			const lockedInOrders = lockedInOrdersMap.getOrThrow(token.address, DECIMAL_0);
-			const withdrawable = withdrawableMap.getOrThrow(token.address, DECIMAL_0);
+			const free = freeBalances.getOrThrow(token.symbol, DECIMAL_0);
+			const lockedInOrders = lockedInOrdersMap.getOrThrow(token.symbol, DECIMAL_0);
+			const withdrawable = withdrawableMap.getOrThrow(token.symbol, DECIMAL_0);
 			const lockedInPools = DECIMAL_0; // Not implemented
 			const total = free.plus(lockedInOrders).plus(lockedInPools).plus(withdrawable);
 
@@ -1414,26 +1725,26 @@ export class Fin {
 			};
 
 			let conversionRateNativeToken: TickerPrice = DECIMAL_0;
-			if (token.address !== this.nativeToken.address) {
+			if (token.symbol !== this.nativeToken.symbol) {
 				try {
 					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` });
 
 					conversionRateNativeToken = quotingMarketTicker.middlePrice.baseToQuote || DECIMAL_0;
 				} catch (exception) {
-					ignoreException(exception);
+					ignoreException(exception, `Conversion rate for token ${token.symbol} to native token not found, ignoring this conversion rate.`);
 				}
 			} else {
 				conversionRateNativeToken = DECIMAL_1;
 			}
 
 			let conversionRateUSD: TickerPrice = DECIMAL_0;
-			if (token.address !== this.usdToken.address) {
+			if (token.symbol !== this.usdToken.symbol) {
 				try {
 					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` });
 
 					conversionRateUSD = quotingMarketTicker.middlePrice.baseToQuote || DECIMAL_0;
 				} catch (exception) {
-					ignoreException(exception);
+					ignoreException(exception, `Conversion rate for token ${token.symbol} to USD not found, ignoring this conversion rate.`);
 				}
 			} else {
 				conversionRateUSD = DECIMAL_1;
@@ -1462,26 +1773,30 @@ export class Fin {
 				usdToken: baseBalanceWithUSDQuotation
 			};
 
-			tokensBalancesMap.set(token.address, {
-				token,
-				balances: baseTokenBalance
-			});
+			tokensBalancesMap.set(
+				token.symbol,
+				{
+					token,
+					balances: baseTokenBalance
+				},
+				true
+			);
 		}
 
 		const totalNative: BaseBalance = {
-			free: freeBalances.getOrThrow(this.nativeToken.address, DECIMAL_0),
-			lockedInOrders: lockedInOrdersMap.getOrThrow(this.nativeToken.address, DECIMAL_0),
+			free: freeBalances.getOrThrow(this.nativeToken.symbol, DECIMAL_0),
+			lockedInOrders: lockedInOrdersMap.getOrThrow(this.nativeToken.symbol, DECIMAL_0),
 			lockedInPools: DECIMAL_0,
-			withdrawable: withdrawableMap.getOrThrow(this.nativeToken.address, DECIMAL_0),
-			total: freeBalances.getOrThrow(this.nativeToken.address, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.nativeToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.nativeToken.address, DECIMAL_0))
+			withdrawable: withdrawableMap.getOrThrow(this.nativeToken.symbol, DECIMAL_0),
+			total: freeBalances.getOrThrow(this.nativeToken.symbol, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.nativeToken.symbol, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.nativeToken.symbol, DECIMAL_0))
 		};
 
 		const totalUSD: BaseBalance = {
-			free: freeBalances.getOrThrow(this.usdToken.address, DECIMAL_0),
-			lockedInOrders: lockedInOrdersMap.getOrThrow(this.usdToken.address, DECIMAL_0),
+			free: freeBalances.getOrThrow(this.usdToken.symbol, DECIMAL_0),
+			lockedInOrders: lockedInOrdersMap.getOrThrow(this.usdToken.symbol, DECIMAL_0),
 			lockedInPools: DECIMAL_0,
-			withdrawable: withdrawableMap.getOrThrow(this.usdToken.address, DECIMAL_0),
-			total: freeBalances.getOrThrow(this.usdToken.address, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.usdToken.address, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.usdToken.address, DECIMAL_0))
+			withdrawable: withdrawableMap.getOrThrow(this.usdToken.symbol, DECIMAL_0),
+			total: freeBalances.getOrThrow(this.usdToken.symbol, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.usdToken.symbol, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.usdToken.symbol, DECIMAL_0))
 		};
 
 		const balances: Balances = {
@@ -1633,7 +1948,7 @@ export class Fin {
 			}
 		};
 
-		const result = await this.cosmClientQueryContractSmart(market.address, query);
+		const result = await this.parent.cosmClientQueryContractSmart(market.address, query);
 		// Example response:
 		// 	{
 		// 		"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
@@ -1663,31 +1978,30 @@ export class Fin {
 		let filteredOrders = MMap<OrderId, Order>();
 
 		for (const rawOrder of rawOrders) {
-			const type = OrderType.LIMIT;
+			const type = OrderType.FIXED_PRICE;
 			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
 			const price = Decimal(rawOrder.price.fixed);
 			const amount = Decimal(rawOrder.offer).div(DECIMAL_10.pow(market.decimals));
 			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(Decimal(rawOrder.offer))));
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
+			const id = this.getOrderId({
+				ownerAddress,
+				market,
+				orderType: type,
+				orderSide: side,
+				orderPrice: price
+			});
 
 			const order = {
-				id: this.getOrderId({
-					ownerAddress,
-					owner,
-					baseTokenSymbol: market.tokens.base.symbol,
-					quoteTokenSymbol: market.tokens.quote.symbol,
-					orderType: type,
-					orderSide: side,
-					orderPrice: price
-				}),
-				market: market,
-				ownerAddress: ownerAddress,
-				type: type,
-				side: side,
-				price: price,
-				amount: amount,
-				filledPercentage: filledPercentage,
-				status: status,
+				id,
+				market,
+				ownerAddress,
+				type,
+				side,
+				price,
+				amount,
+				filledPercentage,
+				status,
 				raw: rawOrder
 			} as Order;
 
@@ -1698,8 +2012,8 @@ export class Fin {
 			// Filter by sanitized order IDs (merged from orderIds and orders)
 			if (sanitizedOrderIds && !sanitizedOrderIds.isEmpty()) {
 				if (!order.id || !sanitizedOrderIds.includes(order.id)) {
-					return false;
-				}
+				return false;
+			}
 			}
 
 			// Filter by owner address
@@ -1856,9 +2170,18 @@ export class Fin {
 	async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersResponse> {
 		let { ownerAddress, owner, orders } = request;
 
+		// Extract market information from the first order since all orders should be in the same market
+		const firstOrder = Array.isArray(orders) ? orders[0] : orders.first();
+		if (!firstOrder) {
+			throw new Error("At least one order is required for replacement");
+		}
+
 		const executedOrders = await this.executeOrders({
 			ownerAddress,
 			owner,
+			marketSymbol: firstOrder.marketSymbol,
+			marketAddress: firstOrder.marketAddress,
+			market: firstOrder.market,
 			orders: {
 				replace: MList<FinPlaceOrderRequest>(orders)
 			}
@@ -1907,6 +2230,16 @@ export class Fin {
 	async cancelOrders(request: FinCancelOrdersRequest): Promise<FinCancelOrdersResponse> {
 		let { orderIds, orders, ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
+		// Handle both orderIds and orders parameters correctly
+		let cancelList: List<OrderId> | List<Order>;
+		if (orderIds && (Array.isArray(orderIds) ? orderIds.length > 0 : orderIds.size > 0)) {
+			cancelList = MList<OrderId>(orderIds);
+		} else if (orders && (Array.isArray(orders) ? orders.length > 0 : orders.size > 0)) {
+			cancelList = MList<Order>(orders);
+		} else {
+			throw new Error("Either orderIds or orders must be provided for cancellation");
+		}
+
 		const executedOrders = await this.executeOrders({
 			ownerAddress,
 			owner,
@@ -1914,7 +2247,7 @@ export class Fin {
 			marketSymbol,
 			market,
 			orders: {
-				cancel: MList<OrderId>(orderIds) || MList<Order>(orders)
+				cancel: cancelList
 			}
 		})
 
@@ -1998,86 +2331,6 @@ export class Fin {
 		return result;
 	}
 
-	private getOrderId(options: {
-		ownerAddress?: WalletAddress;
-		owner?: Wallet;
-		baseTokenSymbol?: TokenSymbol;
-		quoteTokenSymbol?: TokenSymbol;
-		orderType?: OrderType;
-		orderSide?: OrderSide;
-		orderPrice?: Decimal;
-		order?: Order;
-	}): OrderId {
-		let { ownerAddress, owner, baseTokenSymbol, quoteTokenSymbol, orderType, orderSide, orderPrice, order } = options;
-
-		if (!ownerAddress) {
-			ownerAddress = getOrThrow<Wallet>(owner).firstAccount.address;
-		}
-
-		if (!orderType) {
-			orderType = getOrThrow<Order>(order).type;
-		}
-
-		if (!orderSide) {
-			orderSide = getOrThrow<Order>(order).side;
-		}
-
-		if (!orderPrice) {
-			orderPrice = getOrThrow<Order>(order).price;
-		}
-
-		return `${ownerAddress}_${baseTokenSymbol}_${quoteTokenSymbol}_${orderType}_${orderSide}_${orderPrice}`;
-	}
-
-	/**
-	 * Fetch a resource
-	 * @param input - The input to fetch
-	 * @param init - The init to fetch
-	 * @returns The response
-	 */
-	@runWithRetryAndTimeout()
-	private async fetch(
-		input: string | URL | globalThis.Request,
-		init?: RequestInit,
-	): Promise<Response> {
-		return fetch(input, init);
-	}
-
-	/**
-	 * Execute a message on the cosm client
-	 * @param senderAddress - The address of the sender
-	 * @param contractAddress - The address of the contract
-	 * @param msg - The message to execute
-	 * @param fee - The fee to pay
-	 * @param memo - The memo to add to the transaction
-	 * @param funds - The funds to transfer
-	 * @returns The result of the execution
-	 */
-	@runWithRetryAndTimeout()
-	private async cosmClientExecute(senderAddress: string, contractAddress: string, msg: JsonObject, fee: StdFee | "auto" | number, memo?: string, funds?: readonly Coin[]): Promise<ExecuteResult> {
-		return this.cosmClient.execute(senderAddress, contractAddress, msg, fee, memo, funds);
-	}
-
-	/**
-	 * Query a contract on the cosm client
-	 * @param contractAddress - The address of the contract
-	 * @param queryMsg - The query message
-	 * @returns The result of the query
-	 */
-	@runWithRetryAndTimeout()
-	private async cosmClientQueryContractSmart(contractAddress: string, queryMsg: JsonObject): Promise<JsonObject> {
-		return this.cosmClient.queryContractSmart(contractAddress, queryMsg);
-	}
-
-	/**
-	 * Get the height of the cosm client
-	 * @returns The height
-	 */
-	@runWithRetryAndTimeout()
-	private async cosmClientGetHeight(): Promise<number> {
-		return this.cosmClient.getHeight();
-	}
-
 	/**
 	 * Unified method to execute order operations (place, replace, cancel, withdraw)
 	 * @param request - The unified request object
@@ -2124,9 +2377,9 @@ export class Fin {
 			const cancelOrderIds = MList<OrderId>();
 			orders.cancel.forEach((item: OrderId | Order) => {
 				if (typeof item === 'string') {
-					cancelOrderIds.push(item.trim().toLowerCase());
+					cancelOrderIds.push(item.trim()); // Keep original case for order IDs
 				} else if (item.id) {
-					cancelOrderIds.push(item.id.trim().toLowerCase());
+					cancelOrderIds.push(item.id.trim()); // Keep original case for order IDs
 				}
 			});
 			orders.cancel = cancelOrderIds;
@@ -2137,9 +2390,9 @@ export class Fin {
 			const withdrawOrderIds = MList<OrderId>();
 			orders.withdraw.forEach((item: OrderId | Order) => {
 				if (typeof item === 'string') {
-					withdrawOrderIds.push(item.trim().toLowerCase());
+					withdrawOrderIds.push(item.trim()); // Keep original case for order IDs
 				} else if (item.id) {
-					withdrawOrderIds.push(item.id.trim().toLowerCase());
+					withdrawOrderIds.push(item.id.trim()); // Keep original case for order IDs
 				}
 			});
 			orders.withdraw = withdrawOrderIds;
@@ -2181,7 +2434,7 @@ export class Fin {
 				if (!order.side || !order.type || !order.amount) {
 					throw new Error("Order side, type, and amount are required for place orders");
 				}
-				if (order.type === OrderType.LIMIT && !order.price) {
+				if (order.type === OrderType.FIXED_PRICE && !order.price) {
 					throw new Error("Order price is required for limit place orders");
 				}
 			});
@@ -2193,7 +2446,7 @@ export class Fin {
 				if (!order.side || !order.type || !order.amount) {
 					throw new Error("Order side, type, and amount are required for replace orders");
 				}
-				if (order.type === OrderType.LIMIT && !order.price) {
+				if (order.type === OrderType.FIXED_PRICE && !order.price) {
 					throw new Error("Order price is required for limit replace orders");
 				}
 			});
@@ -2222,7 +2475,7 @@ export class Fin {
 		const existingOrders = await this.getOrders({
 			ownerAddress,
 			market,
-			orderTypes: [OrderType.LIMIT],
+			orderTypes: [OrderType.FIXED_PRICE],
 			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED]
 		});
 
@@ -2236,16 +2489,14 @@ export class Fin {
 			orders.place.forEach((order: FinPlaceOrderRequest) => {
 				const orderId = this.getOrderId({
 					ownerAddress,
-					baseTokenSymbol: market.tokens.base.symbol,
-					quoteTokenSymbol: market.tokens.quote.symbol,
-					orderType: order.type,
-					orderSide: order.side,
-					orderPrice: order.price
+					market,
+					order
 				});
 
-				// Create message
+				// Create message with exact format from playground
 				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
-				const price = order.price?.toString() || '0';
+				// Use precise price formatting like playgrounds
+				const price = order.price ? order.price.toFixed(18) : '0.000000000000000000';
 				// For BUY orders, amount should be in quote token decimals (Ex.: USDC = 6)
 				// For SELL orders, amount should be in base token decimals (Ex.: RUJI = 6)
 				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toFixed(0);
@@ -2279,16 +2530,27 @@ export class Fin {
 			orders.replace.forEach((order: FinReplaceOrderRequest) => {
 				const orderId = this.getOrderId({
 					ownerAddress,
-					baseTokenSymbol: market.tokens.base.symbol,
-					quoteTokenSymbol: market.tokens.quote.symbol,
+					market: market,
 					orderType: order.type,
 					orderSide: order.side,
 					orderPrice: order.price
 				});
 
-				// Create message
+				// Check if order exists in existing orders (same validation as cancel orders)
+				const existingOrder = existingOrders.get(orderId);
+				if (!existingOrder) {
+					throw new Error(`Order not found for replacement: ${orderId}`);
+				}
+
+				// Validate order status for replacement (same validation as cancel orders)
+				if (existingOrder.status !== OrderStatus.OPEN) {
+					throw new Error(`Cannot replace order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.OPEN}`);
+				}
+
+				// Create message with exact format from playground
 				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
-				const price = order.price?.toString() || '0';
+				// Use precise price formatting like playgrounds
+				const price = order.price ? order.price.toFixed(18) : '0.000000000000000000';
 				// For BUY orders, amount should be in quote token decimals (Ex.: USDC = 6)
 				// For SELL orders, amount should be in base token decimals (Ex.: RUJI = 6)
 				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toFixed(0);
@@ -2306,8 +2568,8 @@ export class Fin {
 					amount: order.amount,
 					filledPercentage: DECIMAL_0,
 					status: OrderStatus.OPEN,
-					creationTimestamp: Date.now(),
-					updateTimestamp: Date.now(),
+					creationTimestamp: existingOrder.creationTimestamp, // Keep original creation time
+					updateTimestamp: Date.now(), // Update the timestamp
 					raw: order
 				};
 				replaceOrdersMap.set(orderId, orderObject, true);
@@ -2331,9 +2593,10 @@ export class Fin {
 					throw new Error(`Cannot cancel order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.OPEN}`);
 				}
 
-				// Create cancel message: [side, { fixed: price }, '0']
+				// Create cancel message with exact format from playground: [side, { fixed: price }, '0']
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
-				const price = existingOrder.price?.toString() || '0';
+				// Use precise price formatting like playgrounds
+				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
 				executeMessages.push([side, { fixed: price }, '0']);
 
@@ -2364,9 +2627,10 @@ export class Fin {
 					throw new Error(`Cannot withdraw order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.FILLED}`);
 				}
 
-				// For withdraw, we use the same structure as place/replace but with null amount
+				// Create withdraw message with exact format from playground: [side, { fixed: price }, null]
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
-				const price = existingOrder.price?.toString() || '0';
+				// Use precise price formatting like playgrounds
+				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
 				executeMessages.push([side, { fixed: price }, null]);
 
@@ -2385,16 +2649,18 @@ export class Fin {
 		}
 
 		// Calculate funds for orders
+		// IMPORTANT: Only PLACE orders need funds. Replace, cancel and withdraw operations send NO funds.
 		let funds: readonly Coin[] | undefined;
-		const buyOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
-		const sellOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
-		const buyReplaceOrders = orders.replace?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
-		const sellReplaceOrders = orders.replace?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
+
+		// Only calculate funds if we have place orders (NOT replace orders)
+		const hasPlaceOrders = (orders.place && !orders.place.isEmpty());
+
+		if (hasPlaceOrders) {
+			const buyOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
+			const sellOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
 
 		// For BUY orders (place only), we need quote tokens (USDC)
-		// Replace orders don't need additional funds as they modify existing orders
-		const allBuyOrders = buyOrders; // Only include place orders
-		if (allBuyOrders && allBuyOrders.size > 0) {
+		if (buyOrders && buyOrders.size > 0) {
 			let totalQuoteAmount = DECIMAL_0;
 
 			// For place orders, use the full amount
@@ -2402,23 +2668,14 @@ export class Fin {
 				totalQuoteAmount = totalQuoteAmount.plus(order.amount);
 			});
 
-			// For replace orders, we need to calculate the difference from existing orders
-			// Since we don't have access to existing order amounts here, we'll skip funds calculation
-			// The contract will handle the actual difference calculation
-			// buyReplaceOrders.forEach((order: FinPlaceOrderRequest) => {
-			// 	// For replace orders, we'll use a very conservative estimate
-			// 	// The contract will handle the actual difference
-			// 	totalQuoteAmount = totalQuoteAmount.plus(order.amount.mul(0.01)); // 1% of new amount as estimate
-			// });
-
 			// Convert to raw amount (no buffer needed - contract handles fees)
 			const rawQuoteAmount = totalQuoteAmount.mul(10 ** market.tokens.quote.decimals).toFixed(0);
 
-			// console.debug('Funds calculation for BUY orders:', {
-			// 	totalQuoteAmount: totalQuoteAmount.toString(),
-			// 	rawQuoteAmount,
-			// 	buyOrdersCount: allBuyOrders.size
-			// });
+			console.debug('Funds calculation for BUY orders:', {
+				totalQuoteAmount: totalQuoteAmount.toString(),
+				rawQuoteAmount,
+				buyOrdersCount: buyOrders.size
+			});
 
 			funds = [{
 				denom: market.tokens.quote.address,
@@ -2426,9 +2683,8 @@ export class Fin {
 			}];
 		}
 
-		// For SELL orders (place + replace), we need base tokens (RUJI)
-		const allSellOrders = sellOrders.concat(sellReplaceOrders);
-		if (allSellOrders && allSellOrders.size > 0) {
+		// For SELL orders (place only), we need base tokens (RUJI)
+		if (sellOrders && sellOrders.size > 0) {
 			let totalBaseAmount = DECIMAL_0;
 
 			// For place orders, use the full amount
@@ -2436,22 +2692,13 @@ export class Fin {
 				totalBaseAmount = totalBaseAmount.plus(order.amount);
 			});
 
-			// For replace orders, we need to calculate the difference from existing orders
-			// Since we don't have access to existing order amounts here, we'll skip funds calculation
-			// The contract will handle the actual difference calculation
-			// sellReplaceOrders.forEach((order: FinPlaceOrderRequest) => {
-			// 	// For replace orders, we'll use a very conservative estimate
-			// 	// The contract will handle the actual difference
-			// 	totalBaseAmount = totalBaseAmount.plus(order.amount.mul(0.01)); // 1% of new amount as estimate
-			// });
-
 			// Convert to raw amount (no buffer needed - contract handles fees)
 			const rawBaseAmount = totalBaseAmount.mul(10 ** market.tokens.base.decimals).toFixed(0);
 
 			console.debug('Funds calculation for SELL orders:', {
 				totalBaseAmount: totalBaseAmount.toString(),
 				rawBaseAmount,
-				sellOrdersCount: allSellOrders.size
+				sellOrdersCount: sellOrders.size
 			});
 
 			// If we already have funds for BUY orders, add to it, otherwise create new
@@ -2470,6 +2717,7 @@ export class Fin {
 				}];
 			}
 		}
+		} // End of hasPlaceOrders conditional
 
 		// Execute the transaction
 		const response = await this.cosmClient.execute(
@@ -2498,16 +2746,74 @@ export class Fin {
 
 		return result;
 	}
+
+	/**
+	 * Get wallet address
+	 * @param walletAddress - The wallet address
+	 * @param wallet - The wallet
+	 * @returns The wallet address
+	 */
+	private getWalletAddress(walletAddress?: WalletAddress, wallet?: Wallet): WalletAddress {
+		if (walletAddress) {
+			return walletAddress.trim().toLowerCase();
+		}
+
+		if (wallet) {
+			return wallet.firstAccount.address.trim().toLowerCase();
+		}
+
+		if (this.wallet.firstAccount) {
+			return this.wallet.firstAccount.address.trim().toLowerCase();
+		}
+
+		throw new Error('No wallet address provided');
+	}
+
+	/**
+	 * Get the order id
+	 * @param options - The options
+	 * @returns The order id
+	 */
+	private getOrderId(options: {
+		ownerAddress?: WalletAddress;
+		market?: Market;
+		order?: Order | FinPlaceOrderRequest | FinReplaceOrderRequest;
+		orderType?: OrderType;
+		orderSide?: OrderSide;
+		orderPrice?: Decimal;
+	}): OrderId {
+		let { ownerAddress, market, order, orderType, orderSide, orderPrice } = options;
+
+		if (!ownerAddress) {
+			ownerAddress = getOrThrow<Order>(order).ownerAddress;
+		}
+
+		const marketSymbol: MarketSymbol = order?.market?.symbol || getOrThrow<Market>(market).symbol;
+
+		if (!orderType) {
+			orderType = getOrThrow<Order>(order).type;
+		}
+
+		if (!orderSide) {
+			orderSide = getOrThrow<Order>(order).side;
+		}
+
+		if (!orderPrice) {
+			orderPrice = getOrThrow<Order>(order).price;
+		}
+
+		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice}`;
+	}
 }
 
 /**
  * Ignore an exception
  * @param exception - The exception to ignore
  */
-const ignoreException = (exception: any): void => {
-	let message = 'Ignored exception: ';
+const ignoreException = (exception: any, message?: string): void => {
+	message = message || 'Ignored exception: ';
 	if (exception instanceof Error) {
-		message += exception.message;
+		message += `\n${exception.message}\n${exception.stack}`;
 	} else {
 		message += exception;
 	}
