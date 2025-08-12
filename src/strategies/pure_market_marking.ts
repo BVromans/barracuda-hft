@@ -2,7 +2,7 @@ import Decimal from "decimal.js";
 import { List, Map } from "immutable";
 import { properties } from "../properties";
 import { Rujira } from "../rujira";
-import { Balances, DECIMAL_100, DECIMAL_NaN, FinExecuteOrdersRequest, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MarketSymbol, MList, MMap, Order, OrderId, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
+import { Balances, DECIMAL_100, DECIMAL_NaN, FinExecuteOrdersRequest, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MarketSymbol, MList, MMap, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
 import { runAndRepeat } from "../utils";
 import { BaseStrategy } from "./base_strategy";
 
@@ -155,15 +155,58 @@ export class PureMarketMarking implements BaseStrategy {
 	 */
 	private async createProposal(_options: {}): Promise<Proposal> {
 		const market: Market = this.state.getOrThrow('market');
-		const currentOrders: Map<OrderId, Order> = this.state.getOrThrow('orders');
 		const balances: Balances = this.state.getOrThrow('balances');
+		const orderBook: OrderBook = this.state.getOrThrow('orderBook');
+		const indicators: Map<IndicatorId, IndicatorData> = this.state.getOrThrow('indicators');
+		const currentOrders: Map<OrderId, Order> = this.state.getOrThrow('orders');
+
+		const bestBid = orderBook.book.bestBid;
+		const bestAsk = orderBook.book.bestAsk;
+		const basePrice = orderBook.statistics.middlePrice;
+
+		const buyOrder = {
+			ownerAddress: this.rujira.walletAddress,
+			market: market,
+			side: OrderSide.BUY,
+			type: OrderType.FIXED_PRICE,
+			amount: DECIMAL_NaN,
+			price: DECIMAL_NaN,
+		} as FinPlaceOrderRequest;
+
+		const sellOrder = {
+			ownerAddress: this.rujira.walletAddress,
+			market: market,
+			side: OrderSide.SELL,
+			type: OrderType.FIXED_PRICE,
+			amount: DECIMAL_NaN,
+			price: DECIMAL_NaN,
+		} as FinPlaceOrderRequest;
 
 		const proposal: Proposal = {
-			place: List<FinPlaceOrderRequest>(),
-			replace: List<FinReplaceOrderRequest>(),
-			cancel: List<Order>(),
-			withdraw: List<Order>(),
+			place: MList<FinPlaceOrderRequest>(),
+			replace: MList<FinReplaceOrderRequest>(),
+			cancel: MList<Order>(),
+			withdraw: MList<Order>(),
 		};
+
+		// Spread indicators
+		const normalizedAverageTrueRange = Decimal(List<number>(indicators.getOrThrow(Indicator.normalized_average_true_range.id).value).last() || DECIMAL_NaN);
+		const rawBollingerBands = indicators.getOrThrow(Indicator.bollinger_bands.id).value as [number[], number[], number[]];
+		const bollingerBandsLower = Decimal(List<number>(rawBollingerBands[0]).last() || DECIMAL_NaN);
+		const bollingerBandsMiddle = Decimal(List<number>(rawBollingerBands[1]).last() || DECIMAL_NaN);
+		const bollingerBandsUpper = Decimal(List<number>(rawBollingerBands[2]).last() || DECIMAL_NaN);
+		const bollingerBands = bollingerBandsUpper.minus(bollingerBandsLower).div(bollingerBandsMiddle);
+
+		// Skew indicators
+		const relativeStrengthIndex = Decimal(List<number>(indicators.getOrThrow(Indicator.relative_strength_index.id).value).last() || DECIMAL_NaN);
+		const volumeWeightedAveragePrice = Decimal(List<number>(indicators.getOrThrow(Indicator.volume_weighted_average_price.id).value).last() || DECIMAL_NaN);
+
+		// Size indicators
+		const averageTrueRange = Decimal(List<number>(indicators.getOrThrow(Indicator.average_true_range.id).value).last() || DECIMAL_NaN);
+		const averageDirectionalMovementIndex = Decimal(List<number>(indicators.getOrThrow(Indicator.average_directional_movement_index.id).value).last() || DECIMAL_NaN);
+
+		proposal.place?.push(buyOrder);
+		proposal.place?.push(sellOrder);
 
 		return proposal;
 	}
