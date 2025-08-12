@@ -655,24 +655,86 @@ export class Indicator {
 	);
 
 	static mass_index = new Indicator(
-		"mass",
+		"mass_index", // Changed to "mass_index" to match the custom handling in rujira.ts
 		"Mass Index",
 		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					const high = candle.high.toNumber();
-					const low = candle.low.toNumber();
-					if (high > 0 && low > 0 && high >= low) {
-						data[0].push(high);
-						data[1].push(low);
-					}
-					return data;
-				},
-				[[], []] as [number[], number[]]
-			);
-			return result;
+			const highs: number[] = [];
+			const lows: number[] = [];
+
+			for (const c of candles) {
+				const hi = c?.high?.toNumber();
+				const lo = c?.low?.toNumber();
+				highs.push(Number.isFinite(hi) ? hi! : 0);
+				lows.push(Number.isFinite(lo) ? lo! : 0);
+			}
+
+			const period = 25;
+			const emaLen = 9;
+			const startIndex = (2 * emaLen - 2) + (period - 1);
+
+			if (highs.length <= startIndex) {
+				return [new Array(highs.length).fill(null)];
+			}
+
+			// Calculate real Mass Index: EMA(9) of (High-Low) / EMA(9) of EMA(9) of (High-Low)
+			const highLowDiff = highs.map((h, i) => h - lows[i]);
+
+			// Calculate 9-day EMA of (High-Low)
+			const ema9: number[] = [];
+			const multiplier = 2 / (emaLen + 1);
+
+			// First value is SMA
+			let sum = 0;
+			for (let i = 0; i < Math.min(emaLen, highLowDiff.length); i++) {
+				sum += highLowDiff[i];
+			}
+			ema9.push(sum / Math.min(emaLen, highLowDiff.length));
+
+			// Calculate EMA for remaining values
+			for (let i = emaLen; i < highLowDiff.length; i++) {
+				const newEma: number = (highLowDiff[i] * multiplier) + (ema9[ema9.length - 1] * (1 - multiplier));
+				ema9.push(newEma);
+			}
+
+			// Calculate 9-day EMA of the first EMA
+			const ema9OfEma9: number[] = [];
+
+			// First value is SMA
+			sum = 0;
+			for (let i = 0; i < Math.min(emaLen, ema9.length); i++) {
+				sum += ema9[i];
+			}
+			ema9OfEma9.push(sum / Math.min(emaLen, ema9.length));
+
+			// Calculate EMA for remaining values
+			for (let i = emaLen; i < ema9.length; i++) {
+				const newEma: number = (ema9[i] * multiplier) + (ema9OfEma9[ema9OfEma9.length - 1] * (1 - multiplier));
+				ema9OfEma9.push(newEma);
+			}
+
+			// Calculate Mass Index: EMA(9) / EMA(9) of EMA(9)
+			const alignedValues: (number | null)[] = new Array(highs.length).fill(null);
+
+			for (let i = startIndex; i < Math.min(ema9.length, ema9OfEma9.length); i++) {
+				if (Math.abs(ema9OfEma9[i]) > 1e-10) {
+					alignedValues[i] = ema9[i] / ema9OfEma9[i];
+				} else {
+					alignedValues[i] = 0;
+				}
+			}
+
+			console.log('Mass Index - Real calculation:', {
+				ema9Length: ema9.length,
+				ema9OfEma9Length: ema9OfEma9.length,
+				firstValidIndex: startIndex,
+				lastValidIndex: Math.min(ema9.length, ema9OfEma9.length) - 1,
+				sampleMassIndex: alignedValues.slice(startIndex, startIndex + 5)
+			});
+
+			// Return our calculated values directly for the custom handling in rujira.ts
+			return [alignedValues];
 		},
-		[25, 9]
+		[16, 25]
 	);
 
 	static maximum_in_period = new Indicator(
