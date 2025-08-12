@@ -154,9 +154,9 @@ export class Indicator {
 		[20, 14]
 	);
 
-		static average_directional_index = new Indicator(
+		static average_directional_movement_index = new Indicator(
 		"adx",
-		"Average Directional Index",
+		"Average Directional Movement Index",
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
 				(data, candle) => {
@@ -326,21 +326,15 @@ export class Indicator {
 		[50]
 	);
 
-	/**
-	 * Crossover indicator returns false because it only detects bullish crossovers (fast MA crossing above slow MA) using the @crossover.js library
-	 */
 	static crossover = new Indicator(
 		"crossover",
 		"Crossover",
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[10, 20]
+		[20]
 	);
 
-	/**
-	 * cross over number indicator returns false because it only detects bullish crossovers (fast MA crossing above slow MA)
-	 */
 	static cross_over_number = new Indicator(
 		"crossOverNumber",
 		"Crossover a number",
@@ -350,9 +344,6 @@ export class Indicator {
 		[20]
 	);
 
-	/**
-	 * cross under number indicator returns false because it only detects bearish crossovers (fast MA crossing below slow MA)
-	 */
 	static cross_under_number = new Indicator(
 		"crossUnderNumber",
 		"Crossunder a number",
@@ -963,20 +954,22 @@ export class Indicator {
 	);
 
 	static stochastic_oscillator = new Indicator(
-    "stoch",
-    "Stochastic Oscillator",
-    (candles: List<Candle>) => {
-        const highs = candles.map(c => c.high.toNumber()).toArray();
-        const lows = candles.map(c => c.low.toNumber()).toArray();
-        const closes = candles.map(c => c.close.toNumber()).toArray();
-
-        const stoch = require('@ixjb94/indicators-js/core/stoch');
-        const [stochK, stochD] = stoch(highs, lows, closes, 14, 3, 3);
-
-        return [stochK, stochD]; // %K e %D
-    },
-    [14, 3, 3]  // kperiod, kslow, dperiod
-);
+		"stoch",
+		"Stochastic Oscillator",
+		(candles: List<Candle>) => {
+			const result = candles.reduce(
+				(data, candle) => {
+					data[0].push(candle.high.toNumber() || 0);
+					data[1].push(candle.low.toNumber() || 0);
+					data[2].push(candle.close.toNumber() || 0);
+					return data;
+				},
+				[[], [], []] as [number[], number[], number[]]
+			);
+			return [result];
+		},
+		[14, 3]
+	);
 
 	/**
 	 * Stochastic RSI
@@ -1144,7 +1137,7 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[14, 20]
+		[1, 26]
 	);
 
 	static williams_accumulation_distribution = new Indicator(
@@ -1502,9 +1495,9 @@ export class Indicator {
 			// Indicator.chaikins_volatility, ok
 			// Indicator.chande_momentum_oscillator, ok
 			// Indicator.commodity_channel_index, ok
-			// Indicator.crossover,  // ok
-			// Indicator.cross_over_number, //ok
-			// Indicator.cross_under_number, //ok
+			// Indicator.crossover, false
+			// Indicator.cross_over_number, false
+			// Indicator.cross_under_number, false
 			// Indicator.detrended_price_oscillator, ok
 			// Indicator.directional_indicator, ok
 			// Indicator.directional_movement, ok
@@ -1527,7 +1520,7 @@ export class Indicator {
 			// Indicator.linear_regression, ok
 			// Indicator.linear_regression_intercept, ok
 			// Indicator.linear_regression_slope, ok
-			Indicator.mass_index,
+			// Indicator.mass_index, []
 			// Indicator.market_facilitation_index, ok
 			// Indicator.maximum_in_period, ok
 			// Indicator.mean_deviation_over_period, ok
@@ -1549,36 +1542,36 @@ export class Indicator {
 			// Indicator.rate_of_change, ok
 			// Indicator.rate_of_change_ratio, ok
 			// Indicator.recursive_moving_trend_average, ok
-			// Indicator.relative_momentum_index, //ok
+			// Indicator.relative_momentum_index, NaN
 			// Indicator.relative_strength_index, ok
 			// Indicator.relative_vigor_index, ok
 			// Indicator.simple_moving_average, ok
 			// Indicator.standard_deviation_over_period, ok
 			// Indicator.standard_error_over_period, ok
-			// Indicator.stochastic_momentum_index, ok
-			// Indicator.stochastic_oscillator,
+			// Indicator.stochastic_momentum_index, NaN
+			// Indicator.stochastic_oscillator, []
 			// Indicator.stochastic_rsi, []
 			// Indicator.sum_over_period, ok
 			// Indicator.time_series_forecast, ok
 			// Indicator.triangular_moving_average, ok
-			// Indicator.trix, ok
-			// Indicator.true_range, ok
-			// Indicator.true_strength_index, ok
-			// Indicator.triple_exponential_moving_average, ok
-			// Indicator.typical_price, ok
-			// Indicator.ultimate_oscillator, []
-			// Indicator.variance_over_period,  //TypeError: Indicators[indicator.id] is not a function
-			// Indicator.variable_index_dynamic_average, //ok
-			// Indicator.vertical_horizontal_filter, // ok
-			// Indicator.volume_oscillator, //ok
-			// Indicator.volume_weighted_average_price, //ok
-			// Indicator.volume_weighted_moving_average, NaN
-			// Indicator.weighted_close_price, //ok
-			// Indicator.weighted_moving_average, //ok
-			// Indicator.williams_accumulation_distribution, //ok
-			// Indicator.williams_r, //ok
-			// Indicator.wilders_smoothing, //ok
-			// Indicator.zero_lag_exponential_moving_average, //ok
+			// Indicator.trix,
+			// Indicator.true_range,
+			// Indicator.true_strength_index,
+			// Indicator.triple_exponential_moving_average,
+			// Indicator.typical_price,
+			// Indicator.ultimate_oscillator,
+			// Indicator.variance_over_period,
+			// Indicator.variable_index_dynamic_average,
+			// Indicator.vertical_horizontal_filter,
+			// Indicator.volume_oscillator,
+			// Indicator.volume_weighted_average_price, ok
+			// Indicator.volume_weighted_moving_average,
+			// Indicator.weighted_close_price,
+			// Indicator.weighted_moving_average,
+			// Indicator.williams_accumulation_distribution,
+			// Indicator.williams_r,
+			// IndicatRecursive or.wilders_smoothing,
+			// Indicator.zero_lag_exponential_moving_average,
 		];
 	}
 }
