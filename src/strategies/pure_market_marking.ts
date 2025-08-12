@@ -155,7 +155,7 @@ export class PureMarketMarking implements BaseStrategy {
 	 */
 	private async createProposal(_options: {}) {
 		// Parameters (tunable)
-		const spreadFloorPct = new Decimal(0.001); // 10 bps floor on spread
+		const spreadFloorPercentage = new Decimal(0.001); // 10 bps floor on spread
 		const normalizedAverageTrueRangeSpreadWeight = new Decimal(0.6); // NATR weight
 		const bollingerBandsSpreadWeight = new Decimal(0.25); // BB width blend-in weight
 		const relativeStrengthIndexSkewWeight = new Decimal(0.15); // RSI skew weight
@@ -235,21 +235,45 @@ export class PureMarketMarking implements BaseStrategy {
 			throw new Error('Middle price is not valid');
 		}
 
+		if (!normalizedAverageTrueRange.isFinite() || normalizedAverageTrueRange.lte(0)) {
+			throw new Error('Normalized average true range is not valid');
+		}
+
+		if (!bollingerBandsWidth.isFinite() || bollingerBandsWidth.lte(0)) {
+			throw new Error('Bollinger bands width is not valid');
+		}
+
+		if (!relativeStrengthIndex.isFinite() || relativeStrengthIndex.lte(0)) {
+			throw new Error('Relative strength index is not valid');
+		}
+
+		if (!volumeWeightedAveragePrice.isFinite() || volumeWeightedAveragePrice.lte(0)) {
+			throw new Error('Volume weighted average price is not valid');
+		}
+
+		if (!averageTrueRange.isFinite() || averageTrueRange.lte(0)) {
+			throw new Error('Average true range is not valid');
+		}
+
+		if (!averageDirectionalMovementIndex.isFinite() || averageDirectionalMovementIndex.lte(0)) {
+			throw new Error('Average directional movement index is not valid');
+		}
+
 		// Compute spread
-		const spreadFloor = spreadFloorPct.mul(middlePrice);
+		const spreadFloor = spreadFloorPercentage.mul(middlePrice);
 		const spreadPrimary = normalizedAverageTrueRangeSpreadWeight.mul(middlePrice).mul(normalizedAverageTrueRange.div(DECIMAL_100));
 		const spreadSecondary = bollingerBandsSpreadWeight.mul(middlePrice).mul(bollingerBandsWidth);
 		const spread = Decimal.max(spreadFloor, spreadPrimary).plus(spreadSecondary);
 
 		// Compute skew
-		const rsiWindow = Math.min(zscoreWindow, relativeStrengthIndexSeries.size);
+		const relativeStrengthIndexWindow = Math.min(zscoreWindow, relativeStrengthIndexSeries.size);
 		let rsiZ = new Decimal(0);
-		if (rsiWindow > 1) {
-			const recent = relativeStrengthIndexSeries.slice(relativeStrengthIndexSeries.size - rsiWindow).toArray();
-			const mean = recent.reduce((a, b) => a + (b - 50), 0) / rsiWindow;
+		if (relativeStrengthIndexWindow > 1) {
+			const recent = relativeStrengthIndexSeries.slice(relativeStrengthIndexSeries.size - relativeStrengthIndexWindow).toArray();
+			const mean = recent.reduce((a, b) => a + (b - 50), 0) / relativeStrengthIndexWindow;
 			const variance = recent.reduce((a, b) => {
 				const d = (b - 50) - mean; return a + d * d;
-			}, 0) / (rsiWindow - 1);
+			}, 0) / (relativeStrengthIndexWindow - 1);
 			const std = Math.sqrt(Math.max(variance, 1e-12));
 			rsiZ = Decimal((relativeStrengthIndex.toNumber() - 50 - mean) / std);
 		}
