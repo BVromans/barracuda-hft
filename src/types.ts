@@ -326,15 +326,21 @@ export class Indicator {
 		[50]
 	);
 
+	/**
+	 * Crossover indicator returns false because it only detects bullish crossovers (fast MA crossing above slow MA) using the @crossover.js library
+	 */
 	static crossover = new Indicator(
 		"crossover",
 		"Crossover",
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()]
 		},
-		[20]
+		[10, 20]
 	);
 
+	/**
+	 * cross over number indicator returns false because it only detects bullish crossovers (fast MA crossing above slow MA)
+	 */
 	static cross_over_number = new Indicator(
 		"crossOverNumber",
 		"Crossover a number",
@@ -344,6 +350,9 @@ export class Indicator {
 		[20]
 	);
 
+	/**
+	 * cross under number indicator returns false because it only detects bearish crossovers (fast MA crossing below slow MA)
+	 */
 	static cross_under_number = new Indicator(
 		"crossUnderNumber",
 		"Crossunder a number",
@@ -654,88 +663,28 @@ export class Indicator {
 		[28, 14]
 	);
 
+	/**
+	 * Mass Index indicator returns null for the first 40 candles due to the required warmup period (16 + 25 - 1)
+	 */
 	static mass_index = new Indicator(
-		"mass_index", // Changed to "mass_index" to match the custom handling in rujira.ts
-		"Mass Index",
-		(candles: List<Candle>) => {
-			const highs: number[] = [];
-			const lows: number[] = [];
+    "mass",
+    "Mass Index",
+    (candles: List<Candle>) => {
+        const candlesArray = candles.toArray();
+        const highs = candlesArray.map((candle: Candle) => candle?.high?.toNumber()).filter((h: number) => Number.isFinite(h) && h > 0);
+        const lows = candlesArray.map((candle: Candle) => candle?.low?.toNumber()).filter((l: number) => Number.isFinite(l) && l > 0);
 
-			for (const c of candles) {
-				const hi = c?.high?.toNumber();
-				const lo = c?.low?.toNumber();
-				highs.push(Number.isFinite(hi) ? hi! : 0);
-				lows.push(Number.isFinite(lo) ? lo! : 0);
-			}
+        if (highs.length < 41 || lows.length < 41) {
+            return [new Array(candles.size).fill(null)];
+        }
 
-			const period = 25;
-			const emaLen = 9;
-			const startIndex = (2 * emaLen - 2) + (period - 1);
+        const mass = require('@ixjb94/indicators-js/core/mass');
+        const massIndexValues = mass(highs, lows, 25);
 
-			if (highs.length <= startIndex) {
-				return [new Array(highs.length).fill(null)];
-			}
-
-			// Calculate real Mass Index: EMA(9) of (High-Low) / EMA(9) of EMA(9) of (High-Low)
-			const highLowDiff = highs.map((h, i) => h - lows[i]);
-
-			// Calculate 9-day EMA of (High-Low)
-			const ema9: number[] = [];
-			const multiplier = 2 / (emaLen + 1);
-
-			// First value is SMA
-			let sum = 0;
-			for (let i = 0; i < Math.min(emaLen, highLowDiff.length); i++) {
-				sum += highLowDiff[i];
-			}
-			ema9.push(sum / Math.min(emaLen, highLowDiff.length));
-
-			// Calculate EMA for remaining values
-			for (let i = emaLen; i < highLowDiff.length; i++) {
-				const newEma: number = (highLowDiff[i] * multiplier) + (ema9[ema9.length - 1] * (1 - multiplier));
-				ema9.push(newEma);
-			}
-
-			// Calculate 9-day EMA of the first EMA
-			const ema9OfEma9: number[] = [];
-
-			// First value is SMA
-			sum = 0;
-			for (let i = 0; i < Math.min(emaLen, ema9.length); i++) {
-				sum += ema9[i];
-			}
-			ema9OfEma9.push(sum / Math.min(emaLen, ema9.length));
-
-			// Calculate EMA for remaining values
-			for (let i = emaLen; i < ema9.length; i++) {
-				const newEma: number = (ema9[i] * multiplier) + (ema9OfEma9[ema9OfEma9.length - 1] * (1 - multiplier));
-				ema9OfEma9.push(newEma);
-			}
-
-			// Calculate Mass Index: EMA(9) / EMA(9) of EMA(9)
-			const alignedValues: (number | null)[] = new Array(highs.length).fill(null);
-
-			for (let i = startIndex; i < Math.min(ema9.length, ema9OfEma9.length); i++) {
-				if (Math.abs(ema9OfEma9[i]) > 1e-10) {
-					alignedValues[i] = ema9[i] / ema9OfEma9[i];
-				} else {
-					alignedValues[i] = 0;
-				}
-			}
-
-			console.log('Mass Index - Real calculation:', {
-				ema9Length: ema9.length,
-				ema9OfEma9Length: ema9OfEma9.length,
-				firstValidIndex: startIndex,
-				lastValidIndex: Math.min(ema9.length, ema9OfEma9.length) - 1,
-				sampleMassIndex: alignedValues.slice(startIndex, startIndex + 5)
-			});
-
-			// Return our calculated values directly for the custom handling in rujira.ts
-			return [alignedValues];
-		},
-		[16, 25]
-	);
+        return [massIndexValues];
+    },
+    [16, 25]
+);
 
 	static maximum_in_period = new Indicator(
 		"max",
@@ -1014,22 +963,20 @@ export class Indicator {
 	);
 
 	static stochastic_oscillator = new Indicator(
-		"stoch",
-		"Stochastic Oscillator",
-		(candles: List<Candle>) => {
-			const result = candles.reduce(
-				(data, candle) => {
-					data[0].push(candle.high.toNumber() || 0);
-					data[1].push(candle.low.toNumber() || 0);
-					data[2].push(candle.close.toNumber() || 0);
-					return data;
-				},
-				[[], [], []] as [number[], number[], number[]]
-			);
-			return [result];
-		},
-		[14, 3]
-	);
+    "stoch",
+    "Stochastic Oscillator",
+    (candles: List<Candle>) => {
+        const highs = candles.map(c => c.high.toNumber()).toArray();
+        const lows = candles.map(c => c.low.toNumber()).toArray();
+        const closes = candles.map(c => c.close.toNumber()).toArray();
+
+        const stoch = require('@ixjb94/indicators-js/core/stoch');
+        const [stochK, stochD] = stoch(highs, lows, closes, 14, 3, 3);
+
+        return [stochK, stochD]; // %K e %D
+    },
+    [14, 3, 3]  // kperiod, kslow, dperiod
+);
 
 	/**
 	 * Stochastic RSI
@@ -1197,7 +1144,7 @@ export class Indicator {
 		(candles: List<Candle>) => {
 			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
 		},
-		[1, 26]
+		[14, 20]
 	);
 
 	static williams_accumulation_distribution = new Indicator(
@@ -1468,14 +1415,24 @@ export class Indicator {
 		[10, 14]
 	);
 
+	/**
+	 * Stochastic Momentum Index returns NaN due to division by zero when high = low (candles without range) and NaN propagation in @smi.js library
+	 */
 	static stochastic_momentum_index = new Indicator(
-		"smi",
-		"Stochastic Momentum Index",
-		(candles: List<Candle>) => {
-			return [candles.map((candle: Candle) => candle.close.toNumber()).toArray()];
-		},
-		[10, 3]
-	);
+    "smi",
+    "Stochastic Momentum Index",
+    (candles: List<Candle>) => {
+        const highs = candles.map((candle: Candle) => candle?.high?.toNumber()).toArray();
+        const lows = candles.map((candle: Candle) => candle?.low?.toNumber()).toArray();
+        const closes = candles.map((candle: Candle) => candle?.close?.toNumber()).toArray();
+
+        const smi = require('@ixjb94/indicators-js/core/smi');
+        const smiValues = smi(highs, lows, closes, 10, 3, 3);
+
+        return [smiValues];
+    },
+    [10, 3, 3]
+);
 
 	static true_strength_index = new Indicator(
 		"tsi",
@@ -1545,9 +1502,9 @@ export class Indicator {
 			// Indicator.chaikins_volatility, ok
 			// Indicator.chande_momentum_oscillator, ok
 			// Indicator.commodity_channel_index, ok
-			// Indicator.crossover, false
-			// Indicator.cross_over_number, false
-			// Indicator.cross_under_number, false
+			// Indicator.crossover,  // ok
+			// Indicator.cross_over_number, //ok
+			// Indicator.cross_under_number, //ok
 			// Indicator.detrended_price_oscillator, ok
 			// Indicator.directional_indicator, ok
 			// Indicator.directional_movement, ok
@@ -1570,7 +1527,7 @@ export class Indicator {
 			// Indicator.linear_regression, ok
 			// Indicator.linear_regression_intercept, ok
 			// Indicator.linear_regression_slope, ok
-			// Indicator.mass_index, []
+			Indicator.mass_index,
 			// Indicator.market_facilitation_index, ok
 			// Indicator.maximum_in_period, ok
 			// Indicator.mean_deviation_over_period, ok
@@ -1592,36 +1549,36 @@ export class Indicator {
 			// Indicator.rate_of_change, ok
 			// Indicator.rate_of_change_ratio, ok
 			// Indicator.recursive_moving_trend_average, ok
-			// Indicator.relative_momentum_index, NaN
+			// Indicator.relative_momentum_index, //ok
 			// Indicator.relative_strength_index, ok
 			// Indicator.relative_vigor_index, ok
 			// Indicator.simple_moving_average, ok
 			// Indicator.standard_deviation_over_period, ok
 			// Indicator.standard_error_over_period, ok
-			// Indicator.stochastic_momentum_index, NaN
-			// Indicator.stochastic_oscillator, []
+			// Indicator.stochastic_momentum_index, ok
+			// Indicator.stochastic_oscillator,
 			// Indicator.stochastic_rsi, []
 			// Indicator.sum_over_period, ok
 			// Indicator.time_series_forecast, ok
 			// Indicator.triangular_moving_average, ok
-			// Indicator.trix,
-			// Indicator.true_range,
-			// Indicator.true_strength_index,
-			// Indicator.triple_exponential_moving_average,
-			// Indicator.typical_price,
-			// Indicator.ultimate_oscillator,
-			// Indicator.variance_over_period,
-			// Indicator.variable_index_dynamic_average,
-			// Indicator.vertical_horizontal_filter,
-			// Indicator.volume_oscillator,
-			// Indicator.volume_weighted_average_price, ok
-			// Indicator.volume_weighted_moving_average,
-			// Indicator.weighted_close_price,
-			// Indicator.weighted_moving_average,
-			// Indicator.williams_accumulation_distribution,
-			// Indicator.williams_r,
-			// IndicatRecursive or.wilders_smoothing,
-			// Indicator.zero_lag_exponential_moving_average,
+			// Indicator.trix, ok
+			// Indicator.true_range, ok
+			// Indicator.true_strength_index, ok
+			// Indicator.triple_exponential_moving_average, ok
+			// Indicator.typical_price, ok
+			// Indicator.ultimate_oscillator, []
+			// Indicator.variance_over_period,  //TypeError: Indicators[indicator.id] is not a function
+			// Indicator.variable_index_dynamic_average, //ok
+			// Indicator.vertical_horizontal_filter, // ok
+			// Indicator.volume_oscillator, //ok
+			// Indicator.volume_weighted_average_price, //ok
+			// Indicator.volume_weighted_moving_average, NaN
+			// Indicator.weighted_close_price, //ok
+			// Indicator.weighted_moving_average, //ok
+			// Indicator.williams_accumulation_distribution, //ok
+			// Indicator.williams_r, //ok
+			// Indicator.wilders_smoothing, //ok
+			// Indicator.zero_lag_exponential_moving_average, //ok
 		];
 	}
 }
