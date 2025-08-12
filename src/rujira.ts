@@ -2336,7 +2336,7 @@ export class Fin {
 	 * @param request - The unified request object
 	 * @returns The unified response object
 	 */
-	private async executeOrders(request: FinExecuteOrdersRequest): Promise<FinExecuteOrdersResponse> {
+	public async executeOrders(request: FinExecuteOrdersRequest): Promise<FinExecuteOrdersResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market, orders } = request;
 
 		// ===== SANITIZATION =====
