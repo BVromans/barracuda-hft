@@ -2,21 +2,39 @@ import Decimal from "decimal.js";
 import { List, Map } from "immutable";
 import { properties } from "../properties";
 import { Rujira } from "../rujira";
-import { Balances, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MarketSymbol, MList, MMap, Order, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
+import { Balances, DECIMAL_100, DECIMAL_NaN, FinExecuteOrdersRequest, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MarketSymbol, MList, MMap, Order, OrderId, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
 import { runAndRepeat } from "../utils";
 import { BaseStrategy } from "./base_strategy";
+
+/**
+ * Proposal for the strategy
+ */
+type Proposal = FinExecuteOrdersRequest['orders'];
 
 /**
  * Pure market marking strategy
  */
 export class PureMarketMarking implements BaseStrategy {
 
+	/**
+	 * Status of the strategy
+	 */
 	status: StrategyStatus;
 
+	/**
+	 * Rujira instance
+	 */
 	private readonly rujira: Rujira;
 
+	/**
+	 * State of the strategy
+	 */
 	private readonly state: Map<string, any> = MMap<string, any>();
 
+	/**
+	 * Constructor
+	 * @param options - Options for the strategy
+	 */
 	constructor(options: {
 		walletMnemonic: WalletMnemonic | undefined;
 		walletPrivateKey: WalletPrivateKey | undefined;
@@ -29,6 +47,10 @@ export class PureMarketMarking implements BaseStrategy {
 		this.status = StrategyStatus.CREATED;
 	}
 
+	/**
+	 * Initialize the strategy
+	 * @param _options - Options for the strategy
+	 */
 	async initialize(_options: {}) {
 		this.status = StrategyStatus.INITIALIZING;
 
@@ -72,6 +94,10 @@ export class PureMarketMarking implements BaseStrategy {
 		this.status = StrategyStatus.IDLE;
 	}
 
+	/**
+	 * Run the strategy
+	 * @param _options - Options for the strategy
+	 */
 	async run(_options: {}) {
 		try {
 			if (this.status !== StrategyStatus.IDLE) return;
@@ -81,8 +107,8 @@ export class PureMarketMarking implements BaseStrategy {
 			await this.updateOrders({});
 			await this.updateBalances({});
 
-			const proposal = await this.createProposal({});
-			await this.applyProposal({ proposal });
+			await this.createProposal({});
+			await this.applyProposal({});
 
 			await this.updateBalances({});
 			await this.updateSummary({});
@@ -95,6 +121,10 @@ export class PureMarketMarking implements BaseStrategy {
 		}
 	}
 
+	/**
+	 * Stop the strategy
+	 * @param _options - Options for the strategy
+	 */
 	async stop(_options: {}) {
 		try {
 			this.status = StrategyStatus.STOPPING;
@@ -119,31 +149,32 @@ export class PureMarketMarking implements BaseStrategy {
 		}
 	}
 
-	private async createProposal(_options: {}): Promise<{
-		place: List<FinPlaceOrderRequest>,
-		replace: List<FinReplaceOrderRequest>,
-		cancel: List<Order>,
-		withdraw: List<Order>,
-	}> {
-		return {
+	/**
+	 * Create a proposal for the strategy
+	 * @param _options - Options for the strategy
+	 */
+	private async createProposal(_options: {}): Promise<Proposal> {
+		const market: Market = this.state.getOrThrow('market');
+		const currentOrders: Map<OrderId, Order> = this.state.getOrThrow('orders');
+		const balances: Balances = this.state.getOrThrow('balances');
+
+		const proposal: Proposal = {
 			place: List<FinPlaceOrderRequest>(),
 			replace: List<FinReplaceOrderRequest>(),
 			cancel: List<Order>(),
 			withdraw: List<Order>(),
 		};
+
+		return proposal;
 	}
 
-	private async applyProposal(options: {
-		proposal: {
-			place: List<FinPlaceOrderRequest>,
-			replace: List<FinReplaceOrderRequest>,
-			cancel: List<Order>,
-			withdraw: List<Order>,
-		};
-	}) {
-		const { proposal } = options;
-
+	/**
+	 * Apply a proposal for the strategy
+	 * @param _options - Options for the strategy
+	 */
+	private async applyProposal(_options: {}) {
 		const market: Market = this.state.getOrThrow('market');
+		const proposal: Proposal = this.state.getOrThrow('proposal');
 
 		const result = await this.rujira.fin.executeOrders({
 			ownerAddress: this.rujira.walletAddress,
@@ -154,6 +185,10 @@ export class PureMarketMarking implements BaseStrategy {
 		console.log(`Proposal applied successfully. Transactions: `, result.transactions.toJS());
 	}
 
+	/**
+	 * Start repeating tasks for the strategy
+	 * @param _options - Options for the strategy
+	 */
 	private async startRepeatingTasks(_options: {}) {
 		const tasks = MMap<string, NodeJS.Timeout>();
 
@@ -200,6 +235,10 @@ export class PureMarketMarking implements BaseStrategy {
 		);
 	}
 
+	/**
+	 * Stop repeating tasks for the strategy
+	 * @param _options - Options for the strategy
+	 */
 	private async stopRepeatingTasks(_options: {}) {
 		const tasks = this.state.getOrThrow('tasks').valueSeq().toArray();
 
@@ -210,18 +249,30 @@ export class PureMarketMarking implements BaseStrategy {
 		this.state.delete('tasks');
 	}
 
+	/**
+	 * Update the tokens of the strategy
+	 * @param _options - Options for the strategy
+	 */
 	private async updateTokens(_options: {}) {
 		const tokens = await this.rujira.fin.getAllTokens({});
 
 		this.state.set("tokens", tokens);
 	}
 
+	/**
+	 * Update the markets of the strategy
+	 * @param _options - Options for the strategy
+	 */
 	private async updateMarkets(_options: {}) {
 		const markets = await this.rujira.fin.getAllMarkets({});
 
 		this.state.set("markets", markets);
 	}
 
+	/**
+	 * Update the order book of the strategy
+	 * @param _options - Options for the strategy
+	 */
 	private async updateOrderBook(_options: {}) {
 		const market = this.state.getOrThrow('market');
 
@@ -232,6 +283,10 @@ export class PureMarketMarking implements BaseStrategy {
 		this.state.set("orderBook", orderBook);
 	}
 
+	/**
+	 * Update the indicators of the strategy
+	 * @param _options - Options for the strategy
+	 */
 	private async updateIndicators(_options: {}) {
 		const market = this.state.getOrThrow('market');
 
@@ -242,6 +297,10 @@ export class PureMarketMarking implements BaseStrategy {
 		this.state.set("indicators", indicators);
 	}
 
+	/**
+	 * Update the balances of the strategy
+	 * @param _options - Options for the strategy
+	 */
 	private async updateBalances(_options: {}) {
 		const market: Market = this.state.getOrThrow('market');
 
@@ -261,6 +320,10 @@ export class PureMarketMarking implements BaseStrategy {
 		this.state.set("balances", balances);
 	}
 
+	/**
+	 * Update the orders of the strategy
+	 * @param _options - Options for the strategy
+	 */
 	private async updateOrders(_options: {}) {
 		const market: Market = this.state.getOrThrow('market');
 
@@ -282,6 +345,10 @@ export class PureMarketMarking implements BaseStrategy {
 		this.state.set("orders", orders);
 	}
 
+	/**
+	 * Update the summary of the strategy
+	 * @param _options - Options for the strategy
+	 */
 	private async updateSummary(_options: {}) {
 		const market: Market = this.state.getOrThrow('market');
 		const balances: Balances = this.state.getOrThrow('balances');
@@ -327,6 +394,10 @@ export class PureMarketMarking implements BaseStrategy {
 		);
 	}
 
+	/**
+	 * Monitor the profit and loss of the strategy
+	 * @param _options - Options for the strategy
+	 */
 	private async monitoreProfitAndLoss(_options: {}) {
 		const enabled = properties.getAs<boolean>('strategy.pure_market_making.monitorProfitAndLoss.enabled');
 
@@ -348,6 +419,10 @@ export class PureMarketMarking implements BaseStrategy {
 		}
 	}
 
+	/**
+	 * Cancel all orders if configured
+	 * @param _options - Options for the strategy
+	 */
 	private async cancelAllOrdersIfConfigured(_options: {}) {
 		let shouldCancelAllOrders = false;
 
@@ -365,6 +440,10 @@ export class PureMarketMarking implements BaseStrategy {
 		}
 	}
 
+	/**
+	 * Withdraw all filled orders if configured
+	 * @param _options - Options for the strategy
+	 */
 	private async withdrawAllFilledOrdersIfConfigured(_options: {}) {
 		let shouldWithdrawAllFilledOrders = false;
 
