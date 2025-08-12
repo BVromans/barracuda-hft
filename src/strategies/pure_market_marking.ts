@@ -2,7 +2,7 @@ import Decimal from "decimal.js";
 import { List, Map } from "immutable";
 import { properties } from "../properties";
 import { Rujira } from "../rujira";
-import { Balances, DECIMAL_100, DECIMAL_NaN, FinExecuteOrdersRequest, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MarketSymbol, MList, MMap, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
+import { Balances, DECIMAL_0, DECIMAL_100, DECIMAL_NaN, FinExecuteOrdersRequest, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MarketSymbol, MList, MMap, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
 import { runAndRepeat } from "../utils";
 import { BaseStrategy } from "./base_strategy";
 
@@ -153,16 +153,31 @@ export class PureMarketMarking implements BaseStrategy {
 	 * Create a proposal for the strategy
 	 * @param _options - Options for the strategy
 	 */
-	private async createProposal(_options: {}): Promise<Proposal> {
+	private async createProposal(_options: {}) {
+		// Parameters (tunable)
+		const spreadFloorPct = new Decimal(0.001); // 10 bps floor on spread
+		const normalizedAverageTrueRangeSpreadWeight = new Decimal(0.6); // NATR weight
+		const bollingerBandsSpreadWeight = new Decimal(0.25); // BB width blend-in weight
+		const relativeStrengthIndexSkewWeight = new Decimal(0.15); // RSI skew weight
+		const volumeWeightedAveragePriceSkewWeight = new Decimal(0.75); // VWAP pull weight
+		const zscoreWindow = 50; // RSI z-score lookback
+		const sizeBaseQuoteUtilization = new Decimal(0.10); // 10% of free quote for BUY
+		const sizeBaseBaseUtilization = new Decimal(0.10); // 10% of free base for SELL
+		const kVol = new Decimal(1.0); // Volatility weight (ATR)
+		const kTrend = new Decimal(0.5); // Trend weight (ADX)
+		const bbWidthWindow = 100; // Window to compute BB width percentile
+		const bbWidthBoostPercentile = 0.2; // Bottom 20% percentile
+		const kBoost = new Decimal(0.25); // 25% size boost when squeezed
+		const minimumQuotePerOrder = new Decimal(0.0); // Optional safety minimums
+		const minimumBasePerOrder = new Decimal(0.0);
+
 		const market: Market = this.state.getOrThrow('market');
 		const balances: Balances = this.state.getOrThrow('balances');
 		const orderBook: OrderBook = this.state.getOrThrow('orderBook');
 		const indicators: Map<IndicatorId, IndicatorData> = this.state.getOrThrow('indicators');
 		const currentOrders: Map<OrderId, Order> = this.state.getOrThrow('orders');
 
-		const bestBid = orderBook.book.bestBid;
-		const bestAsk = orderBook.book.bestAsk;
-		const basePrice = orderBook.statistics.middlePrice;
+		const middlePrice = orderBook.statistics.middlePrice?.baseToQuote;
 
 		const buyOrder = {
 			ownerAddress: this.rujira.walletAddress,
@@ -189,26 +204,132 @@ export class PureMarketMarking implements BaseStrategy {
 			withdraw: MList<Order>(),
 		};
 
+		// Series
+		const normalizedAverageTrueRangeSeries = List<number>(indicators.getOrThrow(Indicator.normalized_average_true_range.id).value);
+		const bollingerBandsSeries = indicators.getOrThrow(Indicator.bollinger_bands.id).value as [number[], number[], number[]];
+		const bollingerBandsLowerSeries = List<number>(bollingerBandsSeries[0]);
+		const bollingerBandsMiddleSeries = List<number>(bollingerBandsSeries[1]);
+		const bollingerBandsUpperSeries = List<number>(bollingerBandsSeries[2]);
+		const relativeStrengthIndexSeries = List<number>(indicators.getOrThrow(Indicator.relative_strength_index.id).value);
+		const volumeWeightedAveragePriceSeries = List<number>(indicators.getOrThrow(Indicator.volume_weighted_average_price.id).value);
+		const averageTrueRangeSeries = List<number>(indicators.getOrThrow(Indicator.average_true_range.id).value);
+		const averageDirectionalMovementIndexSeries = List<number>(indicators.getOrThrow(Indicator.average_directional_movement_index.id).value);
+
 		// Spread indicators
-		const normalizedAverageTrueRange = Decimal(List<number>(indicators.getOrThrow(Indicator.normalized_average_true_range.id).value).last() || DECIMAL_NaN);
-		const rawBollingerBands = indicators.getOrThrow(Indicator.bollinger_bands.id).value as [number[], number[], number[]];
-		const bollingerBandsLower = Decimal(List<number>(rawBollingerBands[0]).last() || DECIMAL_NaN);
-		const bollingerBandsMiddle = Decimal(List<number>(rawBollingerBands[1]).last() || DECIMAL_NaN);
-		const bollingerBandsUpper = Decimal(List<number>(rawBollingerBands[2]).last() || DECIMAL_NaN);
-		const bollingerBands = bollingerBandsUpper.minus(bollingerBandsLower).div(bollingerBandsMiddle);
+		const normalizedAverageTrueRange = Decimal(normalizedAverageTrueRangeSeries.last() || DECIMAL_NaN);
+		const bollingerBandsLower = Decimal(bollingerBandsLowerSeries.last() || DECIMAL_NaN);
+		const bollingerBandsMiddle = Decimal(bollingerBandsMiddleSeries.last() || DECIMAL_NaN);
+		const bollingerBandsUpper = Decimal(bollingerBandsUpperSeries.last() || DECIMAL_NaN);
+		const bollingerBandsWidth = bollingerBandsUpper.minus(bollingerBandsLower).div(bollingerBandsMiddle);
 
 		// Skew indicators
-		const relativeStrengthIndex = Decimal(List<number>(indicators.getOrThrow(Indicator.relative_strength_index.id).value).last() || DECIMAL_NaN);
-		const volumeWeightedAveragePrice = Decimal(List<number>(indicators.getOrThrow(Indicator.volume_weighted_average_price.id).value).last() || DECIMAL_NaN);
+		const relativeStrengthIndex = Decimal(relativeStrengthIndexSeries.last() || DECIMAL_NaN);
+		const volumeWeightedAveragePrice = Decimal(volumeWeightedAveragePriceSeries.last() || DECIMAL_NaN);
 
 		// Size indicators
-		const averageTrueRange = Decimal(List<number>(indicators.getOrThrow(Indicator.average_true_range.id).value).last() || DECIMAL_NaN);
-		const averageDirectionalMovementIndex = Decimal(List<number>(indicators.getOrThrow(Indicator.average_directional_movement_index.id).value).last() || DECIMAL_NaN);
+		const averageTrueRange = Decimal(averageTrueRangeSeries.last() || DECIMAL_NaN);
+		const averageDirectionalMovementIndex = Decimal(averageDirectionalMovementIndexSeries.last() || DECIMAL_NaN);
 
-		proposal.place?.push(buyOrder);
-		proposal.place?.push(sellOrder);
+		// Validation
+		if (!middlePrice || !middlePrice.isFinite() || middlePrice.lte(0)) {
+			throw new Error('Middle price is not valid');
+		}
 
-		return proposal;
+		// Compute spread
+		const spreadFloor = spreadFloorPct.mul(middlePrice);
+		const spreadPrimary = normalizedAverageTrueRangeSpreadWeight.mul(middlePrice).mul(normalizedAverageTrueRange.div(DECIMAL_100));
+		const spreadSecondary = bollingerBandsSpreadWeight.mul(middlePrice).mul(bollingerBandsWidth);
+		const spread = Decimal.max(spreadFloor, spreadPrimary).plus(spreadSecondary);
+
+		// Compute skew
+		const rsiWindow = Math.min(zscoreWindow, relativeStrengthIndexSeries.size);
+		let rsiZ = new Decimal(0);
+		if (rsiWindow > 1) {
+			const recent = relativeStrengthIndexSeries.slice(relativeStrengthIndexSeries.size - rsiWindow).toArray();
+			const mean = recent.reduce((a, b) => a + (b - 50), 0) / rsiWindow;
+			const variance = recent.reduce((a, b) => {
+				const d = (b - 50) - mean; return a + d * d;
+			}, 0) / (rsiWindow - 1);
+			const std = Math.sqrt(Math.max(variance, 1e-12));
+			rsiZ = Decimal((relativeStrengthIndex.toNumber() - 50 - mean) / std);
+		}
+		const vwapPull = middlePrice.minus(volumeWeightedAveragePrice).div(middlePrice); // (mid - VWAP)/mid
+		const skew = relativeStrengthIndexSkewWeight.mul(rsiZ).minus(volumeWeightedAveragePriceSkewWeight.mul(vwapPull));
+
+		// Prices
+		let buyPrice = middlePrice.minus(spread.div(2)).plus(skew);
+		let sellPrice = middlePrice.plus(spread.div(2)).plus(skew);
+		if (sellPrice.lte(buyPrice)) {
+			const epsilon = middlePrice.mul(0.0001);
+			buyPrice = Decimal.min(buyPrice, middlePrice.minus(epsilon));
+			sellPrice = Decimal.max(sellPrice, middlePrice.plus(epsilon));
+		}
+
+		// Size computation
+		let sizeFactor = Decimal(1)
+			.div(Decimal(1).plus(kVol.mul(averageTrueRange.div(middlePrice))))
+			.div(Decimal(1).plus(kTrend.mul(averageDirectionalMovementIndex.div(50))));
+
+		// Optional boost if BB width in bottom 20%
+		const widthCount = bollingerBandsMiddleSeries.size;
+		if (widthCount > 5) {
+			const start = Math.max(0, widthCount - bbWidthWindow);
+			const widths: number[] = [];
+			for (let i = start; i < widthCount; i++) {
+				const m = bollingerBandsMiddleSeries.get(i) as number;
+				const u = bollingerBandsUpperSeries.get(i) as number;
+				const l = bollingerBandsLowerSeries.get(i) as number;
+				if (m && m !== 0) {
+					widths.push((u - l) / m);
+				}
+			}
+			if (widths.length >= 5) {
+				const sorted = widths.slice().sort((a, b) => a - b);
+				const idx = Math.max(0, Math.min(sorted.length - 1, Math.floor(sorted.length * bbWidthBoostPercentile)));
+				const p20 = sorted[idx];
+				if (bollingerBandsWidth.isFinite() && bollingerBandsWidth.toNumber() <= p20) {
+					sizeFactor = sizeFactor.mul(Decimal(1).plus(kBoost));
+				}
+			}
+		}
+
+		// Budgets
+		const baseSymbol = market.tokens.base.symbol;
+		const quoteSymbol = market.tokens.quote.symbol;
+		const baseFree = balances.tokens.getOrThrow(baseSymbol).balances.token.free;
+		const quoteFree = balances.tokens.getOrThrow(quoteSymbol).balances.token.free;
+
+		const buyQuoteBudget = Decimal.max(DECIMAL_0, quoteFree.mul(sizeBaseQuoteUtilization));
+		const sellBaseBudget = Decimal.max(DECIMAL_0, baseFree.mul(sizeBaseBaseUtilization));
+
+		const buyAmountQuote = Decimal.max(minimumQuotePerOrder, buyQuoteBudget.mul(sizeFactor));
+		const sellAmountBase = Decimal.max(minimumBasePerOrder, sellBaseBudget.mul(sizeFactor));
+
+		// Populate orders only if valid
+		if (buyAmountQuote.gt(0) && buyPrice.isFinite() && buyPrice.gt(0)) {
+			buyOrder.price = buyPrice;
+			buyOrder.amount = buyAmountQuote;
+		}
+		if (sellAmountBase.gt(0) && sellPrice.isFinite() && sellPrice.gt(0)) {
+			sellOrder.price = sellPrice;
+			sellOrder.amount = sellAmountBase;
+		}
+
+		// Cancel current open/partial orders to re-quote fresh
+		currentOrders.valueSeq().forEach((order: Order) => {
+			if (order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED) {
+				proposal.cancel?.push(order as any);
+			}
+		});
+
+		if (buyOrder.amount && buyOrder.price && buyOrder.amount.gt(0) && buyOrder.price.gt(0)) {
+			proposal.place?.push(buyOrder);
+		}
+		if (sellOrder.amount && sellOrder.price && sellOrder.amount.gt(0) && sellOrder.price.gt(0)) {
+			proposal.place?.push(sellOrder);
+		}
+
+		this.state.set('proposal', proposal);
 	}
 
 	/**
@@ -225,7 +346,7 @@ export class PureMarketMarking implements BaseStrategy {
 			orders: proposal,
 		});
 
-		console.log(`Proposal applied successfully. Transactions: `, result.transactions.toJS());
+		console.debug(`Proposal applied successfully. Transactions: `, result.transactions.toJS());
 	}
 
 	/**
