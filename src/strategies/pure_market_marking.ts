@@ -155,22 +155,17 @@ export class PureMarketMarking implements BaseStrategy {
 	 */
 	private async createProposal(_options: {}) {
 		// Parameters (tunable)
-		const spreadFloorPercentage = new Decimal(0.001); // Minimum spread as a percentage of mid-price (10 bps)
-		const normalizedAverageTrueRangeSpreadWeight = new Decimal(0.6); // Weight for NATR contribution to spread
-		const bollingerBandsSpreadWeight = new Decimal(0.25); // Weight for Bollinger Bands width contribution to spread
-		const relativeStrengthIndexSkewWeight = new Decimal(0.15); // Weight for RSI contribution to skew
-		const volumeWeightedAveragePriceSkewWeight = new Decimal(0.75); // Weight for VWAP contribution to skew
-		const relativeStrengthIndexZScoreWindowLength = 50; // Lookback window for RSI z-score
-		const sizeBaseQuoteUtilization = new Decimal(0.10); // Fraction of free quote balance to allocate for buy orders
-		const sizeBaseBaseUtilization = new Decimal(0.10); // Fraction of free base balance to allocate for sell orders
-		const volatilityWeight = new Decimal(1.0); // Weight to penalize size by ATR
-		const trendWeight = new Decimal(0.5); // Weight to penalize size by ADX
-		const bollingerBandsWidthWindowLength = 100; // Lookback window for Bollinger Bands width percentile
-		const bollingerBandsWidthBottomPercentileThreshold = 0.2; // Bottom 20% threshold to detect squeezes
-		const positionSizeSqueezeBoostFactor = new Decimal(0.25); // Additional size when in volatility squeeze
-		const minimumQuotePerOrder = new Decimal(0.0); // Lower bound safeguard for quote size
-		const minimumBasePerOrder = new Decimal(0.0); // Lower bound safeguard for base size
-		const minimumSpread = new Decimal(0.001); // Minimum spread as a percentage of mid-price (10 bps)
+		const spreadFloorBps = new Decimal(10); // Floor in basis points (e.g., 10 bps = 0.10%)
+		const spreadBollingerWidthK = new Decimal(1.2); // k for spread using BB width (≈1.0–1.8)
+		const kVwap = new Decimal(0.8); // k_vwap (≈0.5–1.2)
+		const skewMaxBps = new Decimal(40); // Clamp for skew in bps (≈25–60 bps)
+		const quoteUtilizationPercentage = new Decimal(10); // % of free quote balance for BUY
+		const baseUtilizationPercentage = new Decimal(10); // % of free base balance for SELL
+		const kVol = new Decimal(4.0); // k_vol for size shrink with ATR (≈3–6)
+		const minimumQuotePerOrder = new Decimal(0.0); // Absolute min in quote token
+		const minimumBasePerOrder = new Decimal(0.0); // Absolute min in base token
+		const maximumQuotePerOrder = new Decimal(Number.MAX_SAFE_INTEGER); // Optional cap (quote)
+		const maximumBasePerOrder = new Decimal(Number.MAX_SAFE_INTEGER); // Optional cap (base)
 
 		const market: Market = this.state.getOrThrow('market');
 		const balances: Balances = this.state.getOrThrow('balances');
@@ -206,46 +201,32 @@ export class PureMarketMarking implements BaseStrategy {
 		};
 
 		// Retrieve indicator time series used by the strategy
-		const normalizedAverageTrueRangeSeries = List<number>(indicators.getOrThrow(Indicator.normalized_average_true_range.id).value);
 		const bollingerBandsSeries = indicators.getOrThrow(Indicator.bollinger_bands.id).value as [number[], number[], number[]];
 		const bollingerBandsLowerSeries = List<number>(bollingerBandsSeries[0]);
 		const bollingerBandsMiddleSeries = List<number>(bollingerBandsSeries[1]);
 		const bollingerBandsUpperSeries = List<number>(bollingerBandsSeries[2]);
-		const relativeStrengthIndexSeries = List<number>(indicators.getOrThrow(Indicator.relative_strength_index.id).value);
 		const volumeWeightedAveragePriceSeries = List<number>(indicators.getOrThrow(Indicator.volume_weighted_average_price.id).value);
 		const averageTrueRangeSeries = List<number>(indicators.getOrThrow(Indicator.average_true_range.id).value);
-		const averageDirectionalMovementIndexSeries = List<number>(indicators.getOrThrow(Indicator.average_directional_movement_index.id).value);
 
 		// Extract the most recent values for spread components
-		const normalizedAverageTrueRange = Decimal(normalizedAverageTrueRangeSeries.last() || DECIMAL_NaN);
 		const bollingerBandsLower = Decimal(bollingerBandsLowerSeries.last() || DECIMAL_NaN);
 		const bollingerBandsMiddle = Decimal(bollingerBandsMiddleSeries.last() || DECIMAL_NaN);
 		const bollingerBandsUpper = Decimal(bollingerBandsUpperSeries.last() || DECIMAL_NaN);
 		const bollingerBandsWidth = bollingerBandsUpper.minus(bollingerBandsLower).div(bollingerBandsMiddle); // Unitless bandwidth
 
 		// Extract the most recent values for skew components
-		const relativeStrengthIndex = Decimal(relativeStrengthIndexSeries.last() || DECIMAL_NaN);
 		const volumeWeightedAveragePrice = Decimal(volumeWeightedAveragePriceSeries.last() || DECIMAL_NaN);
 
 		// Extract the most recent values for size components
 		const averageTrueRange = Decimal(averageTrueRangeSeries.last() || DECIMAL_NaN);
-		const averageDirectionalMovementIndex = Decimal(averageDirectionalMovementIndexSeries.last() || DECIMAL_NaN);
 
 		// Validation
 		if (!middlePrice || !middlePrice.isFinite() || middlePrice.lte(0)) {
 			throw new Error('Middle price is not valid');
 		}
 
-		if (!normalizedAverageTrueRange.isFinite() || normalizedAverageTrueRange.lte(0)) {
-			throw new Error('Normalized average true range is not valid');
-		}
-
 		if (!bollingerBandsWidth.isFinite() || bollingerBandsWidth.lte(0)) {
 			throw new Error('Bollinger bands width is not valid');
-		}
-
-		if (!relativeStrengthIndex.isFinite() || relativeStrengthIndex.lte(0)) {
-			throw new Error('Relative strength index is not valid');
 		}
 
 		if (!volumeWeightedAveragePrice.isFinite() || volumeWeightedAveragePrice.lte(0)) {
@@ -256,82 +237,33 @@ export class PureMarketMarking implements BaseStrategy {
 			throw new Error('Average true range is not valid');
 		}
 
-		if (!averageDirectionalMovementIndex.isFinite() || averageDirectionalMovementIndex.lte(0)) {
-			throw new Error('Average directional movement index is not valid');
-		}
+		// Compute spread using only Bollinger Band width
+		// spread = max(spread_floor, k * mid * BB_width)
+		const spreadFloorRatio = spreadFloorBps.div(10000); // convert bps → ratio
+		const spreadFloor = middlePrice.mul(spreadFloorRatio);
+		const spread = Decimal.max(spreadFloor, spreadBollingerWidthK.mul(middlePrice).mul(bollingerBandsWidth));
 
-		// Compute spread
-		// - Primary component (volatility): mid * NATR (unitless, in %)
-		// - Secondary component (context): mid * Bollinger Bands width (upper − lower) / middle
-		// - Enforce a floor so spread does not collapse below a minimal threshold
-		const spreadFloor = spreadFloorPercentage.mul(middlePrice);
-		const spreadPrimary = normalizedAverageTrueRangeSpreadWeight
-			.mul(middlePrice)
-			.mul(normalizedAverageTrueRange.div(DECIMAL_100));
-		const spreadSecondary = bollingerBandsSpreadWeight
-			.mul(middlePrice)
-			.mul(bollingerBandsWidth);
-		const spread = Decimal.max(spreadFloor, spreadPrimary).plus(spreadSecondary);
+		// Compute skew using only VWAP
+		// skewRatio = clamp(k_vwap * (mid - VWAP)/mid, -skew_max, +skew_max)
+		const vwapPull = middlePrice.minus(volumeWeightedAveragePrice).div(middlePrice);
+		const skewMaxRatio = skewMaxBps.div(10000);
+		const unclampedSkewRatio = kVwap.mul(vwapPull);
+		const skewRatio = Decimal.max(skewMaxRatio.neg(), Decimal.min(skewMaxRatio, unclampedSkewRatio));
 
-		// Compute skew
-		// - RSI bias: z-score of (RSI − 50) gives a mean-reversion signal
-		// - VWAP pull: normalized distance (mid − VWAP) / mid pulls quotes toward fair value
-		const relativeStrengthIndexWindow = Math.min(relativeStrengthIndexZScoreWindowLength, relativeStrengthIndexSeries.size);
-		let relativeStrengthIndexZScore = DECIMAL_0;
-		if (relativeStrengthIndexWindow > 1) {
-			const recentRelativeStrengthIndexValues = relativeStrengthIndexSeries
-				.slice(relativeStrengthIndexSeries.size - relativeStrengthIndexWindow)
-				.toArray();
-			const meanOfRelativeStrengthIndexMinus50 = recentRelativeStrengthIndexValues.reduce((accumulator, current) => accumulator + (current - 50), 0) / relativeStrengthIndexWindow;
-			const varianceOfRelativeStrengthIndexMinus50 = recentRelativeStrengthIndexValues.reduce((accumulator, current) => {
-				const deviation = (current - 50) - meanOfRelativeStrengthIndexMinus50;
-				return accumulator + deviation * deviation;
-			}, 0) / (relativeStrengthIndexWindow - 1);
-			const standardDeviation = Math.sqrt(Math.max(varianceOfRelativeStrengthIndexMinus50, 1e-12));
-			relativeStrengthIndexZScore = Decimal((relativeStrengthIndex.toNumber() - 50 - meanOfRelativeStrengthIndexMinus50) / standardDeviation);
-		}
-		const volumeWeightedAveragePriceRelativePull = middlePrice.minus(volumeWeightedAveragePrice).div(middlePrice);
-		const skew = relativeStrengthIndexSkewWeight
-			.mul(relativeStrengthIndexZScore)
-			.minus(volumeWeightedAveragePriceSkewWeight.mul(volumeWeightedAveragePriceRelativePull));
-
-		// Compute order prices by shifting around the middle price using spread and skew
-		let buyPrice = middlePrice.minus(spread.div(2)).plus(skew);
-		let sellPrice = middlePrice.plus(spread.div(2)).plus(skew);
+		// Compute order prices by shifting around a skewed center price
+		const centerPrice = middlePrice.mul(Decimal(1).plus(skewRatio));
+		let buyPrice = centerPrice.minus(spread.div(2));
+		let sellPrice = centerPrice.plus(spread.div(2));
 		if (sellPrice.lte(buyPrice)) {
-			const minimalSeparationAdjustment = middlePrice.mul(minimumSpread);
-			buyPrice = Decimal.min(buyPrice, middlePrice.minus(minimalSeparationAdjustment));
-			sellPrice = Decimal.max(sellPrice, middlePrice.plus(minimalSeparationAdjustment));
+			const minimalSeparation = middlePrice.mul(spreadFloorRatio);
+			buyPrice = Decimal.min(buyPrice, middlePrice.minus(minimalSeparation));
+			sellPrice = Decimal.max(sellPrice, middlePrice.plus(minimalSeparation));
 		}
 
-		// Compute order size scaling factor
-		// - Penalize size by volatility (ATR) and by directional trend strength (ADX)
-		let orderSizeScalingFactor = Decimal(1)
-			.div(Decimal(1).plus(volatilityWeight.mul(averageTrueRange.div(middlePrice))))
-			.div(Decimal(1).plus(trendWeight.mul(averageDirectionalMovementIndex.div(50))));
-
-		// Optional size boost when Bollinger Bands width is in the bottom percentile (volatility squeeze)
-		const bollingerBandsWindowSampleCount = bollingerBandsMiddleSeries.size;
-		if (bollingerBandsWindowSampleCount > 5) {
-			const startIndexForWindow = Math.max(0, bollingerBandsWindowSampleCount - bollingerBandsWidthWindowLength);
-			const bollingerBandsNormalizedWidths: number[] = [];
-			for (let i = startIndexForWindow; i < bollingerBandsWindowSampleCount; i++) {
-				const bollingerBandMiddleAtIndex = bollingerBandsMiddleSeries.get(i) as number;
-				const bollingerBandUpperAtIndex = bollingerBandsUpperSeries.get(i) as number;
-				const bollingerBandLowerAtIndex = bollingerBandsLowerSeries.get(i) as number;
-				if (bollingerBandMiddleAtIndex && bollingerBandMiddleAtIndex !== 0) {
-					bollingerBandsNormalizedWidths.push((bollingerBandUpperAtIndex - bollingerBandLowerAtIndex) / bollingerBandMiddleAtIndex);
-				}
-			}
-			if (bollingerBandsNormalizedWidths.length >= 5) {
-				const sortedBollingerBandsNormalizedWidths = bollingerBandsNormalizedWidths.slice().sort((a, b) => a - b);
-				const percentileIndex = Math.max(0, Math.min(sortedBollingerBandsNormalizedWidths.length - 1, Math.floor(sortedBollingerBandsNormalizedWidths.length * bollingerBandsWidthBottomPercentileThreshold)));
-				const twentiethPercentileOfBollingerBandsNormalizedWidth = sortedBollingerBandsNormalizedWidths[percentileIndex];
-				if (bollingerBandsWidth.isFinite() && bollingerBandsWidth.toNumber() <= twentiethPercentileOfBollingerBandsNormalizedWidth) {
-					orderSizeScalingFactor = orderSizeScalingFactor.mul(Decimal(1).plus(positionSizeSqueezeBoostFactor));
-				}
-			}
-		}
+		// Compute order size scaling factor using ATR only
+		// size = base_notional / (1 + k_vol * ATR/mid)
+		const atrTerm = kVol.mul(averageTrueRange.div(middlePrice));
+		const sizeDenominator = Decimal(1).plus(atrTerm);
 
 		// Determine budgets and convert to final order amounts
 		const baseTokenSymbol = market.tokens.base.symbol;
@@ -339,11 +271,17 @@ export class PureMarketMarking implements BaseStrategy {
 		const baseTokenFreeBalance = balances.tokens.getOrThrow(baseTokenSymbol).balances.token.free;
 		const quoteTokenFreeBalance = balances.tokens.getOrThrow(quoteTokenSymbol).balances.token.free;
 
-		const buyQuoteTokenBudget = Decimal.max(DECIMAL_0, quoteTokenFreeBalance.mul(sizeBaseQuoteUtilization));
-		const sellBaseTokenBudget = Decimal.max(DECIMAL_0, baseTokenFreeBalance.mul(sizeBaseBaseUtilization));
+		const buyQuoteTokenBudget = Decimal.max(
+			DECIMAL_0,
+			quoteTokenFreeBalance.mul(quoteUtilizationPercentage.div(DECIMAL_100))
+		);
+		const sellBaseTokenBudget = Decimal.max(
+			DECIMAL_0,
+			baseTokenFreeBalance.mul(baseUtilizationPercentage.div(DECIMAL_100))
+		);
 
-		const buyAmountInQuoteToken = Decimal.max(minimumQuotePerOrder, buyQuoteTokenBudget.mul(orderSizeScalingFactor));
-		const sellAmountInBaseToken = Decimal.max(minimumBasePerOrder, sellBaseTokenBudget.mul(orderSizeScalingFactor));
+		const buyAmountInQuoteToken = Decimal.max(minimumQuotePerOrder, Decimal.min(maximumQuotePerOrder, buyQuoteTokenBudget.div(sizeDenominator)));
+		const sellAmountInBaseToken = Decimal.max(minimumBasePerOrder, Decimal.min(maximumBasePerOrder, sellBaseTokenBudget.div(sizeDenominator)));
 
 		// Populate orders only if valid, with final prices and amounts
 		if (buyAmountInQuoteToken.gt(0) && buyPrice.isFinite() && buyPrice.gt(0)) {
