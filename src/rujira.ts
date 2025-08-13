@@ -29,8 +29,8 @@ import {
 	FinCancelOrdersRequest,
 	FinCancelOrdersResponse,
 	FinConstructorOptions,
-	FinExecuteOrdersRequest,
-	FinExecuteOrdersResponse,
+	FinPersistOrdersRequest,
+	FinPersistOrdersResponse,
 	FinGetAllMarketsRequest,
 	FinGetAllMarketsResponse,
 	FinGetAllTokensRequest,
@@ -70,8 +70,8 @@ import {
 	FinReplaceOrderResponse,
 	FinReplaceOrdersRequest,
 	FinReplaceOrdersResponse,
-	FinWithdrawRequest as FinWithdrawOrdersRequest,
-	FinWithdrawResponse as FinWithdrawOrdersResponse,
+	FinWithdrawFilledOrdersRequest,
+	FinWithdrawFilledOrdersResponse,
 	Indicator,
 	IndicatorData,
 	IndicatorId,
@@ -2070,7 +2070,7 @@ export class Fin {
 	async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price } = request;
 
-		const executedOrders = await this.executeOrders({
+		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
 			marketAddress,
@@ -2093,8 +2093,8 @@ export class Fin {
 		});
 
 		const result = {
-			order: getOrThrow<Order>(executedOrders.placedOrders?.first()),
-			transaction: getOrThrow<Transaction>(executedOrders.transactions.first())
+			order: getOrThrow<Order>(persistedOrders.placedOrders?.first()),
+			transaction: getOrThrow<Transaction>(persistedOrders.transactions.first())
 		}
 
 		return result;
@@ -2109,7 +2109,7 @@ export class Fin {
 	async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse> {
 		let { ownerAddress, owner, orders } = request;
 
-		const executedOrders = await this.executeOrders({
+		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
 			orders: {
@@ -2118,8 +2118,8 @@ export class Fin {
 		});
 
 		const result = {
-			orders: getOrThrow<Map<OrderId, Order>>(executedOrders.placedOrders),
-			transactions: executedOrders.transactions
+			orders: getOrThrow<Map<OrderId, Order>>(persistedOrders.placedOrders),
+			transactions: persistedOrders.transactions
 		};
 
 		return result;
@@ -2133,7 +2133,7 @@ export class Fin {
 	async replaceOrder(request: FinReplaceOrderRequest): Promise<FinReplaceOrderResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price } = request;
 
-		const executedOrders = await this.executeOrders({
+		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
 			marketAddress,
@@ -2155,8 +2155,8 @@ export class Fin {
 		});
 
 		const result = {
-			order: getOrThrow<Order>(executedOrders.replacedOrders?.first()),
-			transaction: getOrThrow<Transaction>(executedOrders.transactions.first())
+			order: getOrThrow<Order>(persistedOrders.replacedOrders?.first()),
+			transaction: getOrThrow<Transaction>(persistedOrders.transactions.first())
 		}
 
 		return result;
@@ -2176,7 +2176,7 @@ export class Fin {
 			throw new Error("At least one order is required for replacement");
 		}
 
-		const executedOrders = await this.executeOrders({
+		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
 			marketSymbol: firstOrder.marketSymbol,
@@ -2188,8 +2188,8 @@ export class Fin {
 		});
 
 		const result = {
-			orders: getOrThrow<Map<OrderId, Order>>(executedOrders.replacedOrders),
-			transactions: executedOrders.transactions
+			orders: getOrThrow<Map<OrderId, Order>>(persistedOrders.replacedOrders),
+			transactions: persistedOrders.transactions
 		};
 
 		return result;
@@ -2203,7 +2203,7 @@ export class Fin {
 	async cancelOrder(request: FinCancelOrderRequest): Promise<FinCancelOrderResponse> {
 		let { orderId, order, ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
-		const executedOrders = await this.executeOrders({
+		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
 			marketAddress,
@@ -2215,8 +2215,8 @@ export class Fin {
 		});
 
 		const result = {
-			order: getOrThrow<Order>(executedOrders.cancelledOrders?.first()),
-			transaction: getOrThrow<Transaction>(executedOrders.transactions.first())
+			order: getOrThrow<Order>(persistedOrders.cancelledOrders?.first()),
+			transaction: getOrThrow<Transaction>(persistedOrders.transactions.first())
 		}
 
 		return result;
@@ -2240,7 +2240,7 @@ export class Fin {
 			throw new Error("Either orderIds or orders must be provided for cancellation");
 		}
 
-		const executedOrders = await this.executeOrders({
+		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
 			marketAddress,
@@ -2252,8 +2252,8 @@ export class Fin {
 		})
 
 		const result = {
-			orders: getOrThrow<Map<OrderId, Order>>(executedOrders.cancelledOrders),
-			transactions: executedOrders.transactions
+			orders: getOrThrow<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
+			transactions: persistedOrders.transactions
 		};
 
 		return result;
@@ -2276,7 +2276,7 @@ export class Fin {
 			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED]
 		});
 
-		const executedOrders = await this.executeOrders({
+		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
 			marketAddress,
@@ -2288,8 +2288,8 @@ export class Fin {
 		})
 
 		const result = {
-			orders: getOrThrow<Map<OrderId, Order>>(executedOrders.cancelledOrders),
-			transactions: executedOrders.transactions
+			orders: getOrThrow<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
+			transactions: persistedOrders.transactions
 		};
 
 		return result;
@@ -2300,7 +2300,7 @@ export class Fin {
 	 * @param request - The request object
 	 * @returns The response for the withdrawn orders
 	 */
-	async withdrawOrders(request: FinWithdrawOrdersRequest): Promise<FinWithdrawOrdersResponse> {
+	async withdrawFilledOrders(request: FinWithdrawFilledOrdersRequest): Promise<FinWithdrawFilledOrdersResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
 		const allFilledOrders = await this.getOrders({
@@ -2312,7 +2312,7 @@ export class Fin {
 			orderStatuses: [OrderStatus.FILLED]
 		});
 
-		const executedOrders = await this.executeOrders({
+		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
 			marketAddress,
@@ -2324,19 +2324,19 @@ export class Fin {
 		});
 
 		const result = {
-			orders: getOrThrow<Map<OrderId, Order>>(executedOrders.withdrawnOrders),
-			transactions: executedOrders.transactions
+			orders: getOrThrow<Map<OrderId, Order>>(persistedOrders.withdrawnOrders),
+			transactions: persistedOrders.transactions
 		};
 
 		return result;
 	}
 
 	/**
-	 * Unified method to execute order operations (place, replace, cancel, withdraw)
+	 * Unified method to persist orders (place, replace, cancel, withdraw)
 	 * @param request - The unified request object
 	 * @returns The unified response object
 	 */
-	public async executeOrders(request: FinExecuteOrdersRequest): Promise<FinExecuteOrdersResponse> {
+	public async persistOrders(request: FinPersistOrdersRequest): Promise<FinPersistOrdersResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market, orders } = request;
 
 		// ===== SANITIZATION =====
@@ -2385,7 +2385,7 @@ export class Fin {
 			orders.cancel = cancelOrderIds;
 		}
 
-		// Sanitize withdraw orders
+		// Sanitize withdraw filled orders
 		if (orders.withdraw) {
 			const withdrawOrderIds = MList<OrderId>();
 			orders.withdraw.forEach((item: OrderId | Order) => {
@@ -2459,7 +2459,7 @@ export class Fin {
 			}
 		}
 
-		// Validate withdraw orders
+		// Validate withdraw filled orders
 		if (orders.withdraw) {
 			if (orders.withdraw.isEmpty()) {
 				throw new Error("Valid order IDs are required for withdrawal");
@@ -2480,7 +2480,7 @@ export class Fin {
 		});
 
 		// Build the complete order message structure
-		const executeMessages: any[] = [];
+		const persistMessages: any[] = [];
 
 		// Process place orders
 		if (orders.place && !orders.place.isEmpty()) {
@@ -2501,7 +2501,7 @@ export class Fin {
 				// For SELL orders, amount should be in base token decimals (Ex.: RUJI = 6)
 				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toFixed(0);
 
-				executeMessages.push([side, { fixed: price }, amount]);
+				persistMessages.push([side, { fixed: price }, amount]);
 
 				// Create a proper Order object at this moment
 				const orderObject: Order = {
@@ -2555,7 +2555,7 @@ export class Fin {
 				// For SELL orders, amount should be in base token decimals (Ex.: RUJI = 6)
 				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toFixed(0);
 
-				executeMessages.push([side, { fixed: price }, amount]);
+				persistMessages.push([side, { fixed: price }, amount]);
 
 				// Create a proper Order object using existing order and new amount
 				const orderObject: Order = {
@@ -2598,7 +2598,7 @@ export class Fin {
 				// Use precise price formatting like playgrounds
 				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
-				executeMessages.push([side, { fixed: price }, '0']);
+				persistMessages.push([side, { fixed: price }, '0']);
 
 				// Update order status to CANCELLED and update timestamp
 				const cancelledOrder: Order = {
@@ -2632,7 +2632,7 @@ export class Fin {
 				// Use precise price formatting like playgrounds
 				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
-				executeMessages.push([side, { fixed: price }, null]);
+				persistMessages.push([side, { fixed: price }, null]);
 
 				// Update timestamp for withdrawn order
 				const withdrawnOrder: Order = {
@@ -2644,8 +2644,8 @@ export class Fin {
 			ordersMap.set('withdraw', withdrawOrdersMap);
 		}
 
-		if (executeMessages.length === 0) {
-			throw new Error("No valid orders to execute");
+		if (persistMessages.length === 0) {
+			throw new Error("No valid orders to persist");
 		}
 
 		// Calculate funds for orders
@@ -2724,7 +2724,7 @@ export class Fin {
 			ownerAddress,
 			contractAddress,
 			{
-				order: [executeMessages, null]
+				order: [persistMessages, null]
 			},
 			'auto',
 			undefined,
@@ -2736,7 +2736,7 @@ export class Fin {
 		transactions.set(transaction.hash, transaction, true);
 
 		// Build the response
-		const result: FinExecuteOrdersResponse = {
+		const result: FinPersistOrdersResponse = {
 			placedOrders: ordersMap.get('place'),
 			replacedOrders: ordersMap.get('replace'),
 			cancelledOrders: ordersMap.get('cancel'),
