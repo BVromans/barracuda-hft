@@ -154,7 +154,7 @@ export class PureMarketMarking implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	private async createProposal(_options: {}) {
-		// Parameters (tunable). All names are intentionally explicit for clarity and future tuning.
+		// Parameters (tunable)
 		const spreadFloorPercentage = new Decimal(0.001); // Minimum spread as a percentage of mid-price (10 bps)
 		const normalizedAverageTrueRangeSpreadWeight = new Decimal(0.6); // Weight for NATR contribution to spread
 		const bollingerBandsSpreadWeight = new Decimal(0.25); // Weight for Bollinger Bands width contribution to spread
@@ -170,6 +170,7 @@ export class PureMarketMarking implements BaseStrategy {
 		const positionSizeSqueezeBoostFactor = new Decimal(0.25); // Additional size when in volatility squeeze
 		const minimumQuotePerOrder = new Decimal(0.0); // Lower bound safeguard for quote size
 		const minimumBasePerOrder = new Decimal(0.0); // Lower bound safeguard for base size
+		const minimumSpread = new Decimal(0.001); // Minimum spread as a percentage of mid-price (10 bps)
 
 		const market: Market = this.state.getOrThrow('market');
 		const balances: Balances = this.state.getOrThrow('balances');
@@ -276,7 +277,7 @@ export class PureMarketMarking implements BaseStrategy {
 		// - RSI bias: z-score of (RSI − 50) gives a mean-reversion signal
 		// - VWAP pull: normalized distance (mid − VWAP) / mid pulls quotes toward fair value
 		const relativeStrengthIndexWindow = Math.min(relativeStrengthIndexZScoreWindowLength, relativeStrengthIndexSeries.size);
-		let relativeStrengthIndexZScore = new Decimal(0);
+		let relativeStrengthIndexZScore = DECIMAL_0;
 		if (relativeStrengthIndexWindow > 1) {
 			const recentRelativeStrengthIndexValues = relativeStrengthIndexSeries
 				.slice(relativeStrengthIndexSeries.size - relativeStrengthIndexWindow)
@@ -298,7 +299,7 @@ export class PureMarketMarking implements BaseStrategy {
 		let buyPrice = middlePrice.minus(spread.div(2)).plus(skew);
 		let sellPrice = middlePrice.plus(spread.div(2)).plus(skew);
 		if (sellPrice.lte(buyPrice)) {
-			const minimalSeparationAdjustment = middlePrice.mul(0.0001);
+			const minimalSeparationAdjustment = middlePrice.mul(minimumSpread);
 			buyPrice = Decimal.min(buyPrice, middlePrice.minus(minimalSeparationAdjustment));
 			sellPrice = Decimal.max(sellPrice, middlePrice.plus(minimalSeparationAdjustment));
 		}
