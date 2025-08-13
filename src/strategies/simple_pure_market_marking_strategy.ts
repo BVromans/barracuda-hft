@@ -96,10 +96,15 @@ export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrateg
 			sellOrder.amount = finalSellBaseTokenAmountPerOrder;
 		}
 
-		// Cancel current open/partial orders to re-quote fresh
 		currentOrders.valueSeq().forEach((order: Order) => {
+			// Cancel current open/partial orders to re-quote fresh
 			if (order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED) {
 				proposal.cancel?.push(order as any);
+			}
+
+			// Withdraw current filled orders to withdraw funds
+			if (order.status === OrderStatus.FILLED) {
+				proposal.withdraw?.push(order as any);
 			}
 		});
 

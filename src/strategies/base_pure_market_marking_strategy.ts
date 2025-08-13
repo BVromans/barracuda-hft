@@ -3,7 +3,7 @@ import { Map } from "immutable";
 import { properties } from "../properties";
 import { Rujira } from "../rujira";
 import { Balances, DECIMAL_100, DECIMAL_NaN, Market, MarketSymbol, MList, MMap, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
-import { runAndRepeat } from "../utils";
+import { runAndRepeat, sleep } from "../utils";
 import { BaseStrategy, Proposal } from "./base_strategy";
 
 /**
@@ -14,7 +14,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	/**
 	 * Status of the strategy
 	 */
-	status: StrategyStatus;
+	public status: StrategyStatus;
 
 	/**
 	 * Rujira instance
@@ -50,6 +50,10 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		this.status = StrategyStatus.INITIALIZING;
 
 		await this.rujira.initialize({});
+
+		const tickInterval = Number(properties.getAs<number>('strategy.pure_market_making.common.tickInterval'));
+
+		this.state.set('tickInterval', tickInterval);
 
 		const market = await this.rujira.fin.getMarket({
 			symbol: properties.getAs<MarketSymbol>('strategy.pure_market_making.common.market')
@@ -94,24 +98,29 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	async run(_options: {}) {
-		try {
-			if (this.status !== StrategyStatus.IDLE) return;
+		while (true) {
+			try {
+				if (this.status !== StrategyStatus.IDLE) return;
 
-			this.status = StrategyStatus.RUNNING;
+				this.status = StrategyStatus.RUNNING;
 
-			await this.updateOrders({});
-			await this.updateBalances({});
+				await this.updateOrders({});
+				await this.updateBalances({});
 
-			await this.createProposal({});
-			await this.applyProposal({});
+				await this.createProposal({});
+				await this.applyProposal({});
 
-			await this.updateBalances({});
-			await this.updateSummary({});
-		} catch (exception) {
-			throw exception;
-		} finally {
-			if (this.status === StrategyStatus.RUNNING) {
-				this.status = StrategyStatus.IDLE;
+				await this.updateBalances({});
+				await this.updateSummary({});
+			} catch (exception) {
+				throw exception;
+			} finally {
+				if (this.status === StrategyStatus.RUNNING) {
+					const tickInterval = this.state.getOrThrow('tickInterval');
+					await sleep(tickInterval);
+
+					this.status = StrategyStatus.IDLE;
+				}
 			}
 		}
 	}
