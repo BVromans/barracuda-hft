@@ -52,7 +52,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		await this.rujira.initialize({});
 
 		const market = await this.rujira.fin.getMarket({
-			symbol: properties.getAs<MarketSymbol>('strategy.pure_market_making.base.market')
+			symbol: properties.getAs<MarketSymbol>('strategy.pure_market_making.common.market')
 		});
 
 		this.state.set('market', market);
@@ -182,7 +182,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			'updateTokens',
 			await runAndRepeat(
 				this.updateTokens.bind(this),
-				properties.getAs<number>('strategy.pure_market_making.base.tasks.updateTokens.interval')
+				properties.getAs<number>('strategy.pure_market_making.common.tasks.updateTokens.interval')
 			)
 		);
 
@@ -190,7 +190,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			'updateMarkets',
 			await runAndRepeat(
 				this.updateMarkets.bind(this),
-				properties.getAs<number>('strategy.pure_market_making.base.tasks.updateMarkets.interval')
+				properties.getAs<number>('strategy.pure_market_making.common.tasks.updateMarkets.interval')
 			)
 		);
 
@@ -198,7 +198,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			'updateOrderBook',
 			await runAndRepeat(
 				this.updateOrderBook.bind(this),
-				properties.getAs<number>('strategy.pure_market_making.base.tasks.updateOrderBook.interval')
+				properties.getAs<number>('strategy.pure_market_making.common.tasks.updateOrderBook.interval')
 			)
 		);
 
@@ -206,7 +206,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			'updateIndicators',
 			await runAndRepeat(
 				this.updateIndicators.bind(this),
-				properties.getAs<number>('strategy.pure_market_making.base.tasks.updateIndicators.interval')
+				properties.getAs<number>('strategy.pure_market_making.common.tasks.updateIndicators.interval')
 			)
 		);
 
@@ -214,7 +214,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			'monitoreProfitAndLoss',
 			await runAndRepeat(
 				this.monitoreProfitAndLoss.bind(this),
-				properties.getAs<number>('strategy.pure_market_making.base.tasks.monitoreProfitAndLoss.interval')
+				properties.getAs<number>('strategy.pure_market_making.common.tasks.monitoreProfitAndLoss.interval')
 			)
 		);
 	}
@@ -383,11 +383,11 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	private async monitoreProfitAndLoss(_options: {}) {
-		const enabled = properties.getAs<boolean>('strategy.pure_market_making.base.monitorProfitAndLoss.enabled');
+		const enabled = properties.getAs<boolean>('strategy.pure_market_making.common.monitorProfitAndLoss.enabled');
 
 		if (enabled) {
-			const maximumAllowedWalletLossFromInitialValue = Decimal(properties.getAs<number>('strategy.pure_market_making.base.monitorProfitAndLoss.maximumAllowedWalletLossFromInitialValue'));
-			const maximumAllowedWalletLossFromPreviousValue = Decimal(properties.getAs<number>('strategy.pure_market_making.base.monitorProfitAndLoss.maximumAllowedWalletLossFromPreviousValue'));
+			const maximumAllowedWalletLossFromInitialValue = Decimal(properties.getAs<number>('strategy.pure_market_making.common.monitorProfitAndLoss.maximumAllowedWalletLossFromInitialValue'));
+			const maximumAllowedWalletLossFromPreviousValue = Decimal(properties.getAs<number>('strategy.pure_market_making.common.monitorProfitAndLoss.maximumAllowedWalletLossFromPreviousValue'));
 
 			const currentToInitialProfitAndLoss: Decimal = this.state.getOrThrow('summary.profitAndLoss.currentToInitial.percentage');
 			const currentToPreviousProfitAndLoss: Decimal = this.state.getOrThrow('summary.profitAndLoss.currentToPrevious.percentage');
@@ -411,9 +411,9 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		let shouldCancelAllOrders = false;
 
 		if (this.status === StrategyStatus.INITIALIZING) {
-			shouldCancelAllOrders = properties.getAs<boolean>('strategy.pure_market_making.base.whenStart.cancelAllOrders');
+			shouldCancelAllOrders = properties.getAs<boolean>('strategy.pure_market_making.common.whenStart.cancelAllOrders');
 		} else if (this.status === StrategyStatus.STOPPING) {
-			shouldCancelAllOrders = properties.getAs<boolean>('strategy.pure_market_making.base.whenStop.cancelAllOrders');
+			shouldCancelAllOrders = properties.getAs<boolean>('strategy.pure_market_making.common.whenStop.cancelAllOrders');
 		}
 
 		if (shouldCancelAllOrders) {
@@ -432,9 +432,9 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		let shouldWithdrawAllFilledOrders = false;
 
 		if (this.status === StrategyStatus.INITIALIZING) {
-			shouldWithdrawAllFilledOrders = properties.getAs<boolean>('strategy.pure_market_making.base.whenStart.withdrawAllFilledOrders');
+			shouldWithdrawAllFilledOrders = properties.getAs<boolean>('strategy.pure_market_making.common.whenStart.withdrawAllFilledOrders');
 		} else if (this.status === StrategyStatus.STOPPING) {
-			shouldWithdrawAllFilledOrders = properties.getAs<boolean>('strategy.pure_market_making.base.whenStop.withdrawAllFilledOrders');
+			shouldWithdrawAllFilledOrders = properties.getAs<boolean>('strategy.pure_market_making.common.whenStop.withdrawAllFilledOrders');
 		}
 
 		if (shouldWithdrawAllFilledOrders) {
