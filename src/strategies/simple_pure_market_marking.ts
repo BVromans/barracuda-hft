@@ -9,7 +9,7 @@ import { BaseStrategy, Proposal } from "./base_strategy";
 /**
  * Pure market marking strategy
  */
-export class PureMarketMarking implements BaseStrategy {
+export class SimplePureMarketMarking implements BaseStrategy {
 
 	/**
 	 * Status of the strategy
@@ -19,12 +19,12 @@ export class PureMarketMarking implements BaseStrategy {
 	/**
 	 * Rujira instance
 	 */
-	private readonly rujira: Rujira;
+	protected readonly rujira: Rujira;
 
 	/**
 	 * State of the strategy
 	 */
-	private readonly state: Map<string, any> = MMap<string, any>();
+	protected readonly state: Map<string, any> = MMap<string, any>();
 
 	/**
 	 * Constructor
@@ -148,7 +148,7 @@ export class PureMarketMarking implements BaseStrategy {
 	 * Create a proposal for the strategy
 	 * @param _options - Options for the strategy
 	 */
-	private async createProposal(_options: {}) {
+	protected async createProposal(_options: {}) {
 		// Parameters (tunable). Percentages must be expressed on a 0–100 scale.
 		const spreadFloorPercentage = new Decimal(0.10); // Minimum spread as a percentage of the middle price (example: 0.10 means 0.10%)
 		const spreadBollingerBandsWidthMultiplier = new Decimal(1.2); // Multiplier for the spread using Bollinger Bands width (≈1.0–1.8)
