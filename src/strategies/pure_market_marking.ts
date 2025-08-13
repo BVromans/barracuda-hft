@@ -2,14 +2,14 @@ import Decimal from "decimal.js";
 import { List, Map } from "immutable";
 import { properties } from "../properties";
 import { Rujira } from "../rujira";
-import { Balances, DECIMAL_0, DECIMAL_100, DECIMAL_NaN, FinExecuteOrdersRequest, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MarketSymbol, MList, MMap, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
+import { Balances, DECIMAL_0, DECIMAL_100, DECIMAL_NaN, FinPersistOrdersRequest, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MarketSymbol, MList, MMap, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
 import { runAndRepeat } from "../utils";
 import { BaseStrategy } from "./base_strategy";
 
 /**
  * Proposal for the strategy
  */
-type Proposal = FinExecuteOrdersRequest['orders'];
+type Proposal = FinPersistOrdersRequest['orders'];
 
 /**
  * Pure market marking strategy
@@ -379,7 +379,7 @@ export class PureMarketMarking implements BaseStrategy {
 		const market: Market = this.state.getOrThrow('market');
 		const proposal: Proposal = this.state.getOrThrow('proposal');
 
-		const result = await this.rujira.fin.executeOrders({
+		const result = await this.rujira.fin.persistOrders({
 			ownerAddress: this.rujira.walletAddress,
 			market: market,
 			orders: proposal,
@@ -657,7 +657,7 @@ export class PureMarketMarking implements BaseStrategy {
 		}
 
 		if (shouldWithdrawAllFilledOrders) {
-			await this.rujira.fin.withdrawOrders({
+			await this.rujira.fin.withdrawFilledOrders({
 				ownerAddress: this.rujira.walletAddress,
 				market: this.state.getOrThrow('market'),
 			});

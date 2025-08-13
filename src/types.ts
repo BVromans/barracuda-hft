@@ -2922,7 +2922,7 @@ export interface FinCancelAllOrdersResponse extends FinCancelOrdersResponse {
 /**
  * Withdraw from market request
  */
-export interface FinWithdrawRequest {
+export interface FinWithdrawFilledOrdersRequest {
 	/**
 	 * Owner address (wallet that will withdraw)
 	 */
@@ -2952,7 +2952,7 @@ export interface FinWithdrawRequest {
 /**
  * Withdraw from market response
  */
-export interface FinWithdrawResponse {
+export interface FinWithdrawFilledOrdersResponse {
 	/**
 	 * List of withdrawn orders
 	 */
@@ -2967,7 +2967,7 @@ export interface FinWithdrawResponse {
 /**
  * Unified order execution request that can handle place, replace, cancel, and withdraw operations
  */
-export interface FinExecuteOrdersRequest {
+export interface FinPersistOrdersRequest {
 	/**
 	 * Owner address (wallet that will execute the orders)
 	 */
@@ -3022,7 +3022,7 @@ export interface FinExecuteOrdersRequest {
 /**
  * Unified order execution response
  */
-export interface FinExecuteOrdersResponse {
+export interface FinPersistOrdersResponse {
 	/**
 	 * Placed orders (if any)
 	 */
