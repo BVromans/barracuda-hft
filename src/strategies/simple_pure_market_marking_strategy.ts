@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 import { Map } from "immutable";
 import { properties } from "../properties";
-import { Balances, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
+import { Balances, DECIMAL_0, DECIMAL_100, DECIMAL_INFINITY, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
 import { BasePureMarketMakingStrategy } from "./base_pure_market_marking_strategy";
 import { Proposal } from "./base_strategy";
 
@@ -14,14 +14,14 @@ export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrateg
 	 * @param _options - Options for the strategy
 	 */
 	protected async createProposal(_options: {}) {
-		// Read configuration. Percentages must be expressed on a 0–100 scale.
-		const spreadPercentage = new Decimal(properties.getAs<number>('strategy.simple_pure_market_making.simple.spreadPercentage'));
-		const minimumQuotePerOrder = new Decimal(properties.getAs<number>('strategy.simple_pure_market_making.simple.minimumQuotePerOrder', 0));
-		const minimumBasePerOrder = new Decimal(properties.getAs<number>('strategy.simple_pure_market_making.simple.minimumBasePerOrder', 0));
-		const maximumQuotePerOrder = new Decimal(properties.getAs<number>('strategy.simple_pure_market_making.simple.maximumQuotePerOrder', Number.MAX_SAFE_INTEGER));
-		const maximumBasePerOrder = new Decimal(properties.getAs<number>('strategy.simple_pure_market_making.simple.maximumBasePerOrder', Number.MAX_SAFE_INTEGER));
-		const targetBuyQuotePerOrder = new Decimal(properties.getAs<number>('strategy.simple_pure_market_making.simple.buyQuotePerOrder', 0));
-		const targetSellBasePerOrder = new Decimal(properties.getAs<number>('strategy.simple_pure_market_making.simple.sellBasePerOrder', 0));
+		// Percentages must be expressed on a 0–100 scale.
+		const spreadPercentage = Decimal(properties.getAs<number>('strategy.pure_market_making.simple.spreadPercentage'));
+		const minimumBasePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.simple.minimumBasePerOrder')) || DECIMAL_0;
+		const minimumQuotePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.simple.minimumQuotePerOrder')) || DECIMAL_0;
+		const maximumBasePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.simple.maximumBasePerOrder')) || DECIMAL_INFINITY;
+		const maximumQuotePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.simple.maximumQuotePerOrder')) || DECIMAL_INFINITY;
+		const targetBuyQuotePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.simple.buyQuotePerOrder')) || DECIMAL_0;
+		const targetSellBasePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.simple.sellBasePerOrder')) || DECIMAL_0;
 
 		const market: Market = this.state.getOrThrow('market');
 		const balances: Balances = this.state.getOrThrow('balances');
