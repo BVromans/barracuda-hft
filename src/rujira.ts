@@ -1556,7 +1556,7 @@ export class Fin {
 	 * @returns The indicators response
 	 */
 	async getIndicators(request: FinGetIndicatorsRequest): Promise<FinGetIndicatorsResponse> {
-		let { candles, marketAddress, marketSymbol, market, maximumNumberOfCandles, interval } = request;
+		let { candles, marketAddress, marketSymbol, market, maximumNumberOfCandles, interval, indicators } = request;
 
 		if (!candles || candles.size === 0) {
 			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
@@ -1570,18 +1570,33 @@ export class Fin {
 			throw new Error('No valid candles found');
 		}
 
-		const indicators = MMap<IndicatorId, IndicatorData>();
+		const indicatorsMap = MMap<IndicatorId, IndicatorData>();
 
-		for (const indicator of Indicator.getAll()) {
+		// Determine which indicators to calculate
+		let indicatorsToCalculate: Indicator[];
+		if (indicators && (Array.isArray(indicators) ? indicators.length > 0 : indicators.size > 0)) {
+			// Convert array to List if needed
+			const indicatorsList = Array.isArray(indicators) ? MList<IndicatorId>(indicators) : indicators;
+
+			// Filter indicators by the requested IDs
+			indicatorsToCalculate = Indicator.getAll().filter(indicator =>
+				indicatorsList.includes(indicator.id)
+			);
+		} else {
+			// Calculate all indicators if none specified
+			indicatorsToCalculate = Indicator.getAll();
+		}
+
+		for (const indicator of indicatorsToCalculate) {
 			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(validCandles), ...indicator.parameters);
 
-			indicators.set(indicator.id, {
+			indicatorsMap.set(indicator.id, {
 				indicator,
 				value
 			});
 		}
 
-		return indicators;
+		return indicatorsMap;
 	}
 
 	/**

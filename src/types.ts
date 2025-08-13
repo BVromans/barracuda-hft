@@ -2454,6 +2454,11 @@ export interface FinGetIndicatorsRequest {
 	 * Candles
 	 */
 	candles?: List<Candle>;
+
+	/**
+	 * Specific indicators to calculate (optional - if not provided, all indicators will be calculated)
+	 */
+	indicators?: List<IndicatorId> | IndicatorId[];
 }
 
 /**
