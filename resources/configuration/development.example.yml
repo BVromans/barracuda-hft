@@ -4,12 +4,14 @@ rujira:
     rest: "https://thornode.ninerealms.com"
     graphql: "https://api.rujira.network/api/graphiql"
   wallet:
-    mnemonic: "<wallet mnemonic>" # Optional, but required if privateKey is not provided
-    privateKey: "<wallet private key>" # Optional, but required if mnemonic is not provided
+    mnemonic: "<mnemonic>" # Optional, but required if privateKey is not provided
+    privateKey: "<private key>" # Optional, but required if mnemonic is not provided
     publicKeys:
-      thor: "<wallet thor public key>" # Optional
-      ethereum: "<wallet ethereum public key>" # Optional
+      thor: "<thor public key>" # Optional
+      ethereum: "<ethereum public key>" # Optional
   cache:
+    rujira:
+      getThorChainConfiguration: 6 * 60 * 60 # 6 hours
     fin:
       getAllTokens: 6 * 60 * 60 # 6 hours
       getAllMarkets: 6 * 60 * 60 # 6 hours
@@ -30,7 +32,7 @@ rujira:
         thorChainConfigurationKey: "WASMMINGASPRICE"
   default:
     network:
-      gasPrice: '0' # A possible value is '0.02'
+      gasPrice: '0.02' # A possible value is '0.02'
     cache:
       ttlSeconds: 60
     parallel:
@@ -47,6 +49,43 @@ rujira:
       maximumNumberOfCandles: 100 # Optional, leaving empty or null will return all candles
     orders:
       maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
+strategy:
+  pure_market_making:
+    base:
+      market: "THOR-RUJI/ETH-USDC"
+      tickInterval: 60_000 # 1 minute in milliseconds
+      whenStart:
+        cancelAllOrders: true
+        withdrawAllFilledOrders: true
+      whenStop:
+        cancelAllOrders: true
+        withdrawAllFilledOrders: true
+      stopLoss:
+        enabled: true
+        maximumAllowedWalletLossFromInitialValue: 10 # 1 means 1%
+        maximumAllowedWalletLossFromPreviousValue: 10 # 1 means 1%
+      tasks:
+        updateTokens:
+          interval: 21_600_000 # 6 hours in milliseconds
+        updateMarkets:
+          interval: 21_600_000 # 6 hours in milliseconds
+        updateIndicators:
+          interval: 60_000 # 1 minute in milliseconds
+        updateOrderBook:
+          interval: 30_000 # 30 seconds in milliseconds
+        monitoreProfitAndLoss:
+          interval: 60_000 # 1 minute in milliseconds
+      logger:
+        level: "INFO"
+    simple:
+      spreadPercentage: 10 # 1 means 1%
+      minimumBasePerOrder: 0
+      minimumQuotePerOrder: 0
+      maximumBasePerOrder: 10
+      maximumQuotePerOrder: 10
+      buyQuotePerOrder: 10
+      sellBasePerOrder: 10
+    enhanced: {}
 tests:
   unit:
     timeout: 10_000 # 10 seconds
