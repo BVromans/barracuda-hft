@@ -5,21 +5,21 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 
 (async function run() {
 	const active = {
-		getStatus: true,
-		getTransaction: true,
-		getAllTokens: true,
-		getTokens: true,
-		getToken: true,
-		getAllMarkets: true,
-		getMarkets: true,
-		getMarket: true,
-		getOrderBook: true,
-		getTicker: true,
-		getCandles: true,
-		getIndicators: true,
-		getBalances: false,
-		getOrder: true,
-		getOrders: true,
+		getStatus: false,
+		getTransaction: false,
+		getAllTokens: false,
+		getTokens: false,
+		getToken: false,
+		getAllMarkets: false,
+		getMarkets: false,
+		getMarket: false,
+		getOrderBook: false,
+		getTicker: false,
+		getCandles: false,
+		getIndicators: false,
+		getBalances: true,
+		getOrder: false,
+		getOrders: false,
 		placeOrder: undefined,
 		placeOrders: undefined,
 		replaceOrder: undefined,
@@ -293,7 +293,7 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 	}
 
 	if (active.withdrawOrders) {
-		const withdrawOrders = await rujira.fin.withdrawOrders({
+		const withdrawOrders = await rujira.fin.withdrawFilledOrders({
 			ownerAddress: walletAddress,
 			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
 			// marketSymbol: 'THOR-RUJI/ETH-USDC',
