@@ -14,7 +14,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	/**
 	 * Status of the strategy
 	 */
-	status: StrategyStatus;
+	public status: StrategyStatus;
 
 	/**
 	 * Rujira instance

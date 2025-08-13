@@ -13,6 +13,7 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 	 * @param _options - Options for the strategy
 	 */
 	protected override async createProposal(_options: {}) {
+		// TODO: Externalize this parameters!!!
 		// Parameters (tunable). Percentages must be expressed on a 0–100 scale.
 		const spreadFloorPercentage = new Decimal(0.10); // Minimum spread as a percentage of the middle price (example: 0.10 means 0.10%)
 		const spreadBollingerBandsWidthMultiplier = new Decimal(1.2); // Multiplier for the spread using Bollinger Bands width (≈1.0–1.8)
@@ -152,10 +153,15 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			sellOrder.amount = sellAmountInBaseToken;
 		}
 
-		// Cancel current open/partial orders to re-quote fresh
 		currentOrders.valueSeq().forEach((order: Order) => {
+			// Cancel current open/partial orders to re-quote fresh
 			if (order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED) {
 				proposal.cancel?.push(order as any);
+			}
+
+			// Withdraw current filled orders to withdraw funds
+			if (order.status === OrderStatus.FILLED) {
+				proposal.withdraw?.push(order as any);
 			}
 		});
 
