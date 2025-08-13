@@ -728,7 +728,7 @@ export class Indicator {
 				(data, candle) => {
 					const high = candle.high.toNumber() || 0;
 					const low = candle.low.toNumber() || 0;
-					const close = candle.close.toNumber() || 0;
+					const close = candle?.close?.toNumber() || 0;
 					const volume = candle.volume.toNumber() || 0;
 					if (high > 0 && low > 0 && close > 0 && volume > 0 && high >= low) {
 						data[0].push(high);
@@ -740,7 +740,7 @@ export class Indicator {
 				},
 				[[], [], [], []] as [number[], number[], number[], number[]]
 			);
-			return [result];
+			return result;
 		},
 		[14]
 	);

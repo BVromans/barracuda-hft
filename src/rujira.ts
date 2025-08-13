@@ -1562,10 +1562,18 @@ export class Fin {
 			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
 		}
 
+		const validCandles = candles.filter( candle =>
+			candle?.high?.toNumber() && candle?.low?.toNumber() && candle?.close?.toNumber() && candle?.volume?.toNumber()
+		);
+
+    if (validCandles.size === 0) {
+			throw new Error('No valid candles found');
+		}
+
 		const indicators = MMap<IndicatorId, IndicatorData>();
 
 		for (const indicator of Indicator.getAll()) {
-			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(candles), ...indicator.parameters);
+			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(validCandles), ...indicator.parameters);
 
 			indicators.set(indicator.id, {
 				indicator,
