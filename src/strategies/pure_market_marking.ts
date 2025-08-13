@@ -154,18 +154,18 @@ export class PureMarketMarking implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	private async createProposal(_options: {}) {
-		// Parameters (tunable)
-		const spreadFloorBps = new Decimal(10); // Floor in basis points (e.g., 10 bps = 0.10%)
-		const spreadBollingerWidthK = new Decimal(1.2); // k for spread using BB width (≈1.0–1.8)
-		const kVwap = new Decimal(0.8); // k_vwap (≈0.5–1.2)
-		const skewMaxBps = new Decimal(40); // Clamp for skew in bps (≈25–60 bps)
-		const quoteUtilizationPercentage = new Decimal(10); // % of free quote balance for BUY
-		const baseUtilizationPercentage = new Decimal(10); // % of free base balance for SELL
-		const kVol = new Decimal(4.0); // k_vol for size shrink with ATR (≈3–6)
-		const minimumQuotePerOrder = new Decimal(0.0); // Absolute min in quote token
-		const minimumBasePerOrder = new Decimal(0.0); // Absolute min in base token
-		const maximumQuotePerOrder = new Decimal(Number.MAX_SAFE_INTEGER); // Optional cap (quote)
-		const maximumBasePerOrder = new Decimal(Number.MAX_SAFE_INTEGER); // Optional cap (base)
+		// Parameters (tunable). Percentages must be expressed on a 0–100 scale.
+		const spreadFloorPercentage = new Decimal(0.10); // Minimum spread as a percentage of the middle price (example: 0.10 means 0.10%)
+		const spreadBollingerBandsWidthMultiplier = new Decimal(1.2); // Multiplier for the spread using Bollinger Bands width (≈1.0–1.8)
+		const volumeWeightedAveragePriceSkewMultiplier = new Decimal(0.8); // Pull intensity toward the volume weighted average price (≈0.5–1.2)
+		const skewMaximumPercentage = new Decimal(0.40); // Maximum absolute skew as a percentage (example: 0.40 means 0.40%)
+		const quoteUtilizationPercentage = new Decimal(10); // Percentage of free quote balance allocated to buy orders
+		const baseUtilizationPercentage = new Decimal(10); // Percentage of free base balance allocated to sell orders
+		const volatilitySizeShrinkageMultiplier = new Decimal(4.0); // Multiplier for size shrinkage based on average true range (≈3–6)
+		const minimumQuotePerOrder = new Decimal(0.0); // Lower bound safeguard for quote token size per order
+		const minimumBasePerOrder = new Decimal(0.0); // Lower bound safeguard for base token size per order
+		const maximumQuotePerOrder = new Decimal(Number.MAX_SAFE_INTEGER); // Optional upper bound for quote token size per order
+		const maximumBasePerOrder = new Decimal(Number.MAX_SAFE_INTEGER); // Optional upper bound for base token size per order
 
 		const market: Market = this.state.getOrThrow('market');
 		const balances: Balances = this.state.getOrThrow('balances');
@@ -237,33 +237,33 @@ export class PureMarketMarking implements BaseStrategy {
 			throw new Error('Average true range is not valid');
 		}
 
-		// Compute spread using only Bollinger Band width
-		// spread = max(spread_floor, k * mid * BB_width)
-		const spreadFloorRatio = spreadFloorBps.div(10000); // convert bps → ratio
-		const spreadFloor = middlePrice.mul(spreadFloorRatio);
-		const spread = Decimal.max(spreadFloor, spreadBollingerWidthK.mul(middlePrice).mul(bollingerBandsWidth));
+		// Compute spread using Bollinger Bands width
+		// spreadAmount = max(minimumSpreadAmount, spreadBollingerBandsWidthMultiplier * middlePrice * bollingerBandsWidth)
+		const spreadFloorRatio = spreadFloorPercentage.div(DECIMAL_100); // Convert percentage (0–100) to a unit ratio
+		const minimumSpreadAmount = middlePrice.mul(spreadFloorRatio);
+		const spread = Decimal.max(minimumSpreadAmount, spreadBollingerBandsWidthMultiplier.mul(middlePrice).mul(bollingerBandsWidth));
 
-		// Compute skew using only VWAP
-		// skewRatio = clamp(k_vwap * (mid - VWAP)/mid, -skew_max, +skew_max)
-		const vwapPull = middlePrice.minus(volumeWeightedAveragePrice).div(middlePrice);
-		const skewMaxRatio = skewMaxBps.div(10000);
-		const unclampedSkewRatio = kVwap.mul(vwapPull);
-		const skewRatio = Decimal.max(skewMaxRatio.neg(), Decimal.min(skewMaxRatio, unclampedSkewRatio));
+		// Compute skew using the volume weighted average price
+		// skewRatio = clamp(volumeWeightedAveragePriceSkewMultiplier * (middlePrice − volumeWeightedAveragePrice) / middlePrice, -skewMaximumRatio, +skewMaximumRatio)
+		const volumeWeightedAveragePricePullRatio = middlePrice.minus(volumeWeightedAveragePrice).div(middlePrice);
+		const skewMaximumRatio = skewMaximumPercentage.div(DECIMAL_100); // Convert percentage (0–100) to a unit ratio
+		const unclampedSkewRatio = volumeWeightedAveragePriceSkewMultiplier.mul(volumeWeightedAveragePricePullRatio);
+		const skewRatio = Decimal.max(skewMaximumRatio.neg(), Decimal.min(skewMaximumRatio, unclampedSkewRatio));
 
 		// Compute order prices by shifting around a skewed center price
 		const centerPrice = middlePrice.mul(Decimal(1).plus(skewRatio));
 		let buyPrice = centerPrice.minus(spread.div(2));
 		let sellPrice = centerPrice.plus(spread.div(2));
 		if (sellPrice.lte(buyPrice)) {
-			const minimalSeparation = middlePrice.mul(spreadFloorRatio);
-			buyPrice = Decimal.min(buyPrice, middlePrice.minus(minimalSeparation));
-			sellPrice = Decimal.max(sellPrice, middlePrice.plus(minimalSeparation));
+			const minimalSeparationAmount = middlePrice.mul(spreadFloorRatio);
+			buyPrice = Decimal.min(buyPrice, middlePrice.minus(minimalSeparationAmount));
+			sellPrice = Decimal.max(sellPrice, middlePrice.plus(minimalSeparationAmount));
 		}
 
-		// Compute order size scaling factor using ATR only
-		// size = base_notional / (1 + k_vol * ATR/mid)
-		const atrTerm = kVol.mul(averageTrueRange.div(middlePrice));
-		const sizeDenominator = Decimal(1).plus(atrTerm);
+		// Compute order size scaling factor using the average true range
+		// size = baseNotional / (1 + volatilitySizeShrinkageMultiplier * averageTrueRange / middlePrice)
+		const averageTrueRangeTerm = volatilitySizeShrinkageMultiplier.mul(averageTrueRange.div(middlePrice));
+		const sizeDenominator = Decimal(1).plus(averageTrueRangeTerm);
 
 		// Determine budgets and convert to final order amounts
 		const baseTokenSymbol = market.tokens.base.symbol;
