@@ -1,4 +1,9 @@
-import { StrategyStatus } from "../types";
+import { FinPersistOrdersRequest, StrategyStatus } from "../types";
+
+/**
+ * Proposal for the strategy
+ */
+export type Proposal = FinPersistOrdersRequest['orders'];
 
 /**
  * Base strategy interface
