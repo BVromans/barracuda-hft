@@ -1,14 +1,13 @@
 import Decimal from "decimal.js";
 import { List, Map } from "immutable";
 import { Balances, DECIMAL_0, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
+import { BasePureMarketMakingStrategy } from "./base_pure_market_marking_strategy";
 import { Proposal } from "./base_strategy";
-import { SimplePureMarketMarking } from "./simple_pure_market_marking";
 
 /**
  * Pure market marking strategy
  */
-export class EnhancedPureMarketMarking extends SimplePureMarketMarking {
-
+export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrategy {
 	/**
 	 * Create a proposal for the strategy
 	 * @param _options - Options for the strategy
