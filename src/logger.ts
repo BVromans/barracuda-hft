@@ -125,7 +125,7 @@ export class Logger {
 	 * Log a message
 	 * @param message - The message to log
 	 */
-	public log(level: LogLevel, message: string, ...optionalParams: any[]): void {
+	private log(level: LogLevel, message: string, ...optionalParams: any[]): void {
 		const timestamp = new Date().toISOString();
 		const stack = new Error().stack as any;
 		const frame = stack[2];
@@ -135,7 +135,7 @@ export class Logger {
 		const functionName = frame.functionName;
 		const methodName = frame.methodName;
 
-		const stacktrace = stack.map((frame: any) => frame.string).join('\n');
+		const stacktrace = stack.slice(2).map((frame: any) => frame.string).join('\n');
 
 		message = `[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}\n\n${stacktrace}`;
 
