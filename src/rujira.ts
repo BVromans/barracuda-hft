@@ -1401,7 +1401,20 @@ export class Fin {
 			baseToQuoteMiddlePrice = bestBid.price;
 		}
 
+		// (p_a1*v_a1 + p_a2*v_a2 + p_b1*v_b1 + p_b2*v_b2) / (v_a1 + v_a2 + v_b1 + v_b2)
 		let baseToQuoteVolumeWeightedAveragePrice: OrderBookPrice | undefined;
+
+		const askWeightedSum = asks.reduce((sum, order) => sum.plus(order.price.mul(order.amount)), DECIMAL_0);
+		const bidWeightedSum = bids.reduce((sum, order) => sum.plus(order.price.mul(order.amount)), DECIMAL_0);
+		const askTotalVolume = asks.reduce((sum, order) => sum.plus(order.amount), DECIMAL_0);
+		const bidTotalVolume = bids.reduce((sum, order) => sum.plus(order.amount), DECIMAL_0);
+
+		const totalWeightedSum = askWeightedSum.plus(bidWeightedSum);
+		const totalVolume = askTotalVolume.plus(bidTotalVolume);
+
+		if (totalVolume.gt(DECIMAL_0)) {
+			baseToQuoteVolumeWeightedAveragePrice = totalWeightedSum.div(totalVolume);
+		}
 
 		const orderBook: OrderBook = {
 			market,
@@ -1613,8 +1626,23 @@ export class Fin {
 			tokens = tokens.filter((token: Token) => tokenAddresses.includes(token.address) || tokenSymbols.includes(token.symbol));
 		}
 
+				// Fetch THORChain oracle prices for USD conversion rates
+		let oraclePrices = MMap<string, Decimal>();
+		const oracleResponse = await this.parent.fetch('https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices');
+
+		if (oracleResponse.ok) {
+			const data = await oracleResponse.json() as { prices: Array<{ symbol: string; price: string }> };
+			for (const priceData of data.prices) {
+				if (priceData.symbol && priceData.price) {
+					const oracleSymbol = priceData.symbol.toUpperCase();
+					oraclePrices = oraclePrices.set(oracleSymbol, new Decimal(priceData.price));
+				}
+			}
+		}
+
 		const freeBalances = MMap<TokenSymbol, Amount>();
 		const freeBalanceResponse = await this.parent.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
+
 		if (freeBalanceResponse.ok) {
 			/*
 			Example response:
@@ -1643,11 +1671,13 @@ export class Fin {
 			};
 
 			for (const rawBalance of freeBalanceResponseData.balances) {
-				try {
-					const token = await this.getToken({ address: rawBalance.denom });
+				// Try to get token by address first
+				const token = await this.getToken({ address: rawBalance.denom }).catch(() => null);
+
+				if (token) {
 					freeBalances.set(token.symbol, Decimal(rawBalance.amount), true);
-				} catch (exception: any) {
-					ignoreException(exception, `Balance token ${rawBalance.denom} not found, ignoring this balance.`);
+				} else {
+					ignoreException(new Error(`Token not found`), `Balance token ${rawBalance.denom} not found, ignoring this balance.`);
 				}
 			}
 		}
@@ -1655,62 +1685,36 @@ export class Fin {
 		const lockedInOrdersMap = MMap<TokenSymbol, Amount>();
 		const withdrawableMap = MMap<TokenSymbol, Amount>();
 
+		// Use getOrders to get all orders across all markets for the wallet
 		for (const market of markets.values()) {
-			/*
-			Example response:
-				{
-					"orders": [
-						{
-							"owner": "thor1gsgx5xtw82r8qw06mrcxjzypuynqwjxcugk5fy",
-							"side": "base",
-							"price": {
-								"fixed": "0.219169"
-							},
-							"rate": "0.219169",
-							"updated_at": "1752680298782095574",
-							"offer": "10000000",
-							"remaining": "10000000",
-							"filled": "0"
-						}
-					]
-				}
-			*/
-			const ordersResponse = await this.parent.cosmClientQueryContractSmart(
-				market.address,
-				{
-					orders: {
-						owner: walletAddress,
-						limit: properties.getOrDefault<Integer>('rujira.default.orders.maximumNumberOfOrders', DECIMAL_INFINITY.toNumber())
-					}
-				}
-			) as {
-				orders: Array<{
-					owner: string,
-					"side": string,
-					"price": {
-						"fixed": string
-					},
-					"rate": string,
-					"updated_at": string,
-					"offer": string,
-					"remaining": string,
-					"filled": string
-				}>;
-			};
+			const marketOrders = await this.getOrders({
+				ownerAddress: walletAddress,
+				marketSymbol: market.symbol
+			});
 
-			for (const rawOrder of ordersResponse.orders) {
+			for (const order of marketOrders.values()) {
 				const baseTokenSymbol = market.tokens.base.symbol;
 				const quoteTokenSymbol = market.tokens.quote.symbol;
 
-				if (rawOrder.filled && Number(rawOrder.filled) > 0) {
-					// TODO: check if this is correct!!!
-					const lockedTokenSymbol = rawOrder.side === 'base' ? baseTokenSymbol : quoteTokenSymbol;
-					lockedInOrdersMap.get(lockedTokenSymbol, (lockedInOrdersMap.getOrThrow(lockedTokenSymbol, DECIMAL_0)).plus(Decimal(rawOrder.filled)));
-				}
-				if (rawOrder.filled && Number(rawOrder.filled) === Number(rawOrder.offer)) {
-					// TODO: check if this is correct!!!
-					const withdrawTokenSymbol = rawOrder.side === 'base' ? quoteTokenSymbol : baseTokenSymbol; // note that it's the opposite asset
-					withdrawableMap.set(withdrawTokenSymbol, (withdrawableMap.getOrThrow(withdrawTokenSymbol, DECIMAL_0)).plus(Decimal(rawOrder.filled)), true);
+				// Calculate locked amounts based on order status and filled percentage
+				if (order.filledPercentage && order.filledPercentage.gt(0)) {
+					// For partially filled orders, calculate the locked amount
+					const filledAmount = order.amount.mul(order.filledPercentage).div(100);
+					const lockedAmount = order.amount.minus(filledAmount);
+
+					if (lockedAmount.gt(0)) {
+						const lockedTokenSymbol = order.side === OrderSide.SELL ? baseTokenSymbol : quoteTokenSymbol;
+						const currentLocked = lockedInOrdersMap.getOrThrow(lockedTokenSymbol, DECIMAL_0);
+						lockedInOrdersMap.set(lockedTokenSymbol, currentLocked.plus(lockedAmount), true);
+					}
+
+					// For fully filled orders, calculate withdrawable amount
+					if (order.filledPercentage.gte(100) && order.price) {
+						const withdrawTokenSymbol = order.side === OrderSide.SELL ? quoteTokenSymbol : baseTokenSymbol;
+						const withdrawAmount = order.price!.mul(filledAmount);
+						const currentWithdrawable = withdrawableMap.getOrThrow(withdrawTokenSymbol, DECIMAL_0);
+						withdrawableMap.set(withdrawTokenSymbol, currentWithdrawable.plus(withdrawAmount), true);
+					}
 				}
 			}
 		}
@@ -1731,27 +1735,33 @@ export class Fin {
 				total
 			};
 
+			// Get conversion rates using THORChain oracle prices (fallback to ticker if not available)
 			let conversionRateNativeToken: TickerPrice = DECIMAL_0;
 			if (token.symbol !== this.nativeToken.symbol) {
-				try {
-					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` });
+				// Try oracle price first, then fallback to ticker
+				const tokenOraclePrice = oraclePrices.get(token.symbol);
+				const nativeOraclePrice = oraclePrices.get(this.nativeToken.symbol);
 
-					conversionRateNativeToken = quotingMarketTicker.middlePrice.baseToQuote || DECIMAL_0;
-				} catch (exception) {
-					ignoreException(exception, `Conversion rate for token ${token.symbol} to native token not found, ignoring this conversion rate.`);
+				if (tokenOraclePrice && nativeOraclePrice && nativeOraclePrice.gt(DECIMAL_0)) {
+					conversionRateNativeToken = tokenOraclePrice.div(nativeOraclePrice);
+				} else {
+					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` }).catch(() => null);
+					conversionRateNativeToken = quotingMarketTicker?.middlePrice.baseToQuote || DECIMAL_0;
 				}
 			} else {
 				conversionRateNativeToken = DECIMAL_1;
 			}
 
-			let conversionRateUSD: TickerPrice = DECIMAL_0;
+						let conversionRateUSD: TickerPrice = DECIMAL_0;
 			if (token.symbol !== this.usdToken.symbol) {
-				try {
-					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` });
+				// Try oracle price first (direct USD price), then fallback to ticker
+				const tokenOraclePrice = oraclePrices.get(token.symbol);
 
-					conversionRateUSD = quotingMarketTicker.middlePrice.baseToQuote || DECIMAL_0;
-				} catch (exception) {
-					ignoreException(exception, `Conversion rate for token ${token.symbol} to USD not found, ignoring this conversion rate.`);
+				if (tokenOraclePrice) {
+					conversionRateUSD = tokenOraclePrice;
+				} else {
+					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` }).catch(() => null);
+					conversionRateUSD = quotingMarketTicker?.middlePrice.baseToQuote || DECIMAL_0;
 				}
 			} else {
 				conversionRateUSD = DECIMAL_1;
