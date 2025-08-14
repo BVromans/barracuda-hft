@@ -2313,7 +2313,7 @@ export interface FinGetMarketsRequest {
 /**
  * Get markets response
  */
-export interface FinGetMarketsResponse extends Map<MarketAddress, Market> {
+export interface FinGetMarketsResponse extends Map<MarketSymbol, Market> {
 }
 
 /**
@@ -2325,7 +2325,7 @@ export interface FinGetAllMarketsRequest {
 /**
  * Get all markets response
  */
-export interface FinGetAllMarketsResponse extends Map<MarketAddress, Market> {
+export interface FinGetAllMarketsResponse extends Map<MarketSymbol, Market> {
 }
 
 /**

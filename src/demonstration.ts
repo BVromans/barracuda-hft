@@ -1,25 +1,25 @@
 import Decimal from "decimal.js";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
-import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenAddress, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
+import { Market, MarketSymbol, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
 
 (async function run() {
 	const active = {
-		getStatus: false,
-		getTransaction: false,
-		getAllTokens: false,
-		getTokens: false,
-		getToken: false,
-		getAllMarkets: false,
-		getMarkets: false,
-		getMarket: false,
-		getOrderBook: false,
-		getTicker: false,
-		getCandles: false,
-		getIndicators: false,
+		getStatus: true,
+		getTransaction: true,
+		getAllTokens: true,
+		getTokens: true,
+		getToken: true,
+		getAllMarkets: true,
+		getMarkets: true,
+		getMarket: true,
+		getOrderBook: true,
+		getTicker: true,
+		getCandles: true,
+		getIndicators: true,
 		getBalances: true,
-		getOrder: false,
-		getOrders: false,
+		getOrder: true,
+		getOrders: true,
 		placeOrder: undefined,
 		placeOrders: undefined,
 		replaceOrder: undefined,
@@ -59,9 +59,9 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 	if (active.getAllTokens) {
 		const getAllTokens = await rujira.fin.getAllTokens({});
 		console.log('getAllTokens:size:', getAllTokens.size);
-		console.log('getAllTokens:addresses:\n', getAllTokens.keySeq().toJS());
-		console.log('getAllTokens:symbols\n', getAllTokens.valueSeq().map(token => token.symbol).toJS());
-		console.log('getAllTokens:addresses->symbols:\n', getAllTokens.entrySeq().map((entry: [TokenAddress, Token]) => `${entry[0]} -> ${entry[1].symbol}`).toJS());
+		console.log('getAllTokens:symbols:\n', getAllTokens.keySeq().toJS());
+		console.log('getAllTokens:addresses\n', getAllTokens.valueSeq().map(token => token.address).toJS());
+		console.log('getAllTokens:symbols->addresses:\n', getAllTokens.entrySeq().map((entry: [TokenSymbol, Token]) => `${entry[0]} -> ${entry[1].address}`).toJS());
 		// console.log('getAllTokens\n', getAllTokens.toJS());
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
@@ -78,8 +78,9 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 			]
 		});
 		console.log('getTokens:size:', getTokens.size);
-		console.log('getTokens:addresses:\n', getTokens.keySeq().toJS());
-		console.log('getTokens:symbols\n', getTokens.valueSeq().map(token => token.symbol).toJS());
+		console.log('getTokens:symbols:\n', getTokens.keySeq().toJS());
+		console.log('getTokens:addresses\n', getTokens.valueSeq().map(token => token.address).toJS());
+		console.log('getTokens:symbols->addresses:\n', getTokens.entrySeq().map((entry: [TokenSymbol, Token]) => `${entry[0]} -> ${entry[1].address}`).toJS());
 		// console.log('getTokens\n', getTokens.toJS());
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
@@ -98,9 +99,9 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 	if (active.getAllMarkets) {
 		const getAllMarkets = await rujira.fin.getAllMarkets({});
 		console.log('getAllMarkets:size:', getAllMarkets.size);
-		console.log('getAllMarkets:addresses:\n', getAllMarkets.keySeq().toJS());
-		console.log('getAllMarkets:symbols\n', getAllMarkets.valueSeq().map(market => market.symbol).toJS());
-		console.log('getAllMarkets:addresses->symbols:\n', getAllMarkets.entrySeq().map((entry: [MarketAddress, Market]) => `${entry[0]} -> ${entry[1].symbol}`).toJS());
+		console.log('getAllMarkets:symbols:\n', getAllMarkets.keySeq().toJS());
+		console.log('getAllMarkets:addresses\n', getAllMarkets.valueSeq().map(market => market.address).toJS());
+		console.log('getAllMarkets:symbols->addresses:\n', getAllMarkets.entrySeq().map((entry: [MarketSymbol, Market]) => `${entry[0]} -> ${entry[1].address}`).toJS());
 		// console.log('getAllMarkets\n', getAllMarkets.toJS());
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
@@ -117,8 +118,9 @@ import { Market, MarketAddress, OrderSide, OrderStatus, OrderType, RujiraConstru
 			]
 		});
 		console.log('getMarkets:size:', getMarkets.size);
-		console.log('getMarkets:addresses:\n', getMarkets.keySeq().toJS());
-		console.log('getMarkets:symbols:\n', getMarkets.valueSeq().map(market => market.symbol).toJS());
+		console.log('getMarkets:symbols:\n', getMarkets.keySeq().toJS());
+		console.log('getMarkets:addresses\n', getMarkets.valueSeq().map(market => market.address).toJS());
+		console.log('getMarkets:symbols->addresses:\n', getMarkets.entrySeq().map((entry: [MarketSymbol, Market]) => `${entry[0]} -> ${entry[1].address}`).toJS());
 		// console.log('getMarkets\n', getMarkets.toJS());
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}

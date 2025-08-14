@@ -1327,7 +1327,7 @@ export class Fin {
 				raw: pair
 			};
 
-			markets.set(pair.address.toLowerCase(), market);
+			markets.set(marketSymbol, market);
 		}
 
 		// Update internal maps
