@@ -1,0 +1,67 @@
+rujira:
+  endpoints:
+    rpc: "https://thornode-mainnet-rpc.bryanlabs.net"
+    rest: "https://thornode.ninerealms.com"
+    graphql: "https://api.rujira.network/api/graphiql"
+  cache:
+    rujira:
+      getThorChainConfiguration: 6 * 60 * 60 # 6 hours
+    fin:
+      getAllTokens: 6 * 60 * 60 # 6 hours
+      getAllMarkets: 6 * 60 * 60 # 6 hours
+  constants:
+    enum:
+      markets:
+        active: "LIVE"
+    tokens:
+      native:
+        address: "x/ruji" # Denom
+        symbol: "THOR-RUJI"
+      usd:
+        address: "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"  # Denom
+        symbol: "ETH-USDC"
+      feePayment:
+        address: "rune"  # Denom
+        symbol: "THOR-RUNE"
+        thorChainConfigurationKey: "WASMMINGASPRICE"
+  default:
+    network:
+      gasPrice: '0' # A possible value is '0.02'
+    cache:
+      ttlSeconds: 60
+    parallel:
+      batchSize: 10
+      delayBetweenBatches: 100
+    retry:
+      maximumNumberOfRetries: 3
+      delayBetweenRetries: 1_000
+      timeout: 30_000
+    orderBook:
+      maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
+    candles:
+      interval: "1m"
+      maximumNumberOfCandles: 100 # Optional, leaving empty or null will return all candles
+    orders:
+      maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
+tests:
+  unit:
+    timeout: 10_000 # 10 seconds
+  integration:
+    timeout: 60_000 # 60 seconds
+    transaction_hash: "EDF881BCB440DA84C6197C563BB7313FD04AED6D0E477676661B901EEFC87E3E"
+    first_market_symbol: "THOR-NAMI/ETH-USDC"
+    first_market_address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
+    first_market_base_token_address: "QXNzZXQ6VEhPUi5OQU1J"
+    first_market_quote_token_address: "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4"
+    first_market_base_token_symbol: "THOR-NAMI"
+    first_market_quote_token_symbol: "ETH-USDC"
+    first_market_base_token_amount: "0.000001"
+    first_market_quote_token_amount: "0.000001"
+    second_market_symbol: "THOR-NAMI/ETH-USDC"
+    second_market_address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
+    second_market_base_token_address: "QXNzZXQ6VEhPUi5OQU1J"
+    second_market_quote_token_address: "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4"
+    second_market_base_token_symbol: "THOR-NAMI"
+    second_market_quote_token_symbol: "ETH-USDC"
+    second_market_base_token_amount: "0.000001"
+    second_market_quote_token_amount: "0.000001"

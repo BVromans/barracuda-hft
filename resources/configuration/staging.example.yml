@@ -1,0 +1,46 @@
+rujira:
+  wallet:
+    mnemonic: "<wallet mnemonic>" # Optional, but required if privateKey is not provided
+    privateKey: "<wallet private key>" # Optional, but required if mnemonic is not provided
+    publicKeys:
+      thor: "<wallet thor public key>" # Optional
+      ethereum: "<wallet ethereum public key>" # Optional
+strategy:
+  pure_market_making:
+    common:
+      market: "THOR-RUJI/ETH-USDC"
+      tickInterval: 60_000 # 1 minute in milliseconds
+      orders:
+        minimumBaseTokenAmountPerOrder: 0
+        minimumQuoteTokenAmountPerOrder: 0
+        maximumBaseTokenAmountPerOrder: 10
+        maximumQuoteTokenAmountPerOrder: 10
+      whenStart:
+        cancelAllOrders: true
+        withdrawAllFilledOrders: true
+      whenStop:
+        cancelAllOrders: true
+        withdrawAllFilledOrders: true
+      stopLoss:
+        enabled: true
+        maximumAllowedWalletLossFromInitialValue: 10 # 1 means 1%
+        maximumAllowedWalletLossFromPreviousValue: 10 # 1 means 1%
+      tasks:
+        updateTokens:
+          interval: 21_600_000 # 6 hours in milliseconds
+        updateMarkets:
+          interval: 21_600_000 # 6 hours in milliseconds
+        updateIndicators:
+          interval: 60_000 # 1 minute in milliseconds
+        updateOrderBook:
+          interval: 30_000 # 30 seconds in milliseconds
+        monitoreProfitAndLoss:
+          interval: 60_000 # 1 minute in milliseconds
+      logger:
+        level: "INFO"
+    simple:
+      orders:
+        spreadPercentage: 10 # 1 means 1%
+        buyQuoteTokenAmountPerOrder: 10
+        sellBaseTokenAmountPerOrder: 10
+    enhanced: {}

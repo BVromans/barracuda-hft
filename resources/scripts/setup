@@ -11,4 +11,8 @@ git submodule update --init --remote --force ./resources/references/rujira/contr
 
 bun install
 
+if [ ! -f "resources/configuration/production.yml" ]; then
+	cp "resources/configuration/production.example.yml" "resources/configuration/production.yml"
+fi
+
 set +ex
