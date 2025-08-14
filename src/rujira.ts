@@ -1640,6 +1640,24 @@ export class Fin {
 			}
 		}
 
+		// 2. Fetch base layer pool prices as fallback
+		let poolPrices = MMap<string, Decimal>();
+		const poolResponse = await this.parent.fetch('https://thornode.ninerealms.com/thorchain/pools').catch(() => null);
+		if (poolResponse?.ok) {
+			const data = await poolResponse.json().catch(() => null);
+			if (Array.isArray(data)) {
+				for (const poolData of data) {
+					if (poolData.asset && poolData.asset_tor_price) {
+						// Convert asset format (e.g., "THOR.RUJI" -> "THOR-RUJI")
+						const poolSymbol = poolData.asset.replace('.', '-');
+						// asset_tor_price is in 8 decimal places, convert to standard price
+						const poolPrice = new Decimal(poolData.asset_tor_price).div(100000000);
+						poolPrices = poolPrices.set(poolSymbol, poolPrice);
+					}
+				}
+			}
+		}
+
 		const freeBalances = MMap<TokenSymbol, Amount>();
 		const freeBalanceResponse = await this.parent.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
 
@@ -1745,8 +1763,17 @@ export class Fin {
 				if (tokenOraclePrice && nativeOraclePrice && nativeOraclePrice.gt(DECIMAL_0)) {
 					conversionRateNativeToken = tokenOraclePrice.div(nativeOraclePrice);
 				} else {
-					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` }).catch(() => null);
-					conversionRateNativeToken = quotingMarketTicker?.middlePrice.baseToQuote || DECIMAL_0;
+					// 2. Try base layer pool price as fallback
+					const tokenPoolPrice = poolPrices.get(token.symbol);
+					const nativePoolPrice = poolPrices.get(this.nativeToken.symbol);
+
+					if (tokenPoolPrice && nativePoolPrice && nativePoolPrice.gt(DECIMAL_0)) {
+						conversionRateNativeToken = tokenPoolPrice.div(nativePoolPrice);
+					} else {
+						// 3. Fallback to ticker prices (most reliable)
+						const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` }).catch(() => null);
+						conversionRateNativeToken = quotingMarketTicker?.middlePrice.baseToQuote || DECIMAL_0;
+					}
 				}
 			} else {
 				conversionRateNativeToken = DECIMAL_1;
@@ -1754,14 +1781,27 @@ export class Fin {
 
 						let conversionRateUSD: TickerPrice = DECIMAL_0;
 			if (token.symbol !== this.usdToken.symbol) {
-				// Try oracle price first (direct USD price), then fallback to ticker
+				// 1. Try enshrined oracle price first (direct USD price)
 				const tokenOraclePrice = oraclePrices.get(token.symbol);
 
 				if (tokenOraclePrice) {
 					conversionRateUSD = tokenOraclePrice;
 				} else {
-					const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` }).catch(() => null);
-					conversionRateUSD = quotingMarketTicker?.middlePrice.baseToQuote || DECIMAL_0;
+					// 2. Try base layer pool price as fallback (convert via RUNE)
+					const tokenPoolPrice = poolPrices.get(token.symbol);
+					if (tokenPoolPrice) {
+						// Get RUNE USD price directly (not via nativeToken.symbol)
+						const runeUSDPrice = oraclePrices.get('RUNE');
+						if (runeUSDPrice && runeUSDPrice.gt(DECIMAL_0)) {
+							conversionRateUSD = tokenPoolPrice.mul(runeUSDPrice);
+						}
+					}
+
+					// 3. If still no price, fallback to ticker
+					if (conversionRateUSD.eq(DECIMAL_0)) {
+						const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` }).catch(() => null);
+						conversionRateUSD = quotingMarketTicker?.middlePrice.baseToQuote || DECIMAL_0;
+					}
 				}
 			} else {
 				conversionRateUSD = DECIMAL_1;
