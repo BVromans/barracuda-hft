@@ -2,6 +2,10 @@
 
 clear
 
+echo "========================================"
+echo "Setup"
+echo -e "========================================\n"
+
 set -ex
 
 mkdir -p resources/references/rujira
@@ -15,4 +19,78 @@ if [ ! -f "resources/configuration/production.yml" ]; then
 	cp "resources/configuration/production.example.yml" "resources/configuration/production.yml"
 fi
 
+# Securely prompt for wallet credentials and update production.yml
+ENVIRONMENT_FILE="resources/configuration/production.yml"
+
+if [ ! -f "$ENVIRONMENT_FILE" ]; then
+	echo "Configuration file not found: $ENVIRONMENT_FILE" >&2
+	exit 1
+fi
+
+escape_for_sed() {
+	# Escapes backslashes, ampersands, and slashes for safe sed insertion
+	printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/&/\\\&/g' -e 's/\//\\\//g'
+}
+
+is_valid_mnemonic() {
+	local input
+	input=$(printf '%s' "$1" | tr -s ' ' | sed 's/^ *//;s/ *$//')
+	local count
+	count=$(printf '%s' "$input" | wc -w)
+	[ "$count" -ge 12 ]
+}
+
+is_valid_private_key() {
+	local s="$1"
+	[[ "$s" =~ ^[^[:space:]]{44,}$ ]]
+}
+
+update_yaml_value() {
+	local key="$1"
+	local value="$2"
+	local escaped
+	escaped=$(escape_for_sed "$value")
+	sed -i -E "s/^([[:space:]]*$key:[[:space:]])(\".*\"|[^#]*)([[:space:]]*(#.*)?)$/\\1\"$escaped\"\\3/" "$ENVIRONMENT_FILE"
+}
+
+# Do not echo sensitive input and do not print commands that include secrets
 set +ex
+
+echo -e "--------------------------------------------------------------------------------\n\n"
+
+echo "========================================"
+echo "Wallet Configuration"
+echo -e "========================================\n"
+
+credential_type=""
+while [ "$credential_type" != "mnemonic" ] && [ "$credential_type" != "privateKey" ]; do
+	read -r -p "Which credential do you want to configure? [mnemonic/privateKey]: " credential_type
+done
+
+secret_value=""
+while true; do
+	if [ "$credential_type" = "mnemonic" ]; then
+		read -r -s -p "Enter wallet mnemonic (input hidden): " secret_value; echo
+		if is_valid_mnemonic "$secret_value"; then
+			break
+		else
+			echo "Invalid mnemonic. It must contain at least 12 words. Please try again."
+		fi
+	else
+		read -r -s -p "Enter wallet private key (input hidden): " secret_value; echo
+		if is_valid_private_key "$secret_value"; then
+			break
+		else
+			echo "Invalid private key. It must be 64 hex characters. Please try again."
+		fi
+	fi
+done
+
+# Update YAML
+if [ "$credential_type" = "mnemonic" ]; then
+	update_yaml_value "mnemonic" "$secret_value"
+	update_yaml_value "privateKey" ""
+else
+	update_yaml_value "privateKey" "$secret_value"
+	update_yaml_value "mnemonic" ""
+fi
