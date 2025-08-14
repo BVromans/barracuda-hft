@@ -2720,12 +2720,6 @@ export class Fin {
 			// Convert to raw amount (no buffer needed - contract handles fees)
 			const rawQuoteAmount = totalQuoteAmount.mul(10 ** market.tokens.quote.decimals).toFixed(0);
 
-			console.debug('Funds calculation for BUY orders:', {
-				totalQuoteAmount: totalQuoteAmount.toString(),
-				rawQuoteAmount,
-				buyOrdersCount: buyOrders.size
-			});
-
 			funds = [{
 				denom: market.tokens.quote.address,
 				amount: rawQuoteAmount
@@ -2743,12 +2737,6 @@ export class Fin {
 
 			// Convert to raw amount (no buffer needed - contract handles fees)
 			const rawBaseAmount = totalBaseAmount.mul(10 ** market.tokens.base.decimals).toFixed(0);
-
-			console.debug('Funds calculation for SELL orders:', {
-				totalBaseAmount: totalBaseAmount.toString(),
-				rawBaseAmount,
-				sellOrdersCount: sellOrders.size
-			});
 
 			// If we already have funds for BUY orders, add to it, otherwise create new
 			if (funds) {
