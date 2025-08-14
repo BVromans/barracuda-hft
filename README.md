@@ -20,7 +20,7 @@ cd rujira-hft-bot
 
 When asked, inform your `wallet mnemonic` or your `wallet private key` or directly configure it in your `resources/configuration/production.yml` configuration file.
 
-# Running
+## Running
 
 Check if all the configurations present in the `resources/configuration`.
 Have an especial attention to the `rujira.wallet` and `strategy` sections, double checking if all the parameters are tailored for you.
