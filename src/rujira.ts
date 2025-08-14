@@ -949,10 +949,10 @@ export class Fin {
 			const gasLimit = Decimal(rawTransaction.tx.auth_info.fee.gas_limit.toString());
 			const gasPrice = Decimal((await this.parent.getGasPrice()).amount.toString());
 			feeToken = this.feePaymentToken;
-			feeAmount = gasPrice.mul(gasLimit).div(Decimal(10).pow(feeToken.decimals));
+			feeAmount = gasPrice.mul(gasLimit).div(DECIMAL_10.pow(feeToken.decimals));
 		} else {
 			feeToken = this.feePaymentToken;
-			feeAmount = 0;
+			feeAmount = DECIMAL_0;
 		}
 
 		const result = {
