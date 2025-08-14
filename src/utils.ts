@@ -222,18 +222,36 @@ export function runWithRetryAndTimeout(options?: {
 const jsonReplacer = (key: string, value: any) => {
 	if (value instanceof Decimal) {
 		return value.toString();
-	} else if (value instanceof BigInt) {
-		return value.toString();
-	} else if (value instanceof Date) {
-		return value.toISOString();
-	} else if (value instanceof List) {
-		return (value as List<any>).toJS();
-	} else if (value instanceof Map) {
-		return (value as Map<any, any>).toJS();
-	} else if (value.toString) {
+	}
+	if (typeof value === "bigint") {
 		return value.toString();
 	}
-
+	if (value instanceof Date) {
+		return value.toISOString();
+	}
+	if (value instanceof List || value instanceof Map) {
+		return (value as any).toJS();
+	}
+	if (typeof value === "function") {
+		return `[Function: ${value.name || "anonymous"}]`;
+	}
+	if (typeof value === "symbol") {
+		return value.toString();
+	}
+	if (typeof value === "object" && value !== null) {
+		// Handle plain objects and class instances
+		const prototype = Object.getPrototypeOf(value);
+		if (prototype && prototype !== Object.prototype) {
+			// For class instances, include class name
+			const obj: any = { __class__: prototype.constructor.name };
+			for (const prop in value) {
+				if (Object.prototype.hasOwnProperty.call(value, prop)) {
+					obj[prop] = value[prop];
+				}
+			}
+			return obj;
+		}
+	}
 	return value;
 };
 
@@ -243,8 +261,8 @@ const jsonReplacer = (key: string, value: any) => {
  */
 export const dump = (target: any) => {
 	try {
-		console.log(JSON.stringify(target, jsonReplacer, 2));
+		return JSON.stringify(target, jsonReplacer, 2);
 	} catch (exception) {
-		console.log(target);
+		return target;
 	}
 };
