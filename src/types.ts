@@ -1543,7 +1543,7 @@ export class Indicator {
 			Indicator.median_price,
 			Indicator.minimum_in_period,
 			Indicator.momentum,
-			Indicator.money_flow_index,
+			// Indicator.money_flow_index,
 			Indicator.moving_average_convergence_divergence,
 			Indicator.negative_volume_index,
 			Indicator.normalized_average_true_range,

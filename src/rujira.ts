@@ -1564,6 +1564,8 @@ export class Fin {
 			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
 		}
 
+		candles = candles.asImmutable();
+
 		const indicators = MMap<IndicatorId, IndicatorData>();
 
 		for (const indicator of Indicator.getAll()) {
