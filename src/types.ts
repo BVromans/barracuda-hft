@@ -1495,6 +1495,7 @@ export class Indicator {
 			Indicator.abands,
 			Indicator.absolute_price_oscillator,
 			Indicator.accumulation_distribution_line,
+			Indicator.accumulation_distribution_oscillator,
 			Indicator.annualized_historical_volatility,
 			Indicator.aroon,
 			Indicator.aroon_oscillator,
