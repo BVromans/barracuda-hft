@@ -9,6 +9,7 @@ import { useAdapter } from "@type-cacheable/lru-cache-adapter";
 import Decimal from 'decimal.js';
 import { LRUCache } from 'lru-cache';
 import { properties } from "./properties";
+import { logger } from "./logger";
 import {
 	Amount,
 	Balances,
@@ -1687,7 +1688,7 @@ export class Fin {
 				if (token) {
 					freeBalances.set(token.symbol, Decimal(rawBalance.amount), true);
 				} else {
-					ignoreException(new Error(`Token not found`), `Balance token ${rawBalance.denom} not found, ignoring this balance.`);
+					logger.ignoreException(new Error(`Token not found`), `Balance token ${rawBalance.denom} not found, ignoring this balance.`);
 				}
 			}
 		}
@@ -2842,18 +2843,3 @@ export class Fin {
 		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice}`;
 	}
 }
-
-/**
- * Ignore an exception
- * @param exception - The exception to ignore
- */
-const ignoreException = (exception: any, message?: string): void => {
-	message = message || 'Ignored exception: ';
-	if (exception instanceof Error) {
-		message += `\n${exception.message}\n${exception.stack}`;
-	} else {
-		message += exception;
-	}
-
-	console.warn(message);
-};
