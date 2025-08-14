@@ -2,6 +2,7 @@
 
 import { List, Map } from "immutable";
 import { properties } from "./properties";
+import Decimal from "decimal.js";
 
 /**
  * Get a value or a default value if the value is undefined or null.
@@ -211,3 +212,39 @@ export function runWithRetryAndTimeout(options?: {
 		return descriptor;
 	};
 }
+
+/**
+ * Replacer for JSON.stringify to handle special cases.
+ * @param key - The key of the value.
+ * @param value - The value to replace.
+ * @returns The replaced value.
+ */
+const jsonReplacer = (key: string, value: any) => {
+	if (value instanceof Decimal) {
+		return value.toString();
+	} else if (value instanceof BigInt) {
+		return value.toString();
+	} else if (value instanceof Date) {
+		return value.toISOString();
+	} else if (value instanceof List) {
+		return (value as List<any>).toJS();
+	} else if (value instanceof Map) {
+		return (value as Map<any, any>).toJS();
+	} else if (value.toString) {
+		return value.toString();
+	}
+
+	return value;
+};
+
+/**
+ * Dump the target to the console.
+ * @param target - The target to dump.
+ */
+export const dump = (target: any) => {
+	try {
+		console.log(JSON.stringify(target, jsonReplacer, 2));
+	} catch (exception) {
+		console.log(target);
+	}
+};
