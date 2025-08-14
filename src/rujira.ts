@@ -1635,6 +1635,7 @@ export class Fin {
 
 		// 2. Fetch base layer pool prices as fallback
 		let poolPrices = MMap<string, Decimal>();
+		// TODO: avoid using this kind of catch, use try/catch instead!!!
 		const poolResponse = await this.parent.fetch('https://thornode.ninerealms.com/thorchain/pools').catch(() => null);
 		if (poolResponse?.ok) {
 			const data = await poolResponse.json().catch(() => null);
