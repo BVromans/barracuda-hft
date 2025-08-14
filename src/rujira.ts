@@ -111,7 +111,7 @@ import {
 	WalletMnemonic,
 	WalletPrivateKey
 } from './types';
-import { getOrThrow, runWithRetryAndTimeout } from "./utils";
+import { get, runWithRetryAndTimeout } from "./utils";
 
 /**
  * LRU cache
@@ -277,7 +277,7 @@ export class Rujira {
 			properties.getAs<string>('wallet.prefix')
 		);
 
-		const firstAccount = getOrThrow<Array<AccountData>>(await this.directSecp256k1WalletGetAccounts(cosmWallet))[0];
+		const firstAccount = get<Array<AccountData>>(await this.directSecp256k1WalletGetAccounts(cosmWallet))[0];
 
 		const wallet = {
 			cosmWallet: cosmWallet,
@@ -1022,10 +1022,10 @@ export class Fin {
 		}
 
 		if (addresses?.size) {
-			addresses = getOrThrow<List<TokenAddress>>(addresses);
+			addresses = get<List<TokenAddress>>(addresses);
 		}
 		if (symbols?.size) {
-			symbols = getOrThrow<List<TokenSymbol>>(symbols);
+			symbols = get<List<TokenSymbol>>(symbols);
 		}
 
 		const tokens = MMap<TokenSymbol, Token>();
@@ -1150,8 +1150,8 @@ export class Fin {
 			throw new Error("You must provide at least one non-empty address or symbol");
 		}
 
-		addresses = getOrThrow<List<MarketAddress>>(addresses);
-		symbols = getOrThrow<List<MarketSymbol>>(symbols);
+		addresses = get<List<MarketAddress>>(addresses);
+		symbols = get<List<MarketSymbol>>(symbols);
 
 		const markets = MMap<MarketAddress, Market>();
 
@@ -2005,7 +2005,7 @@ export class Fin {
 				raw: rawOrder
 			} as Order;
 
-			filteredOrders.set(getOrThrow<OrderId>(order.id), order, true);
+			filteredOrders.set(get<OrderId>(order.id), order, true);
 		}
 
 		filteredOrders = filteredOrders.filter((order: Order) => {
@@ -2047,7 +2047,7 @@ export class Fin {
 			}
 
 			// Filter by order prices
-			if (orderPrices && (!order.price || !orderPrices.includes(getOrThrow<OrderPrice>(order.price)))) {
+			if (orderPrices && (!order.price || !orderPrices.includes(get<OrderPrice>(order.price)))) {
 				return false;
 			}
 
@@ -2093,8 +2093,8 @@ export class Fin {
 		});
 
 		const result = {
-			order: getOrThrow<Order>(persistedOrders.placedOrders?.first()),
-			transaction: getOrThrow<Transaction>(persistedOrders.transactions.first())
+			order: get<Order>(persistedOrders.placedOrders?.first()),
+			transaction: get<Transaction>(persistedOrders.transactions.first())
 		}
 
 		return result;
@@ -2118,7 +2118,7 @@ export class Fin {
 		});
 
 		const result = {
-			orders: getOrThrow<Map<OrderId, Order>>(persistedOrders.placedOrders),
+			orders: get<Map<OrderId, Order>>(persistedOrders.placedOrders),
 			transactions: persistedOrders.transactions
 		};
 
@@ -2155,8 +2155,8 @@ export class Fin {
 		});
 
 		const result = {
-			order: getOrThrow<Order>(persistedOrders.replacedOrders?.first()),
-			transaction: getOrThrow<Transaction>(persistedOrders.transactions.first())
+			order: get<Order>(persistedOrders.replacedOrders?.first()),
+			transaction: get<Transaction>(persistedOrders.transactions.first())
 		}
 
 		return result;
@@ -2188,7 +2188,7 @@ export class Fin {
 		});
 
 		const result = {
-			orders: getOrThrow<Map<OrderId, Order>>(persistedOrders.replacedOrders),
+			orders: get<Map<OrderId, Order>>(persistedOrders.replacedOrders),
 			transactions: persistedOrders.transactions
 		};
 
@@ -2210,13 +2210,13 @@ export class Fin {
 			marketSymbol,
 			market,
 			orders: {
-				cancel: orderId ? MList<OrderId>([orderId]) : MList<Order>([getOrThrow<Order>(order)])
+				cancel: orderId ? MList<OrderId>([orderId]) : MList<Order>([get<Order>(order)])
 			}
 		});
 
 		const result = {
-			order: getOrThrow<Order>(persistedOrders.cancelledOrders?.first()),
-			transaction: getOrThrow<Transaction>(persistedOrders.transactions.first())
+			order: get<Order>(persistedOrders.cancelledOrders?.first()),
+			transaction: get<Transaction>(persistedOrders.transactions.first())
 		}
 
 		return result;
@@ -2252,7 +2252,7 @@ export class Fin {
 		})
 
 		const result = {
-			orders: getOrThrow<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
+			orders: get<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
 			transactions: persistedOrders.transactions
 		};
 
@@ -2288,7 +2288,7 @@ export class Fin {
 		})
 
 		const result = {
-			orders: getOrThrow<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
+			orders: get<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
 			transactions: persistedOrders.transactions
 		};
 
@@ -2324,7 +2324,7 @@ export class Fin {
 		});
 
 		const result = {
-			orders: getOrThrow<Map<OrderId, Order>>(persistedOrders.withdrawnOrders),
+			orders: get<Map<OrderId, Order>>(persistedOrders.withdrawnOrders),
 			transactions: persistedOrders.transactions
 		};
 
@@ -2785,21 +2785,21 @@ export class Fin {
 		let { ownerAddress, market, order, orderType, orderSide, orderPrice } = options;
 
 		if (!ownerAddress) {
-			ownerAddress = getOrThrow<Order>(order).ownerAddress;
+			ownerAddress = get<Order>(order).ownerAddress;
 		}
 
-		const marketSymbol: MarketSymbol = order?.market?.symbol || getOrThrow<Market>(market).symbol;
+		const marketSymbol: MarketSymbol = order?.market?.symbol || get<Market>(market).symbol;
 
 		if (!orderType) {
-			orderType = getOrThrow<Order>(order).type;
+			orderType = get<Order>(order).type;
 		}
 
 		if (!orderSide) {
-			orderSide = getOrThrow<Order>(order).side;
+			orderSide = get<Order>(order).side;
 		}
 
 		if (!orderPrice) {
-			orderPrice = getOrThrow<Order>(order).price;
+			orderPrice = get<Order>(order).price;
 		}
 
 		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice}`;
