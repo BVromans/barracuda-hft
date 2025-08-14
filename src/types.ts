@@ -2079,7 +2079,7 @@ export interface Balances {
 	/**
 	 * Balances of the tokens
 	 */
-	tokens: Map<TokenAddress, TokenBalance>;
+	tokens: Map<TokenSymbol, TokenBalance>;
 
 	/**
 	 * Total balances of the wallet
