@@ -237,7 +237,7 @@ export class Rujira {
 
 		if (!gasPriceString) {
 			// Fallback to working gas price value if configuration is not found
-			gasPriceString = '0.025';
+			gasPriceString = '0';
 		}
 
 		const denom = properties.getAs<string>('rujira.constants.tokens.feePayment.symbol').toLowerCase().replace(/thor[.-]/, '');
@@ -940,13 +940,20 @@ export class Fin {
 			throw new Error(`Transaction is still pending: ${hash}`);
 		}
 
-		const feeToken = await this.getToken({ address: rawTransaction.tx.auth_info.fee.amount[0].denom });
-
-		// TODO: check if we should use the gas price and the gas limit instead of the amount below (GasPrice already has a method for calculating the fees, if needed)!!!
-		// const gasLimit = rawTransaction.tx.auth_info.fee.gas_limit.toString() ? Decimal(rawTransaction.tx.auth_info.fee.gas_limit.toString()) : DECIMAL_0;
-		// const gasPrice = Decimal((await this.parent.getGasPrice()).amount.toString());
-		// const feeAmount = gasPrice.mul(gasLimit).div(Decimal(10).pow(feeToken.decimals));
-		const feeAmount = rawTransaction.tx.auth_info.fee.amount[0].amount ? Decimal(rawTransaction.tx.auth_info.fee.amount[0].amount).div(Decimal(10).pow(feeToken.decimals)) : DECIMAL_0;
+		let feeAmount;
+		let feeToken;
+		if (rawTransaction?.tx?.auth_info?.fee?.amount?.[0]?.amount) {
+			feeToken = await this.getToken({ address: rawTransaction?.tx?.auth_info?.fee?.amount?.[0]?.denom });
+			feeAmount = Decimal(rawTransaction?.tx?.auth_info?.fee?.amount?.[0]?.amount).div(DECIMAL_10.pow(feeToken.decimals))
+		} else if (rawTransaction?.tx?.auth_info?.fee?.gas_limit) {
+			const gasLimit = Decimal(rawTransaction.tx.auth_info.fee.gas_limit.toString());
+			const gasPrice = Decimal((await this.parent.getGasPrice()).amount.toString());
+			feeToken = this.feePaymentToken;
+			feeAmount = gasPrice.mul(gasLimit).div(Decimal(10).pow(feeToken.decimals));
+		} else {
+			feeToken = this.feePaymentToken;
+			feeAmount = 0;
+		}
 
 		const result = {
 			hash: rawTransaction.tx_response.txhash,

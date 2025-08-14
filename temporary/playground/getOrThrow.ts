@@ -1,3 +1,5 @@
+Error.stackTraceLimit = Infinity;
+
 import { properties } from "../../src/properties";
 import { Rujira } from "../../src/rujira";
 import {
@@ -16,5 +18,7 @@ import {
 
 	await rujira.initialize({} as RujiraInitializeOptions);
 
-	await rujira.fin.getToken({ symbol: 'CHAIN1-SYMBOL1/CHAIN2-SYMBOL2' });
+	const token = await rujira.fin.getToken({ symbol: 'CHAIN1-SYMBOL1/CHAIN2-SYMBOL2' });
+
+	console.log(token.raw.native.denom);
 })();

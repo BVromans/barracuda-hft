@@ -6,7 +6,7 @@ import { Market, MarketSymbol, OrderSide, OrderStatus, OrderType, RujiraConstruc
 (async function run() {
 	const active = {
 		getStatus: true,
-		getTransaction: false,
+		getTransaction: true,
 		getAllTokens: true,
 		getTokens: true,
 		getToken: true,
@@ -50,7 +50,7 @@ import { Market, MarketSymbol, OrderSide, OrderStatus, OrderType, RujiraConstruc
 
 	if (active.getTransaction) {
 		const getTransaction = await rujira.fin.getTransaction({
-			hash: '07F95225F84BF9E5C69E4BAA54100F8AB078EB5801EB1761F8F70F746927B100'
+			hash: '0BD692147F4D28106113FA28963E2D47FB861FFE13D33ECDD1AAF33845B090E2'
 		});
 		console.log('getTransaction:\n', getTransaction);
 		console.log('\n--------------------------------------------------------------------------------\n');
