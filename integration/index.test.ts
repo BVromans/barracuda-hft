@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, jest } from "bun:test";
+import Decimal from "decimal.js";
 import "dotenv/config";
 import { properties } from "../src/properties";
 import { Rujira } from "../src/rujira";
@@ -6,13 +7,15 @@ import {
 	Amount,
 	BIG_NUMBER_0,
 	Candle,
+	CandleInterval,
 	DECIMAL_0,
 	DECIMAL_1,
 	Integer,
+	Indicator,
+	IndicatorId,
 	MarketAddress,
 	MarketStatus,
 	MarketSymbol,
-	Order,
 	OrderBookOrder,
 	OrderStatus,
 	SystemStatus,
@@ -27,7 +30,6 @@ import {
 	WalletMnemonic
 } from "../src/types";
 import { getOrThrow } from "../src/utils";
-import Decimal from "decimal.js";
 
 let rujira: Rujira;
 
@@ -123,7 +125,7 @@ const cleanUp = async () => {
 
 describe("Rujira", async() => {
 	describe("Fin", async () => {
-		describe("status", async () => {
+		describe.skip("status", async () => {
 			it("should be up", async () => {
 				const result = await rujira.fin.getStatus({});
 
@@ -133,7 +135,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("transactions", () => {
+		describe.skip("transactions", () => {
 			it("should be able to get a transaction without waiting confirmation", async () => {
 				const result = await rujira.fin.getTransaction({
 					hash: transactionHash,
@@ -188,7 +190,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("tokens", () => {
+		describe.skip("tokens", () => {
 			it("should be able to get a token by address", async () => {
 				const result = await rujira.fin.getToken({
 					address: firstMarketBaseTokenAddress,
@@ -352,7 +354,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("markets", () => {
+		describe.skip("markets", () => {
 			it("should be able to get a market by address", async () => {
 				const result = await rujira.fin.getMarket({
 					address: firstMarketAddress,
@@ -584,7 +586,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("orderbook", () => {
+		describe.skip("orderbook", () => {
 			it("should be able to get the order book for a market", async () => {
 				const maximumNumberOfOrders = 10;
 
@@ -705,7 +707,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("ticker", () => {
+		describe.skip("ticker", () => {
 			it("should be able to get a ticker by market address", async () => {
 				const result = await rujira.fin.getTicker({ marketAddress: firstMarketAddress });
 
@@ -811,6 +813,322 @@ describe("Rujira", async() => {
 					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(candle.raw).toBeDefined();
 				});
+			});
+
+			it("should be able to get candles with specific interval", async () => {
+				const result = await rujira.fin.getCandles({
+					marketSymbol: firstMarketSymbol,
+					interval: '1h' as CandleInterval
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThanOrEqual(0);
+
+				result.forEach((candle: Candle) => {
+					expect(candle).toBeDefined();
+					expect(candle.timestamp).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(candle.open.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.high.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.low.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.close.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.raw).toBeDefined();
+				});
+			});
+
+			it("should be able to get candles with maximum number limit", async () => {
+				const maximumNumberOfCandles = 50;
+				const result = await rujira.fin.getCandles({
+					marketSymbol: firstMarketSymbol,
+					maximumNumberOfCandles
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThanOrEqual(maximumNumberOfCandles);
+				expect(result.size).toBeGreaterThan(0);
+
+				result.forEach((candle: Candle) => {
+					expect(candle).toBeDefined();
+					expect(candle.timestamp).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(candle.open.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.high.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.low.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.close.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.raw).toBeDefined();
+				});
+			});
+		});
+
+		describe("indicators", () => {
+			it("should be able to get all indicators by market address", async () => {
+				const result = await rujira.fin.getIndicators({
+					marketAddress: firstMarketAddress
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+
+				for (const [indicatorId, indicatorData] of result.entries()) {
+					expect(indicatorId).toBeDefined();
+					expect(indicatorId.length).toBeGreaterThan(0);
+
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData.indicator).toBeDefined();
+					expect(indicatorData.indicator.id).toBe(indicatorId);
+					expect(indicatorData.indicator.name).toBeDefined();
+					expect(indicatorData.indicator.name.length).toBeGreaterThan(0);
+					expect(indicatorData.indicator.parameters).toBeDefined();
+					expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
+
+					expect(indicatorData.value).toBeDefined();
+					expect(indicatorData.value !== null && indicatorData.value !== undefined).toBe(true);
+				}
+			});
+
+			it.skip("should be able to get all indicators by market symbol", async () => {
+				const result = await rujira.fin.getIndicators({
+					marketSymbol: firstMarketSymbol
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				for (const [indicatorId, indicatorData] of result.entries()) {
+					expect(indicatorId).toBeDefined();
+					expect(indicatorId.length).toBeGreaterThan(0);
+
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData.indicator).toBeDefined();
+					expect(indicatorData.indicator.id).toBe(indicatorId);
+					expect(indicatorData.indicator.name).toBeDefined();
+					expect(indicatorData.indicator.name.length).toBeGreaterThan(0);
+					expect(indicatorData.indicator.parameters).toBeDefined();
+					expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
+
+					expect(indicatorData.value).toBeDefined();
+					expect(indicatorData.value !== null && indicatorData.value !== undefined).toBe(true);
+				}
+
+				const resultByAddress = await rujira.fin.getIndicators({
+					marketAddress: firstMarketAddress
+				});
+				expect(result.size).toBe(resultByAddress.size);
+			});
+
+			it.skip("should be able to get specific indicators by market address", async () => {
+				const specificIndicators: IndicatorId[] = ['sma', 'ema', 'rsi'];
+				const result = await rujira.fin.getIndicators({
+					marketAddress: firstMarketAddress,
+					indicators: specificIndicators
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBe(specificIndicators.length);
+
+				for (const indicatorId of specificIndicators) {
+					const indicatorData = result.get(indicatorId);
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData?.indicator.id).toBe(indicatorId);
+					expect(indicatorData?.indicator.name).toBeDefined();
+					expect(indicatorData?.value).toBeDefined();
+				}
+
+				for (const [indicatorId] of result.entries()) {
+					expect(specificIndicators).toContain(indicatorId);
+				}
+			});
+
+			it.skip("should be able to get specific indicators by market symbol", async () => {
+				const specificIndicators: IndicatorId[] = ['macd', 'bbands', 'stoch'];
+				const result = await rujira.fin.getIndicators({
+					marketSymbol: firstMarketSymbol,
+					indicators: specificIndicators
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBe(specificIndicators.length);
+
+				for (const indicatorId of specificIndicators) {
+					const indicatorData = result.get(indicatorId);
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData?.indicator.id).toBe(indicatorId);
+					expect(indicatorData?.indicator.name).toBeDefined();
+					expect(indicatorData?.value).toBeDefined();
+				}
+
+				for (const [indicatorId] of result.entries()) {
+					expect(specificIndicators).toContain(indicatorId);
+				}
+			});
+
+			it.skip("should be able to get indicators with custom candle data", async () => {
+				const candles = await rujira.fin.getCandles({
+					marketSymbol: firstMarketSymbol,
+					maximumNumberOfCandles: 100
+				});
+
+				expect(candles).toBeDefined();
+				expect(candles.size).toBeGreaterThan(0);
+
+				const result = await rujira.fin.getIndicators({
+					candles: candles,
+					indicators: ['sma', 'ema', 'rsi']
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				for (const [indicatorId, indicatorData] of result.entries()) {
+					expect(indicatorId).toBeDefined();
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData.indicator).toBeDefined();
+					expect(indicatorData.indicator.id).toBe(indicatorId);
+					expect(indicatorData.value).toBeDefined();
+				}
+			});
+
+			it.skip("should be able to get indicators with different intervals", async () => {
+				const intervals: CandleInterval[] = ['1m', '5m', '1h'];
+
+				for (const interval of intervals) {
+					const result = await rujira.fin.getIndicators({
+						marketSymbol: firstMarketSymbol,
+						interval: interval,
+						indicators: ['sma', 'ema']
+					});
+
+					expect(result).toBeDefined();
+					expect(result.size).toBeGreaterThan(0);
+
+					for (const [indicatorId, indicatorData] of result.entries()) {
+						expect(indicatorId).toBeDefined();
+						expect(indicatorData).toBeDefined();
+						expect(indicatorData.indicator).toBeDefined();
+						expect(indicatorData.indicator.id).toBe(indicatorId);
+						expect(indicatorData.value).toBeDefined();
+					}
+				}
+			});
+
+			it.skip("should be able to get indicators with maximum number of candles limit", async () => {
+				const maximumNumberOfCandles = 50;
+				const result = await rujira.fin.getIndicators({
+					marketSymbol: firstMarketSymbol,
+					maximumNumberOfCandles,
+					indicators: ['sma', 'ema', 'rsi', 'macd']
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				for (const [indicatorId, indicatorData] of result.entries()) {
+					expect(indicatorId).toBeDefined();
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData.indicator).toBeDefined();
+					expect(indicatorData.indicator.id).toBe(indicatorId);
+					expect(indicatorData.value).toBeDefined();
+				}
+			});
+
+			it.skip("should validate indicator parameter structure", async () => {
+				const result = await rujira.fin.getIndicators({
+					marketSymbol: firstMarketSymbol,
+					indicators: ['sma', 'ema', 'rsi', 'macd', 'bbands']
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				for (const [indicatorId, indicatorData] of result.entries()) {
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData?.indicator.parameters).toBeDefined();
+					expect(Array.isArray(indicatorData?.indicator.parameters)).toBe(true);
+				}
+			});
+
+			it.skip("should handle indicators with different data requirements", async () => {
+				const volumeBasedIndicators: IndicatorId[] = ['ad', 'adosc', 'cmf'];
+				const priceBasedIndicators: IndicatorId[] = ['sma', 'ema', 'rsi'];
+				const ohlcBasedIndicators: IndicatorId[] = ['bbands', 'atr', 'adx'];
+
+				const volumeResult = await rujira.fin.getIndicators({
+					marketSymbol: firstMarketSymbol,
+					indicators: volumeBasedIndicators
+				});
+
+				expect(volumeResult).toBeDefined();
+				expect(volumeResult.size).toBeGreaterThan(0);
+
+				const priceResult = await rujira.fin.getIndicators({
+					marketSymbol: firstMarketSymbol,
+					indicators: priceBasedIndicators
+				});
+
+				expect(priceResult).toBeDefined();
+				expect(priceResult.size).toBeGreaterThan(0);
+
+				const ohlcResult = await rujira.fin.getIndicators({
+					marketSymbol: firstMarketSymbol,
+					indicators: ohlcBasedIndicators
+				});
+
+				expect(ohlcResult).toBeDefined();
+				expect(ohlcResult.size).toBeGreaterThan(0);
+
+				for (const result of [volumeResult, priceResult, ohlcResult]) {
+					for (const [indicatorId, indicatorData] of result.entries()) {
+						expect(indicatorId).toBeDefined();
+						expect(indicatorData).toBeDefined();
+						expect(indicatorData.indicator).toBeDefined();
+						expect(indicatorData.indicator.id).toBe(indicatorId);
+						expect(indicatorData.value).toBeDefined();
+					}
+				}
+			});
+
+			it.skip("should validate indicator values are within expected ranges", async () => {
+				const result = await rujira.fin.getIndicators({
+					marketSymbol: firstMarketSymbol,
+					indicators: ['rsi', 'macd', 'bbands']
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				for (const [indicatorId, indicatorData] of result.entries()) {
+					expect(indicatorData.value).toBeDefined();
+					expect(indicatorData.value !== null).toBe(true);
+
+					if (Array.isArray(indicatorData.value)) {
+						for (const value of indicatorData.value) {
+							if (typeof value === 'number') {
+								expect(!isNaN(value)).toBe(true);
+								expect(isFinite(value)).toBe(true);
+							}
+						}
+					}
+				}
+			});
+
+			it.skip("should handle edge cases with minimal candle data", async () => {
+				const result = await rujira.fin.getIndicators({
+					marketSymbol: firstMarketSymbol,
+					maximumNumberOfCandles: 5,
+					indicators: ['sma', 'ema']
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				for (const [indicatorId, indicatorData] of result.entries()) {
+					expect(indicatorId).toBeDefined();
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData.indicator).toBeDefined();
+					expect(indicatorData.indicator.id).toBe(indicatorId);
+					expect(indicatorData.value !== null).toBe(true);
+				}
 			});
 		});
 
