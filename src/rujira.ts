@@ -1572,20 +1572,11 @@ export class Fin {
 
 		const indicatorsMap = MMap<IndicatorId, IndicatorData>();
 
-		// Determine which indicators to calculate
-		let indicatorsToCalculate: Indicator[];
-		if (indicators && (Array.isArray(indicators) ? indicators.length > 0 : indicators.size > 0)) {
-			// Convert array to List if needed
-			const indicatorsList = Array.isArray(indicators) ? MList<IndicatorId>(indicators) : indicators;
-
-			// Filter indicators by the requested IDs
-			indicatorsToCalculate = Indicator.getAll().filter(indicator =>
-				indicatorsList.includes(indicator.id)
-			);
-		} else {
-			// Calculate all indicators if none specified
-			indicatorsToCalculate = Indicator.getAll();
-		}
+		const indicatorsToCalculate: Indicator[] = indicators && (Array.isArray(indicators) ? indicators.length > 0 : indicators.size > 0)
+    ? Indicator.getAll().filter(indicator =>
+        (Array.isArray(indicators) ? MList<IndicatorId>(indicators) : indicators).includes(indicator.id)
+      )
+    : Indicator.getAll();
 
 		for (const indicator of indicatorsToCalculate) {
 			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(validCandles), ...indicator.parameters);
