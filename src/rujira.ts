@@ -191,9 +191,17 @@ export class Rujira {
 	 */
 	public async initialize(_options: RujiraInitializeOptions) {
 		if (this.walletMnemonic) {
-			this.wallet = await this.createWalletFromMnemonic(this.walletMnemonic);
+			try {
+				this.wallet = await this.createWalletFromMnemonic(this.walletMnemonic);
+			} catch (error) {
+				throw new Error(`Invalid Rujira wallet mnemonic. Please provide a valid mnemonic. ${error}`);
+			}
 		} else if (this.walletPrivateKey) {
-			this.wallet = await this.createWalletFromPrivateKey(this.walletPrivateKey);
+			try {
+				this.wallet = await this.createWalletFromPrivateKey(this.walletPrivateKey);
+			} catch (error) {
+				throw new Error(`Invalid Rujira wallet private key. Please provide a valid private key. ${error}`);
+			}
 		} else {
 			throw new Error('No wallet credentials provided. Please provide either a mnemonic or a private key');
 		}
