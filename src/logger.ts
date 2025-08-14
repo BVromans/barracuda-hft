@@ -122,6 +122,22 @@ export class Logger {
 	}
 
 	/**
+	 * Ignore an exception
+	 * @param exception - The exception to ignore
+	 * @param message - The message to log
+	 */
+	public ignoreException(exception: any, message?: string): void {
+		message = message || 'Ignored exception:';
+		if (exception instanceof Error) {
+			message += ` ${exception.message}`;
+		} else {
+			message += exception;
+		}
+
+		this.log(LogLevel.WARNING, message);
+	}
+
+	/**
 	 * Log a message
 	 * @param message - The message to log
 	 */
@@ -150,22 +166,6 @@ export class Logger {
 		} else if (level === LogLevel.CRITICAL) {
 			console.error(message, ...optionalParams);
 		}
-	}
-
-	/**
-	 * Ignore an exception
-	 * @param exception - The exception to ignore
-	 * @param message - The message to log
-	 */
-	public ignoreException(exception: any, message?: string): void {
-		message = message || 'Ignored exception:';
-		if (exception instanceof Error) {
-			message += ` ${exception.message}`;
-		} else {
-			message += exception;
-		}
-
-		this.log(LogLevel.WARNING, message);
 	}
 }
 
