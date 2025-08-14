@@ -940,7 +940,7 @@ export class Fin {
 			throw new Error(`Transaction is still pending: ${hash}`);
 		}
 
-		const feeToken = getOrThrow<Token>((await this.getAllTokens({})).find((token: Token) => token.raw.variants.native.denom.toLowerCase() === rawTransaction.tx.auth_info.fee.amount[0].denom.toLowerCase()));
+		const feeToken = await this.getToken({ address: rawTransaction.tx.auth_info.fee.amount[0].denom });
 
 		// TODO: check if we should use the gas price and the gas limit instead of the amount below (GasPrice already has a method for calculating the fees, if needed)!!!
 		// const gasLimit = rawTransaction.tx.auth_info.fee.gas_limit.toString() ? Decimal(rawTransaction.tx.auth_info.fee.gas_limit.toString()) : DECIMAL_0;
@@ -1295,7 +1295,7 @@ export class Fin {
 
 			// Create base token
 			const baseToken: Token = {
-				address: pair.assetBase.asset.toLowerCase(),
+				address: pair.assetBase.variants.native.denom.toLowerCase(),
 				symbol: `${pair.assetBase.chain?.toUpperCase()}-${pair.assetBase.metadata?.symbol?.toUpperCase() || pair.assetBase.asset?.toUpperCase()}`,
 				name: `${pair.assetBase.chain?.toUpperCase()} ${pair.assetBase.metadata?.name || pair.assetBase.metadata?.symbol?.toUpperCase() || pair.assetBase.asset?.toUpperCase()}`,
 				decimals: pair.assetBase.metadata?.decimals,
@@ -1304,7 +1304,7 @@ export class Fin {
 
 			// Create quote token
 			const quoteToken: Token = {
-				address: pair.assetQuote.asset.toLowerCase(),
+				address: pair.assetQuote.variants.native.denom.toLowerCase(),
 				symbol: `${pair.assetQuote.chain?.toUpperCase()}-${pair.assetQuote.metadata?.symbol?.toUpperCase() || pair.assetQuote.asset?.toUpperCase()}`,
 				name: `${pair.assetQuote.chain?.toUpperCase()} ${pair.assetQuote.metadata?.name || pair.assetQuote.metadata?.symbol?.toUpperCase() || pair.assetQuote.asset?.toUpperCase()}`,
 				decimals: pair.assetQuote.metadata?.decimals,
