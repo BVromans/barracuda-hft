@@ -725,22 +725,16 @@ export class Indicator {
 		"Money Flow Index",
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
-				(data, candle) => {
-					const high = candle.high.toNumber() || 0;
-					const low = candle.low.toNumber() || 0;
-					const close = candle.close.toNumber() || 0;
-					const volume = candle.volume.toNumber() || 0;
-					if (high > 0 && low > 0 && close > 0 && volume > 0 && high >= low) {
-						data[0].push(high);
-						data[1].push(low);
-						data[2].push(close);
-						data[3].push(volume);
-					}
-					return data;
-				},
-				[[], [], [], []] as [number[], number[], number[], number[]]
-			);
-			return [result];
+					(data, candle) => {
+				data[0].push(candle.high.toNumber() || 0);
+				data[1].push(candle.low.toNumber() || 0);
+				data[2].push(candle.close.toNumber() || 0);
+				data[3].push(candle.volume.toNumber() || 0);
+				return data;
+					},
+					[[], [], [], []] as [number[], number[], number[], number[]]
+			)
+			return result;
 		},
 		[14]
 	);
@@ -1543,7 +1537,7 @@ export class Indicator {
 			Indicator.median_price,
 			Indicator.minimum_in_period,
 			Indicator.momentum,
-			// Indicator.money_flow_index,
+			Indicator.money_flow_index,
 			Indicator.moving_average_convergence_divergence,
 			Indicator.negative_volume_index,
 			Indicator.normalized_average_true_range,
