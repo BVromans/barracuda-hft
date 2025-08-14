@@ -48,7 +48,7 @@ tests:
     timeout: 10_000 # 10 seconds
   integration:
     timeout: 60_000 # 60 seconds
-    transaction_hash: "EDF881BCB440DA84C6197C563BB7313FD04AED6D0E477676661B901EEFC87E3E"
+    transaction_hash: "EDF881BCB440DA84C6197C563BB7313FD04AED6D0E477676661B901EEFC87E3E" # Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
     first_market_symbol: "THOR-NAMI/ETH-USDC"
     first_market_address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
     first_market_base_token_address: "QXNzZXQ6VEhPUi5OQU1J"

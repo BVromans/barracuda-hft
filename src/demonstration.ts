@@ -52,6 +52,7 @@ import { dump } from "./utils";
 
 	if (active.getTransaction) {
 		const getTransaction = await rujira.fin.getTransaction({
+			// Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
 			hash: '0BD692147F4D28106113FA28963E2D47FB861FFE13D33ECDD1AAF33845B090E2'
 		});
 		console.log('getTransaction:\n', dump(getTransaction));
