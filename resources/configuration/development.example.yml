@@ -4,11 +4,11 @@ rujira:
     rest: "https://thornode.ninerealms.com"
     graphql: "https://api.rujira.network/api/graphiql"
   wallet:
-    mnemonic: "<mnemonic>" # Optional, but required if privateKey is not provided
-    privateKey: "<private key>" # Optional, but required if mnemonic is not provided
+    mnemonic: "<wallet mnemonic>" # Optional, but required if privateKey is not provided
+    privateKey: "<wallet private key>" # Optional, but required if mnemonic is not provided
     publicKeys:
-      thor: "<thor public key>" # Optional
-      ethereum: "<ethereum public key>" # Optional
+      thor: "<wallet thor public key>" # Optional
+      ethereum: "<wallet ethereum public key>" # Optional
   cache:
     rujira:
       getThorChainConfiguration: 6 * 60 * 60 # 6 hours
@@ -21,13 +21,13 @@ rujira:
         active: "LIVE"
     tokens:
       native:
-        address: "THOR.RUJI"
+        address: "x/ruji" # Denom
         symbol: "THOR-RUJI"
       usd:
-        address: "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+        address: "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"  # Denom
         symbol: "ETH-USDC"
       feePayment:
-        address: "THOR.RUNE"
+        address: "rune"  # Denom
         symbol: "THOR-RUNE"
         thorChainConfigurationKey: "WASMMINGASPRICE"
   default:
@@ -51,9 +51,14 @@ rujira:
       maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
 strategy:
   pure_market_making:
-    base:
+    common:
       market: "THOR-RUJI/ETH-USDC"
       tickInterval: 60_000 # 1 minute in milliseconds
+      orders:
+        minimumBaseTokenAmountPerOrder: 0
+        minimumQuoteTokenAmountPerOrder: 0
+        maximumBaseTokenAmountPerOrder: 10
+        maximumQuoteTokenAmountPerOrder: 10
       whenStart:
         cancelAllOrders: true
         withdrawAllFilledOrders: true
@@ -78,13 +83,10 @@ strategy:
       logger:
         level: "INFO"
     simple:
-      spreadPercentage: 10 # 1 means 1%
-      minimumBasePerOrder: 0
-      minimumQuotePerOrder: 0
-      maximumBasePerOrder: 10
-      maximumQuotePerOrder: 10
-      buyQuotePerOrder: 10
-      sellBasePerOrder: 10
+      orders:
+        spreadPercentage: 10 # 1 means 1%
+        buyQuoteTokenAmountPerOrder: 10
+        sellBaseTokenAmountPerOrder: 10
     enhanced: {}
 tests:
   unit:

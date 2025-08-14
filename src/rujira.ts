@@ -706,27 +706,9 @@ export class Fin {
 		await this.getAllTokens({} as FinGetAllTokensRequest);
 		await this.getAllMarkets({} as FinGetAllMarketsRequest);
 
-		// Try to get tokens by address, fallback to symbol if address not found
-		try {
-			this.nativeToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.native.address') });
-		} catch (error) {
-			console.debug(`Failed to get native token by address, trying symbol: ${properties.getAs<TokenSymbol>('rujira.constants.tokens.native.symbol')}`);
-			this.nativeToken = await this.getToken({ symbol: properties.getAs<TokenSymbol>('rujira.constants.tokens.native.symbol') });
-		}
-
-		try {
-			this.usdToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.usd.address') });
-		} catch (error) {
-			console.debug(`Failed to get USD token by address, trying symbol: ${properties.getAs<TokenSymbol>('rujira.constants.tokens.usd.symbol')}`);
-			this.usdToken = await this.getToken({ symbol: properties.getAs<TokenSymbol>('rujira.constants.tokens.usd.symbol') });
-		}
-
-		try {
-			this.feePaymentToken = await this.getToken({ address: properties.getAs<TokenAddress>('rujira.constants.tokens.feePayment.address') });
-		} catch (error) {
-			console.debug(`Failed to get fee payment token by address, trying symbol: ${properties.getAs<TokenSymbol>('rujira.constants.tokens.feePayment.symbol')}`);
-			this.feePaymentToken = await this.getToken({ symbol: properties.getAs<TokenSymbol>('rujira.constants.tokens.feePayment.symbol') });
-		}
+		this.nativeToken = await this.getToken({ symbol: properties.getAs<TokenSymbol>('rujira.constants.tokens.native.symbol') });
+		this.usdToken = await this.getToken({ symbol: properties.getAs<TokenSymbol>('rujira.constants.tokens.usd.symbol') });
+		this.feePaymentToken = await this.getToken({ symbol: properties.getAs<TokenSymbol>('rujira.constants.tokens.feePayment.symbol') });
 
 		properties.set('rujira.tokens.native', this.nativeToken);
 		properties.set('rujira.tokens.usd', this.usdToken);
