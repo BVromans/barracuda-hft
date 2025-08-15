@@ -2827,7 +2827,7 @@ export class Fin {
 	 * @param options - The options
 	 * @returns The order id
 	 */
-	private getOrderId(options: {
+	public getOrderId(options: {
 		ownerAddress?: WalletAddress;
 		market?: Market;
 		order?: Order | FinPlaceOrderRequest | FinReplaceOrderRequest;
