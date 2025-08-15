@@ -3,23 +3,23 @@ import { logger } from "../../src/logger";
 
 @loggedClass({ logger, disallowedMethods: ["helperMethod"], includeStaticMethods: true })
 class ExampleServiceForDemonstration {
-  static performStaticPing(numberValue: number) {
-    return numberValue + 1;
-  }
+	static performStaticPing(numberValue: number) {
+		return numberValue + 1;
+	}
 
-  @loggedMethod({ logger })
-  performComputation(firstNumber: number, secondNumber: number) {
+	@loggedMethod({ logger })
+	performComputation(firstNumber: number, secondNumber: number) {
 		this.helperMethod();
-    return firstNumber + secondNumber;
-  }
+		return firstNumber + secondNumber;
+	}
 
-  async fetchEntityByIdentifier(entityIdentifier: string) {
-    return Promise.resolve({ entityIdentifier, status: "ok" });
-  }
+	async fetchEntityByIdentifier(entityIdentifier: string) {
+		return Promise.resolve({ entityIdentifier, status: "ok" });
+	}
 
-  private helperMethod() {
-    console.log('helperMethod');
-  }
+	private helperMethod() {
+		console.log('helperMethod');
+	}
 }
 
 (async function run() {
