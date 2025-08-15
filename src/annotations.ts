@@ -33,6 +33,16 @@ function formatExceptionForLogging(exceptionValue: unknown): string {
 	}
 }
 
+function formatDurationMilliseconds(totalMilliseconds: number): string {
+	const hours = Math.floor(totalMilliseconds / 3600000);
+	const minutes = Math.floor((totalMilliseconds % 3600000) / 60000);
+	const seconds = Math.floor((totalMilliseconds % 60000) / 1000);
+	const milliseconds = Math.floor(totalMilliseconds % 1000);
+	const two = (n: number) => String(n).padStart(2, "0");
+	const three = (n: number) => String(n).padStart(3, "0");
+	return `${two(hours)}:${two(minutes)}:${two(seconds)}.${three(milliseconds)}`;
+}
+
 function getClassNameFromTarget(targetObject: any): string {
 	if (targetObject && typeof targetObject === "function") {
 		return targetObject.name || "AnonymousClass";
@@ -61,6 +71,7 @@ type LoggedMethodDecoratorOptions = {
 	logEnd?: boolean; // default: true (applies to both success and exception)
 	logInput?: boolean; // default: true (method arguments)
 	logOutput?: boolean; // default: true (method return value on success)
+	logExecutionTime?: boolean; // default: false (include total execution time in end messages)
 };
 
 export function loggedMethod(options?: LoggedMethodDecoratorOptions): MethodDecorator;
@@ -97,7 +108,10 @@ export function loggedMethod(
 						logEnd: optionsObject?.logEnd ?? true,
 						logInput: optionsObject?.logInput ?? true,
 						logOutput: optionsObject?.logOutput ?? true,
+						logExecutionTime: optionsObject?.logExecutionTime ?? false,
 					};
+
+					const startTimestampMs = Date.now();
 
 					if (flags.logStart) {
 						const extra: any[] = [];
@@ -117,10 +131,12 @@ export function loggedMethod(
 							return (resultValue as Promise<unknown>)
 								.then((resolvedValue) => {
 									if (flags.logEnd) {
+										const elapsedMs = Date.now() - startTimestampMs;
+										const durationText = flags.logExecutionTime ? ` (duration: ${formatDurationMilliseconds(elapsedMs)})` : "";
 										const extra: any[] = [];
 										if (flags.logOutput) extra.push({ result: resolvedValue });
 										loggerInstance.debug(
-											`Successfully executed ${fullyQualifiedMethodName}.`,
+											`Successfully executed ${fullyQualifiedMethodName}.${durationText}`,
 											undefined,
 											...extra,
 											// callerFrame
@@ -131,8 +147,10 @@ export function loggedMethod(
 								.catch((exceptionObject) => {
 									const formattedExceptionText = formatExceptionForLogging(exceptionObject);
 									if (flags.logEnd) {
+										const elapsedMs = Date.now() - startTimestampMs;
+										const durationText = flags.logExecutionTime ? ` (duration: ${formatDurationMilliseconds(elapsedMs)})` : "";
 										loggerInstance.debug(
-											`Exception raised in ${fullyQualifiedMethodName}: ${String(exceptionObject)}\n${formattedExceptionText}`,
+											`Exception raised in ${fullyQualifiedMethodName}${durationText}: ${String(exceptionObject)}\n${formattedExceptionText}`,
 											undefined,
 											{},
 											// callerFrame
@@ -142,10 +160,12 @@ export function loggedMethod(
 								});
 						} else {
 							if (flags.logEnd) {
+								const elapsedMs = Date.now() - startTimestampMs;
+								const durationText = flags.logExecutionTime ? ` (duration: ${formatDurationMilliseconds(elapsedMs)})` : "";
 								const extra: any[] = [];
 								if (flags.logOutput) extra.push({ result: resultValue });
 								loggerInstance.debug(
-									`Successfully executed ${fullyQualifiedMethodName}.`,
+									`Successfully executed ${fullyQualifiedMethodName}.${durationText}`,
 									undefined,
 									...extra,
 									// callerFrame
@@ -156,8 +176,10 @@ export function loggedMethod(
 					} catch (exceptionObject) {
 						const formattedExceptionText = formatExceptionForLogging(exceptionObject);
 						if (flags.logEnd) {
+							const elapsedMs = Date.now() - startTimestampMs;
+							const durationText = flags.logExecutionTime ? ` (duration: ${formatDurationMilliseconds(elapsedMs)})` : "";
 							loggerInstance.debug(
-								`Exception raised in ${fullyQualifiedMethodName}: ${String(exceptionObject)}\n${formattedExceptionText}`,
+								`Exception raised in ${fullyQualifiedMethodName}${durationText}: ${String(exceptionObject)}\n${formattedExceptionText}`,
 								undefined,
 								{},
 								// callerFrame
@@ -176,7 +198,7 @@ export function loggedMethod(
 		return createDecorator()(firstArgument as Object, secondArgument, thirdArgument!);
 	}
 
-	// Usage with options: @loggedMethod({ logger })
+	// Usage with options: @loggedMethod
 	return createDecorator(firstArgument as LoggedMethodDecoratorOptions);
 }
 
@@ -190,6 +212,7 @@ type LoggedClassDecoratorOptions = {
 	logEnd?: boolean;
 	logInput?: boolean;
 	logOutput?: boolean;
+	logExecutionTime?: boolean;
 };
 
 export function loggedClass(options?: LoggedClassDecoratorOptions): ClassDecorator;
@@ -239,6 +262,7 @@ export function loggedClass(argument?: any): any {
 				logEnd: options?.logEnd,
 				logInput: options?.logInput,
 				logOutput: options?.logOutput,
+				logExecutionTime: (options as any)?.logExecutionTime,
 			}) as MethodDecorator;
 			methodDecorator(hostObject, methodName, propertyDescriptor);
 			Object.defineProperty(hostObject, methodName, propertyDescriptor);

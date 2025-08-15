@@ -10,20 +10,22 @@ import { logger } from "../../src/logger";
 	logEnd: true,
 	logInput: false,
 	logOutput: true,
+	logExecutionTime: true,
 })
 class ExampleServiceForDemonstration {
 	static performStaticPing(numberValue: number) {
 		return numberValue + 1;
 	}
 
-	@loggedMethod({ logger, logInput: true, logOutput: false })
+	@loggedMethod({ logger, logInput: true, logOutput: false, logExecutionTime: true })
 	performComputation(firstNumber: number, secondNumber: number) {
 		this.helperMethod();
 		return firstNumber + secondNumber;
 	}
 
-	@loggedMethod({ logger, logStart: true, logEnd: true, logInput: true, logOutput: true })
+	@loggedMethod({ logger, logStart: true, logEnd: true, logInput: true, logOutput: true, logExecutionTime: true })
 	async fetchEntityByIdentifier(entityIdentifier: string) {
+		await new Promise(resolve => setTimeout(resolve, 1000));
 		return Promise.resolve({ entityIdentifier, status: "ok" });
 	}
 
