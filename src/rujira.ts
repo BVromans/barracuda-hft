@@ -1619,7 +1619,7 @@ export class Fin {
 			tokens = tokens.filter((token: Token) => tokenAddresses.includes(token.address) || tokenSymbols.includes(token.symbol));
 		}
 
-				// Fetch THORChain oracle prices for USD conversion rates
+		// Fetch THORChain oracle prices for USD conversion rates
 		let oraclePrices = MMap<string, Decimal>();
 		const oracleResponse = await this.parent.fetch('https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices');
 
@@ -1635,7 +1635,6 @@ export class Fin {
 
 		// 2. Fetch base layer pool prices as fallback
 		let poolPrices = MMap<string, Decimal>();
-		// TODO: avoid using this kind of catch, use try/catch instead!!!
 		const poolResponse = await this.parent.fetch('https://thornode.ninerealms.com/thorchain/pools').catch(() => null);
 		if (poolResponse?.ok) {
 			const data = await poolResponse.json().catch(() => null);
@@ -1687,7 +1686,10 @@ export class Fin {
 				const token = await this.getToken({ address: rawBalance.denom }).catch(() => null);
 
 				if (token) {
-					freeBalances.set(token.symbol, Decimal(rawBalance.amount), true);
+					// Convert raw amount to proper decimal format
+					const rawAmount = Decimal(rawBalance.amount);
+					const convertedAmount = rawAmount.div(DECIMAL_10.pow(token.decimals));
+					freeBalances.set(token.symbol, convertedAmount, true);
 				} else {
 					logger.ignoreException(new Error(`Token not found`), `Balance token ${rawBalance.denom} not found, ignoring this balance.`);
 				}
@@ -1702,28 +1704,48 @@ export class Fin {
 			const marketOrders = await this.getOrders({
 				ownerAddress: walletAddress,
 				marketSymbol: market.symbol
+			}).catch((error) => {
+				logger.ignoreException(error, `Failed to get orders for market ${market.symbol}`);
+				return MMap<OrderId, Order>();
 			});
 
 			for (const order of marketOrders.values()) {
 				const baseTokenSymbol = market.tokens.base.symbol;
 				const quoteTokenSymbol = market.tokens.quote.symbol;
 
-				// Calculate locked amounts based on order status and filled percentage
-				if (order.filledPercentage && order.filledPercentage.gt(0)) {
-					// For partially filled orders, calculate the locked amount
-					const filledAmount = order.amount.mul(order.filledPercentage).div(100);
-					const lockedAmount = order.amount.minus(filledAmount);
+				// Calculate locked amounts for ALL orders (not just partially filled ones)
+				if (order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED) {
+					let lockedAmount: Decimal;
+
+					if (order.side === OrderSide.SELL) {
+						// For SELL orders, lock the base token amount
+						lockedAmount = order.amount;
+					} else {
+						// For BUY orders, lock the quote token amount (price * amount)
+						lockedAmount = order.price ? order.amount.mul(order.price) : order.amount;
+					}
 
 					if (lockedAmount.gt(0)) {
 						const lockedTokenSymbol = order.side === OrderSide.SELL ? baseTokenSymbol : quoteTokenSymbol;
 						const currentLocked = lockedInOrdersMap.getOrThrow(lockedTokenSymbol, DECIMAL_0);
 						lockedInOrdersMap.set(lockedTokenSymbol, currentLocked.plus(lockedAmount), true);
 					}
+				}
 
-					// For fully filled orders, calculate withdrawable amount
-					if (order.filledPercentage.gte(100) && order.price) {
+				// Calculate withdrawable amounts for filled orders
+				if (order.status === OrderStatus.FILLED && order.price) {
+					let withdrawAmount: Decimal;
+
+					if (order.side === OrderSide.SELL) {
+						// For filled SELL orders, withdrawable is the quote token amount received
+						withdrawAmount = order.amount.mul(order.price);
+					} else {
+						// For filled BUY orders, withdrawable is the base token amount received
+						withdrawAmount = order.amount;
+					}
+
+					if (withdrawAmount.gt(0)) {
 						const withdrawTokenSymbol = order.side === OrderSide.SELL ? quoteTokenSymbol : baseTokenSymbol;
-						const withdrawAmount = order.price!.mul(filledAmount);
 						const currentWithdrawable = withdrawableMap.getOrThrow(withdrawTokenSymbol, DECIMAL_0);
 						withdrawableMap.set(withdrawTokenSymbol, currentWithdrawable.plus(withdrawAmount), true);
 					}
@@ -1766,14 +1788,25 @@ export class Fin {
 					} else {
 						// 3. Fallback to ticker prices (most reliable)
 						const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` }).catch(() => null);
-						conversionRateNativeToken = quotingMarketTicker?.middlePrice.baseToQuote || DECIMAL_0;
+						if (quotingMarketTicker?.middlePrice.baseToQuote) {
+							conversionRateNativeToken = quotingMarketTicker.middlePrice.baseToQuote;
+						} else {
+							// If direct market doesn't exist, try to calculate via RUJI-USDC market
+							const rujiUSDCTicker = await this.getTicker({ marketSymbol: `${this.nativeToken.symbol}/${this.usdToken.symbol}` }).catch(() => null);
+							const tokenUSDTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` }).catch(() => null);
+
+							if (rujiUSDCTicker?.middlePrice.baseToQuote && tokenUSDTicker?.middlePrice.baseToQuote) {
+								// Calculate: (token/USDC) / (RUJI/USDC) = token/RUJI
+								conversionRateNativeToken = tokenUSDTicker.middlePrice.baseToQuote.div(rujiUSDCTicker.middlePrice.baseToQuote);
+							}
+						}
 					}
 				}
 			} else {
 				conversionRateNativeToken = DECIMAL_1;
 			}
 
-						let conversionRateUSD: TickerPrice = DECIMAL_0;
+			let conversionRateUSD: TickerPrice = DECIMAL_0;
 			if (token.symbol !== this.usdToken.symbol) {
 				// 1. Try enshrined oracle price first (direct USD price)
 				const tokenOraclePrice = oraclePrices.get(token.symbol);
@@ -1794,15 +1827,44 @@ export class Fin {
 					// 3. If still no price, fallback to ticker
 					if (conversionRateUSD.eq(DECIMAL_0)) {
 						const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` }).catch(() => null);
-						conversionRateUSD = quotingMarketTicker?.middlePrice.baseToQuote || DECIMAL_0;
+						if (quotingMarketTicker?.middlePrice.baseToQuote) {
+							conversionRateUSD = quotingMarketTicker.middlePrice.baseToQuote;
+						} else {
+							// If direct market doesn't exist, try to calculate via RUJI-USDC market
+							const rujiUSDCTicker = await this.getTicker({ marketSymbol: `${this.nativeToken.symbol}/${this.usdToken.symbol}` }).catch(() => null);
+							const tokenRujiTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` }).catch(() => null);
+
+							if (rujiUSDCTicker?.middlePrice.baseToQuote && tokenRujiTicker?.middlePrice.baseToQuote) {
+								// Calculate: (token/RUJI) * (RUJI/USDC) = token/USDC
+								conversionRateUSD = tokenRujiTicker.middlePrice.baseToQuote.mul(rujiUSDCTicker.middlePrice.baseToQuote);
+							}
+						}
 					}
 				}
 			} else {
 				conversionRateUSD = DECIMAL_1;
 			}
 
+			// Convert balances to native token (RUJI) amounts
+			const nativeTokenBalance: BaseBalance = {
+				free: free.mul(conversionRateNativeToken),
+				lockedInOrders: lockedInOrders.mul(conversionRateNativeToken),
+				lockedInPools: lockedInPools.mul(conversionRateNativeToken),
+				withdrawable: withdrawable.mul(conversionRateNativeToken),
+				total: total.mul(conversionRateNativeToken)
+			};
+
+			// Convert balances to USD token (USDC) amounts
+			const usdTokenBalance: BaseBalance = {
+				free: free.mul(conversionRateUSD),
+				lockedInOrders: lockedInOrders.mul(conversionRateUSD),
+				lockedInPools: lockedInPools.mul(conversionRateUSD),
+				withdrawable: withdrawable.mul(conversionRateUSD),
+				total: total.mul(conversionRateUSD)
+			};
+
 			const baseBalanceWithNativeQuotation: BaseBalanceWithQuotation = {
-				...tokenBalance,
+				...nativeTokenBalance,
 				quotation: {
 					token: this.nativeToken || token,
 					tokenToQuote: conversionRateNativeToken,
@@ -1810,7 +1872,7 @@ export class Fin {
 				}
 			};
 			const baseBalanceWithUSDQuotation: BaseBalanceWithQuotation = {
-				...tokenBalance,
+				...usdTokenBalance,
 				quotation: {
 					token: this.usdToken || token,
 					tokenToQuote: conversionRateUSD,
