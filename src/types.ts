@@ -987,7 +987,6 @@ export class Indicator {
 	"Stochastic RSI",
 	(candles: List<Candle>) => {
 		const result = candles.map((candle: Candle) => candle.close.toNumber()).toArray();
-		console.log("result", result);
 		return [result];
 	},
 	[14]
