@@ -1,3 +1,4 @@
+import "./bootstrap";
 import Decimal from "decimal.js";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
@@ -6,7 +7,7 @@ import { dump } from "./utils";
 
 (async function run() {
 	const active = {
-		getStatus: false,
+		getStatus: true,
 		getTransaction: false,
 		getAllTokens: false,
 		getTokens: false,

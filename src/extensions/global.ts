@@ -1,20 +1,65 @@
+/**
+ * Extend the global scope for TS type checking.
+ */
 declare global {
-  // Extend NodeJS global scope for TS type checking
+  /**
+   * Probe a promise to debug it.
+   * @param p - The promise to probe.
+   */
   var probe: <T>(p: Promise<T>) => void;
-  var $test: unknown;
+
+	/**
+	 * A test variable to store the result of the promise.
+	 */
+  var $debug: unknown;
 }
 
-globalThis.probe = <T>(p: Promise<T>): void => {
-  Promise.resolve(p).then(
+/**
+ * Probe a promise to debug it.
+ * @param promise - The promise to probe.
+ */
+globalThis.probe = <T>(promise: Promise<T>): void => {
+  Promise.resolve(promise).then(
     (value) => {
-      globalThis.$test = value;
+      globalThis.$debug = value;
+			console.log('$debug\n', globalThis.$debug);
       debugger;
     },
     (error) => {
-      globalThis.$test = error;
+      globalThis.$debug = error;
+			console.log('$debug\n', globalThis.$debug);
       debugger;
     }
   );
 };
+
+// myAsyncFunction()
+// .then((result) => { globalThis.$debug = result; console.log('$debug\n', globalThis.$debug); debugger; })
+// .catch((error) => { globalThis.$debug = error; console.log('$debug\n', globalThis.$debug); debugger; });
+
+// void (async () => {
+// 	let result;
+// 	try {
+// 		result = await myAsyncFunction();
+// 	} catch (error) {
+// 		result = error;
+// 	}
+// 	globalThis.$debug = result;
+// 	console.log('$debug\n', globalThis.$debug);
+// 	debugger;
+// })();
+
+// queueMicrotask(async () => {
+// 	let result;
+// 	try {
+// 		result = await myAsyncFunction();
+// 	} catch (error) {
+// 		result = error;
+// 	}
+// 	globalThis.$debug = result;
+// 	console.log('$debug\n', globalThis.$debug);
+// 	debugger;
+// });
+
 
 export {};
