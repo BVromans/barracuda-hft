@@ -1,6 +1,3 @@
-// logging_decorators.ts
-// Main implementation (no demo code here)
-
 function valueLooksLikeAPromise(value: unknown): value is Promise<unknown> {
 	return !!value && typeof (value as any).then === "function" && typeof (value as any).catch === "function";
 }
@@ -61,9 +58,9 @@ type LoggedMethodDecoratorOptions = {
 	logger?: LoggerLike;
 };
 
-export function logged_method(options?: LoggedMethodDecoratorOptions): MethodDecorator;
-export function logged_method(targetObject: Object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<any>): TypedPropertyDescriptor<any> | void;
-export function logged_method(
+export function loggedMethod(options?: LoggedMethodDecoratorOptions): MethodDecorator;
+export function loggedMethod(targetObject: Object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<any>): TypedPropertyDescriptor<any> | void;
+export function loggedMethod(
 	firstArgument: any,
 	secondArgument?: any,
 	thirdArgument?: any
@@ -147,11 +144,11 @@ export function logged_method(
 			};
 
 	if (typeof secondArgument === "string" || typeof secondArgument === "symbol") {
-		// Bare usage: @logged_method
+		// Bare usage: @loggedMethod
 		return createDecorator()(firstArgument as Object, secondArgument, thirdArgument!);
 	}
 
-	// Usage with options: @logged_method({ logger })
+	// Usage with options: @loggedMethod({ logger })
 	return createDecorator(firstArgument as LoggedMethodDecoratorOptions);
 }
 
@@ -162,9 +159,9 @@ type LoggedClassDecoratorOptions = {
 	includeStaticMethods?: boolean;
 };
 
-export function logged_class(options?: LoggedClassDecoratorOptions): ClassDecorator;
-export function logged_class<TConstructorFunction extends Function>(constructorFunction: TConstructorFunction): void | TConstructorFunction;
-export function logged_class(argument?: any): any {
+export function loggedClass(options?: LoggedClassDecoratorOptions): ClassDecorator;
+export function loggedClass<TConstructorFunction extends Function>(constructorFunction: TConstructorFunction): void | TConstructorFunction;
+export function loggedClass(argument?: any): any {
 	const applyDecoratorToClass = (constructorFunction: any, options?: LoggedClassDecoratorOptions) => {
 		const loggerInstance =
 			options?.logger ??
@@ -203,7 +200,7 @@ export function logged_class(argument?: any): any {
 
 			if (typeof propertyDescriptor.value !== "function") return;
 
-			const methodDecorator = logged_method({ logger: loggerInstance }) as MethodDecorator;
+			const methodDecorator = loggedMethod({ logger: loggerInstance }) as MethodDecorator;
 			methodDecorator(hostObject, methodName, propertyDescriptor);
 			Object.defineProperty(hostObject, methodName, propertyDescriptor);
 		};
@@ -225,7 +222,7 @@ export function logged_class(argument?: any): any {
 	};
 
 	if (typeof argument === "function") {
-		// Bare usage: @logged_class
+		// Bare usage: @loggedClass
 		return applyDecoratorToClass(argument);
 	}
 

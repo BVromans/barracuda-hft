@@ -1,13 +1,13 @@
-import { logged_class, logged_method } from "../../src/annotations";
+import { loggedClass, loggedMethod } from "../../src/annotations";
 import { logger } from "../../src/logger";
 
-@logged_class({ logger, disallowedMethods: ["helperMethod"], includeStaticMethods: true })
+@loggedClass({ logger, disallowedMethods: ["helperMethod"], includeStaticMethods: true })
 class ExampleServiceForDemonstration {
   static performStaticPing(numberValue: number) {
     return numberValue + 1;
   }
 
-  @logged_method({ logger })
+  @loggedMethod({ logger })
   performComputation(firstNumber: number, secondNumber: number) {
 		this.helperMethod();
     return firstNumber + secondNumber;
