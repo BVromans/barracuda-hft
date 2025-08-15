@@ -2327,6 +2327,13 @@ export class Fin {
 			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED]
 		});
 
+		if (allOpenOrders.isEmpty()) {
+			return {
+				orders: MMap<OrderId, Order>(),
+				transactions: MMap<TransactionHash, Transaction>()
+			};
+		}
+
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
@@ -2362,6 +2369,13 @@ export class Fin {
 			market,
 			orderStatuses: [OrderStatus.FILLED]
 		});
+
+		if (allFilledOrders.isEmpty()) {
+			return {
+				orders: MMap<OrderId, Order>(),
+				transactions: MMap<TransactionHash, Transaction>()
+			};
+		}
 
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,

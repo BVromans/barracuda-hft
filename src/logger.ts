@@ -153,7 +153,9 @@ export class Logger {
 
 		const stacktrace = stack.slice(2).map((frame: any) => frame.string).join('\n');
 
-		message = `[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}\n\n${stacktrace}`;
+		// message = `[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}\n\n${stacktrace}`;
+
+		message = `[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}`;
 
 		if (level === LogLevel.DEBUG) {
 			console.debug(message, ...optionalParams);
