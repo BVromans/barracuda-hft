@@ -1576,7 +1576,7 @@ export class Fin {
 		candles = candles.asImmutable();
 
 		const validCandles = candles.filter( candle =>
-			candle?.high?.toNumber() && candle?.low?.toNumber() && candle?.close?.toNumber() && candle?.volume?.toNumber()
+			candle.high?.toNumber() && candle.low?.toNumber() && candle.close?.toNumber() && candle.volume?.toNumber()
 		);
 
     if (validCandles.size === 0) {

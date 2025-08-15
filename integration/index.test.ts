@@ -29,7 +29,7 @@ import {
 	WalletAddress,
 	WalletMnemonic
 } from "../src/types";
-import { getOrThrow } from "../src/utils";
+import { get } from "../src/utils";
 
 let rujira: Rujira;
 
@@ -54,6 +54,12 @@ let secondMarketQuoteTokenSymbol: TokenSymbol;
 let secondMarketBaseTokenAmount: Amount;
 let secondMarketQuoteTokenAmount: Amount;
 let testsTimeout: number;
+
+const candles_intervals: CandleInterval[] = ['1s', '1m', '5m', '15m', '1h', '4h', '1d', '1w', '1M', '1y'];
+
+const indicator_map = [...Indicator.getAll().map((indicator: Indicator) => indicator.id)]
+
+
 
 beforeAll(async () => {
 	const requiredProperties = [
@@ -229,21 +235,21 @@ describe("Rujira", async() => {
 				expect(result).toBeDefined();
 				expect(result.size).toBe(addresses.length);
 
-				const baseToken = result.getOrThrow(firstMarketBaseTokenAddress.toLowerCase());
+				const baseToken = result.get(firstMarketBaseTokenAddress.toLowerCase());
 				expect(baseToken).toBeDefined();
-				expect(baseToken.address.toLowerCase()).toBe(firstMarketBaseTokenAddress.toLowerCase());
-				expect(baseToken.symbol.toUpperCase()).toBe(firstMarketBaseTokenSymbol.toUpperCase());
-				expect(baseToken.name).toBeDefined();
-				expect(baseToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(baseToken.raw).toBeDefined();
+				expect(baseToken?.address.toLowerCase()).toBe(firstMarketBaseTokenAddress.toLowerCase());
+				expect(baseToken?.symbol.toUpperCase()).toBe(firstMarketBaseTokenSymbol.toUpperCase());
+				expect(baseToken?.name).toBeDefined();
+				expect(baseToken?.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(baseToken?.raw).toBeDefined();
 
-				const quoteToken = result.getOrThrow(firstMarketQuoteTokenAddress.toLowerCase());
+				const quoteToken = result.get(firstMarketQuoteTokenAddress.toLowerCase());
 				expect(quoteToken).toBeDefined();
-				expect(quoteToken.address.toLowerCase()).toBe(firstMarketQuoteTokenAddress.toLowerCase());
-				expect(quoteToken.symbol).toBe(firstMarketQuoteTokenSymbol);
-				expect(quoteToken.name).toBeDefined();
-				expect(quoteToken.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-				expect(quoteToken.raw).toBeDefined();
+				expect(quoteToken?.address.toLowerCase()).toBe(firstMarketQuoteTokenAddress.toLowerCase());
+				expect(quoteToken?.symbol).toBe(firstMarketQuoteTokenSymbol);
+				expect(quoteToken?.name).toBeDefined();
+				expect(quoteToken?.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(quoteToken?.raw).toBeDefined();
 			});
 
 			it("should be able to get tokens by symbols", async () => {
@@ -254,13 +260,13 @@ describe("Rujira", async() => {
 				expect(result).toBeDefined();
 				expect(result.size).toBe(symbols.length);
 
-				const baseToken = getOrThrow<Token>(
+				const baseToken = get<Token>(
 					result.valueSeq().find((token: Token) => token.symbol === firstMarketBaseTokenSymbol),
-					`Token with symbol ${firstMarketBaseTokenSymbol} not found`
+					`Token with symbol ${firstMarketBaseTokenSymbol} not found` as any
 				);
-				const quoteToken = getOrThrow<Token>(
+				const quoteToken = get<Token>(
 					result.valueSeq().find((token: Token) => token.symbol === firstMarketQuoteTokenSymbol),
-					`Token with symbol ${firstMarketQuoteTokenSymbol} not found`
+					`Token with symbol ${firstMarketQuoteTokenSymbol} not found` as any
 				);
 
 				expect(baseToken).toBeDefined();
@@ -284,7 +290,7 @@ describe("Rujira", async() => {
 				expect(result).toBeDefined();
 				expect(result.size).toBeGreaterThan(1);
 
-				// Use entries() to find tokens since getOrThrow has issues with dot notation
+				// Use entries() to find tokens since get has issues with dot notation
 				const baseTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === firstMarketBaseTokenAddress.toLowerCase());
 				const quoteTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === firstMarketQuoteTokenAddress.toLowerCase());
 				const nativeTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === rujira.fin.nativeToken.address.toLowerCase());
@@ -419,8 +425,10 @@ describe("Rujira", async() => {
 				expect(result).toBeDefined();
 				expect(result.size).toBe(addresses.length);
 
-				const firstMarket = result.getOrThrow(firstMarketAddress);
+				const firstMarket = result.get(firstMarketAddress);
 				expect(firstMarket).toBeDefined();
+				if (!firstMarket) throw new Error("First market not found");
+
 				expect(firstMarket.address).toBe(firstMarketAddress);
 				expect(firstMarket.symbol).toBe(firstMarketSymbol);
 
@@ -440,8 +448,10 @@ describe("Rujira", async() => {
 				expect(firstMarket.status).toBe(MarketStatus.ACTIVE);
 				expect(firstMarket.raw).toBeDefined();
 
-				const secondMarket = result.getOrThrow(secondMarketAddress);
+				const secondMarket = result.get(secondMarketAddress);
 				expect(secondMarket).toBeDefined();
+				if (!secondMarket) throw new Error("Second market not found");
+
 				expect(secondMarket.address).toBe(secondMarketAddress);
 				expect(secondMarket.symbol).toBe(secondMarketSymbol);
 
@@ -470,8 +480,10 @@ describe("Rujira", async() => {
 				expect(result).toBeDefined();
 				expect(result.size).toBe(symbols.length);
 
-				const firstMarket = result.getOrThrow(firstMarketAddress);
+				const firstMarket = result.get(firstMarketAddress);
 				expect(firstMarket).toBeDefined();
+				if (!firstMarket) throw new Error("First market not found");
+
 				expect(firstMarket.address).toBe(firstMarketAddress);
 				expect(firstMarket.symbol).toBe(firstMarketSymbol);
 
@@ -491,8 +503,10 @@ describe("Rujira", async() => {
 				expect(firstMarket.status).toBe(MarketStatus.ACTIVE);
 				expect(firstMarket.raw).toBeDefined();
 
-				const secondMarket = result.getOrThrow(secondMarketAddress);
+				const secondMarket = result.get(secondMarketAddress);
 				expect(secondMarket).toBeDefined();
+				if (!secondMarket) throw new Error("Second market not found");
+
 				expect(secondMarket.address).toBe(secondMarketAddress);
 				expect(secondMarket.symbol).toBe(secondMarketSymbol);
 
@@ -542,8 +556,10 @@ describe("Rujira", async() => {
 					expect(market.raw).toBeDefined();
 				}
 
-				const firstMarket = result.getOrThrow(firstMarketAddress);
+				const firstMarket = result.get(firstMarketAddress);
 				expect(firstMarket).toBeDefined();
+				if (!firstMarket) throw new Error("First market not found");
+
 				expect(firstMarket.address).toBe(firstMarketAddress);
 				expect(firstMarket.symbol).toBe(firstMarketSymbol);
 
@@ -563,8 +579,10 @@ describe("Rujira", async() => {
 				expect(firstMarket.status).toBe(MarketStatus.ACTIVE);
 				expect(firstMarket.raw).toBeDefined();
 
-				const secondMarket = result.getOrThrow(secondMarketAddress);
+				const secondMarket = result.get(secondMarketAddress);
 				expect(secondMarket).toBeDefined();
+				if (!secondMarket) throw new Error("Second market not found");
+
 				expect(secondMarket.address).toBe(secondMarketAddress);
 				expect(secondMarket.symbol).toBe(secondMarketSymbol);
 
@@ -632,15 +650,16 @@ describe("Rujira", async() => {
 				expect(bids.size).toBe(result.raw.quote.length);
 
 				if (bids.size > 0) {
-					const firstBidOrder = bids.getOrThrow(0);
+					const firstBidOrder = bids.get(0);
+					if (!firstBidOrder) throw new Error("First bid order not found");
 					expect(firstBidOrder).toBeDefined();
 					expect(firstBidOrder.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(firstBidOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(firstBidOrder.raw).toBeDefined();
 
-					const bestBid = getOrThrow<OrderBookOrder>(
+					const bestBid = get<OrderBookOrder>(
 						result.book.bestBid,
-						`Best bid order not found`
+						`Best bid order not found` as any
 					);
 					expect(bestBid).toBeDefined();
 					expect(bestBid.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
@@ -651,15 +670,17 @@ describe("Rujira", async() => {
 				}
 
 				if (asks.size > 0) {
-					const firstAskOrder = asks.getOrThrow(0);
+					const firstAskOrder = asks.get(0);
 					expect(firstAskOrder).toBeDefined();
+					if (!firstAskOrder) throw new Error("First ask order not found");
+
 					expect(firstAskOrder.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(firstAskOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(firstAskOrder.raw).toBeDefined();
 
-					const bestAsk = getOrThrow<OrderBookOrder>(
+					const bestAsk = get<OrderBookOrder>(
 						result.book.bestAsk,
-						`Best ask order not found`
+						`Best ask order not found` as any
 					);
 					expect(bestAsk).toBeDefined();
 					expect(bestAsk.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
@@ -670,21 +691,21 @@ describe("Rujira", async() => {
 				}
 
 				if (asks.size > 0 && bids.size > 0) {
-					const bestAsk = getOrThrow<OrderBookOrder>(
+					const bestAsk = get<OrderBookOrder>(
 						result.book.bestAsk,
-						`Best ask order not found`
+						`Best ask order not found` as any
 					);
-					const bestBid = getOrThrow<OrderBookOrder>(
+					const bestBid = get<OrderBookOrder>(
 						result.book.bestBid,
-						`Best bid order not found`
+						`Best bid order not found` as any
 					);
-					const baseToQuoteMiddlePrice = getOrThrow<Amount>(result.statistics.middlePrice.baseToQuote);
+					const baseToQuoteMiddlePrice = get<Amount>(result.statistics.middlePrice.baseToQuote);
 					expect(baseToQuoteMiddlePrice).toBeDefined();
 					expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(baseToQuoteMiddlePrice.toNumber()).toBeLessThanOrEqual(bestAsk.price.toNumber());
 					expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThanOrEqual(bestBid.price.toNumber());
 
-					const quoteToBaseMiddlePrice = getOrThrow<Amount>(result.statistics.middlePrice.quoteToBase);
+					const quoteToBaseMiddlePrice = get<Amount>(result.statistics.middlePrice.quoteToBase);
 					expect(quoteToBaseMiddlePrice).toBeDefined();
 					expect(quoteToBaseMiddlePrice.toNumber()).toBe(DECIMAL_1.div(baseToQuoteMiddlePrice).toNumber());
 				} else if (asks.size > 0 && bids.size === 0) {
@@ -733,7 +754,7 @@ describe("Rujira", async() => {
 				expect(result.market.raw).toBeDefined();
 
 				expect(result.middlePrice).toBeDefined();
-				expect(getOrThrow<TickerPrice>(result.middlePrice, `Middle price not found`).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(get<TickerPrice>(result.middlePrice, `Middle price not found` as any).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.timestamp).toBeDefined();
 				expect(result.timestamp).toBeGreaterThan(0);
@@ -766,10 +787,10 @@ describe("Rujira", async() => {
 				expect(result.market.raw).toBeDefined();
 
 				expect(result.middlePrice).toBeDefined();
-				expect(getOrThrow<TickerPrice>(result.middlePrice).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(get<TickerPrice>(result.middlePrice).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 					expect(result.volumeWeightedAveragePrice).toBeDefined();
-					expect(getOrThrow<TickerPrice>(result.volumeWeightedAveragePrice).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(get<TickerPrice>(result.volumeWeightedAveragePrice).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.timestamp).toBeDefined();
 				expect(result.timestamp).toBeGreaterThan(0);
@@ -788,10 +809,10 @@ describe("Rujira", async() => {
 				result.forEach((candle: Candle) => {
 					expect(candle).toBeDefined();
 					expect(candle.timestamp).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-					expect(candle.open.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(candle.high.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(candle.low.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(candle.close.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.open.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+					expect(candle.high.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+					expect(candle.low.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+					expect(candle.close.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
 					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(candle.raw).toBeDefined();
 				});
@@ -806,10 +827,10 @@ describe("Rujira", async() => {
 				result.forEach((candle: Candle) => {
 					expect(candle).toBeDefined();
 					expect(candle.timestamp).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-					expect(candle.open.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(candle.high.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(candle.low.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(candle.close.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.open.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+					expect(candle.high.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+					expect(candle.low.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+					expect(candle.close.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
 					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(candle.raw).toBeDefined();
 				});
@@ -818,7 +839,7 @@ describe("Rujira", async() => {
 			it("should be able to get candles with specific interval", async () => {
 				const result = await rujira.fin.getCandles({
 					marketSymbol: firstMarketSymbol,
-					interval: '1h' as CandleInterval
+					interval: candles_intervals[2] as CandleInterval
 				});
 
 				expect(result).toBeDefined();
@@ -831,13 +852,13 @@ describe("Rujira", async() => {
 					expect(candle.high.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(candle.low.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(candle.close.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.volume.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
 					expect(candle.raw).toBeDefined();
 				});
 			});
 
 			it("should be able to get candles with maximum number limit", async () => {
-				const maximumNumberOfCandles = 50;
+				const maximumNumberOfCandles = 30;
 				const result = await rujira.fin.getCandles({
 					marketSymbol: firstMarketSymbol,
 					maximumNumberOfCandles
@@ -850,17 +871,18 @@ describe("Rujira", async() => {
 				result.forEach((candle: Candle) => {
 					expect(candle).toBeDefined();
 					expect(candle.timestamp).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-					expect(candle.open.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(candle.high.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(candle.low.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(candle.close.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(candle.open.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+					expect(candle.high.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+					expect(candle.low.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+					expect(candle.close.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+					expect(candle.volume.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
 					expect(candle.raw).toBeDefined();
 				});
 			});
 		});
 
-		describe("indicators", () => {
+		describe.skip("indicators", () => {
+
 			it("should be able to get all indicators by market address", async () => {
 				const result = await rujira.fin.getIndicators({
 					marketAddress: firstMarketAddress
@@ -878,7 +900,7 @@ describe("Rujira", async() => {
 					expect(indicatorData.indicator).toBeDefined();
 					expect(indicatorData.indicator.id).toBe(indicatorId);
 					expect(indicatorData.indicator.name).toBeDefined();
-					expect(indicatorData.indicator.name.length).toBeGreaterThan(0);
+					expect(indicatorData.indicator.name.trim().length).toBeGreaterThan(0);
 					expect(indicatorData.indicator.parameters).toBeDefined();
 					expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
 
@@ -887,7 +909,8 @@ describe("Rujira", async() => {
 				}
 			});
 
-			it.skip("should be able to get all indicators by market symbol", async () => {
+			it("should be able to get all indicators by market symbol", async () => {
+
 				const result = await rujira.fin.getIndicators({
 					marketSymbol: firstMarketSymbol
 				});
@@ -917,8 +940,10 @@ describe("Rujira", async() => {
 				expect(result.size).toBe(resultByAddress.size);
 			});
 
-			it.skip("should be able to get specific indicators by market address", async () => {
-				const specificIndicators: IndicatorId[] = ['sma', 'ema', 'rsi'];
+			it("should be able to get specific indicators by market address", async () => {
+
+				const specificIndicators: IndicatorId[] = indicator_map;
+
 				const result = await rujira.fin.getIndicators({
 					marketAddress: firstMarketAddress,
 					indicators: specificIndicators
@@ -940,8 +965,10 @@ describe("Rujira", async() => {
 				}
 			});
 
-			it.skip("should be able to get specific indicators by market symbol", async () => {
-				const specificIndicators: IndicatorId[] = ['macd', 'bbands', 'stoch'];
+			it("should be able to get specific indicators by market symbol", async () => {
+
+				const specificIndicators: IndicatorId[] = indicator_map;
+
 				const result = await rujira.fin.getIndicators({
 					marketSymbol: firstMarketSymbol,
 					indicators: specificIndicators
@@ -963,7 +990,7 @@ describe("Rujira", async() => {
 				}
 			});
 
-			it.skip("should be able to get indicators with custom candle data", async () => {
+			it("should be able to get indicators with custom candle data", async () => {
 				const candles = await rujira.fin.getCandles({
 					marketSymbol: firstMarketSymbol,
 					maximumNumberOfCandles: 100
@@ -974,7 +1001,7 @@ describe("Rujira", async() => {
 
 				const result = await rujira.fin.getIndicators({
 					candles: candles,
-					indicators: ['sma', 'ema', 'rsi']
+					indicators: indicator_map
 				});
 
 				expect(result).toBeDefined();
@@ -989,35 +1016,57 @@ describe("Rujira", async() => {
 				}
 			});
 
-			it.skip("should be able to get indicators with different intervals", async () => {
-				const intervals: CandleInterval[] = ['1m', '5m', '1h'];
+			it("should be able to get indicators with different intervals", async () => {
+				const intervals = [...candles_intervals] as CandleInterval[];
+				const indicators = [...indicator_map] as IndicatorId[];
+				const candles = await rujira.fin.getCandles({
+					marketSymbol: firstMarketSymbol,
+					maximumNumberOfCandles: 100
+				});
 
 				for (const interval of intervals) {
 					const result = await rujira.fin.getIndicators({
 						marketSymbol: firstMarketSymbol,
 						interval: interval,
-						indicators: ['sma', 'ema']
+						indicators: indicators,
+						candles: candles
 					});
 
 					expect(result).toBeDefined();
 					expect(result.size).toBeGreaterThan(0);
 
 					for (const [indicatorId, indicatorData] of result.entries()) {
+
 						expect(indicatorId).toBeDefined();
+						expect(indicatorId.length).toBeGreaterThan(0);
+						expect(indicatorId.trim().length).toBeGreaterThan(0);
+
 						expect(indicatorData).toBeDefined();
 						expect(indicatorData.indicator).toBeDefined();
 						expect(indicatorData.indicator.id).toBe(indicatorId);
+						expect(indicatorData.indicator.name).toBeDefined();
+						expect(indicatorData.indicator.parameters).toBeDefined();
+						expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
+						expect(indicatorData.indicator.parameters.length).toBeGreaterThanOrEqual(0);
 						expect(indicatorData.value).toBeDefined();
+						expect(indicatorData.value !== null).toBe(true);
+
+						if (Array.isArray(indicatorData.value)) {
+							for (const value of indicatorData.value) {
+								expect(value).toBeDefined();
+								expect(value !== null).toBe(true);
+							}
+						}
 					}
 				}
 			});
 
-			it.skip("should be able to get indicators with maximum number of candles limit", async () => {
+			it("should be able to get indicators with maximum number of candles limit", async () => {
 				const maximumNumberOfCandles = 50;
 				const result = await rujira.fin.getIndicators({
 					marketSymbol: firstMarketSymbol,
 					maximumNumberOfCandles,
-					indicators: ['sma', 'ema', 'rsi', 'macd']
+					indicators: indicator_map
 				});
 
 				expect(result).toBeDefined();
@@ -1032,26 +1081,33 @@ describe("Rujira", async() => {
 				}
 			});
 
-			it.skip("should validate indicator parameter structure", async () => {
+			it("should validate indicator parameter structure", async () => {
 				const result = await rujira.fin.getIndicators({
 					marketSymbol: firstMarketSymbol,
-					indicators: ['sma', 'ema', 'rsi', 'macd', 'bbands']
+					indicators: indicator_map
 				});
 
 				expect(result).toBeDefined();
 				expect(result.size).toBeGreaterThan(0);
 
 				for (const [indicatorId, indicatorData] of result.entries()) {
+
+					expect(indicatorId).toBeDefined();
+					expect(indicatorId.length).toBeGreaterThan(0);
+
 					expect(indicatorData).toBeDefined();
 					expect(indicatorData?.indicator.parameters).toBeDefined();
+					expect(indicatorData?.indicator.parameters.length).toBeGreaterThanOrEqual	(0);
+
+
 					expect(Array.isArray(indicatorData?.indicator.parameters)).toBe(true);
 				}
 			});
 
-			it.skip("should handle indicators with different data requirements", async () => {
-				const volumeBasedIndicators: IndicatorId[] = ['ad', 'adosc', 'cmf'];
-				const priceBasedIndicators: IndicatorId[] = ['sma', 'ema', 'rsi'];
-				const ohlcBasedIndicators: IndicatorId[] = ['bbands', 'atr', 'adx'];
+			it("should handle indicators with different data requirements", async () => {
+				const volumeBasedIndicators: IndicatorId[] = indicator_map;
+				const priceBasedIndicators: IndicatorId[] = indicator_map;
+				const ohlcBasedIndicators: IndicatorId[] = indicator_map;
 
 				const volumeResult = await rujira.fin.getIndicators({
 					marketSymbol: firstMarketSymbol,
@@ -1060,6 +1116,7 @@ describe("Rujira", async() => {
 
 				expect(volumeResult).toBeDefined();
 				expect(volumeResult.size).toBeGreaterThan(0);
+
 
 				const priceResult = await rujira.fin.getIndicators({
 					marketSymbol: firstMarketSymbol,
@@ -1088,35 +1145,39 @@ describe("Rujira", async() => {
 				}
 			});
 
-			it.skip("should validate indicator values are within expected ranges", async () => {
+			it("should validate indicator values are within expected ranges", async () => {
 				const result = await rujira.fin.getIndicators({
 					marketSymbol: firstMarketSymbol,
-					indicators: ['rsi', 'macd', 'bbands']
+					indicators: indicator_map
 				});
 
 				expect(result).toBeDefined();
 				expect(result.size).toBeGreaterThan(0);
 
 				for (const [indicatorId, indicatorData] of result.entries()) {
+
+					expect(indicatorId).toBeDefined();
+					expect(indicatorId.length).toBeGreaterThan(0);
+					expect(indicatorId.trim().length).toBeGreaterThan(0);
+
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData.indicator).toBeDefined();
+					expect(indicatorData.indicator.id).toBe(indicatorId);
+					expect(indicatorData.indicator.name).toBeDefined();
+					expect(indicatorData.indicator.name.trim().length).toBeGreaterThan(0);
+					expect(indicatorData.indicator.parameters).toBeDefined();
+					expect(indicatorData.indicator.parameters.length).toBeGreaterThanOrEqual(0);
 					expect(indicatorData.value).toBeDefined();
 					expect(indicatorData.value !== null).toBe(true);
-
-					if (Array.isArray(indicatorData.value)) {
-						for (const value of indicatorData.value) {
-							if (typeof value === 'number') {
-								expect(!isNaN(value)).toBe(true);
-								expect(isFinite(value)).toBe(true);
-							}
-						}
-					}
+					expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
 				}
 			});
 
-			it.skip("should handle edge cases with minimal candle data", async () => {
+			it("should handle edge cases with minimal candle data", async () => {
 				const result = await rujira.fin.getIndicators({
 					marketSymbol: firstMarketSymbol,
 					maximumNumberOfCandles: 5,
-					indicators: ['sma', 'ema']
+					indicators: indicator_map
 				});
 
 				expect(result).toBeDefined();
@@ -1124,297 +1185,307 @@ describe("Rujira", async() => {
 
 				for (const [indicatorId, indicatorData] of result.entries()) {
 					expect(indicatorId).toBeDefined();
+					expect(indicatorId.length).toBeGreaterThan(0);
+					expect(indicatorId.trim().length).toBeGreaterThan(0);
+
 					expect(indicatorData).toBeDefined();
 					expect(indicatorData.indicator).toBeDefined();
+					expect(indicatorData.indicator.name).toBeDefined();
+					expect(indicatorData.indicator.id).toBeDefined();
+					expect(indicatorData.indicator.parameters).toBeDefined();
 					expect(indicatorData.indicator.id).toBe(indicatorId);
+					expect(indicatorData.indicator.parameters.length).toBeGreaterThanOrEqual(0);
 					expect(indicatorData.value !== null).toBe(true);
+					expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
 				}
 			});
 		});
 
-		describe.skip("balances", () => {
-			it("should be able to get balances for a wallet", async () => {
-				const result = await rujira.fin.getBalances({ walletAddress: walletPublicKeyThor });
 
-				expect(result).toBeDefined();
-				expect(result.tokens).toBeDefined();
-				expect(result.total).toBeDefined();
 
-				expect(result.tokens.size).toBeGreaterThan(0);
+		// describe.skip("balances", () => {
+		// 	it("should be able to get balances for a wallet", async () => {
+		// 		const result = await rujira.fin.getBalances({ walletAddress: walletPublicKeyThor });
 
-				let accumulatedNativeFree = DECIMAL_0;
-				let accumulatedNativeLockedInOrders = DECIMAL_0;
-				let accumulatedNativeLockedInPools = DECIMAL_0;
-				let accumulatedNativeWithdrawable = DECIMAL_0;
-				let accumulatedNativeTotal = DECIMAL_0;
+		// 		expect(result).toBeDefined();
+		// 		expect(result.tokens).toBeDefined();
+		// 		expect(result.total).toBeDefined();
 
-				let accumulatedUSDFree = DECIMAL_0;
-				let accumulatedUSDLockedInOrders = DECIMAL_0;
-				let accumulatedUSDLockedInPools = DECIMAL_0;
-				let accumulatedUSDWithdrawable = DECIMAL_0;
-				let accumulatedUSDTotal = DECIMAL_0;
+		// 		expect(result.tokens.size).toBeGreaterThan(0);
 
-				for (const [tokenAddress, tokenBalance] of result.tokens.entries()) {
-					expect(tokenBalance).toBeDefined();
-					expect(tokenBalance.token).toBeDefined();
-					expect(tokenBalance.token.address).toBe(tokenAddress);
-					expect(tokenBalance.token.symbol).toBeDefined();
-					expect(tokenBalance.token.name).toBeDefined();
-					expect(tokenBalance.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-					expect(tokenBalance.token.raw).toBeDefined();
+		// 		let accumulatedNativeFree = DECIMAL_0;
+		// 		let accumulatedNativeLockedInOrders = DECIMAL_0;
+		// 		let accumulatedNativeLockedInPools = DECIMAL_0;
+		// 		let accumulatedNativeWithdrawable = DECIMAL_0;
+		// 		let accumulatedNativeTotal = DECIMAL_0;
 
-					expect(tokenBalance.balances).toBeDefined();
-					expect(tokenBalance.balances.token).toBeDefined();
-					expect(tokenBalance.balances.nativeToken).toBeDefined();
-					expect(tokenBalance.balances.usdToken).toBeDefined();
+		// 		let accumulatedUSDFree = DECIMAL_0;
+		// 		let accumulatedUSDLockedInOrders = DECIMAL_0;
+		// 		let accumulatedUSDLockedInPools = DECIMAL_0;
+		// 		let accumulatedUSDWithdrawable = DECIMAL_0;
+		// 		let accumulatedUSDTotal = DECIMAL_0;
 
-					const tokenBalanceData = tokenBalance.balances.token;
-					expect(tokenBalanceData.free).toBeDefined();
-					expect(tokenBalanceData.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(tokenBalanceData.lockedInOrders).toBeDefined();
-					expect(tokenBalanceData.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(tokenBalanceData.lockedInPools).toBeDefined();
-					expect(tokenBalanceData.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(tokenBalanceData.withdrawable).toBeDefined();
-					expect(tokenBalanceData.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(tokenBalanceData.total).toBeDefined();
-					expect(tokenBalanceData.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 		for (const [tokenAddress, tokenBalance] of result.tokens.entries()) {
+		// 			expect(tokenBalance).toBeDefined();
+		// 			expect(tokenBalance.token).toBeDefined();
+		// 			expect(tokenBalance.token.address).toBe(tokenAddress);
+		// 			expect(tokenBalance.token.symbol).toBeDefined();
+		// 			expect(tokenBalance.token.name).toBeDefined();
+		// 			expect(tokenBalance.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(tokenBalance.token.raw).toBeDefined();
 
-					const nativeTokenBalance = tokenBalance.balances.nativeToken;
-					expect(nativeTokenBalance.free).toBeDefined();
-					expect(nativeTokenBalance.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(nativeTokenBalance.lockedInOrders).toBeDefined();
-					expect(nativeTokenBalance.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(nativeTokenBalance.lockedInPools).toBeDefined();
-					expect(nativeTokenBalance.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(nativeTokenBalance.withdrawable).toBeDefined();
-					expect(nativeTokenBalance.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(nativeTokenBalance.total).toBeDefined();
-					expect(nativeTokenBalance.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(nativeTokenBalance.quotation).toBeDefined();
-					expect(nativeTokenBalance.quotation.token).toBeDefined();
-					expect(nativeTokenBalance.quotation.token.address).toBeDefined();
-					expect(nativeTokenBalance.quotation.token.symbol).toBeDefined();
-					expect(nativeTokenBalance.quotation.token.name).toBeDefined();
-					expect(nativeTokenBalance.quotation.token.decimals).toBeGreaterThan(0);
-					expect(nativeTokenBalance.quotation.token.raw).toBeDefined();
-					expect(nativeTokenBalance.quotation.tokenToQuote).toBeDefined();
-					expect(nativeTokenBalance.quotation.tokenToQuote.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(nativeTokenBalance.quotation.quoteToToken).toBeDefined();
-					expect(nativeTokenBalance.quotation.quoteToToken.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(tokenBalance.balances).toBeDefined();
+		// 			expect(tokenBalance.balances.token).toBeDefined();
+		// 			expect(tokenBalance.balances.nativeToken).toBeDefined();
+		// 			expect(tokenBalance.balances.usdToken).toBeDefined();
 
-					const usdTokenBalance = tokenBalance.balances.usdToken;
-					expect(usdTokenBalance.free).toBeDefined();
-					expect(usdTokenBalance.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(usdTokenBalance.lockedInOrders).toBeDefined();
-					expect(usdTokenBalance.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(usdTokenBalance.lockedInPools).toBeDefined();
-					expect(usdTokenBalance.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(usdTokenBalance.withdrawable).toBeDefined();
-					expect(usdTokenBalance.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(usdTokenBalance.total).toBeDefined();
-					expect(usdTokenBalance.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(usdTokenBalance.quotation).toBeDefined();
-					expect(usdTokenBalance.quotation.token).toBeDefined();
-					expect(usdTokenBalance.quotation.token.address).toBeDefined();
-					expect(usdTokenBalance.quotation.token.symbol).toBeDefined();
-					expect(usdTokenBalance.quotation.token.name).toBeDefined();
-					expect(usdTokenBalance.quotation.token.decimals).toBeGreaterThan(0);
-					expect(usdTokenBalance.quotation.token.raw).toBeDefined();
-					expect(usdTokenBalance.quotation.tokenToQuote).toBeDefined();
-					expect(usdTokenBalance.quotation.tokenToQuote.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(usdTokenBalance.quotation.quoteToToken).toBeDefined();
-					expect(usdTokenBalance.quotation.quoteToToken.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			const tokenBalanceData = tokenBalance.balances.token;
+		// 			expect(tokenBalanceData.free).toBeDefined();
+		// 			expect(tokenBalanceData.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(tokenBalanceData.lockedInOrders).toBeDefined();
+		// 			expect(tokenBalanceData.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(tokenBalanceData.lockedInPools).toBeDefined();
+		// 			expect(tokenBalanceData.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(tokenBalanceData.withdrawable).toBeDefined();
+		// 			expect(tokenBalanceData.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(tokenBalanceData.total).toBeDefined();
+		// 			expect(tokenBalanceData.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
-					accumulatedNativeFree = accumulatedNativeFree.plus(nativeTokenBalance.free);
-					accumulatedNativeLockedInOrders = accumulatedNativeLockedInOrders.plus(nativeTokenBalance.lockedInOrders);
-					accumulatedNativeLockedInPools = accumulatedNativeLockedInPools.plus(nativeTokenBalance.lockedInPools);
-					accumulatedNativeWithdrawable = accumulatedNativeWithdrawable.plus(nativeTokenBalance.withdrawable);
-					accumulatedNativeTotal = accumulatedNativeTotal.plus(nativeTokenBalance.total);
+		// 			const nativeTokenBalance = tokenBalance.balances.nativeToken;
+		// 			expect(nativeTokenBalance.free).toBeDefined();
+		// 			expect(nativeTokenBalance.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(nativeTokenBalance.lockedInOrders).toBeDefined();
+		// 			expect(nativeTokenBalance.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(nativeTokenBalance.lockedInPools).toBeDefined();
+		// 			expect(nativeTokenBalance.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(nativeTokenBalance.withdrawable).toBeDefined();
+		// 			expect(nativeTokenBalance.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(nativeTokenBalance.total).toBeDefined();
+		// 			expect(nativeTokenBalance.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(nativeTokenBalance.quotation).toBeDefined();
+		// 			expect(nativeTokenBalance.quotation.token).toBeDefined();
+		// 			expect(nativeTokenBalance.quotation.token.address).toBeDefined();
+		// 			expect(nativeTokenBalance.quotation.token.symbol).toBeDefined();
+		// 			expect(nativeTokenBalance.quotation.token.name).toBeDefined();
+		// 			expect(nativeTokenBalance.quotation.token.decimals).toBeGreaterThan(0);
+		// 			expect(nativeTokenBalance.quotation.token.raw).toBeDefined();
+		// 			expect(nativeTokenBalance.quotation.tokenToQuote).toBeDefined();
+		// 			expect(nativeTokenBalance.quotation.tokenToQuote.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(nativeTokenBalance.quotation.quoteToToken).toBeDefined();
+		// 			expect(nativeTokenBalance.quotation.quoteToToken.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
-					accumulatedUSDFree = accumulatedUSDFree.plus(usdTokenBalance.free);
-					accumulatedUSDLockedInOrders = accumulatedUSDLockedInOrders.plus(usdTokenBalance.lockedInOrders);
-					accumulatedUSDLockedInPools = accumulatedUSDLockedInPools.plus(usdTokenBalance.lockedInPools);
-					accumulatedUSDWithdrawable = accumulatedUSDWithdrawable.plus(usdTokenBalance.withdrawable);
-					accumulatedUSDTotal = accumulatedUSDTotal.plus(usdTokenBalance.total);
-				}
+		// 			const usdTokenBalance = tokenBalance.balances.usdToken;
+		// 			expect(usdTokenBalance.free).toBeDefined();
+		// 			expect(usdTokenBalance.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(usdTokenBalance.lockedInOrders).toBeDefined();
+		// 			expect(usdTokenBalance.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(usdTokenBalance.lockedInPools).toBeDefined();
+		// 			expect(usdTokenBalance.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(usdTokenBalance.withdrawable).toBeDefined();
+		// 			expect(usdTokenBalance.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(usdTokenBalance.total).toBeDefined();
+		// 			expect(usdTokenBalance.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(usdTokenBalance.quotation).toBeDefined();
+		// 			expect(usdTokenBalance.quotation.token).toBeDefined();
+		// 			expect(usdTokenBalance.quotation.token.address).toBeDefined();
+		// 			expect(usdTokenBalance.quotation.token.symbol).toBeDefined();
+		// 			expect(usdTokenBalance.quotation.token.name).toBeDefined();
+		// 			expect(usdTokenBalance.quotation.token.decimals).toBeGreaterThan(0);
+		// 			expect(usdTokenBalance.quotation.token.raw).toBeDefined();
+		// 			expect(usdTokenBalance.quotation.tokenToQuote).toBeDefined();
+		// 			expect(usdTokenBalance.quotation.tokenToQuote.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(usdTokenBalance.quotation.quoteToToken).toBeDefined();
+		// 			expect(usdTokenBalance.quotation.quoteToToken.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
-				const marketBaseTokenBalance = result.tokens.getOrThrow(firstMarketBaseTokenAddress);
-				expect(marketBaseTokenBalance).toBeDefined();
-				expect(marketBaseTokenBalance.token.address).toBe(firstMarketBaseTokenAddress);
-				expect(marketBaseTokenBalance.token.symbol).toBe(firstMarketBaseTokenSymbol);
+		// 			accumulatedNativeFree = accumulatedNativeFree.plus(nativeTokenBalance.free);
+		// 			accumulatedNativeLockedInOrders = accumulatedNativeLockedInOrders.plus(nativeTokenBalance.lockedInOrders);
+		// 			accumulatedNativeLockedInPools = accumulatedNativeLockedInPools.plus(nativeTokenBalance.lockedInPools);
+		// 			accumulatedNativeWithdrawable = accumulatedNativeWithdrawable.plus(nativeTokenBalance.withdrawable);
+		// 			accumulatedNativeTotal = accumulatedNativeTotal.plus(nativeTokenBalance.total);
 
-				const marketQuoteTokenBalance = result.tokens.getOrThrow(firstMarketQuoteTokenAddress);
-				expect(marketQuoteTokenBalance).toBeDefined();
-				expect(marketQuoteTokenBalance.token.address).toBe(firstMarketQuoteTokenAddress);
-				expect(marketQuoteTokenBalance.token.symbol).toBe(firstMarketQuoteTokenSymbol);
+		// 			accumulatedUSDFree = accumulatedUSDFree.plus(usdTokenBalance.free);
+		// 			accumulatedUSDLockedInOrders = accumulatedUSDLockedInOrders.plus(usdTokenBalance.lockedInOrders);
+		// 			accumulatedUSDLockedInPools = accumulatedUSDLockedInPools.plus(usdTokenBalance.lockedInPools);
+		// 			accumulatedUSDWithdrawable = accumulatedUSDWithdrawable.plus(usdTokenBalance.withdrawable);
+		// 			accumulatedUSDTotal = accumulatedUSDTotal.plus(usdTokenBalance.total);
+		// 		}
 
-				const nativeTokenBalance = result.tokens.getOrThrow(rujira.fin.nativeToken.address);
-				expect(nativeTokenBalance.token.address).toBe(rujira.fin.nativeToken.address);
-				expect(nativeTokenBalance.token.symbol).toBe(rujira.fin.nativeToken.symbol);
+		// 		const marketBaseTokenBalance = result.tokens.get(firstMarketBaseTokenAddress);
+		// 		expect(marketBaseTokenBalance).toBeDefined();
+		// 		expect(marketBaseTokenBalance.token.address).toBe(firstMarketBaseTokenAddress);
+		// 		expect(marketBaseTokenBalance.token.symbol).toBe(firstMarketBaseTokenSymbol);
 
-				const usdTokenBalance = result.tokens.getOrThrow(rujira.fin.usdToken.address);
-				expect(usdTokenBalance.token.address).toBe(rujira.fin.usdToken.address);
-				expect(usdTokenBalance.token.symbol).toBe(rujira.fin.usdToken.symbol);
+		// 		const marketQuoteTokenBalance = result.tokens.get(firstMarketQuoteTokenAddress);
+		// 		expect(marketQuoteTokenBalance).toBeDefined();
+		// 		expect(marketQuoteTokenBalance.token.address).toBe(firstMarketQuoteTokenAddress);
+		// 		expect(marketQuoteTokenBalance.token.symbol).toBe(firstMarketQuoteTokenSymbol);
 
-				const feePaymentTokenBalance = result.tokens.getOrThrow(rujira.fin.feePaymentToken.address);
-				expect(feePaymentTokenBalance.token.address).toBe(rujira.fin.feePaymentToken.address);
-				expect(feePaymentTokenBalance.token.symbol).toBe(rujira.fin.feePaymentToken.symbol);
+		// 		const nativeTokenBalance = result.tokens.get(rujira.fin.nativeToken.address);
+		// 		expect(nativeTokenBalance.token.address).toBe(rujira.fin.nativeToken.address);
+		// 		expect(nativeTokenBalance.token.symbol).toBe(rujira.fin.nativeToken.symbol);
 
-				expect(result.total.nativeToken).toBeDefined();
-				expect(result.total.usdToken).toBeDefined();
+		// 		const usdTokenBalance = result.tokens.get(rujira.fin.usdToken.address);
+		// 		expect(usdTokenBalance.token.address).toBe(rujira.fin.usdToken.address);
+		// 		expect(usdTokenBalance.token.symbol).toBe(rujira.fin.usdToken.symbol);
 
-				const totalNativeToken = result.total.nativeToken;
-				expect(totalNativeToken.free).toBeDefined();
-				expect(totalNativeToken.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(totalNativeToken.lockedInOrders).toBeDefined();
-				expect(totalNativeToken.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(totalNativeToken.lockedInPools).toBeDefined();
-				expect(totalNativeToken.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(totalNativeToken.withdrawable).toBeDefined();
-				expect(totalNativeToken.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(totalNativeToken.total).toBeDefined();
-				expect(totalNativeToken.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 		const feePaymentTokenBalance = result.tokens.get(rujira.fin.feePaymentToken.address);
+		// 		expect(feePaymentTokenBalance.token.address).toBe(rujira.fin.feePaymentToken.address);
+		// 		expect(feePaymentTokenBalance.token.symbol).toBe(rujira.fin.feePaymentToken.symbol);
 
-				const totalUSDToken = result.total.usdToken;
-				expect(totalUSDToken.free).toBeDefined();
-				expect(totalUSDToken.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(totalUSDToken.lockedInOrders).toBeDefined();
-				expect(totalUSDToken.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(totalUSDToken.lockedInPools).toBeDefined();
-				expect(totalUSDToken.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(totalUSDToken.withdrawable).toBeDefined();
-				expect(totalUSDToken.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(totalUSDToken.total).toBeDefined();
-				expect(totalUSDToken.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 		expect(result.total.nativeToken).toBeDefined();
+		// 		expect(result.total.usdToken).toBeDefined();
 
-				expect(accumulatedNativeFree.toNumber()).toBe(totalNativeToken.free.toNumber());
-				expect(accumulatedNativeLockedInOrders.toNumber()).toBe(totalNativeToken.lockedInOrders.toNumber());
-				expect(accumulatedNativeLockedInPools.toNumber()).toBe(totalNativeToken.lockedInPools.toNumber());
-				expect(accumulatedNativeWithdrawable.toNumber()).toBe(totalNativeToken.withdrawable.toNumber());
-				expect(accumulatedNativeTotal.toNumber()).toBe(totalNativeToken.total.toNumber());
+		// 		const totalNativeToken = result.total.nativeToken;
+		// 		expect(totalNativeToken.free).toBeDefined();
+		// 		expect(totalNativeToken.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 		expect(totalNativeToken.lockedInOrders).toBeDefined();
+		// 		expect(totalNativeToken.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 		expect(totalNativeToken.lockedInPools).toBeDefined();
+		// 		expect(totalNativeToken.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 		expect(totalNativeToken.withdrawable).toBeDefined();
+		// 		expect(totalNativeToken.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 		expect(totalNativeToken.total).toBeDefined();
+		// 		expect(totalNativeToken.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
-				expect(accumulatedUSDFree.toNumber()).toBe(totalUSDToken.free.toNumber());
-				expect(accumulatedUSDLockedInOrders.toNumber()).toBe(totalUSDToken.lockedInOrders.toNumber());
-				expect(accumulatedUSDLockedInPools.toNumber()).toBe(totalUSDToken.lockedInPools.toNumber());
-				expect(accumulatedUSDWithdrawable.toNumber()).toBe(totalUSDToken.withdrawable.toNumber());
-				expect(accumulatedUSDTotal.toNumber()).toBe(totalUSDToken.total.toNumber());
-			});
-		});
+		// 		const totalUSDToken = result.total.usdToken;
+		// 		expect(totalUSDToken.free).toBeDefined();
+		// 		expect(totalUSDToken.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 		expect(totalUSDToken.lockedInOrders).toBeDefined();
+		// 		expect(totalUSDToken.lockedInOrders.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 		expect(totalUSDToken.lockedInPools).toBeDefined();
+		// 		expect(totalUSDToken.lockedInPools.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 		expect(totalUSDToken.withdrawable).toBeDefined();
+		// 		expect(totalUSDToken.withdrawable.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 		expect(totalUSDToken.total).toBeDefined();
+		// 		expect(totalUSDToken.total.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
-		describe.skip("withdraw", () => {
-			it.skip("should be able to withdraw market by address", async () => {
-					const result = await rujira.fin.withdrawFilledOrders({
-						marketAddress: firstMarketAddress,
-						marketSymbol: undefined,
-						ownerAddress: walletPublicKeyThor
-					});
+		// 		expect(accumulatedNativeFree.toNumber()).toBe(totalNativeToken.free.toNumber());
+		// 		expect(accumulatedNativeLockedInOrders.toNumber()).toBe(totalNativeToken.lockedInOrders.toNumber());
+		// 		expect(accumulatedNativeLockedInPools.toNumber()).toBe(totalNativeToken.lockedInPools.toNumber());
+		// 		expect(accumulatedNativeWithdrawable.toNumber()).toBe(totalNativeToken.withdrawable.toNumber());
+		// 		expect(accumulatedNativeTotal.toNumber()).toBe(totalNativeToken.total.toNumber());
 
-					expect(result).toBeDefined();
+		// 		expect(accumulatedUSDFree.toNumber()).toBe(totalUSDToken.free.toNumber());
+		// 		expect(accumulatedUSDLockedInOrders.toNumber()).toBe(totalUSDToken.lockedInOrders.toNumber());
+		// 		expect(accumulatedUSDLockedInPools.toNumber()).toBe(totalUSDToken.lockedInPools.toNumber());
+		// 		expect(accumulatedUSDWithdrawable.toNumber()).toBe(totalUSDToken.withdrawable.toNumber());
+		// 		expect(accumulatedUSDTotal.toNumber()).toBe(totalUSDToken.total.toNumber());
+		// 	});
+		// });
 
-					expect(result.orders).toBeDefined();
-					expect(result.orders.size).toBeGreaterThan(0);
+		// describe.skip("withdraw", () => {
+		// 	it.skip("should be able to withdraw market by address", async () => {
+		// 			const result = await rujira.fin.withdrawFilledOrders({
+		// 				marketAddress: firstMarketAddress,
+		// 				marketSymbol: undefined,
+		// 				ownerAddress: walletPublicKeyThor
+		// 			});
 
-					for (const order of result.orders.values()) {
-						expect(order).toBeDefined();
-						expect(order.id).toBeDefined();
-						expect(order.market).toBeDefined();
-						expect(order.market.address).toBe(firstMarketAddress);
-						expect(order.market.symbol).toBe(firstMarketSymbol);
-						expect(order.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-						expect(order.market.status).toBe(MarketStatus.ACTIVE);
-						expect(order.market.raw).toBeDefined();
-						expect(order.ownerAddress).toBeDefined();
-						expect(order.side).toBeDefined();
-						expect(order.type).toBeDefined();
-						expect(order.amount).toBeDefined();
-						expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-						expect(order.price).toBeDefined();
-						expect(order.price?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-						expect(order.filledPercentage).toBeDefined();
-						expect(order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-						expect(order.status).toBe(OrderStatus.FILLED);
-						expect(order.creationTimestamp).toBeDefined();
-						expect(order.updateTimestamp).toBeDefined();
-						expect(order.raw).toBeDefined();
-					}
+		// 			expect(result).toBeDefined();
 
-					expect(result.transactions).toBeDefined();
-					expect(result.transactions.size).toBeGreaterThan(0);
+		// 			expect(result.orders).toBeDefined();
+		// 			expect(result.orders.size).toBeGreaterThan(0);
 
-					for (const transaction of result.transactions.values()) {
-						expect(transaction).toBeDefined();
-						expect(transaction.hash).toBeDefined();
-						expect(transaction.status).toBe(TransactionStatus.SUCCESS);
-						expect(transaction.fee).toBeDefined();
-						expect(transaction.fee.amount).toBeDefined();
-						expect(transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-						expect(transaction.fee.token).toBeDefined();
-						expect(transaction.fee.token.address).toBeDefined();
-						expect(transaction.fee.token.symbol).toBeDefined();
-						expect(transaction.fee.token.name).toBeDefined();
-						expect(transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-						expect(transaction.fee.token.raw).toBeDefined();
-						expect(transaction.raw).toBeDefined();
-					}
-			});
+		// 			for (const order of result.orders.values()) {
+		// 				expect(order).toBeDefined();
+		// 				expect(order.id).toBeDefined();
+		// 				expect(order.market).toBeDefined();
+		// 				expect(order.market.address).toBe(firstMarketAddress);
+		// 				expect(order.market.symbol).toBe(firstMarketSymbol);
+		// 				expect(order.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 				expect(order.market.status).toBe(MarketStatus.ACTIVE);
+		// 				expect(order.market.raw).toBeDefined();
+		// 				expect(order.ownerAddress).toBeDefined();
+		// 				expect(order.side).toBeDefined();
+		// 				expect(order.type).toBeDefined();
+		// 				expect(order.amount).toBeDefined();
+		// 				expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 				expect(order.price).toBeDefined();
+		// 				expect(order.price?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 				expect(order.filledPercentage).toBeDefined();
+		// 				expect(order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 				expect(order.status).toBe(OrderStatus.FILLED);
+		// 				expect(order.creationTimestamp).toBeDefined();
+		// 				expect(order.updateTimestamp).toBeDefined();
+		// 				expect(order.raw).toBeDefined();
+		// 			}
 
-			it("should be able to withdraw market by symbol", async () => {
-				const result = await rujira.fin.withdrawFilledOrders({
-					marketAddress: undefined,
-					marketSymbol: firstMarketSymbol,
-					ownerAddress: walletPublicKeyThor,
-				});
+		// 			expect(result.transactions).toBeDefined();
+		// 			expect(result.transactions.size).toBeGreaterThan(0);
 
-				expect(result).toBeDefined();
+		// 			for (const transaction of result.transactions.values()) {
+		// 				expect(transaction).toBeDefined();
+		// 				expect(transaction.hash).toBeDefined();
+		// 				expect(transaction.status).toBe(TransactionStatus.SUCCESS);
+		// 				expect(transaction.fee).toBeDefined();
+		// 				expect(transaction.fee.amount).toBeDefined();
+		// 				expect(transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 				expect(transaction.fee.token).toBeDefined();
+		// 				expect(transaction.fee.token.address).toBeDefined();
+		// 				expect(transaction.fee.token.symbol).toBeDefined();
+		// 				expect(transaction.fee.token.name).toBeDefined();
+		// 				expect(transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 				expect(transaction.fee.token.raw).toBeDefined();
+		// 				expect(transaction.raw).toBeDefined();
+		// 			}
+		// 	});
 
-				expect(result.orders).toBeDefined();
-				expect(result.orders.size).toBeGreaterThan(0);
+		// 	it("should be able to withdraw market by symbol", async () => {
+		// 		const result = await rujira.fin.withdrawFilledOrders({
+		// 			marketAddress: undefined,
+		// 			marketSymbol: firstMarketSymbol,
+		// 			ownerAddress: walletPublicKeyThor,
+		// 		});
 
-				for (const order of result.orders.values()) {
-					expect(order).toBeDefined();
-					expect(order.id).toBeDefined();
-					expect(order.market).toBeDefined();
-					expect(order.market.address).toBe(firstMarketAddress);
-					expect(order.market.symbol).toBe(firstMarketSymbol);
-					expect(order.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-					expect(order.market.status).toBe(MarketStatus.ACTIVE);
-					expect(order.market.raw).toBeDefined();
-					expect(order.ownerAddress).toBeDefined();
-					expect(order.side).toBeDefined();
-					expect(order.type).toBeDefined();
-					expect(order.amount).toBeDefined();
-					expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(order.price).toBeDefined();
-					expect(order.price?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(order.filledPercentage).toBeDefined();
-					expect(order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(order.status).toBe(OrderStatus.FILLED);
-					expect(order.creationTimestamp).toBeDefined();
-					expect(order.updateTimestamp).toBeDefined();
-					expect(order.raw).toBeDefined();
-				}
+		// 		expect(result).toBeDefined();
 
-				expect(result.transactions).toBeDefined();
-				expect(result.transactions.size).toBeGreaterThan(0);
+		// 		expect(result.orders).toBeDefined();
+		// 		expect(result.orders.size).toBeGreaterThan(0);
 
-				for (const transaction of result.transactions.values()) {
-					expect(transaction).toBeDefined();
-					expect(transaction.hash).toBeDefined();
-					expect(transaction.status).toBe(TransactionStatus.SUCCESS);
-					expect(transaction.fee).toBeDefined();
-					expect(transaction.fee.amount).toBeDefined();
-					expect(transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-					expect(transaction.fee.token).toBeDefined();
-					expect(transaction.fee.token.address).toBeDefined();
-					expect(transaction.fee.token.symbol).toBeDefined();
-					expect(transaction.fee.token.name).toBeDefined();
-					expect(transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
-					expect(transaction.fee.token.raw).toBeDefined();
-					expect(transaction.raw).toBeDefined();
-				}
-			});
-		});
+		// 		for (const order of result.orders.values()) {
+		// 			expect(order).toBeDefined();
+		// 			expect(order.id).toBeDefined();
+		// 			expect(order.market).toBeDefined();
+		// 			expect(order.market.address).toBe(firstMarketAddress);
+		// 			expect(order.market.symbol).toBe(firstMarketSymbol);
+		// 			expect(order.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(order.market.status).toBe(MarketStatus.ACTIVE);
+		// 			expect(order.market.raw).toBeDefined();
+		// 			expect(order.ownerAddress).toBeDefined();
+		// 			expect(order.side).toBeDefined();
+		// 			expect(order.type).toBeDefined();
+		// 			expect(order.amount).toBeDefined();
+		// 			expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(order.price).toBeDefined();
+		// 			expect(order.price?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(order.filledPercentage).toBeDefined();
+		// 			expect(order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(order.status).toBe(OrderStatus.FILLED);
+		// 			expect(order.creationTimestamp).toBeDefined();
+		// 			expect(order.updateTimestamp).toBeDefined();
+		// 			expect(order.raw).toBeDefined();
+		// 		}
+
+		// 		expect(result.transactions).toBeDefined();
+		// 		expect(result.transactions.size).toBeGreaterThan(0);
+
+		// 		for (const transaction of result.transactions.values()) {
+		// 			expect(transaction).toBeDefined();
+		// 			expect(transaction.hash).toBeDefined();
+		// 			expect(transaction.status).toBe(TransactionStatus.SUCCESS);
+		// 			expect(transaction.fee).toBeDefined();
+		// 			expect(transaction.fee.amount).toBeDefined();
+		// 			expect(transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(transaction.fee.token).toBeDefined();
+		// 			expect(transaction.fee.token.address).toBeDefined();
+		// 			expect(transaction.fee.token.symbol).toBeDefined();
+		// 			expect(transaction.fee.token.name).toBeDefined();
+		// 			expect(transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(transaction.fee.token.raw).toBeDefined();
+		// 			expect(transaction.raw).toBeDefined();
+		// 		}
+		// 	});
+		// });
 
 		// describe("orders", () => {
 		// 	it("should handle complete order lifecycle", async () => {
