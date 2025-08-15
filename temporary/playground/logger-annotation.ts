@@ -9,6 +9,7 @@ class ExampleServiceForDemonstration {
 
   @logged_method({ logger })
   performComputation(firstNumber: number, secondNumber: number) {
+		this.helperMethod();
     return firstNumber + secondNumber;
   }
 
@@ -17,7 +18,7 @@ class ExampleServiceForDemonstration {
   }
 
   private helperMethod() {
-    // This method is explicitly disallowed and will not be wrapped
+    console.log('helperMethod');
   }
 }
 
@@ -26,4 +27,5 @@ class ExampleServiceForDemonstration {
 	ExampleServiceForDemonstration.performStaticPing(41);
 	exampleServiceInstance.performComputation(1, 2);
 	exampleServiceInstance.fetchEntityByIdentifier("abc");
+	logger.ignoreException(new Error('My Ignored Exception'));
 })();

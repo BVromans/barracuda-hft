@@ -134,28 +134,31 @@ export class Logger {
 			message += exception;
 		}
 
-		this.log(LogLevel.WARNING, message);
+		this.log(LogLevel.WARNING, message, new Error().stack as any);
 	}
 
 	/**
 	 * Log a message
 	 * @param message - The message to log
 	 */
-	private log(level: LogLevel, message: string, ...optionalParams: any[]): void {
+	private log(level: LogLevel, message: string, stack?: any, ...optionalParams: any[]): void {
 		const timestamp = new Date().toISOString();
-		const stack = new Error().stack as any;
-		const frame = stack[2];
+
+		let stacktrace: string | undefined = undefined;
+		if (!stack) {
+			stack = new Error().stack as any;
+		} else {
+			stacktrace = stack.slice(2).map((frame: any) => frame.string).join('\n');
+		}
+
+		const frame = stack![2];
 		const filePath = frame.fileName;
 		const lineNumber = frame.lineNumber;
 		const columnNumber = frame.columnNumber;
 		const functionName = frame.functionName;
 		const methodName = frame.methodName;
 
-		const stacktrace = stack.slice(2).map((frame: any) => frame.string).join('\n');
-
-		// message = `[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}\n\n${stacktrace}`;
-
-		message = `[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}`;
+		message = `\n[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}${stacktrace ? `\n\n${stacktrace}` : ''}\n`;
 
 		if (level === LogLevel.DEBUG) {
 			console.debug(message, ...optionalParams);
