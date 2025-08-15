@@ -56,6 +56,11 @@ type LoggerLike = {
 
 type LoggedMethodDecoratorOptions = {
 	logger?: LoggerLike;
+	// Toggle which parts of the lifecycle are logged
+	logStart?: boolean; // default: true
+	logEnd?: boolean; // default: true (applies to both success and exception)
+	logInput?: boolean; // default: true (method arguments)
+	logOutput?: boolean; // default: true (method return value on success)
 };
 
 export function loggedMethod(options?: LoggedMethodDecoratorOptions): MethodDecorator;
@@ -87,12 +92,23 @@ export function loggedMethod(
 				const wrappedMethod = function (this: any, ...argumentsList: any[]) {
 					const callerFrame = getBestEffortCallerStackFrame(2);
 
-					loggerInstance.debug(
-						`Starting ${fullyQualifiedMethodName}...`,
-						undefined,
-						{ arguments: argumentsList },
-						// callerFrame
-					);
+					const flags = {
+						logStart: optionsObject?.logStart ?? true,
+						logEnd: optionsObject?.logEnd ?? true,
+						logInput: optionsObject?.logInput ?? true,
+						logOutput: optionsObject?.logOutput ?? true,
+					};
+
+					if (flags.logStart) {
+						const extra: any[] = [];
+						if (flags.logInput) extra.push({ arguments: argumentsList });
+						loggerInstance.debug(
+							`Starting ${fullyQualifiedMethodName}...`,
+							undefined,
+							...extra,
+							// callerFrame
+						);
+					}
 
 					try {
 						const resultValue = originalMethod.apply(this, argumentsList);
@@ -100,41 +116,53 @@ export function loggedMethod(
 						if (valueLooksLikeAPromise(resultValue)) {
 							return (resultValue as Promise<unknown>)
 								.then((resolvedValue) => {
-									loggerInstance.debug(
-										`Successfully executed ${fullyQualifiedMethodName}.`,
-										undefined,
-										{ result: resolvedValue },
-										// callerFrame
-									);
+									if (flags.logEnd) {
+										const extra: any[] = [];
+										if (flags.logOutput) extra.push({ result: resolvedValue });
+										loggerInstance.debug(
+											`Successfully executed ${fullyQualifiedMethodName}.`,
+											undefined,
+											...extra,
+											// callerFrame
+										);
+									}
 									return resolvedValue;
 								})
 								.catch((exceptionObject) => {
 									const formattedExceptionText = formatExceptionForLogging(exceptionObject);
-									loggerInstance.debug(
-										`Exception raised in ${fullyQualifiedMethodName}: ${String(exceptionObject)}\n${formattedExceptionText}`,
-										undefined,
-										{},
-										// callerFrame
-									);
+									if (flags.logEnd) {
+										loggerInstance.debug(
+											`Exception raised in ${fullyQualifiedMethodName}: ${String(exceptionObject)}\n${formattedExceptionText}`,
+											undefined,
+											{},
+											// callerFrame
+										);
+									}
 									throw exceptionObject;
 								});
 						} else {
-							loggerInstance.debug(
-								`Successfully executed ${fullyQualifiedMethodName}.`,
-								undefined,
-								{ result: resultValue },
-								// callerFrame
-							);
+							if (flags.logEnd) {
+								const extra: any[] = [];
+								if (flags.logOutput) extra.push({ result: resultValue });
+								loggerInstance.debug(
+									`Successfully executed ${fullyQualifiedMethodName}.`,
+									undefined,
+									...extra,
+									// callerFrame
+								);
+							}
 							return resultValue;
 						}
 					} catch (exceptionObject) {
 						const formattedExceptionText = formatExceptionForLogging(exceptionObject);
-						loggerInstance.debug(
-							`Exception raised in ${fullyQualifiedMethodName}: ${String(exceptionObject)}\n${formattedExceptionText}`,
-							undefined,
-							{},
-							// callerFrame
-						);
+						if (flags.logEnd) {
+							loggerInstance.debug(
+								`Exception raised in ${fullyQualifiedMethodName}: ${String(exceptionObject)}\n${formattedExceptionText}`,
+								undefined,
+								{},
+								// callerFrame
+							);
+						}
 						throw exceptionObject;
 					}
 				};
@@ -157,6 +185,11 @@ type LoggedClassDecoratorOptions = {
 	allowedMethods?: string[];
 	disallowedMethods?: string[];
 	includeStaticMethods?: boolean;
+	// Optional logging flags that will be forwarded to each method's decorator
+	logStart?: boolean;
+	logEnd?: boolean;
+	logInput?: boolean;
+	logOutput?: boolean;
 };
 
 export function loggedClass(options?: LoggedClassDecoratorOptions): ClassDecorator;
@@ -200,7 +233,13 @@ export function loggedClass(argument?: any): any {
 
 			if (typeof propertyDescriptor.value !== "function") return;
 
-			const methodDecorator = loggedMethod({ logger: loggerInstance }) as MethodDecorator;
+			const methodDecorator = loggedMethod({
+				logger: loggerInstance,
+				logStart: options?.logStart,
+				logEnd: options?.logEnd,
+				logInput: options?.logInput,
+				logOutput: options?.logOutput,
+			}) as MethodDecorator;
 			methodDecorator(hostObject, methodName, propertyDescriptor);
 			Object.defineProperty(hostObject, methodName, propertyDescriptor);
 		};
