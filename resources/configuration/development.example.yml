@@ -1,59 +1,20 @@
 rujira:
-  endpoints:
-    rpc: "https://thornode-mainnet-rpc.bryanlabs.net"
-    rest: "https://thornode.ninerealms.com"
-    graphql: "https://api.rujira.network/api/graphiql"
   wallet:
-    mnemonic: "<mnemonic>" # Optional, but required if privateKey is not provided
-    privateKey: "<private key>" # Optional, but required if mnemonic is not provided
+    mnemonic: "<wallet mnemonic>" # Optional, but required if privateKey is not provided
+    privateKey: "<wallet private key>" # Optional, but required if mnemonic is not provided
     publicKeys:
-      thor: "<thor public key>" # Optional
-      ethereum: "<ethereum public key>" # Optional
-  cache:
-    rujira:
-      getThorChainConfiguration: 6 * 60 * 60 # 6 hours
-    fin:
-      getAllTokens: 6 * 60 * 60 # 6 hours
-      getAllMarkets: 6 * 60 * 60 # 6 hours
-  constants:
-    enum:
-      markets:
-        active: "LIVE"
-    tokens:
-      native:
-        address: "THOR.RUJI"
-        symbol: "THOR-RUJI"
-      usd:
-        address: "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
-        symbol: "ETH-USDC"
-      feePayment:
-        address: "THOR.RUNE"
-        symbol: "THOR-RUNE"
-        thorChainConfigurationKey: "WASMMINGASPRICE"
-  default:
-    network:
-      gasPrice: '0.02' # A possible value is '0.02'
-    cache:
-      ttlSeconds: 60
-    parallel:
-      batchSize: 10
-      delayBetweenBatches: 100
-    retry:
-      maximumNumberOfRetries: 3
-      delayBetweenRetries: 1_000
-      timeout: 30_000
-    orderBook:
-      maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
-    candles:
-      interval: "1m"
-      maximumNumberOfCandles: 100 # Optional, leaving empty or null will return all candles
-    orders:
-      maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
+      thor: "<wallet thor public key>" # Optional
+      ethereum: "<wallet ethereum public key>" # Optional
 strategy:
   pure_market_making:
-    base:
+    common:
       market: "THOR-RUJI/ETH-USDC"
       tickInterval: 60_000 # 1 minute in milliseconds
+      orders:
+        minimumBaseTokenAmountPerOrder: 0
+        minimumQuoteTokenAmountPerOrder: 0
+        maximumBaseTokenAmountPerOrder: 10
+        maximumQuoteTokenAmountPerOrder: 10
       whenStart:
         cancelAllOrders: true
         withdrawAllFilledOrders: true
@@ -78,33 +39,8 @@ strategy:
       logger:
         level: "INFO"
     simple:
-      spreadPercentage: 10 # 1 means 1%
-      minimumBasePerOrder: 0
-      minimumQuotePerOrder: 0
-      maximumBasePerOrder: 10
-      maximumQuotePerOrder: 10
-      buyQuotePerOrder: 10
-      sellBasePerOrder: 10
+      orders:
+        spreadPercentage: 10 # 1 means 1%
+        buyQuoteTokenAmountPerOrder: 10
+        sellBaseTokenAmountPerOrder: 10
     enhanced: {}
-tests:
-  unit:
-    timeout: 10_000 # 10 seconds
-  integration:
-    timeout: 60_000 # 60 seconds
-    transaction_hash: "EDF881BCB440DA84C6197C563BB7313FD04AED6D0E477676661B901EEFC87E3E"
-    first_market_symbol: "THOR-NAMI/ETH-USDC"
-    first_market_address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
-    first_market_base_token_address: "QXNzZXQ6VEhPUi5OQU1J"
-    first_market_quote_token_address: "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4"
-    first_market_base_token_symbol: "THOR-NAMI"
-    first_market_quote_token_symbol: "ETH-USDC"
-    first_market_base_token_amount: "0.000001"
-    first_market_quote_token_amount: "0.000001"
-    second_market_symbol: "THOR-NAMI/ETH-USDC"
-    second_market_address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
-    second_market_base_token_address: "QXNzZXQ6VEhPUi5OQU1J"
-    second_market_quote_token_address: "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4"
-    second_market_base_token_symbol: "THOR-NAMI"
-    second_market_quote_token_symbol: "ETH-USDC"
-    second_market_base_token_amount: "0.000001"
-    second_market_quote_token_amount: "0.000001"

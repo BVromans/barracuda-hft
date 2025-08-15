@@ -1,32 +1,59 @@
 // noinspection JSUnusedGlobalSymbols
 
+import { List, Map } from "immutable";
 import { properties } from "./properties";
+import Decimal from "decimal.js";
 
 /**
- *
- * @param value
- * @param errorMessage
+ * Get a value or a default value if the value is undefined or null.
+ * @template R - The type of the value.
+ * @template NSV - The type of the default value.
+ * @param value - The value to get.
+ * @param defaultValue - The default value to return if the value is undefined or null.
+ * @returns The value or the default value.
+ * @throws An error if the value is undefined or null and no default value is provided.
  */
-export const getOrThrow = <R>(
-	value?: any,
-	errorMessage: string = 'Value is null or undefined',
-): R => {
+export const get = <R>(value: any, defaultValue?: R): R => {
 	if (value === undefined || value === null) {
-		throw new Error(errorMessage)
-	};
+		if (defaultValue === undefined || defaultValue === null) {
+			throw new Error('Value is null or undefined and no default value provided');
+		}
+
+		return defaultValue as R;
+	}
 
 	return value as R;
 };
 
-/**
- *
- * @param value
- * @param defaultValue
- */
-export const getOrDefault = <R>(value: any, defaultValue: R): R => {
-	if (value === undefined || value === null) return defaultValue;
+export const getIn = <K, V>(target: List<V> | Map<K, V>, key: K | string | Array<K | string>, defaultValue?: V, getAsRawKey?: boolean): V => {
+	if (key === undefined || key === null) {
+		if (defaultValue === undefined || defaultValue === null) {
+			throw new Error('Value is null or undefined and no default value provided');
+		}
 
-	return value as R;
+		return defaultValue as V;
+	}
+
+	if (Array.isArray(key)) {
+		return target.getIn(key, defaultValue) as V;
+	}
+
+	if (typeof key === 'string' && !getAsRawKey) {
+		const path = key.trim().split('.');
+		if (path.length === 1) {
+			return target.get(path[0] as any, defaultValue) as V;
+		}
+
+		return target.getIn(path, defaultValue) as V;
+	}
+
+	const value = target.get(key as any, defaultValue) as V;
+
+	if (value === undefined) {
+		throw new Error(`Value not found for key: ${key}`);
+	}
+
+	return value;
 };
 
 /**
@@ -185,3 +212,57 @@ export function runWithRetryAndTimeout(options?: {
 		return descriptor;
 	};
 }
+
+/**
+ * Replacer for JSON.stringify to handle special cases.
+ * @param key - The key of the value.
+ * @param value - The value to replace.
+ * @returns The replaced value.
+ */
+const jsonReplacer = (key: string, value: any) => {
+	if (value instanceof Decimal) {
+		return value.toString();
+	}
+	if (typeof value === "bigint") {
+		return value.toString();
+	}
+	if (value instanceof Date) {
+		return value.toISOString();
+	}
+	if (value instanceof List || value instanceof Map) {
+		return (value as any).toJS();
+	}
+	if (typeof value === "function") {
+		return `[Function: ${value.name || "anonymous"}]`;
+	}
+	if (typeof value === "symbol") {
+		return value.toString();
+	}
+	if (typeof value === "object" && value !== null) {
+		// Handle plain objects and class instances
+		const prototype = Object.getPrototypeOf(value);
+		if (prototype && prototype !== Object.prototype) {
+			// For class instances, include class name
+			const obj: any = { __class__: prototype.constructor.name };
+			for (const prop in value) {
+				if (Object.prototype.hasOwnProperty.call(value, prop)) {
+					obj[prop] = value[prop];
+				}
+			}
+			return obj;
+		}
+	}
+	return value;
+};
+
+/**
+ * Dump the target to the console.
+ * @param target - The target to dump.
+ */
+export const dump = (target: any) => {
+	try {
+		return JSON.stringify(target, jsonReplacer, 2);
+	} catch (exception) {
+		return target;
+	}
+};

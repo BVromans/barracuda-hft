@@ -725,21 +725,15 @@ export class Indicator {
 		"Money Flow Index",
 		(candles: List<Candle>) => {
 			const result = candles.reduce(
-				(data, candle) => {
-					const high = candle.high.toNumber() || 0;
-					const low = candle.low.toNumber() || 0;
-					const close = candle?.close?.toNumber() || 0;
-					const volume = candle.volume.toNumber() || 0;
-					if (high > 0 && low > 0 && close > 0 && volume > 0 && high >= low) {
-						data[0].push(high);
-						data[1].push(low);
-						data[2].push(close);
-						data[3].push(volume);
-					}
-					return data;
-				},
-				[[], [], [], []] as [number[], number[], number[], number[]]
-			);
+					(data, candle) => {
+				data[0].push(candle.high.toNumber() || 0);
+				data[1].push(candle.low.toNumber() || 0);
+				data[2].push(candle.close.toNumber() || 0);
+				data[3].push(candle.volume.toNumber() || 0);
+				return data;
+					},
+					[[], [], [], []] as [number[], number[], number[], number[]]
+			)
 			return result;
 		},
 		[14]
@@ -1495,7 +1489,6 @@ export class Indicator {
 			Indicator.abands,
 			Indicator.absolute_price_oscillator,
 			Indicator.accumulation_distribution_line,
-			Indicator.accumulation_distribution_oscillator,
 			Indicator.annualized_historical_volatility,
 			Indicator.aroon,
 			Indicator.aroon_oscillator,
@@ -2080,7 +2073,7 @@ export interface Balances {
 	/**
 	 * Balances of the tokens
 	 */
-	tokens: Map<TokenAddress, TokenBalance>;
+	tokens: Map<TokenSymbol, TokenBalance>;
 
 	/**
 	 * Total balances of the wallet
@@ -2314,7 +2307,7 @@ export interface FinGetMarketsRequest {
 /**
  * Get markets response
  */
-export interface FinGetMarketsResponse extends Map<MarketAddress, Market> {
+export interface FinGetMarketsResponse extends Map<MarketSymbol, Market> {
 }
 
 /**
@@ -2326,7 +2319,7 @@ export interface FinGetAllMarketsRequest {
 /**
  * Get all markets response
  */
-export interface FinGetAllMarketsResponse extends Map<MarketAddress, Market> {
+export interface FinGetAllMarketsResponse extends Map<MarketSymbol, Market> {
 }
 
 /**
@@ -2455,11 +2448,6 @@ export interface FinGetIndicatorsRequest {
 	 * Candles
 	 */
 	candles?: List<Candle>;
-
-	/**
-	 * Specific indicators to calculate (optional - if not provided, all indicators will be calculated)
-	 */
-	indicators?: List<IndicatorId> | IndicatorId[];
 }
 
 /**
