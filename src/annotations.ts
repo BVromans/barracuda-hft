@@ -7,7 +7,21 @@ function valueLooksLikeAPromise(value: unknown): value is Promise<unknown> {
 
 function getBestEffortCallerStackFrame(stackSkipCount: number = 2): string | undefined {
   const errorObject = new Error();
-  const stackLines = (errorObject.stack ?? "").split("\n").map((line) => line.trim());
+  const stackAny: any = (errorObject as any).stack;
+
+  // Support both default string stack traces and the custom structured stack used by this project
+  if (Array.isArray(stackAny)) {
+    const frame = stackAny[stackSkipCount] ?? stackAny[stackAny.length - 1];
+    if (!frame) return undefined;
+    if (typeof frame.string === "string") return frame.string;
+    const file = frame.fileName ?? "";
+    const line = frame.lineNumber != null ? `:${frame.lineNumber}` : "";
+    const col = frame.columnNumber != null ? `:${frame.columnNumber}` : "";
+    return `${file}${line}${col}`;
+  }
+
+  const stackText = String(stackAny ?? "");
+  const stackLines = stackText.split("\n").map((line) => line.trim());
   return stackLines[stackSkipCount] ?? stackLines[stackLines.length - 1] ?? undefined;
 }
 
@@ -39,26 +53,28 @@ function buildFullyQualifiedMethodName(targetObject: any, propertyKey: string | 
   return `${className}.${String(propertyKey)}`;
 }
 
+type LoggerLike = {
+  debug(messageText: string, ...args: any[]): void;
+};
+
 type LoggedMethodDecoratorOptions = {
-  logger?: {
-    debug(messageText: string, metadataObject?: Record<string, unknown>, frame?: string): void;
-  };
+  logger?: LoggerLike;
 };
 
 export function logged_method(options?: LoggedMethodDecoratorOptions): MethodDecorator;
-export function logged_method(targetObject: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor): void;
+export function logged_method(targetObject: Object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<any>): TypedPropertyDescriptor<any> | void;
 export function logged_method(
-  firstArgument: Object | LoggedMethodDecoratorOptions,
-  secondArgument?: string | symbol,
-  thirdArgument?: PropertyDescriptor
-): MethodDecorator | void {
+  firstArgument: any,
+  secondArgument?: any,
+  thirdArgument?: any
+): any {
   const createDecorator =
     (optionsObject?: LoggedMethodDecoratorOptions): MethodDecorator =>
-    (targetObject, propertyKey, descriptor) => {
+    (targetObject: any, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<any>) => {
       const loggerInstance =
         optionsObject?.logger ??
         // Assumes there is a concrete global or imported logger object available in your project
-        (globalThis as any).logger;
+        (globalThis as any).logger as LoggerLike;
 
       if (!loggerInstance || typeof loggerInstance.debug !== "function") {
         throw new Error(
@@ -66,7 +82,7 @@ export function logged_method(
         );
       }
 
-      const originalMethod = descriptor.value as Function;
+      const originalMethod = (descriptor as TypedPropertyDescriptor<any>).value as Function;
       if (typeof originalMethod !== "function") return;
 
       const fullyQualifiedMethodName = buildFullyQualifiedMethodName(targetObject, propertyKey);
@@ -121,7 +137,7 @@ export function logged_method(
         }
       };
 
-      descriptor.value = wrappedMethod;
+      (descriptor as TypedPropertyDescriptor<any>).value = wrappedMethod as any;
       return descriptor;
     };
 
@@ -135,9 +151,7 @@ export function logged_method(
 }
 
 type LoggedClassDecoratorOptions = {
-  logger?: {
-    debug(messageText: string, metadataObject?: Record<string, unknown>, frame?: string): void;
-  };
+  logger?: LoggerLike;
   allowedMethods?: string[];
   disallowedMethods?: string[];
   includeStaticMethods?: boolean;
