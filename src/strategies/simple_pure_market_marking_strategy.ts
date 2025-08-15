@@ -108,11 +108,27 @@ export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrateg
 			}
 		});
 
+		const buyOrderId = this.rujira.fin.getOrderId({
+			order: buyOrder,
+		});
+
+		const sellOrderId = this.rujira.fin.getOrderId({
+			order: sellOrder,
+		});
+
 		if (buyOrder.amount && buyOrder.price && buyOrder.amount.gt(DECIMAL_0) && buyOrder.price.gt(DECIMAL_0)) {
-			proposal.place?.push(buyOrder);
+			if (currentOrders.has(buyOrderId)) {
+				proposal.replace?.push(buyOrder);
+			} else {
+				proposal.place?.push(buyOrder);
+			}
 		}
 		if (sellOrder.amount && sellOrder.price && sellOrder.amount.gt(DECIMAL_0) && sellOrder.price.gt(DECIMAL_0)) {
-			proposal.place?.push(sellOrder);
+			if (currentOrders.has(sellOrderId)) {
+				proposal.replace?.push(sellOrder);
+			} else {
+				proposal.place?.push(sellOrder);
+			}
 		}
 
 		this.state.set('proposal', proposal);
