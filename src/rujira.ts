@@ -113,6 +113,7 @@ import {
 	WalletPrivateKey
 } from './types';
 import { get, runWithRetryAndTimeout } from "./utils";
+import { loggedClass } from "./annotations";
 
 /**
  * LRU cache
@@ -135,6 +136,17 @@ cacheManager.setOptions(<CacheManagerOptions>{
 /**
  * Rujira client
  */
+@loggedClass({
+	logger: logger,
+	allowedMethods: [''],
+	disallowedMethods: [],
+	includeStaticMethods: true,
+	logStart: true,
+	logEnd: true,
+	logInput: true,
+	logOutput: true,
+	logExecutionTime: true,
+})
 export class Rujira {
 	/**
 	 * Fin client
@@ -632,6 +644,17 @@ export class Rujira {
 /**
  * Fin client
  */
+@loggedClass({
+	logger: logger,
+	allowedMethods: [''],
+	disallowedMethods: [],
+	includeStaticMethods: true,
+	logStart: true,
+	logEnd: true,
+	logInput: true,
+	logOutput: true,
+	logExecutionTime: true,
+})
 export class Fin {
 	/**
 	 * Parent
