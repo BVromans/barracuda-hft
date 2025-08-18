@@ -2,7 +2,7 @@ import Decimal from "decimal.js";
 import "./bootstrap";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
-import { Indicator, Market, MarketSymbol, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
+import { Indicator, Market, MarketAddress, MarketSymbol, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
 import { dump } from "./utils";
 
 (async function run() {
@@ -122,16 +122,16 @@ import { dump } from "./utils";
 			]
 		});
 		console.log('getMarkets:size:', dump(getMarkets.size));
-		console.log('getMarkets:symbols:\n', dump(getMarkets.keySeq().toJS()));
-		console.log('getMarkets:addresses\n', dump(getMarkets.valueSeq().map(market => market.address).toJS()));
-		console.log('getMarkets:symbols->addresses:\n', dump(getMarkets.entrySeq().map((entry: [MarketSymbol, Market]) => `${entry[0]} -> ${entry[1].address}`).toJS()));
+		console.log('getMarkets:addresses:\n', dump(getMarkets.keySeq().toJS()));
+		console.log('getMarkets:symbols:\n', dump(getMarkets.valueSeq().map(market => market.symbol).toJS()));
+		console.log('getMarkets:addresses->symbols:\n', dump(getMarkets.entrySeq().map((entry: [MarketAddress, Market]) => `${entry[0]} -> ${entry[1].symbol}`).toJS()));
 		// console.log('getMarkets\n', getMarkets.toJS());
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getMarket) {
 		const getMarket = await rujira.fin.getMarket({
-			// address: 'thor12ds7fxj5g47jwzfzvzzhzxxd3cp6v55flgwxva0803r8k5mzm44skth6wa',
+			// address: 'thor12ds7fxj5g47jwzfzvzzhzxxd3cp6v55flgwxva0803r8k5mzm44skth6wa', // THOR-TCY/THOR-RUNE
 				symbol: 'THOR-TCY/THOR-RUNE'
 		});
 		console.log('getMarket:address:', dump(getMarket.address));
