@@ -1,13 +1,13 @@
-import "./bootstrap";
 import Decimal from "decimal.js";
+import "./bootstrap";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
-import { Market, MarketSymbol, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
+import { Indicator, Market, MarketSymbol, OrderSide, OrderStatus, OrderType, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
 import { dump } from "./utils";
 
 (async function run() {
 	const active = {
-		getStatus: true,
+		getStatus: false,
 		getTransaction: false,
 		getAllTokens: false,
 		getTokens: false,
@@ -162,6 +162,9 @@ import { dump } from "./utils";
 		const getCandles = await rujira.fin.getCandles({
 			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
 			// marketSymbol: 'THOR-RUJI/ETH-USDC',
+			// market: undefined,
+			// interval: CandleInterval.ONE_MINUTE,
+			// maximumNumberOfCandles: 100,
 		});
 		console.log('getCandles:size:', dump(getCandles.size));
 		console.log('getCandles:\n', dump(getCandles.toJS()));
@@ -172,6 +175,15 @@ import { dump } from "./utils";
 		const getIndicators = await rujira.fin.getIndicators({
 			marketAddress: RUJIUSDCMarketAddress, // THOR-RUJI/ETH-USDC
 			// marketSymbol: 'THOR-RUJI/ETH-USDC',
+			// market: undefined,
+			// interval: CandleInterval.ONE_MINUTE,
+			// maximumNumberOfCandles: 100,
+			// candles: undefined,
+			indicatorsIds: [
+				Indicator.bollinger_bands.id,
+				Indicator.moving_average_convergence_divergence.id,
+				Indicator.relative_strength_index.id,
+			]
 		});
 		console.log('getIndicators:size:', dump(getIndicators.size));
 		console.log('getIndicators:\n', dump(getIndicators.toJS()));
