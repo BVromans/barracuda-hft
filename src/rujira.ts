@@ -1567,7 +1567,7 @@ export class Fin {
 	 * @returns The indicators response
 	 */
 	async getIndicators(request: FinGetIndicatorsRequest): Promise<FinGetIndicatorsResponse> {
-		let { marketAddress, marketSymbol, market, interval, maximumNumberOfCandles, candles } = request;
+		let { marketAddress, marketSymbol, market, interval, maximumNumberOfCandles, candles, indicatorsIds } = request;
 
 		if (!candles || candles.size === 0) {
 			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
@@ -1575,18 +1575,26 @@ export class Fin {
 
 		candles = candles.asImmutable();
 
-		const indicators = MMap<IndicatorId, IndicatorData>();
+		if (!indicatorsIds) {
+			indicatorsIds = Indicator.all.keySeq().toList();
+		} else {
+			indicatorsIds = MList<IndicatorId>(indicatorsIds);
+		}
 
-		for (const indicator of Indicator.getAll()) {
+		const output = MMap<IndicatorId, IndicatorData>();
+
+		for (const indicatorId of indicatorsIds) {
+			const indicator = Indicator.all.getOrThrow(indicatorId);
+
 			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(candles), ...indicator.parameters);
 
-			indicators.set(indicator.id, {
+			output.set(indicator.id, {
 				indicator,
 				value
 			});
 		}
 
-		return indicators;
+		return output;
 	}
 
 	/**

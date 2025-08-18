@@ -68,6 +68,22 @@ export enum MarketStatus {
 }
 
 /**
+ * Candle interval
+ */
+export enum CandleInterval {
+	ONE_SECOND = '1s',
+	ONE_MINUTE = '1m',
+	FIVE_MINUTES = '5m',
+	FIFTEEN_MINUTES = '15m',
+	ONE_HOUR = '1h',
+	FOUR_HOURS = '4h',
+	ONE_DAY = '1d',
+	ONE_WEEK = '1w',
+	ONE_MONTH = '1M',
+	ONE_YEAR = '1y'
+}
+
+/**
  * Order side
  */
 export enum OrderSide {
@@ -1445,7 +1461,6 @@ export class Indicator {
 		[20, 14]
 	);
 
-
 	/**
 	 * ID of the indicator
 	 */
@@ -1467,6 +1482,11 @@ export class Indicator {
 	parameters: IndicatorParameters;
 
 	/**
+	 * All indicators
+	 */
+	public static readonly all: Map<IndicatorId, Indicator> = Indicator.getAll();
+
+	/**
 	 *
 	 * @param id
 	 * @param name
@@ -1483,104 +1503,106 @@ export class Indicator {
 	 * Get all indicators
 	 * @returns All indicators
 	 */
-	static getAll(): Indicator[] {
-		return [
-			Indicator.abands,
-			Indicator.absolute_price_oscillator,
-			Indicator.accumulation_distribution_line,
-			Indicator.annualized_historical_volatility,
-			Indicator.aroon,
-			Indicator.aroon_oscillator,
-			Indicator.arnaud_legoux_moving_average,
-			Indicator.average_directional_movement_index,
-			Indicator.average_directional_movement_rating,
-			Indicator.average_price,
-			Indicator.average_true_range,
-			Indicator.awesome_oscillator,
-			Indicator.balance_of_power,
-			Indicator.bollinger_bands,
-			Indicator.chandelier_exit,
-			Indicator.chaikin_money_flow,
-			Indicator.chaikins_volatility,
-			Indicator.chande_momentum_oscillator,
-			Indicator.commodity_channel_index,
-			Indicator.crossover,
-			Indicator.cross_over_number,
-			Indicator.cross_under_number,
-			Indicator.detrended_price_oscillator,
-			Indicator.directional_indicator,
-			Indicator.directional_movement,
-			Indicator.directional_movement_index,
-			Indicator.donchian_channels,
-			Indicator.double_exponential_moving_average,
-			Indicator.ease_of_movement,
-			Indicator.exponential_decay,
-			Indicator.exponential_moving_average,
-			Indicator.fisher_transform,
-			Indicator.force_index,
-			Indicator.forecast_oscillator,
-			Indicator.hull_moving_average,
-			Indicator.kaufman_adaptive_moving_average,
-			Indicator.keltner_channels,
-			Indicator.klinger_volume_oscillator,
-			Indicator.know_sure_thing,
-			Indicator.lag,
-			Indicator.linear_decay,
-			Indicator.linear_regression,
-			Indicator.linear_regression_intercept,
-			Indicator.linear_regression_slope,
-			Indicator.mass_index,
-			Indicator.market_facilitation_index,
-			Indicator.maximum_in_period,
-			Indicator.mean_deviation_over_period,
-			Indicator.median_price,
-			Indicator.minimum_in_period,
-			Indicator.momentum,
-			Indicator.money_flow_index,
-			Indicator.moving_average_convergence_divergence,
-			Indicator.negative_volume_index,
-			Indicator.normalized_average_true_range,
-			Indicator.on_balance_volume,
-			Indicator.pbands,
-			Indicator.parabolic_sar,
-			Indicator.percentage_price_oscillator,
-			Indicator.polarized_fractal_efficiency,
-			Indicator.poscillator,
-			Indicator.positive_volume_index,
-			Indicator.qstick,
-			Indicator.rate_of_change,
-			Indicator.rate_of_change_ratio,
-			Indicator.recursive_moving_trend_average,
-			Indicator.relative_momentum_index,
-			Indicator.relative_strength_index,
-			Indicator.relative_vigor_index,
-			Indicator.simple_moving_average,
-			Indicator.standard_deviation_over_period,
-			Indicator.standard_error_over_period,
-			Indicator.stochastic_momentum_index,
-			Indicator.stochastic_oscillator,
-			Indicator.stochastic_rsi,
-			Indicator.sum_over_period,
-			Indicator.time_series_forecast,
-			Indicator.triangular_moving_average,
-			Indicator.trix,
-			Indicator.true_range,
-			Indicator.true_strength_index,
-			Indicator.triple_exponential_moving_average,
-			Indicator.typical_price,
-			Indicator.ultimate_oscillator,
-			Indicator.variable_index_dynamic_average,
-			Indicator.vertical_horizontal_filter,
-			Indicator.volume_oscillator,
-			Indicator.volume_weighted_average_price,
-			Indicator.volume_weighted_moving_average,
-			Indicator.weighted_close_price,
-			Indicator.weighted_moving_average,
-			Indicator.williams_accumulation_distribution,
-			Indicator.williams_r,
-			Indicator.wilders_smoothing,
-			Indicator.zero_lag_exponential_moving_average,
-		];
+	private static getAll(): Map<IndicatorId, Indicator> {
+		const indicators = MMap<IndicatorId, Indicator>();
+
+		indicators.set(Indicator.abands.id, Indicator.abands);
+		indicators.set(Indicator.absolute_price_oscillator.id, Indicator.absolute_price_oscillator);
+		indicators.set(Indicator.accumulation_distribution_line.id, Indicator.accumulation_distribution_line);
+		indicators.set(Indicator.annualized_historical_volatility.id, Indicator.annualized_historical_volatility);
+		indicators.set(Indicator.aroon.id, Indicator.aroon);
+		indicators.set(Indicator.aroon_oscillator.id, Indicator.aroon_oscillator);
+		indicators.set(Indicator.arnaud_legoux_moving_average.id, Indicator.arnaud_legoux_moving_average);
+		indicators.set(Indicator.average_directional_movement_index.id, Indicator.average_directional_movement_index);
+		indicators.set(Indicator.average_directional_movement_rating.id, Indicator.average_directional_movement_rating);
+		indicators.set(Indicator.average_price.id, Indicator.average_price);
+		indicators.set(Indicator.average_true_range.id, Indicator.average_true_range);
+		indicators.set(Indicator.awesome_oscillator.id, Indicator.awesome_oscillator);
+		indicators.set(Indicator.balance_of_power.id, Indicator.balance_of_power);
+		indicators.set(Indicator.bollinger_bands.id, Indicator.bollinger_bands);
+		indicators.set(Indicator.chandelier_exit.id, Indicator.chandelier_exit);
+		indicators.set(Indicator.chaikin_money_flow.id, Indicator.chaikin_money_flow);
+		indicators.set(Indicator.chaikins_volatility.id, Indicator.chaikins_volatility);
+		indicators.set(Indicator.chande_momentum_oscillator.id, Indicator.chande_momentum_oscillator);
+		indicators.set(Indicator.commodity_channel_index.id, Indicator.commodity_channel_index);
+		indicators.set(Indicator.crossover.id, Indicator.crossover);
+		indicators.set(Indicator.cross_over_number.id, Indicator.cross_over_number);
+		indicators.set(Indicator.cross_under_number.id, Indicator.cross_under_number);
+		indicators.set(Indicator.detrended_price_oscillator.id, Indicator.detrended_price_oscillator);
+		indicators.set(Indicator.directional_indicator.id, Indicator.directional_indicator);
+		indicators.set(Indicator.directional_movement.id, Indicator.directional_movement);
+		indicators.set(Indicator.directional_movement_index.id, Indicator.directional_movement_index);
+		indicators.set(Indicator.donchian_channels.id, Indicator.donchian_channels);
+		indicators.set(Indicator.double_exponential_moving_average.id, Indicator.double_exponential_moving_average);
+		indicators.set(Indicator.ease_of_movement.id, Indicator.ease_of_movement);
+		indicators.set(Indicator.exponential_decay.id, Indicator.exponential_decay);
+		indicators.set(Indicator.exponential_moving_average.id, Indicator.exponential_moving_average);
+		indicators.set(Indicator.fisher_transform.id, Indicator.fisher_transform);
+		indicators.set(Indicator.force_index.id, Indicator.force_index);
+		indicators.set(Indicator.forecast_oscillator.id, Indicator.forecast_oscillator);
+		indicators.set(Indicator.hull_moving_average.id, Indicator.hull_moving_average);
+		indicators.set(Indicator.kaufman_adaptive_moving_average.id, Indicator.kaufman_adaptive_moving_average);
+		indicators.set(Indicator.keltner_channels.id, Indicator.keltner_channels);
+		indicators.set(Indicator.klinger_volume_oscillator.id, Indicator.klinger_volume_oscillator);
+		indicators.set(Indicator.know_sure_thing.id, Indicator.know_sure_thing);
+		indicators.set(Indicator.lag.id, Indicator.lag);
+		indicators.set(Indicator.linear_decay.id, Indicator.linear_decay);
+		indicators.set(Indicator.linear_regression.id, Indicator.linear_regression);
+		indicators.set(Indicator.linear_regression_intercept.id, Indicator.linear_regression_intercept);
+		indicators.set(Indicator.linear_regression_slope.id, Indicator.linear_regression_slope);
+		indicators.set(Indicator.mass_index.id, Indicator.mass_index);
+		indicators.set(Indicator.market_facilitation_index.id, Indicator.market_facilitation_index);
+		indicators.set(Indicator.maximum_in_period.id, Indicator.maximum_in_period);
+		indicators.set(Indicator.mean_deviation_over_period.id, Indicator.mean_deviation_over_period);
+		indicators.set(Indicator.median_price.id, Indicator.median_price);
+		indicators.set(Indicator.minimum_in_period.id, Indicator.minimum_in_period);
+		indicators.set(Indicator.momentum.id, Indicator.momentum);
+		indicators.set(Indicator.money_flow_index.id, Indicator.money_flow_index);
+		indicators.set(Indicator.moving_average_convergence_divergence.id, Indicator.moving_average_convergence_divergence);
+		indicators.set(Indicator.negative_volume_index.id, Indicator.negative_volume_index);
+		indicators.set(Indicator.normalized_average_true_range.id, Indicator.normalized_average_true_range);
+		indicators.set(Indicator.on_balance_volume.id, Indicator.on_balance_volume);
+		indicators.set(Indicator.pbands.id, Indicator.pbands);
+		indicators.set(Indicator.parabolic_sar.id, Indicator.parabolic_sar);
+		indicators.set(Indicator.percentage_price_oscillator.id, Indicator.percentage_price_oscillator);
+		indicators.set(Indicator.polarized_fractal_efficiency.id, Indicator.polarized_fractal_efficiency);
+		indicators.set(Indicator.poscillator.id, Indicator.poscillator);
+		indicators.set(Indicator.positive_volume_index.id, Indicator.positive_volume_index);
+		indicators.set(Indicator.qstick.id, Indicator.qstick);
+		indicators.set(Indicator.rate_of_change.id, Indicator.rate_of_change);
+		indicators.set(Indicator.rate_of_change_ratio.id, Indicator.rate_of_change_ratio);
+		indicators.set(Indicator.recursive_moving_trend_average.id, Indicator.recursive_moving_trend_average);
+		indicators.set(Indicator.relative_momentum_index.id, Indicator.relative_momentum_index);
+		indicators.set(Indicator.relative_strength_index.id, Indicator.relative_strength_index);
+		indicators.set(Indicator.relative_vigor_index.id, Indicator.relative_vigor_index);
+		indicators.set(Indicator.simple_moving_average.id, Indicator.simple_moving_average);
+		indicators.set(Indicator.standard_deviation_over_period.id, Indicator.standard_deviation_over_period);
+		indicators.set(Indicator.standard_error_over_period.id, Indicator.standard_error_over_period);
+		indicators.set(Indicator.stochastic_momentum_index.id, Indicator.stochastic_momentum_index);
+		indicators.set(Indicator.stochastic_oscillator.id, Indicator.stochastic_oscillator);
+		indicators.set(Indicator.stochastic_rsi.id, Indicator.stochastic_rsi);
+		indicators.set(Indicator.sum_over_period.id, Indicator.sum_over_period);
+		indicators.set(Indicator.time_series_forecast.id, Indicator.time_series_forecast);
+		indicators.set(Indicator.triangular_moving_average.id, Indicator.triangular_moving_average);
+		indicators.set(Indicator.trix.id, Indicator.trix);
+		indicators.set(Indicator.true_range.id, Indicator.true_range);
+		indicators.set(Indicator.true_strength_index.id, Indicator.true_strength_index);
+		indicators.set(Indicator.triple_exponential_moving_average.id, Indicator.triple_exponential_moving_average);
+		indicators.set(Indicator.typical_price.id, Indicator.typical_price);
+		indicators.set(Indicator.ultimate_oscillator.id, Indicator.ultimate_oscillator);
+		indicators.set(Indicator.variable_index_dynamic_average.id, Indicator.variable_index_dynamic_average);
+		indicators.set(Indicator.vertical_horizontal_filter.id, Indicator.vertical_horizontal_filter);
+		indicators.set(Indicator.volume_oscillator.id, Indicator.volume_oscillator);
+		indicators.set(Indicator.volume_weighted_average_price.id, Indicator.volume_weighted_average_price);
+		indicators.set(Indicator.volume_weighted_moving_average.id, Indicator.volume_weighted_moving_average);
+		indicators.set(Indicator.weighted_close_price.id, Indicator.weighted_close_price);
+		indicators.set(Indicator.weighted_moving_average.id, Indicator.weighted_moving_average);
+		indicators.set(Indicator.williams_accumulation_distribution.id, Indicator.williams_accumulation_distribution);
+		indicators.set(Indicator.williams_r.id, Indicator.williams_r);
+		indicators.set(Indicator.wilders_smoothing.id, Indicator.wilders_smoothing);
+		indicators.set(Indicator.zero_lag_exponential_moving_average.id, Indicator.zero_lag_exponential_moving_average);
+
+		return indicators;
 	}
 }
 
@@ -1629,7 +1651,6 @@ export type TickerTimestamp = Timestamp;
 export type CandleTimestamp = Timestamp;
 export type CandlePrice = Amount;
 export type CandleVolume = Amount;
-export type CandleInterval = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w' | '1M' | '1y';
 
 export type IndicatorId = Id;
 export type IndicatorName = Name;
@@ -2447,6 +2468,11 @@ export interface FinGetIndicatorsRequest {
 	 * Candles
 	 */
 	candles?: List<Candle>;
+
+	/**
+	 * Indicators
+	 */
+	indicatorsIds?: List<IndicatorId> | IndicatorId[];
 }
 
 /**
