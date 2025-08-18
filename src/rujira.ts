@@ -778,7 +778,6 @@ export class Fin {
 		// rawTransaction = await this.cosmClientGetTx(hash);
 
 		const url = `${properties.getAs<URL>('rujira.endpoints.rest')}/cosmos/tx/v1beta1/txs/${hash}`;
-		// TODO: add a example response!!!
 		const response = await this.parent.fetch(url, {
 			method: 'GET',
 			headers: { 'Content-Type': 'application/json' }
@@ -788,6 +787,468 @@ export class Fin {
 			throw new Error(`REST request failed: ${response.status} ${response.statusText}`);
 		}
 
+		/*
+		 Example response:
+			{
+				"tx": {
+					"body": {
+						"messages": [
+							{
+								"@type": "/cosmwasm.wasm.v1.MsgExecuteContract",
+								"sender": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+								"contract": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+								"msg": {
+									"order": [
+										[
+											[
+												"quote",
+												{
+													"oracle": -10
+												},
+												null
+											]
+										],
+										null
+									]
+								},
+								"funds": []
+							}
+						],
+						"memo": "",
+						"timeout_height": "0",
+						"unordered": false,
+						"timeout_timestamp": null,
+						"extension_options": [],
+						"non_critical_extension_options": []
+					},
+					"auth_info": {
+						"signer_infos": [
+							{
+								"public_key": {
+									"@type": "/cosmos.crypto.secp256k1.PubKey",
+									"key": "A+hW5IxjCgxmWrzXevSgNh09inMoYCZa3Kv7yj3NgIpD"
+								},
+								"mode_info": {
+									"single": {
+										"mode": "SIGN_MODE_LEGACY_AMINO_JSON"
+									}
+								},
+								"sequence": "225"
+							}
+						],
+						"fee": {
+							"amount": [
+								{
+									"denom": "rune",
+									"amount": "55763"
+								}
+							],
+							"gas_limit": "2788128",
+							"payer": "",
+							"granter": ""
+						},
+						"tip": null
+					},
+					"signatures": [
+						"MN0FaJMZLh+ki86W51OYcv7gzloU0rMhuSm+9Z1ilW1X/+5KKLwWh7dlrrYZUmM6FMn/nIA/wKdcKnpNG3rOHw=="
+					]
+				},
+				"tx_response": {
+					"height": "22385725",
+					"txhash": "0BD692147F4D28106113FA28963E2D47FB861FFE13D33ECDD1AAF33845B090E2",
+					"codespace": "",
+					"code": 0,
+					"data": "122E0A2C2F636F736D7761736D2E7761736D2E76312E4D736745786563757465436F6E7472616374526573706F6E7365",
+					"raw_log": "",
+					"logs": [],
+					"info": "",
+					"gas_wanted": "-1",
+					"gas_used": "2164253",
+					"tx": {
+						"@type": "/cosmos.tx.v1beta1.Tx",
+						"body": {
+							"messages": [
+								{
+									"@type": "/cosmwasm.wasm.v1.MsgExecuteContract",
+									"sender": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"contract": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"msg": {
+										"order": [
+											[
+												[
+													"quote",
+													{
+														"oracle": -10
+													},
+													null
+												]
+											],
+											null
+										]
+									},
+									"funds": []
+								}
+							],
+							"memo": "",
+							"timeout_height": "0",
+							"unordered": false,
+							"timeout_timestamp": null,
+							"extension_options": [],
+							"non_critical_extension_options": []
+						},
+						"auth_info": {
+							"signer_infos": [
+								{
+									"public_key": {
+										"@type": "/cosmos.crypto.secp256k1.PubKey",
+										"key": "A+hW5IxjCgxmWrzXevSgNh09inMoYCZa3Kv7yj3NgIpD"
+									},
+									"mode_info": {
+										"single": {
+											"mode": "SIGN_MODE_LEGACY_AMINO_JSON"
+										}
+									},
+									"sequence": "225"
+								}
+							],
+							"fee": {
+								"amount": [
+									{
+										"denom": "rune",
+										"amount": "55763"
+									}
+								],
+								"gas_limit": "2788128",
+								"payer": "",
+								"granter": ""
+							},
+							"tip": null
+						},
+						"signatures": [
+							"MN0FaJMZLh+ki86W51OYcv7gzloU0rMhuSm+9Z1ilW1X/+5KKLwWh7dlrrYZUmM6FMn/nIA/wKdcKnpNG3rOHw=="
+						]
+					},
+					"timestamp": "2025-08-13T20:47:40Z",
+					"events": [
+						{
+							"type": "coin_spent",
+							"attributes": [
+								{
+									"key": "spender",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "55763rune",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "coin_received",
+							"attributes": [
+								{
+									"key": "receiver",
+									"value": "thor17xpfvakm2amg962yls6f84z3kell8c5lk76m7z",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "55763rune",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "transfer",
+							"attributes": [
+								{
+									"key": "recipient",
+									"value": "thor17xpfvakm2amg962yls6f84z3kell8c5lk76m7z",
+									"index": true
+								},
+								{
+									"key": "sender",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "55763rune",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "message",
+							"attributes": [
+								{
+									"key": "sender",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "tx",
+							"attributes": [
+								{
+									"key": "fee",
+									"value": "55763rune",
+									"index": true
+								},
+								{
+									"key": "fee_payer",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "tx",
+							"attributes": [
+								{
+									"key": "acc_seq",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6/225",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "tx",
+							"attributes": [
+								{
+									"key": "signature",
+									"value": "MN0FaJMZLh+ki86W51OYcv7gzloU0rMhuSm+9Z1ilW1X/+5KKLwWh7dlrrYZUmM6FMn/nIA/wKdcKnpNG3rOHw==",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "message",
+							"attributes": [
+								{
+									"key": "action",
+									"value": "/cosmwasm.wasm.v1.MsgExecuteContract",
+									"index": true
+								},
+								{
+									"key": "sender",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								},
+								{
+									"key": "module",
+									"value": "wasm",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "execute",
+							"attributes": [
+								{
+									"key": "_contract_address",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "wasm-rujira-fin/order.withdraw",
+							"attributes": [
+								{
+									"key": "_contract_address",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "owner",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								},
+								{
+									"key": "side",
+									"value": "quote",
+									"index": true
+								},
+								{
+									"key": "price",
+									"value": "oracle:-10",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "1703",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "coin_spent",
+							"attributes": [
+								{
+									"key": "spender",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "1701btc-btc",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "coin_received",
+							"attributes": [
+								{
+									"key": "receiver",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "1701btc-btc",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "transfer",
+							"attributes": [
+								{
+									"key": "recipient",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								},
+								{
+									"key": "sender",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "1701btc-btc",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "coin_spent",
+							"attributes": [
+								{
+									"key": "spender",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "2btc-btc",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "coin_received",
+							"attributes": [
+								{
+									"key": "receiver",
+									"value": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "2btc-btc",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "transfer",
+							"attributes": [
+								{
+									"key": "recipient",
+									"value": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+									"index": true
+								},
+								{
+									"key": "sender",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "2btc-btc",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "execute",
+							"attributes": [
+								{
+									"key": "_contract_address",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						}
+					]
+				}
+			}
+		*/
 		rawTransaction = await response.json() as {
 			tx: {
 				body: {
