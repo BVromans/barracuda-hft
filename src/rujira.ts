@@ -748,7 +748,7 @@ export class Fin {
 		} catch (error) {
 			const errorMessage = error instanceof Error
 				? `Connection failed: ${error.message}`
-				: 'Connection failed: Unknown error';
+				: `Connection failed: Unknown error: ${error}`;
 
 			return {
 				error: errorMessage,
