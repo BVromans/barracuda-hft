@@ -1476,7 +1476,7 @@ export class Fin {
 	 * @returns The candles response
 	 */
 	async getCandles(request: FinGetCandlesRequest): Promise<FinGetCandlesResponse> {
-		let { marketAddress, marketSymbol, market, maximumNumberOfCandles, interval } = request;
+		let { marketAddress, marketSymbol, market, interval, maximumNumberOfCandles } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
 		marketSymbol = marketSymbol?.trim();
@@ -1567,7 +1567,7 @@ export class Fin {
 	 * @returns The indicators response
 	 */
 	async getIndicators(request: FinGetIndicatorsRequest): Promise<FinGetIndicatorsResponse> {
-		let { candles, marketAddress, marketSymbol, market, maximumNumberOfCandles, interval } = request;
+		let { marketAddress, marketSymbol, market, interval, maximumNumberOfCandles, candles } = request;
 
 		if (!candles || candles.size === 0) {
 			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
