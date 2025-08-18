@@ -107,3 +107,8 @@ else
 	update_yaml_value "privateKey" "$secret_value"
 	update_yaml_value "mnemonic" ""
 fi
+
+echo -e "\n\n"
+echo "========================================"
+echo "Setup completed"
+echo -e "========================================\n"
