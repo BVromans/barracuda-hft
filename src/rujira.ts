@@ -1617,13 +1617,13 @@ export class Fin {
 		addresses.forEach((address: MarketAddress) => {
 			const market = this.marketsByAddress.getOrThrow(address);
 			if (!market) throw new Error(`Market not found: ${address}`);
-			markets.set(address, market);
+			markets.set(market.symbol, market);
 		});
 
 		symbols.forEach((symbol: MarketSymbol) => {
 			const market = this.marketsBySymbol.getOrThrow(symbol);
 			if (!market) throw new Error(`Market not found: ${symbol}`);
-			markets.set(market.address, market);
+			markets.set(market.symbol, market);
 		});
 
 		return markets;
