@@ -2398,14 +2398,14 @@ export interface FinGetCandlesRequest {
 	market?: Market;
 
 	/**
-	 * Maximum number of candles to return
-	 */
-	maximumNumberOfCandles?: Integer;
-
-	/**
 	 * Candle interval
 	 */
 	interval?: CandleInterval;
+
+	/**
+	 * Maximum number of candles to return
+	 */
+	maximumNumberOfCandles?: Integer;
 }
 
 /**
@@ -2434,14 +2434,14 @@ export interface FinGetIndicatorsRequest {
 	market?: Market;
 
 	/**
-	 * Maximum number of candles to return
-	 */
-	maximumNumberOfCandles?: Integer;
-
-	/**
 	 * Candle interval
 	 */
 	interval?: CandleInterval;
+
+	/**
+	 * Maximum number of candles to return
+	 */
+	maximumNumberOfCandles?: Integer;
 
 	/**
 	 * Candles
