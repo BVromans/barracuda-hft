@@ -28,7 +28,8 @@ import { dump } from "./utils";
 		replaceOrders: false,
 		cancelOrder: false,
 		cancelOrders: false,
-		withdrawOrders: false,
+		cancelAllOrders: false,
+		withdrawFilledOrders: false,
 		persistOrders: false,
 	};
 
@@ -203,9 +204,9 @@ import { dump } from "./utils";
 		const getOrder = await rujira.fin.getOrder({
 			ownerAddress: walletAddress,
 			// marketAddress: targetMarketAddress,
-			// marketSymbol: targetMarketSymbol,
+			marketSymbol: targetMarketSymbol,
 			orderSide: OrderSide.BUY,
-			orderPrice: Decimal('0.000001')
+			orderPrice: Decimal('0.123456789')
 		});
 		console.log('getOrder:\n', dump(getOrder));
 		console.log('\n--------------------------------------------------------------------------------\n');
@@ -215,11 +216,11 @@ import { dump } from "./utils";
 		const getOrders = await rujira.fin.getOrders({
 			ownerAddress: walletAddress,
 			// marketAddress: targetMarketAddress,
-			// marketSymbol: targetMarketSymbol,
+			marketSymbol: targetMarketSymbol,
 			orderTypes: [OrderType.FIXED_PRICE],
-			orderSides: [OrderSide.SELL],
+			orderSides: [OrderSide.BUY, OrderSide.SELL],
 			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED],
-			// orderPrices: [Decimal('0.9')],
+			// orderPrices: [Decimal('0.123456789'), Decimal('987654321.123456789')],
 			// maximumNumberOfOrders: 2
 		});
 			console.log('getOrders:size:', dump(getOrders.size));
@@ -229,24 +230,25 @@ import { dump } from "./utils";
 	}
 
 	if (active.placeOrder) {
-		// const placeOrder = await rujira.fin.placeOrder({
-		// 	ownerAddress: walletAddress,
-		// 	marketAddress: targetMarketAddress,
-		// 	marketSymbol: targetMarketSymbol,
-		// 	type: OrderType.FIXED_PRICE,
-		// 	side: OrderSide.BUY,
-		// 	amount: Decimal('0.000001'),
-		// 	price: Decimal('0.000001')
-		// });
-		const placeOrder = await rujira.fin.placeOrder({
+		const buyOrder = await rujira.fin.placeOrder({
 			ownerAddress: walletAddress,
 			// marketAddress: targetMarketAddress,
+			marketSymbol: targetMarketSymbol,
+			type: OrderType.FIXED_PRICE,
+			side: OrderSide.BUY,
+			amount: Decimal('0.123456789'),
+			price: Decimal('0.123456789')
+		});
+		const sellOrder = await rujira.fin.placeOrder({
+			ownerAddress: walletAddress,
+			marketAddress: targetMarketAddress,
 			// marketSymbol: targetMarketSymbol,
 			type: OrderType.FIXED_PRICE,
 			side: OrderSide.SELL,
 			amount: Decimal('0.123456789'),
-			price: Decimal('999.1')
+			price: Decimal('987654321.123456789')
 		});
+		const placeOrder = buyOrder;
 		console.log('placeOrder:\n', dump(placeOrder));
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
@@ -256,21 +258,37 @@ import { dump } from "./utils";
 			ownerAddress: walletAddress,
 			orders: [
 				{
-					marketAddress: targetMarketAddress,
-					// marketSymbol: targetMarketSymbol,
+					// marketAddress: targetMarketAddress,
+					marketSymbol: targetMarketSymbol,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
-					amount: Decimal('0.000001'),
-					price: Decimal('0.000002')
+					amount: Decimal('0.000000001'),
+					price: Decimal('0.123456711')
 				},
 				{
-					marketAddress: targetMarketAddress,
-					// marketSymbol: targetMarketSymbol,
+					// marketAddress: targetMarketAddress,
+					marketSymbol: targetMarketSymbol,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
-					amount: Decimal('0.000001'),
-					price: Decimal('0.000003')
-				}
+					amount: Decimal('0.123456789'),
+					price: Decimal('0.123456712')
+				},
+				{
+					// marketAddress: targetMarketAddress,
+					marketSymbol: targetMarketSymbol,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.SELL,
+					amount: Decimal('0.000000001'),
+					price: Decimal('987654321.123456721')
+				},
+				{
+					// marketAddress: targetMarketAddress,
+					marketSymbol: targetMarketSymbol,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.SELL,
+					amount: Decimal('0.123456789'),
+					price: Decimal('987654321.123456722')
+				},
 			]
 		});
 		console.log('placeOrders:\n', dump(placeOrders));
@@ -278,15 +296,25 @@ import { dump } from "./utils";
 	}
 
 	if (active.replaceOrder) {
-		const replaceOrder = await rujira.fin.replaceOrder({
+		const buyOrder = await rujira.fin.replaceOrder({
+			ownerAddress: walletAddress,
+			// marketAddress: targetMarketAddress,
+			marketSymbol: targetMarketSymbol,
+			side: OrderSide.BUY,
+			type: OrderType.FIXED_PRICE,
+			amount: Decimal('0.987654321'),
+			price: Decimal('0.123456789')
+		});
+		const sellOrder = await rujira.fin.replaceOrder({
 			ownerAddress: walletAddress,
 			marketAddress: targetMarketAddress,
 			// marketSymbol: targetMarketSymbol,
-			side: OrderSide.BUY,
+			side: OrderSide.SELL,
 			type: OrderType.FIXED_PRICE,
-			amount: Decimal('0.000002'),
-			price: Decimal('0.000001')
+			amount: Decimal('0.987654321'),
+			price: Decimal('987654321.123456789')
 		});
+		const replaceOrder = buyOrder;
 		console.log('replaceOrder:\n', dump(replaceOrder));
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
@@ -294,19 +322,75 @@ import { dump } from "./utils";
 	if (active.replaceOrders) {
 		const replaceOrders = await rujira.fin.replaceOrders({
 			ownerAddress: walletAddress,
-			orders: []
+			orders: [
+				{
+					// marketAddress: targetMarketAddress,
+					marketSymbol: targetMarketSymbol,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.BUY,
+					amount: Decimal('0.000000002'),
+					price: Decimal('0.123456711')
+				},
+				{
+					// marketAddress: targetMarketAddress,
+					marketSymbol: targetMarketSymbol,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.BUY,
+					amount: Decimal('0.987654322'),
+					price: Decimal('0.123456712')
+				},
+				{
+					// marketAddress: targetMarketAddress,
+					marketSymbol: targetMarketSymbol,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.SELL,
+					amount: Decimal('0.000000003'),
+					price: Decimal('987654321.123456721')
+				},
+				{
+					// marketAddress: targetMarketAddress,
+					marketSymbol: targetMarketSymbol,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.SELL,
+					amount: Decimal('0.987654323'),
+					price: Decimal('987654321.123456722')
+				},
+			]
 		});
 		console.log('replaceOrders:\n', dump(replaceOrders));
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.cancelOrder) {
-		const cancelOrder = await rujira.fin.cancelOrder({
+		const buyOrder = {
 			ownerAddress: walletAddress,
-			marketAddress: targetMarketAddress,
-			// marketSymbol: targetMarketSymbol,
-			orderId: `${walletAddress}-${targetMarketAddress}-${OrderSide.BUY}-${Decimal('0.80')}}`
-		});
+			// marketAddress: targetMarketAddress,
+			marketSymbol: targetMarketSymbol,
+			orderId: rujira.fin.getOrderId({
+				ownerAddress: walletAddress,
+				marketSymbol: targetMarketSymbol,
+				market: undefined,
+				orderType: OrderType.FIXED_PRICE,
+				orderSide: OrderSide.BUY,
+				orderPrice: Decimal('0.123456789'),
+				order: undefined,
+			})
+		};
+		const sellOrder = {
+			ownerAddress: walletAddress,
+			// marketAddress: targetMarketAddress,
+			marketSymbol: targetMarketSymbol,
+			orderId: rujira.fin.getOrderId({
+				ownerAddress: walletAddress,
+				marketSymbol: targetMarketSymbol,
+				market: undefined,
+				orderType: OrderType.FIXED_PRICE,
+				orderSide: OrderSide.SELL,
+				orderPrice: Decimal('987654321.123456789'),
+				order: undefined,
+			})
+		};
+		const cancelOrder = await rujira.fin.cancelOrder(buyOrder);
 		console.log('cancelOrder:\n', dump(cancelOrder));
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
@@ -314,27 +398,75 @@ import { dump } from "./utils";
 	if (active.cancelOrders) {
 		const cancelOrders = await rujira.fin.cancelOrders({
 			ownerAddress: walletAddress,
-			orders: []
+			orders: [],
+			orderIds: [
+				rujira.fin.getOrderId({
+					ownerAddress: walletAddress,
+					marketSymbol: targetMarketSymbol,
+					market: undefined,
+					orderType: OrderType.FIXED_PRICE,
+					orderSide: OrderSide.BUY,
+					orderPrice: Decimal('0.123456789'),
+					order: undefined,
+				}),
+				rujira.fin.getOrderId({
+					ownerAddress: walletAddress,
+					marketSymbol: targetMarketSymbol,
+					market: undefined,
+					orderType: OrderType.FIXED_PRICE,
+					orderSide: OrderSide.SELL,
+					orderPrice: Decimal('0.123456789'),
+					order: undefined,
+				}),
+				rujira.fin.getOrderId({
+					ownerAddress: walletAddress,
+					marketSymbol: targetMarketSymbol,
+					market: undefined,
+					orderType: OrderType.FIXED_PRICE,
+					orderSide: OrderSide.SELL,
+					orderPrice: Decimal('0.123456789'),
+					order: undefined,
+				}),
+				rujira.fin.getOrderId({
+					ownerAddress: walletAddress,
+					marketSymbol: targetMarketSymbol,
+					market: undefined,
+					orderType: OrderType.FIXED_PRICE,
+					orderSide: OrderSide.SELL,
+					orderPrice: Decimal('0.123456789'),
+					order: undefined,
+				})
+			]
 		});
 		console.log('cancelOrders:\n', dump(cancelOrders));
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
-	if (active.withdrawOrders) {
-		const withdrawOrders = await rujira.fin.withdrawFilledOrders({
+	if (active.cancelAllOrders) {
+		const cancelAllOrders = await rujira.fin.cancelAllOrders({
 			ownerAddress: walletAddress,
-			marketAddress: targetMarketAddress,
-			// marketSymbol: targetMarketSymbol,
+			// marketAddress: targetMarketAddress,
+			marketSymbol: targetMarketSymbol,
 		});
-		console.log('withdrawOrders:\n', dump(withdrawOrders));
+		console.log('cancelAllOrders:\n', dump(cancelAllOrders));
+		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.withdrawFilledOrders) {
+		const withdrawFilledOrders = await rujira.fin.withdrawFilledOrders({
+			ownerAddress: walletAddress,
+			// marketAddress: targetMarketAddress,
+			marketSymbol: targetMarketSymbol,
+		});
+		console.log('withdrawOrders:\n', dump(withdrawFilledOrders));
 		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.persistOrders) {
 		const persistOrders = await rujira.fin.persistOrders({
 			ownerAddress: walletAddress,
-			marketAddress: targetMarketAddress,
-			// marketSymbol: targetMarketSymbol,
+			// marketAddress: targetMarketAddress,
+			marketSymbol: targetMarketSymbol,
 			orders: {
 				place: undefined,
 				replace: undefined,
