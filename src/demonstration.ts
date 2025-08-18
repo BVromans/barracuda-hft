@@ -80,7 +80,7 @@ import { dump, get } from "./utils";
 	const defaultSellOrderMaximumAmount = Decimal('1.123456789');
 
 	const defaultSellOrderMiniumPrice = get<Price>(defaultMarketTicker.middlePrice.quoteToBase).mul(defaultSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100));
-	const defaultSellOrderMiddlePrice = Decimal('98.123456789');
+	const defaultSellOrderMiddlePrice = Decimal('987654.123456789');
 	const defaultSellOrderMaximumPrice = Decimal('987654321.123456789');
 	const defaultSellOrderFillablePrice = get<OrderBookOrder>(defaultMarketOrderBook.book.bestBid).price;
 
