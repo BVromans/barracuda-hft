@@ -474,7 +474,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		}
 
 		if (shouldWithdrawAllFilledOrders) {
-			await this.rujira.fin.withdrawFilledOrders({
+			await this.rujira.fin.withdrawAllFilledOrders({
 				ownerAddress: this.rujira.walletAddress,
 				market: this.state.getOrThrow('market'),
 			});

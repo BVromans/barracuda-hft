@@ -71,8 +71,8 @@ import {
 	FinReplaceOrderResponse,
 	FinReplaceOrdersRequest,
 	FinReplaceOrdersResponse,
-	FinWithdrawFilledOrdersRequest,
-	FinWithdrawFilledOrdersResponse,
+	FinWithdrawAllFilledOrdersRequest,
+	FinWithdrawAllFilledOrdersResponse,
 	Indicator,
 	IndicatorData,
 	IndicatorId,
@@ -2912,7 +2912,7 @@ export class Fin {
 	 * @param request - The request object
 	 * @returns The response for the withdrawn orders
 	 */
-	async withdrawFilledOrders(request: FinWithdrawFilledOrdersRequest): Promise<FinWithdrawFilledOrdersResponse> {
+	async withdrawAllFilledOrders(request: FinWithdrawAllFilledOrdersRequest): Promise<FinWithdrawAllFilledOrdersResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
 		const allFilledOrders = await this.getOrders({
@@ -3396,7 +3396,7 @@ export class Fin {
 			ownerAddress = get<Order>(order).ownerAddress;
 		}
 
-		marketSymbol = marketSymbol || order?.market?.symbol || get<Market>(market).symbol;
+		marketSymbol = order?.market?.symbol || get<Market>(market).symbol;
 
 		if (!orderType) {
 			orderType = get<Order>(order).type;

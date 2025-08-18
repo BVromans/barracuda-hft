@@ -251,7 +251,7 @@ async function testWithdrawOrders(rujira: Rujira) {
 
 		console.log(`   Filled order: ${firstFilledOrder.side} ${firstFilledOrder.amount} @ ${firstFilledOrder.price} (${firstFilledOrder.status})`);
 
-		const withdrawResult = await rujira.fin.withdrawFilledOrders({
+		const withdrawResult = await rujira.fin.withdrawAllFilledOrders({
 			ownerAddress: rujira.walletAddress,
 			marketSymbol: "THOR-RUJI/ETH-USDC"
 		});

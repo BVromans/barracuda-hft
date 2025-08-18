@@ -1615,6 +1615,7 @@ export type Name = string;
 export type Mnemonic = string;
 export type PrivateKey = string;
 export type Integer = number;
+export type Price = Decimal;
 export type Amount = Decimal;
 export type Percentage = Decimal;
 export type Hash = string;
@@ -1639,17 +1640,17 @@ export type TransactionHash = Hash;
 export type MarketAddress = Address;
 export type MarketSymbol = Symbol;
 export type MarketDecimals = Integer;
-export type MarketPrice = Amount;
+export type MarketPrice = Price;
 
-export type OrderBookOrderPrice = Amount;
+export type OrderBookOrderPrice = Price;
 export type OrderBookOrderAmount = Amount;
-export type OrderBookPrice = Amount;
+export type OrderBookPrice = Price;
 
-export type TickerPrice = Amount;
+export type TickerPrice = Price;
 export type TickerTimestamp = Timestamp;
 
 export type CandleTimestamp = Timestamp;
-export type CandlePrice = Amount;
+export type CandlePrice = Price;
 export type CandleVolume = Amount;
 
 export type IndicatorId = Id;
@@ -1658,7 +1659,7 @@ export type IndicatorParameters = any[];
 export type IndicatorValue = any;
 
 export type OrderId = Id;
-export type OrderPrice = Amount;
+export type OrderPrice = Price;
 export type OrderAmount = Amount;
 export type OrderFilledAmount = Amount;
 export type OrderFilledPercentage = Percentage;
@@ -2906,7 +2907,7 @@ export interface FinCancelAllOrdersResponse extends FinCancelOrdersResponse {
 /**
  * Withdraw from market request
  */
-export interface FinWithdrawFilledOrdersRequest {
+export interface FinWithdrawAllFilledOrdersRequest {
 	/**
 	 * Owner address (wallet that will withdraw)
 	 */
@@ -2936,7 +2937,7 @@ export interface FinWithdrawFilledOrdersRequest {
 /**
  * Withdraw from market response
  */
-export interface FinWithdrawFilledOrdersResponse {
+export interface FinWithdrawAllFilledOrdersResponse {
 	/**
 	 * List of withdrawn orders
 	 */
@@ -2984,12 +2985,12 @@ export interface FinPersistOrdersRequest {
 		/**
 		 * Place new orders
 		 */
-		place?: List<FinPlaceOrderRequest>;
+		place?: List<FinPlaceOrderRequest> | FinPlaceOrderRequest[];
 
 		/**
 		 * Replace existing orders
 		 */
-		replace?: List<FinReplaceOrderRequest>;
+		replace?: List<FinReplaceOrderRequest> | FinReplaceOrderRequest[];
 
 		/**
 		 * Cancel orders by IDs or order objects

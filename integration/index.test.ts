@@ -986,7 +986,7 @@ describe("Rujira", async() => {
 
 		describe.skip("withdraw", () => {
 			it.skip("should be able to withdraw market by address", async () => {
-					const result = await rujira.fin.withdrawFilledOrders({
+					const result = await rujira.fin.withdrawAllFilledOrders({
 						marketAddress: firstMarketAddress,
 						marketSymbol: undefined,
 						ownerAddress: walletPublicKeyThor
@@ -1042,7 +1042,7 @@ describe("Rujira", async() => {
 			});
 
 			it("should be able to withdraw market by symbol", async () => {
-				const result = await rujira.fin.withdrawFilledOrders({
+				const result = await rujira.fin.withdrawAllFilledOrders({
 					marketAddress: undefined,
 					marketSymbol: firstMarketSymbol,
 					ownerAddress: walletPublicKeyThor,
