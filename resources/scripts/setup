@@ -63,8 +63,21 @@ echo "Wallet Configuration"
 echo -e "========================================\n"
 
 credential_type=""
-while [ "$credential_type" != "mnemonic" ] && [ "$credential_type" != "privateKey" ]; do
-	read -r -p "Which credential do you want to configure? [mnemonic/privateKey]: " credential_type
+while true; do
+	read -r -p "Which credential do you want to configure? [mnemonic/privateKey] (press Enter to skip): " credential_type
+
+	# Skip if user presses Enter (empty input)
+	if [ -z "$credential_type" ]; then
+		echo "Credential configuration skipped."
+		exit 0
+	fi
+
+	# Validate credential type
+	if [ "$credential_type" = "mnemonic" ] || [ "$credential_type" = "privateKey" ]; then
+		break
+	fi
+
+	echo "Invalid choice. Please enter 'mnemonic', 'privateKey', or press Enter to skip."
 done
 
 secret_value=""
