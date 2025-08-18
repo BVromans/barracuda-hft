@@ -3383,19 +3383,20 @@ export class Fin {
 	 */
 	public getOrderId(options: {
 		ownerAddress?: WalletAddress;
+		marketSymbol?: MarketSymbol;
 		market?: Market;
 		order?: Order | FinPlaceOrderRequest | FinReplaceOrderRequest;
 		orderType?: OrderType;
 		orderSide?: OrderSide;
 		orderPrice?: Decimal;
 	}): OrderId {
-		let { ownerAddress, market, order, orderType, orderSide, orderPrice } = options;
+		let { ownerAddress, marketSymbol, market, order, orderType, orderSide, orderPrice } = options;
 
 		if (!ownerAddress) {
 			ownerAddress = get<Order>(order).ownerAddress;
 		}
 
-		const marketSymbol: MarketSymbol = order?.market?.symbol || get<Market>(market).symbol;
+		marketSymbol = marketSymbol || order?.market?.symbol || get<Market>(market).symbol;
 
 		if (!orderType) {
 			orderType = get<Order>(order).type;
