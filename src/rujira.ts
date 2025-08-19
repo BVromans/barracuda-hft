@@ -2980,6 +2980,9 @@ export class Fin {
 			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 		}
 
+		marketAddress = market.address;
+		marketSymbol = market.symbol;
+
 		// Sanitize place orders
 		if (orders.place) {
 			orders.place = MList<FinPlaceOrderRequest>(orders.place.map((order: FinPlaceOrderRequest) => ({
@@ -3047,11 +3050,8 @@ export class Fin {
 		const validateMarket = (orders: any[], operation: string) => {
 			if (orders && orders.length > 0) {
 				orders.forEach((order: any) => {
-					if (order.marketAddress && order.marketAddress !== marketAddress) {
-						throw new Error(`${operation} orders must use the same market. Expected: ${marketAddress}, Got: ${order.marketAddress}`);
-					}
-					if (order.marketSymbol && order.marketSymbol !== marketSymbol) {
-						throw new Error(`${operation} orders must use the same market. Expected: ${marketSymbol}, Got: ${order.marketSymbol}`);
+					if (order.marketAddress && order.marketAddress !== market.address) {
+						throw new Error(`${operation} orders must use the same market. Expected: ${market.address}, Got: ${order.marketAddress}`);
 					}
 				});
 			}
