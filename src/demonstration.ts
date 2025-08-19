@@ -85,7 +85,7 @@ import { dump, get } from "./utils";
 	const defaultSellOrderMiddleAmount = Decimal('0.01234567'); // Depends on the market decimals
 	const defaultSellOrderMaximumAmount = Decimal('0.12345678'); // Depends on the market decimals
 
-	const defaultSellOrderMiniumPrice = get<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100)); // Depends on the market tick
+	const defaultSellOrderMinimumPrice = get<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100)); // Depends on the market tick
 	const defaultSellOrderMiddlePrice = Decimal('98.76'); // Depends on the market tick
 	const defaultSellOrderMaximumPrice = Decimal('9999'); // Depends from the market "tick", which blocks the max precision
 	const defaultSellOrderFillablePrice = get<OrderBookOrder>(defaultMarketOrderBook.book.bestBid).price.mul(DECIMAL_100.minus(defaultFillableSpreadPercentage).div(DECIMAL_100)); // Depends on the market tick
@@ -168,7 +168,7 @@ import { dump, get } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
 					amount: defaultSellOrderMininumAmount,
-					price: defaultSellOrderMiniumPrice
+					price: defaultSellOrderMinimumPrice
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -258,27 +258,6 @@ import { dump, get } from "./utils";
 					marketSymbol: defaultMarketSymbol,
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
-					side: OrderSide.BUY,
-					amount: defaultBuyOrderMaximumAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
-					price: defaultBuyOrderMaximumPrice
-				} as FinReplaceOrderRequest,
-				{
-					ownerAddress: walletAddress,
-					// marketAddress: defaultMarketAddress,
-					marketSymbol: defaultMarketSymbol,
-					// market: defaultMarket,
-					type: OrderType.FIXED_PRICE,
-					side: OrderSide.SELL,
-					amount: defaultSellOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
-					price: defaultSellOrderMiniumPrice
-				} as FinReplaceOrderRequest,
-				{
-					ownerAddress: walletAddress,
-					// owner: undefined,
-					marketAddress: defaultMarketAddress,
-					marketSymbol: defaultMarketSymbol,
-					market: defaultMarket,
-					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
 					amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
 					price: defaultSellOrderMiddlePrice
@@ -294,6 +273,77 @@ import { dump, get } from "./utils";
 					amount: defaultSellOrderMaximumAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
 					price: defaultSellOrderMaximumPrice
 				} as FinReplaceOrderRequest,
+			]
+		},
+		cancel: {
+			single: {
+				buy: {
+					ownerAddress: walletAddress,
+					// owner: undefined,
+					marketAddress: defaultMarketAddress,
+					marketSymbol: defaultMarketSymbol,
+					market: defaultMarket,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.BUY,
+					amount: defaultBuyOrderMininumAmount,
+					price: defaultBuyOrderMininumPrice
+				} as FinPlaceOrderRequest,
+				sell: {
+					ownerAddress: walletAddress,
+					// owner: undefined,
+					marketAddress: defaultMarketAddress,
+					marketSymbol: defaultMarketSymbol,
+					market: defaultMarket,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.SELL,
+					amount: defaultSellOrderMininumAmount,
+					price: defaultSellOrderMaximumPrice
+				} as FinPlaceOrderRequest,
+			},
+			multiple: [
+				{
+					ownerAddress: walletAddress,
+					marketAddress: defaultMarketAddress,
+					marketSymbol: defaultMarketSymbol,
+					market: defaultMarket,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.BUY,
+					amount: defaultBuyOrderMininumAmount,
+					price: defaultBuyOrderMininumPrice
+				} as FinPlaceOrderRequest,
+				{
+					ownerAddress: walletAddress,
+					// owner: undefined,
+					marketAddress: defaultMarketAddress,
+					marketSymbol: defaultMarketSymbol,
+					market: defaultMarket,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.BUY,
+					amount: defaultBuyOrderMiddleAmount,
+					price: defaultBuyOrderMiddlePrice
+				} as FinPlaceOrderRequest,
+				{
+					ownerAddress: walletAddress,
+					// owner: undefined,
+					marketAddress: defaultMarketAddress,
+					marketSymbol: defaultMarketSymbol,
+					market: defaultMarket,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.SELL,
+					amount: defaultSellOrderMiddleAmount,
+					price: defaultSellOrderMiddlePrice
+				} as FinPlaceOrderRequest,
+				{
+					ownerAddress: walletAddress,
+					// owner: undefined,
+					marketAddress: defaultMarketAddress,
+					marketSymbol: defaultMarketSymbol,
+					market: defaultMarket,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.SELL,
+					amount: defaultSellOrderMaximumAmount,
+					price: defaultSellOrderMaximumPrice
+				} as FinPlaceOrderRequest,
 			]
 		},
 		persist: {
@@ -643,7 +693,7 @@ import { dump, get } from "./utils";
 
 	if (active.cancelOrders) {
 		const cancelOrders = await rujira.fin.cancelOrders({
-			orderIds: orderTemplates.place.multiple.map(orderTemplate => rujira.fin.getOrderId({
+			orderIds: orderTemplates.cancel.multiple.map(orderTemplate => rujira.fin.getOrderId({
 				ownerAddress: orderTemplate.ownerAddress,
 				marketSymbol: orderTemplate.marketSymbol,
 				// market: defaultMarket,
