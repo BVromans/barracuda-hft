@@ -69,7 +69,7 @@ import { dump, get } from "./utils";
 	const defaultSpreadPercentage = Decimal('50');
 	const defaultFillableSpreadPercentage = Decimal('1');
 
-	const defaultOrderMininumAmountIncrement = Decimal('0.000000001'); // Depends on the market decimals
+	const defaultOrderMininumAmountIncrement = Decimal('0.00000001'); // Depends on the market decimals
 	const defaultOrderMinimumPriceIncrement = Decimal('0.000000000001'); // Usually 1e-12
 
 	const defaultBuyOrderMininumAmount = Decimal('0.00000001'); // Depends on the market decimals
@@ -214,7 +214,7 @@ import { dump, get } from "./utils";
 					// market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
-					amount: defaultBuyOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMinimumPriceIncrement)),
+					amount: defaultBuyOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
 					price: defaultBuyOrderMininumPrice
 				} as FinReplaceOrderRequest,
 				sell: {
@@ -224,8 +224,8 @@ import { dump, get } from "./utils";
 					// market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
-					amount: defaultSellOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMinimumPriceIncrement)),
-					price: defaultSellOrderMiniumPrice
+					amount: defaultSellOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
+					price: defaultSellOrderMaximumPrice
 				} as FinReplaceOrderRequest,
 			},
 			multiple: [
@@ -565,8 +565,8 @@ import { dump, get } from "./utils";
 			orderTypes: [OrderType.FIXED_PRICE],
 			orderSides: [OrderSide.BUY, OrderSide.SELL],
 			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED],
-			orderPrices: orderTemplates.place.multiple.map(order => get<OrderPrice>(order.price)),
-			maximumNumberOfOrders: orderTemplates.place.multiple.length
+			// orderPrices: orderTemplates.place.multiple.map(order => get<OrderPrice>(order.price)),
+			// maximumNumberOfOrders: orderTemplates.place.multiple.length
 		});
 		orders.get.multiple = getOrders;
 		console.log('getOrders:size:', dump(getOrders.size));
