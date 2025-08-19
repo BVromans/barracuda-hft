@@ -112,7 +112,7 @@ import {
 	WalletMnemonic,
 	WalletPrivateKey
 } from './types';
-import { get, runWithRetryAndTimeout } from "./utils";
+import { get, runWithRetryAndTimeout, validateOrderPrice } from "./utils";
 import { loggedClass } from "./annotations";
 
 /**
@@ -648,12 +648,12 @@ export class Rujira {
 	logger: logger,
 	allowedMethods: [''],
 	disallowedMethods: [],
-	includeStaticMethods: true,
-	logStart: true,
-	logEnd: true,
-	logInput: true,
-	logOutput: true,
-	logExecutionTime: true,
+	includeStaticMethods: false,
+	logStart: false,
+	logEnd: false,
+	logInput: false,
+	logOutput: false,
+	logExecutionTime: false,
 })
 export class Fin {
 	/**
@@ -3070,12 +3070,7 @@ export class Fin {
 					throw new Error("A valid order price is required for placing fixed price orders");
 				}
 
-				if (order.price && Number(market.raw.tick) > 0) {
-					const significantPriceDigitsString = order.price.toFixed().replace(/^0+\.?0*/g, '').replace(/0+$/g, '');
-					if (significantPriceDigitsString.length > Number(market.raw.tick)) {
-						throw new Error(`Order price must have at most ${market.raw.tick} non-zero leading digits because of the market tick. Got: ${order.price}`);
-					}
-				}
+				validateOrderPrice(order.price, Number(market.raw.tick));
 			});
 		}
 
@@ -3089,12 +3084,7 @@ export class Fin {
 					throw new Error("A valid order price is required for replacing fixed price orders");
 				}
 
-				if (order.price && Number(market.raw.tick) > 0) {
-					const significantPriceDigitsString = order.price.toFixed().replace(/^0+\.?0*/g, '').replace(/0+$/g, '');
-					if (significantPriceDigitsString.length > Number(market.raw.tick)) {
-						throw new Error(`Order price must have at most ${market.raw.tick} non-zero leading digits because of the market tick. Got: ${order.price}`);
-					}
-				}
+				validateOrderPrice(order.price, Number(market.raw.tick));
 			});
 		}
 

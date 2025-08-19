@@ -266,3 +266,39 @@ export const dump = (target: any) => {
 		return target;
 	}
 };
+
+/**
+ * Sanitize the order price.
+ * @param price - The price to sanitize.
+ * @param tick - The tick of the market.
+ * @returns The sanitized price.
+ */
+export const sanitizeOrderPrice = (price: Decimal, tick: number): Decimal => {
+	const significantPriceDigitsString = price.toFixed().replace(/^0+\.?0*/g, '').replace(/0+$/g, '');
+	if (significantPriceDigitsString.length > tick) {
+		return price.div(Decimal(10).pow(tick - significantPriceDigitsString.length));
+	}
+	return price;
+}
+
+/**
+ * Validate the order price.
+ * @param price - The price to validate.
+ * @param tick - The tick of the market.
+ * @returns The validated price.
+ * @throws An error if the price has more than the allowed number of non-zero leading digits because of the market tick.
+ */
+export const validateOrderPrice = (price?: Decimal, tick?: number | string) => {
+	if (!price || !tick?.toString().trim()) {
+		return;
+	}
+
+	tick = Number(tick?.toString().trim());
+
+	const significantPriceDigitsString = price.toFixed().replace(/^0+\.?0*/g, '').replace(/0+$/g, '');
+	if (significantPriceDigitsString.length > tick) {
+		throw new Error(`Order price must have at most ${tick} non-zero leading digits because of the market tick. Got: ${price}`);
+	}
+
+	return price;
+}
