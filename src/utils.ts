@@ -274,28 +274,28 @@ export const dump = (target: any) => {
  * @returns The sanitized price.
  */
 export const sanitizeOrderPrice = (price: Decimal, tick: number, maximumPrecision: number = 12): Decimal => {
-	const priceString = price.toFixed(maximumPrecision + 2); // extra digits for safety
-	const [integerPart, fractionalPart = ""] = priceString.split(".");
-	const integerPartNoLeadingZeros = integerPart.replace(/^0+/, "");
-	let significantDigits = integerPartNoLeadingZeros.length;
+	const priceString = price.toFixed(maximumPrecision).trim().replace(/^0+/g, '').replace(/0+$/g, '');
+	let [ integerPartString, fractionalPartString ] = priceString.split('.');
+	integerPartString = integerPartString || '0';
 
-	if (significantDigits >= tick) {
-		// The price is already invalid, so we return it as is
-		return price;
+	if (integerPartString !== '0') {
+		if (integerPartString.length > tick) {
+			throw new Error(`Order price must have at most ${tick} non-zero leading digits because of the market tick. Got: ${price}`);
+		}
+
+		const result = Decimal(`${integerPartString}.${fractionalPartString.slice(0, tick - integerPartString.length)}`);
+
+		return result;
 	}
 
-	// How many decimal digits can we keep?
-	const allowedDecimals = tick - significantDigits;
-	const decimalsToKeep = Math.min(allowedDecimals, maximumPrecision, fractionalPart.length);
+	if (fractionalPartString) {
+		const fractionalPartStringLeadingZeros = fractionalPartString.replace(/(0*)([^0]+)$/g, '$1');
+		const fractionalPartStringWithoutLeadingZeros = fractionalPartString.replace(/^0+/g, '');
 
-	if (decimalsToKeep <= 0) {
-		return new Decimal(integerPartNoLeadingZeros || "0");
+		const result = `0.${fractionalPartStringLeadingZeros}${fractionalPartStringWithoutLeadingZeros.slice(0, tick)}`;
+
+		return new Decimal(result);
 	}
-
-	const truncatedFractional = fractionalPart.slice(0, decimalsToKeep);
-	const sanitizedString = `${integerPart}.${truncatedFractional}`.replace(/\.$/, "");
-
-	return new Decimal(sanitizedString);
 };
 
 /**

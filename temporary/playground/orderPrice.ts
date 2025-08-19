@@ -1,0 +1,30 @@
+import { Decimal } from "decimal.js";
+import { sanitizeOrderPrice } from "../../src/utils";
+
+(async () => {
+	const tick = 4;
+
+	console.log('1234 ->', sanitizeOrderPrice(Decimal('1234'), tick).toFixed());
+	// console.log('12345 ->', sanitizeOrderPrice(Decimal('12345'), tick).toFixed());
+	console.log('1234.5 ->', sanitizeOrderPrice(Decimal('1234.5'), tick).toFixed());
+	console.log('1234.567 ->', sanitizeOrderPrice(Decimal('1234.567'), tick).toFixed());
+	console.log('123.4 ->', sanitizeOrderPrice(Decimal('123.4'), tick).toFixed());
+	console.log('123.45 ->', sanitizeOrderPrice(Decimal('123.45'), tick).toFixed());
+	console.log('12.345 ->', sanitizeOrderPrice(Decimal('12.345'), tick).toFixed());
+	console.log('1.2345 ->', sanitizeOrderPrice(Decimal('1.2345'), tick).toFixed());
+	console.log('0.12345 ->', sanitizeOrderPrice(Decimal('0.12345'), tick).toFixed());
+	console.log('0.012345 ->', sanitizeOrderPrice(Decimal('0.012345'), tick).toFixed());
+	console.log('0.0012345 ->', sanitizeOrderPrice(Decimal('0.0012345'), tick).toFixed());
+	console.log('0.000123 ->', sanitizeOrderPrice(Decimal('0.000123'), tick).toFixed());
+	console.log('0.000000123456 ->', sanitizeOrderPrice(Decimal('0.000000123456'), tick).toFixed());
+	console.log('0.000000001234 ->', sanitizeOrderPrice(Decimal('0.000000001234'), tick).toFixed());
+	console.log('0.0000000001234 ->', sanitizeOrderPrice(Decimal('0.0000000001234'), tick).toFixed());
+	console.log('0.000000000123 ->', sanitizeOrderPrice(Decimal('0.000000000123'), tick).toFixed());
+	console.log('1.0123 ->', sanitizeOrderPrice(Decimal('1.0123'), tick).toFixed());
+	console.log('1.00123 ->', sanitizeOrderPrice(Decimal('1.00123'), tick).toFixed());
+	console.log('1.000123 ->', sanitizeOrderPrice(Decimal('1.000123'), tick).toFixed());
+	console.log('1.0000123 ->', sanitizeOrderPrice(Decimal('1.0000123'), tick).toFixed());
+	console.log('1.00000123 ->', sanitizeOrderPrice(Decimal('1.00000123'), tick).toFixed());
+	console.log('1.000000123 ->', sanitizeOrderPrice(Decimal('1.000000123'), tick).toFixed());
+	console.log('1.0000000123 ->', sanitizeOrderPrice(Decimal('1.0000000123'), tick).toFixed());
+})();
