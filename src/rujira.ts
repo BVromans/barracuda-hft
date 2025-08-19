@@ -3409,23 +3409,15 @@ export class Fin {
 	}): OrderId {
 		let { ownerAddress, marketSymbol, market, order, orderType, orderSide, orderPrice } = options;
 
-		if (!ownerAddress) {
-			ownerAddress = get<Order>(order).ownerAddress;
-		}
+		ownerAddress = ownerAddress || get<Order>(order).ownerAddress;
 
-		marketSymbol = order?.market?.symbol || get<Market>(market).symbol;
+		marketSymbol = marketSymbol || order?.market?.symbol || get<Market>(market).symbol;
 
-		if (!orderType) {
-			orderType = get<Order>(order).type;
-		}
+		orderType = orderType || get<Order>(order).type;
 
-		if (!orderSide) {
-			orderSide = get<Order>(order).side;
-		}
+		orderSide = orderSide || get<Order>(order).side;
 
-		if (!orderPrice) {
-			orderPrice = get<Order>(order).price;
-		}
+		orderPrice = orderPrice || get<Order>(order).price;
 
 		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed()}`;
 	}
