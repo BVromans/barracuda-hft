@@ -2714,9 +2714,20 @@ export class Fin {
 	async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse> {
 		let { ownerAddress, owner, orders } = request;
 
+		if (orders) {
+			orders = MList<FinPlaceOrderRequest>(orders);
+		}
+
+		const marketAddress = orders.first()?.marketAddress;
+		const marketSymbol = orders.first()?.marketSymbol;
+		const market = orders.first()?.market;
+
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
+			marketAddress,
+			marketSymbol,
+			market,
 			orders: {
 				place: MList<FinPlaceOrderRequest>(orders)
 			}
@@ -2775,18 +2786,20 @@ export class Fin {
 	async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersResponse> {
 		let { ownerAddress, owner, orders } = request;
 
-		// Extract market information from the first order since all orders should be in the same market
-		const firstOrder = Array.isArray(orders) ? orders[0] : orders.first();
-		if (!firstOrder) {
-			throw new Error("At least one order is required for replacement");
+		if (orders) {
+			orders = MList<FinPlaceOrderRequest>(orders);
 		}
+
+		const marketAddress = orders.first()?.marketAddress;
+		const marketSymbol = orders.first()?.marketSymbol;
+		const market = orders.first()?.market;
 
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
-			marketSymbol: firstOrder.marketSymbol,
-			marketAddress: firstOrder.marketAddress,
-			market: firstOrder.market,
+			marketAddress,
+			marketSymbol,
+			market,
 			orders: {
 				replace: MList<FinPlaceOrderRequest>(orders)
 			}
@@ -3058,7 +3071,7 @@ export class Fin {
 				}
 
 				if (order.price && Number(market.raw.tick) > 0) {
-					const significantPriceDigitsString = order.price.toFixed().replace(/^0+\.?0+/g, '').replace(/0+$/g, '');
+					const significantPriceDigitsString = order.price.toFixed().replace(/^0+\.?0*/g, '').replace(/0+$/g, '');
 					if (significantPriceDigitsString.length > Number(market.raw.tick)) {
 						throw new Error(`Order price must have at most ${market.raw.tick} non-zero leading digits because of the market tick. Got: ${order.price}`);
 					}
@@ -3077,7 +3090,7 @@ export class Fin {
 				}
 
 				if (order.price && Number(market.raw.tick) > 0) {
-					const significantPriceDigitsString = order.price.toFixed().replace(/^0+\.?0+/g, '').replace(/0+$/g, '');
+					const significantPriceDigitsString = order.price.toFixed().replace(/^0+\.?0*/g, '').replace(/0+$/g, '');
 					if (significantPriceDigitsString.length > Number(market.raw.tick)) {
 						throw new Error(`Order price must have at most ${market.raw.tick} non-zero leading digits because of the market tick. Got: ${order.price}`);
 					}
