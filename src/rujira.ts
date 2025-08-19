@@ -71,8 +71,8 @@ import {
 	FinReplaceOrderResponse,
 	FinReplaceOrdersRequest,
 	FinReplaceOrdersResponse,
-	FinWithdrawFilledOrdersRequest,
-	FinWithdrawFilledOrdersResponse,
+	FinWithdrawAllFilledOrdersRequest,
+	FinWithdrawAllFilledOrdersResponse,
 	Indicator,
 	IndicatorData,
 	IndicatorId,
@@ -113,6 +113,7 @@ import {
 	WalletPrivateKey
 } from './types';
 import { get, runWithRetryAndTimeout } from "./utils";
+import { loggedClass } from "./annotations";
 
 /**
  * LRU cache
@@ -135,6 +136,17 @@ cacheManager.setOptions(<CacheManagerOptions>{
 /**
  * Rujira client
  */
+@loggedClass({
+	logger: logger,
+	allowedMethods: [''],
+	disallowedMethods: [],
+	includeStaticMethods: true,
+	logStart: true,
+	logEnd: true,
+	logInput: true,
+	logOutput: true,
+	logExecutionTime: true,
+})
 export class Rujira {
 	/**
 	 * Fin client
@@ -632,6 +644,17 @@ export class Rujira {
 /**
  * Fin client
  */
+@loggedClass({
+	logger: logger,
+	allowedMethods: [''],
+	disallowedMethods: [],
+	includeStaticMethods: true,
+	logStart: true,
+	logEnd: true,
+	logInput: true,
+	logOutput: true,
+	logExecutionTime: true,
+})
 export class Fin {
 	/**
 	 * Parent
@@ -748,7 +771,7 @@ export class Fin {
 		} catch (error) {
 			const errorMessage = error instanceof Error
 				? `Connection failed: ${error.message}`
-				: 'Connection failed: Unknown error';
+				: `Connection failed: Unknown error: ${error}`;
 
 			return {
 				error: errorMessage,
@@ -778,7 +801,6 @@ export class Fin {
 		// rawTransaction = await this.cosmClientGetTx(hash);
 
 		const url = `${properties.getAs<URL>('rujira.endpoints.rest')}/cosmos/tx/v1beta1/txs/${hash}`;
-		// TODO: add a example response!!!
 		const response = await this.parent.fetch(url, {
 			method: 'GET',
 			headers: { 'Content-Type': 'application/json' }
@@ -788,6 +810,468 @@ export class Fin {
 			throw new Error(`REST request failed: ${response.status} ${response.statusText}`);
 		}
 
+		/*
+		 Example response:
+			{
+				"tx": {
+					"body": {
+						"messages": [
+							{
+								"@type": "/cosmwasm.wasm.v1.MsgExecuteContract",
+								"sender": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+								"contract": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+								"msg": {
+									"order": [
+										[
+											[
+												"quote",
+												{
+													"oracle": -10
+												},
+												null
+											]
+										],
+										null
+									]
+								},
+								"funds": []
+							}
+						],
+						"memo": "",
+						"timeout_height": "0",
+						"unordered": false,
+						"timeout_timestamp": null,
+						"extension_options": [],
+						"non_critical_extension_options": []
+					},
+					"auth_info": {
+						"signer_infos": [
+							{
+								"public_key": {
+									"@type": "/cosmos.crypto.secp256k1.PubKey",
+									"key": "A+hW5IxjCgxmWrzXevSgNh09inMoYCZa3Kv7yj3NgIpD"
+								},
+								"mode_info": {
+									"single": {
+										"mode": "SIGN_MODE_LEGACY_AMINO_JSON"
+									}
+								},
+								"sequence": "225"
+							}
+						],
+						"fee": {
+							"amount": [
+								{
+									"denom": "rune",
+									"amount": "55763"
+								}
+							],
+							"gas_limit": "2788128",
+							"payer": "",
+							"granter": ""
+						},
+						"tip": null
+					},
+					"signatures": [
+						"MN0FaJMZLh+ki86W51OYcv7gzloU0rMhuSm+9Z1ilW1X/+5KKLwWh7dlrrYZUmM6FMn/nIA/wKdcKnpNG3rOHw=="
+					]
+				},
+				"tx_response": {
+					"height": "22385725",
+					"txhash": "0BD692147F4D28106113FA28963E2D47FB861FFE13D33ECDD1AAF33845B090E2",
+					"codespace": "",
+					"code": 0,
+					"data": "122E0A2C2F636F736D7761736D2E7761736D2E76312E4D736745786563757465436F6E7472616374526573706F6E7365",
+					"raw_log": "",
+					"logs": [],
+					"info": "",
+					"gas_wanted": "-1",
+					"gas_used": "2164253",
+					"tx": {
+						"@type": "/cosmos.tx.v1beta1.Tx",
+						"body": {
+							"messages": [
+								{
+									"@type": "/cosmwasm.wasm.v1.MsgExecuteContract",
+									"sender": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"contract": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"msg": {
+										"order": [
+											[
+												[
+													"quote",
+													{
+														"oracle": -10
+													},
+													null
+												]
+											],
+											null
+										]
+									},
+									"funds": []
+								}
+							],
+							"memo": "",
+							"timeout_height": "0",
+							"unordered": false,
+							"timeout_timestamp": null,
+							"extension_options": [],
+							"non_critical_extension_options": []
+						},
+						"auth_info": {
+							"signer_infos": [
+								{
+									"public_key": {
+										"@type": "/cosmos.crypto.secp256k1.PubKey",
+										"key": "A+hW5IxjCgxmWrzXevSgNh09inMoYCZa3Kv7yj3NgIpD"
+									},
+									"mode_info": {
+										"single": {
+											"mode": "SIGN_MODE_LEGACY_AMINO_JSON"
+										}
+									},
+									"sequence": "225"
+								}
+							],
+							"fee": {
+								"amount": [
+									{
+										"denom": "rune",
+										"amount": "55763"
+									}
+								],
+								"gas_limit": "2788128",
+								"payer": "",
+								"granter": ""
+							},
+							"tip": null
+						},
+						"signatures": [
+							"MN0FaJMZLh+ki86W51OYcv7gzloU0rMhuSm+9Z1ilW1X/+5KKLwWh7dlrrYZUmM6FMn/nIA/wKdcKnpNG3rOHw=="
+						]
+					},
+					"timestamp": "2025-08-13T20:47:40Z",
+					"events": [
+						{
+							"type": "coin_spent",
+							"attributes": [
+								{
+									"key": "spender",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "55763rune",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "coin_received",
+							"attributes": [
+								{
+									"key": "receiver",
+									"value": "thor17xpfvakm2amg962yls6f84z3kell8c5lk76m7z",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "55763rune",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "transfer",
+							"attributes": [
+								{
+									"key": "recipient",
+									"value": "thor17xpfvakm2amg962yls6f84z3kell8c5lk76m7z",
+									"index": true
+								},
+								{
+									"key": "sender",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "55763rune",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "message",
+							"attributes": [
+								{
+									"key": "sender",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "tx",
+							"attributes": [
+								{
+									"key": "fee",
+									"value": "55763rune",
+									"index": true
+								},
+								{
+									"key": "fee_payer",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "tx",
+							"attributes": [
+								{
+									"key": "acc_seq",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6/225",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "tx",
+							"attributes": [
+								{
+									"key": "signature",
+									"value": "MN0FaJMZLh+ki86W51OYcv7gzloU0rMhuSm+9Z1ilW1X/+5KKLwWh7dlrrYZUmM6FMn/nIA/wKdcKnpNG3rOHw==",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "message",
+							"attributes": [
+								{
+									"key": "action",
+									"value": "/cosmwasm.wasm.v1.MsgExecuteContract",
+									"index": true
+								},
+								{
+									"key": "sender",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								},
+								{
+									"key": "module",
+									"value": "wasm",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "execute",
+							"attributes": [
+								{
+									"key": "_contract_address",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "wasm-rujira-fin/order.withdraw",
+							"attributes": [
+								{
+									"key": "_contract_address",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "owner",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								},
+								{
+									"key": "side",
+									"value": "quote",
+									"index": true
+								},
+								{
+									"key": "price",
+									"value": "oracle:-10",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "1703",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "coin_spent",
+							"attributes": [
+								{
+									"key": "spender",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "1701btc-btc",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "coin_received",
+							"attributes": [
+								{
+									"key": "receiver",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "1701btc-btc",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "transfer",
+							"attributes": [
+								{
+									"key": "recipient",
+									"value": "thor1cyglcvuqt5nzvlst6ehhgquhz0c7nzcsy00ms6",
+									"index": true
+								},
+								{
+									"key": "sender",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "1701btc-btc",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "coin_spent",
+							"attributes": [
+								{
+									"key": "spender",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "2btc-btc",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "coin_received",
+							"attributes": [
+								{
+									"key": "receiver",
+									"value": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "2btc-btc",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "transfer",
+							"attributes": [
+								{
+									"key": "recipient",
+									"value": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+									"index": true
+								},
+								{
+									"key": "sender",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "amount",
+									"value": "2btc-btc",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						},
+						{
+							"type": "execute",
+							"attributes": [
+								{
+									"key": "_contract_address",
+									"value": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+									"index": true
+								},
+								{
+									"key": "msg_index",
+									"value": "0",
+									"index": true
+								}
+							]
+						}
+					]
+				}
+			}
+		*/
 		rawTransaction = await response.json() as {
 			tx: {
 				body: {
@@ -1156,13 +1640,13 @@ export class Fin {
 		addresses.forEach((address: MarketAddress) => {
 			const market = this.marketsByAddress.getOrThrow(address);
 			if (!market) throw new Error(`Market not found: ${address}`);
-			markets.set(address, market);
+			markets.set(market.symbol, market);
 		});
 
 		symbols.forEach((symbol: MarketSymbol) => {
 			const market = this.marketsBySymbol.getOrThrow(symbol);
 			if (!market) throw new Error(`Market not found: ${symbol}`);
-			markets.set(market.address, market);
+			markets.set(market.symbol, market);
 		});
 
 		return markets;
@@ -1476,7 +1960,7 @@ export class Fin {
 	 * @returns The candles response
 	 */
 	async getCandles(request: FinGetCandlesRequest): Promise<FinGetCandlesResponse> {
-		let { marketAddress, marketSymbol, market, maximumNumberOfCandles, interval } = request;
+		let { marketAddress, marketSymbol, market, interval, maximumNumberOfCandles } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
 		marketSymbol = marketSymbol?.trim();
@@ -1567,7 +2051,7 @@ export class Fin {
 	 * @returns The indicators response
 	 */
 	async getIndicators(request: FinGetIndicatorsRequest): Promise<FinGetIndicatorsResponse> {
-		let { candles, marketAddress, marketSymbol, market, maximumNumberOfCandles, interval, indicators } = request;
+		let { marketAddress, marketSymbol, market, interval, maximumNumberOfCandles, candles, indicatorsIds } = request;
 
 		if (!candles || candles.size === 0) {
 			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
@@ -1575,32 +2059,26 @@ export class Fin {
 
 		candles = candles.asImmutable();
 
-		const validCandles = candles.filter( candle =>
-			candle.high?.toNumber() && candle.low?.toNumber() && candle.close?.toNumber() && candle.volume?.toNumber()
-		);
-
-    if (validCandles.size === 0) {
-			throw new Error('No valid candles found');
+		if (!indicatorsIds) {
+			indicatorsIds = Indicator.all.keySeq().toList();
+		} else {
+			indicatorsIds = MList<IndicatorId>(indicatorsIds);
 		}
 
-		const indicatorsMap = MMap<IndicatorId, IndicatorData>();
+		const output = MMap<IndicatorId, IndicatorData>();
 
-		const indicatorsToCalculate: Indicator[] = indicators && (Array.isArray(indicators) ? indicators.length > 0 : indicators.size > 0)
-    ? Indicator.getAll().filter(indicator =>
-        (Array.isArray(indicators) ? MList<IndicatorId>(indicators) : indicators).includes(indicator.id)
-      )
-    : Indicator.getAll();
+		for (const indicatorId of indicatorsIds) {
+			const indicator = Indicator.all.getOrThrow(indicatorId);
 
-		for (const indicator of indicatorsToCalculate) {
-			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(validCandles), ...indicator.parameters);
+			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(candles), ...indicator.parameters);
 
-			indicatorsMap.set(indicator.id, {
+			output.set(indicator.id, {
 				indicator,
 				value
 			});
 		}
 
-		return indicatorsMap;
+		return output;
 	}
 
 	/**
@@ -1633,7 +2111,7 @@ export class Fin {
 			tokens = tokens.filter((token: Token) => tokenAddresses.includes(token.address) || tokenSymbols.includes(token.symbol));
 		}
 
-				// Fetch THORChain oracle prices for USD conversion rates
+		// Fetch THORChain oracle prices for USD conversion rates
 		let oraclePrices = MMap<string, Decimal>();
 		const oracleResponse = await this.parent.fetch('https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices');
 
@@ -1649,7 +2127,6 @@ export class Fin {
 
 		// 2. Fetch base layer pool prices as fallback
 		let poolPrices = MMap<string, Decimal>();
-		// TODO: avoid using this kind of catch, use try/catch instead!!!
 		const poolResponse = await this.parent.fetch('https://thornode.ninerealms.com/thorchain/pools').catch(() => null);
 		if (poolResponse?.ok) {
 			const data = await poolResponse.json().catch(() => null);
@@ -1701,7 +2178,10 @@ export class Fin {
 				const token = await this.getToken({ address: rawBalance.denom }).catch(() => null);
 
 				if (token) {
-					freeBalances.set(token.symbol, Decimal(rawBalance.amount), true);
+					// Convert raw amount to proper decimal format
+					const rawAmount = Decimal(rawBalance.amount);
+					const convertedAmount = rawAmount.div(DECIMAL_10.pow(token.decimals));
+					freeBalances.set(token.symbol, convertedAmount, true);
 				} else {
 					logger.ignoreException(new Error(`Token not found`), `Balance token ${rawBalance.denom} not found, ignoring this balance.`);
 				}
@@ -1716,28 +2196,48 @@ export class Fin {
 			const marketOrders = await this.getOrders({
 				ownerAddress: walletAddress,
 				marketSymbol: market.symbol
+			}).catch((error) => {
+				logger.ignoreException(error, `Failed to get orders for market ${market.symbol}`);
+				return MMap<OrderId, Order>();
 			});
 
 			for (const order of marketOrders.values()) {
 				const baseTokenSymbol = market.tokens.base.symbol;
 				const quoteTokenSymbol = market.tokens.quote.symbol;
 
-				// Calculate locked amounts based on order status and filled percentage
-				if (order.filledPercentage && order.filledPercentage.gt(0)) {
-					// For partially filled orders, calculate the locked amount
-					const filledAmount = order.amount.mul(order.filledPercentage).div(100);
-					const lockedAmount = order.amount.minus(filledAmount);
+				// Calculate locked amounts for ALL orders (not just partially filled ones)
+				if (order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED) {
+					let lockedAmount: Decimal;
+
+					if (order.side === OrderSide.SELL) {
+						// For SELL orders, lock the base token amount
+						lockedAmount = order.amount;
+					} else {
+						// For BUY orders, lock the quote token amount (price * amount)
+						lockedAmount = order.price ? order.amount.mul(order.price) : order.amount;
+					}
 
 					if (lockedAmount.gt(0)) {
 						const lockedTokenSymbol = order.side === OrderSide.SELL ? baseTokenSymbol : quoteTokenSymbol;
 						const currentLocked = lockedInOrdersMap.getOrThrow(lockedTokenSymbol, DECIMAL_0);
 						lockedInOrdersMap.set(lockedTokenSymbol, currentLocked.plus(lockedAmount), true);
 					}
+				}
 
-					// For fully filled orders, calculate withdrawable amount
-					if (order.filledPercentage.gte(100) && order.price) {
+				// Calculate withdrawable amounts for filled orders
+				if (order.status === OrderStatus.FILLED && order.price) {
+					let withdrawAmount: Decimal;
+
+					if (order.side === OrderSide.SELL) {
+						// For filled SELL orders, withdrawable is the quote token amount received
+						withdrawAmount = order.amount.mul(order.price);
+					} else {
+						// For filled BUY orders, withdrawable is the base token amount received
+						withdrawAmount = order.amount;
+					}
+
+					if (withdrawAmount.gt(0)) {
 						const withdrawTokenSymbol = order.side === OrderSide.SELL ? quoteTokenSymbol : baseTokenSymbol;
-						const withdrawAmount = order.price!.mul(filledAmount);
 						const currentWithdrawable = withdrawableMap.getOrThrow(withdrawTokenSymbol, DECIMAL_0);
 						withdrawableMap.set(withdrawTokenSymbol, currentWithdrawable.plus(withdrawAmount), true);
 					}
@@ -1780,14 +2280,25 @@ export class Fin {
 					} else {
 						// 3. Fallback to ticker prices (most reliable)
 						const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` }).catch(() => null);
-						conversionRateNativeToken = quotingMarketTicker?.middlePrice.baseToQuote || DECIMAL_0;
+						if (quotingMarketTicker?.middlePrice.baseToQuote) {
+							conversionRateNativeToken = quotingMarketTicker.middlePrice.baseToQuote;
+						} else {
+							// If direct market doesn't exist, try to calculate via RUJI-USDC market
+							const rujiUSDCTicker = await this.getTicker({ marketSymbol: `${this.nativeToken.symbol}/${this.usdToken.symbol}` }).catch(() => null);
+							const tokenUSDTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` }).catch(() => null);
+
+							if (rujiUSDCTicker?.middlePrice.baseToQuote && tokenUSDTicker?.middlePrice.baseToQuote) {
+								// Calculate: (token/USDC) / (RUJI/USDC) = token/RUJI
+								conversionRateNativeToken = tokenUSDTicker.middlePrice.baseToQuote.div(rujiUSDCTicker.middlePrice.baseToQuote);
+							}
+						}
 					}
 				}
 			} else {
 				conversionRateNativeToken = DECIMAL_1;
 			}
 
-						let conversionRateUSD: TickerPrice = DECIMAL_0;
+			let conversionRateUSD: TickerPrice = DECIMAL_0;
 			if (token.symbol !== this.usdToken.symbol) {
 				// 1. Try enshrined oracle price first (direct USD price)
 				const tokenOraclePrice = oraclePrices.get(token.symbol);
@@ -1808,15 +2319,44 @@ export class Fin {
 					// 3. If still no price, fallback to ticker
 					if (conversionRateUSD.eq(DECIMAL_0)) {
 						const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` }).catch(() => null);
-						conversionRateUSD = quotingMarketTicker?.middlePrice.baseToQuote || DECIMAL_0;
+						if (quotingMarketTicker?.middlePrice.baseToQuote) {
+							conversionRateUSD = quotingMarketTicker.middlePrice.baseToQuote;
+						} else {
+							// If direct market doesn't exist, try to calculate via RUJI-USDC market
+							const rujiUSDCTicker = await this.getTicker({ marketSymbol: `${this.nativeToken.symbol}/${this.usdToken.symbol}` }).catch(() => null);
+							const tokenRujiTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` }).catch(() => null);
+
+							if (rujiUSDCTicker?.middlePrice.baseToQuote && tokenRujiTicker?.middlePrice.baseToQuote) {
+								// Calculate: (token/RUJI) * (RUJI/USDC) = token/USDC
+								conversionRateUSD = tokenRujiTicker.middlePrice.baseToQuote.mul(rujiUSDCTicker.middlePrice.baseToQuote);
+							}
+						}
 					}
 				}
 			} else {
 				conversionRateUSD = DECIMAL_1;
 			}
 
+			// Convert balances to native token (RUJI) amounts
+			const nativeTokenBalance: BaseBalance = {
+				free: free.mul(conversionRateNativeToken),
+				lockedInOrders: lockedInOrders.mul(conversionRateNativeToken),
+				lockedInPools: lockedInPools.mul(conversionRateNativeToken),
+				withdrawable: withdrawable.mul(conversionRateNativeToken),
+				total: total.mul(conversionRateNativeToken)
+			};
+
+			// Convert balances to USD token (USDC) amounts
+			const usdTokenBalance: BaseBalance = {
+				free: free.mul(conversionRateUSD),
+				lockedInOrders: lockedInOrders.mul(conversionRateUSD),
+				lockedInPools: lockedInPools.mul(conversionRateUSD),
+				withdrawable: withdrawable.mul(conversionRateUSD),
+				total: total.mul(conversionRateUSD)
+			};
+
 			const baseBalanceWithNativeQuotation: BaseBalanceWithQuotation = {
-				...tokenBalance,
+				...nativeTokenBalance,
 				quotation: {
 					token: this.nativeToken || token,
 					tokenToQuote: conversionRateNativeToken,
@@ -1824,7 +2364,7 @@ export class Fin {
 				}
 			};
 			const baseBalanceWithUSDQuotation: BaseBalanceWithQuotation = {
-				...tokenBalance,
+				...usdTokenBalance,
 				quotation: {
 					token: this.usdToken || token,
 					tokenToQuote: conversionRateUSD,
@@ -2341,6 +2881,13 @@ export class Fin {
 			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED]
 		});
 
+		if (allOpenOrders.isEmpty()) {
+			return {
+				orders: MMap<OrderId, Order>(),
+				transactions: MMap<TransactionHash, Transaction>()
+			};
+		}
+
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
@@ -2365,7 +2912,7 @@ export class Fin {
 	 * @param request - The request object
 	 * @returns The response for the withdrawn orders
 	 */
-	async withdrawFilledOrders(request: FinWithdrawFilledOrdersRequest): Promise<FinWithdrawFilledOrdersResponse> {
+	async withdrawAllFilledOrders(request: FinWithdrawAllFilledOrdersRequest): Promise<FinWithdrawAllFilledOrdersResponse> {
 		let { ownerAddress, owner, marketAddress, marketSymbol, market } = request;
 
 		const allFilledOrders = await this.getOrders({
@@ -2376,6 +2923,13 @@ export class Fin {
 			market,
 			orderStatuses: [OrderStatus.FILLED]
 		});
+
+		if (allFilledOrders.isEmpty()) {
+			return {
+				orders: MMap<OrderId, Order>(),
+				transactions: MMap<TransactionHash, Transaction>()
+			};
+		}
 
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
@@ -2827,21 +3381,22 @@ export class Fin {
 	 * @param options - The options
 	 * @returns The order id
 	 */
-	private getOrderId(options: {
+	public getOrderId(options: {
 		ownerAddress?: WalletAddress;
+		marketSymbol?: MarketSymbol;
 		market?: Market;
 		order?: Order | FinPlaceOrderRequest | FinReplaceOrderRequest;
 		orderType?: OrderType;
 		orderSide?: OrderSide;
 		orderPrice?: Decimal;
 	}): OrderId {
-		let { ownerAddress, market, order, orderType, orderSide, orderPrice } = options;
+		let { ownerAddress, marketSymbol, market, order, orderType, orderSide, orderPrice } = options;
 
 		if (!ownerAddress) {
 			ownerAddress = get<Order>(order).ownerAddress;
 		}
 
-		const marketSymbol: MarketSymbol = order?.market?.symbol || get<Market>(market).symbol;
+		marketSymbol = order?.market?.symbol || get<Market>(market).symbol;
 
 		if (!orderType) {
 			orderType = get<Order>(order).type;

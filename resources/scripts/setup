@@ -63,34 +63,58 @@ echo "Wallet Configuration"
 echo -e "========================================\n"
 
 credential_type=""
-while [ "$credential_type" != "mnemonic" ] && [ "$credential_type" != "privateKey" ]; do
-	read -r -p "Which credential do you want to configure? [mnemonic/privateKey]: " credential_type
-done
+skip_credentials=false
 
-secret_value=""
 while true; do
-	if [ "$credential_type" = "mnemonic" ]; then
-		read -r -s -p "Enter wallet mnemonic (input hidden): " secret_value; echo
-		if is_valid_mnemonic "$secret_value"; then
-			break
-		else
-			echo "Invalid mnemonic. It must contain at least 12 words. Please try again."
-		fi
-	else
-		read -r -s -p "Enter wallet private key (input hidden): " secret_value; echo
-		if is_valid_private_key "$secret_value"; then
-			break
-		else
-			echo "Invalid private key. It must be 64 hex characters. Please try again."
-		fi
+	read -r -p "Which credential do you want to configure? [mnemonic/privateKey] (press Enter to skip): " credential_type
+
+	# Skip if user presses Enter (empty input)
+	if [ -z "$credential_type" ]; then
+		echo "Credential configuration skipped."
+		skip_credentials=true
+		break
 	fi
+
+	# Validate credential type
+	if [ "$credential_type" = "mnemonic" ] || [ "$credential_type" = "privateKey" ]; then
+		break
+	fi
+
+	echo "Invalid choice. Please enter 'mnemonic', 'privateKey', or press Enter to skip."
 done
 
-# Update YAML
-if [ "$credential_type" = "mnemonic" ]; then
-	update_yaml_value "mnemonic" "$secret_value"
-	update_yaml_value "privateKey" ""
-else
-	update_yaml_value "privateKey" "$secret_value"
-	update_yaml_value "mnemonic" ""
+# Only ask for credentials if not skipped
+if [ "$skip_credentials" = false ]; then
+	secret_value=""
+	while true; do
+		if [ "$credential_type" = "mnemonic" ]; then
+			read -r -s -p "Enter wallet mnemonic (input hidden): " secret_value; echo
+			if is_valid_mnemonic "$secret_value"; then
+				break
+			else
+				echo "Invalid mnemonic. It must contain at least 12 words. Please try again."
+			fi
+		else
+			read -r -s -p "Enter wallet private key (input hidden): " secret_value; echo
+			if is_valid_private_key "$secret_value"; then
+				break
+			else
+				echo "Invalid private key. It must be 44 characters. Please try again."
+			fi
+		fi
+	done
+
+	# Update YAML
+	if [ "$credential_type" = "mnemonic" ]; then
+		update_yaml_value "mnemonic" "$secret_value"
+		update_yaml_value "privateKey" ""
+	else
+		update_yaml_value "privateKey" "$secret_value"
+		update_yaml_value "mnemonic" ""
+	fi
 fi
+
+echo -e "\n\n"
+echo "========================================"
+echo "Setup completed"
+echo -e "========================================\n"

@@ -1,3 +1,60 @@
+import Decimal from "decimal.js";
+import { List, Map } from "immutable";
+
+/**
+ * Replacer for JSON.stringify to handle special cases.
+ * @param key - The key of the value.
+ * @param value - The value to replace.
+ * @returns The replaced value.
+ */
+const jsonReplacer = (key: string, value: any) => {
+	if (value instanceof Decimal) {
+		return value.toString();
+	}
+	if (typeof value === "bigint") {
+		return value.toString();
+	}
+	if (value instanceof Date) {
+		return value.toISOString();
+	}
+	if (value instanceof List || value instanceof Map) {
+		return (value as any).toJS();
+	}
+	if (typeof value === "function") {
+		return `[Function: ${value.name || "anonymous"}]`;
+	}
+	if (typeof value === "symbol") {
+		return value.toString();
+	}
+	if (typeof value === "object" && value !== null) {
+		// Handle plain objects and class instances
+		const prototype = Object.getPrototypeOf(value);
+		if (prototype && prototype !== Object.prototype) {
+			// For class instances, include class name
+			const object: any = { __class__: prototype.constructor.name };
+			for (const property in value) {
+				if (Object.prototype.hasOwnProperty.call(value, property)) {
+					object[property] = value[property];
+				}
+			}
+			return object;
+		}
+	}
+	return value;
+};
+
+/**
+ * Dump the target to the console.
+ * @param target - The target to dump.
+ */
+export const dump = (target: any) => {
+	try {
+		return JSON.stringify(target, jsonReplacer, 2);
+	} catch (exception) {
+		return target;
+	}
+};
+
 Error.prepareStackTrace = (err, stack) => {
 	return stack.map(callSite => {
 		// getThis	this value of the function call
@@ -134,37 +191,42 @@ export class Logger {
 			message += exception;
 		}
 
-		this.log(LogLevel.WARNING, message);
+		this.log(LogLevel.WARNING, message, new Error().stack as any);
 	}
 
 	/**
 	 * Log a message
 	 * @param message - The message to log
 	 */
-	private log(level: LogLevel, message: string, ...optionalParams: any[]): void {
+	private log(level: LogLevel, message: string, stack?: any, ...optionalParams: any[]): void {
 		const timestamp = new Date().toISOString();
-		const stack = new Error().stack as any;
-		const frame = stack[2];
+
+		let stacktrace: string | undefined = undefined;
+		if (!stack) {
+			stack = new Error().stack as any;
+		} else {
+			stacktrace = stack.slice(2).map((frame: any) => frame.string).join('\n');
+		}
+
+		const frame = stack![2];
 		const filePath = frame.fileName;
 		const lineNumber = frame.lineNumber;
 		const columnNumber = frame.columnNumber;
 		const functionName = frame.functionName;
 		const methodName = frame.methodName;
 
-		const stacktrace = stack.slice(2).map((frame: any) => frame.string).join('\n');
-
-		message = `[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}\n\n${stacktrace}`;
+		message = `\n[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}${stacktrace ? `\n\n${stacktrace}` : ''}\n`;
 
 		if (level === LogLevel.DEBUG) {
-			console.debug(message, ...optionalParams);
+			console.debug(message, dump(optionalParams));
 		} else if (level === LogLevel.INFO) {
-			console.info(message, ...optionalParams);
+			console.info(message, dump(optionalParams));
 		} else if (level === LogLevel.WARNING) {
-			console.warn(message, ...optionalParams);
+			console.warn(message, dump(optionalParams));
 		} else if (level === LogLevel.ERROR) {
-			console.error(message, ...optionalParams);
+			console.error(message, dump(optionalParams));
 		} else if (level === LogLevel.CRITICAL) {
-			console.error(message, ...optionalParams);
+			console.error(message, dump(optionalParams));
 		}
 	}
 }
