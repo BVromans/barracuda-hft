@@ -305,9 +305,9 @@ export const sanitizeOrderPrice = (price: Decimal, tick: number, maximumPrecisio
  * @returns The validated price.
  * @throws An error if the price has more than the allowed number of non-zero leading digits because of the market tick.
  */
-export const validateOrderPrice = (price?: Decimal, tick?: number | string): Decimal | undefined => {
+export const validateOrderPrice = (price?: Decimal, tick?: number | string): boolean => {
 	if (!price || !tick?.toString().trim()) {
-		return undefined;
+		return false;
 	}
 
 	if (!price.gt(Decimal(0))) {
@@ -321,5 +321,5 @@ export const validateOrderPrice = (price?: Decimal, tick?: number | string): Dec
 		throw new Error(`Order price must have at most ${tick} non-zero leading digits because of the market tick. Got: ${price.toFixed()}`);
 	}
 
-	return price;
+	return true;
 }

@@ -112,7 +112,7 @@ import {
 	WalletMnemonic,
 	WalletPrivateKey
 } from './types';
-import { get, runWithRetryAndTimeout, validateOrderPrice } from "./utils";
+import { get, runWithRetryAndTimeout, sanitizeOrderPrice, validateOrderPrice } from "./utils";
 import { loggedClass } from "./annotations";
 
 /**
@@ -2976,6 +2976,10 @@ export class Fin {
 		marketAddress = marketAddress?.trim().toLowerCase();
 		marketSymbol = marketSymbol?.trim().toUpperCase();
 
+		if (!market) {
+			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
+
 		// Sanitize place orders
 		if (orders.place) {
 			orders.place = MList<FinPlaceOrderRequest>(orders.place.map((order: FinPlaceOrderRequest) => ({
@@ -2986,7 +2990,7 @@ export class Fin {
 				side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
 				type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
 				amount: Decimal(order.amount),
-				price: order.price ? Decimal(order.price) : undefined,
+				price: order.price ? sanitizeOrderPrice(Decimal(order.price), market.raw.tick) : undefined,
 			})));
 		}
 
@@ -3000,7 +3004,7 @@ export class Fin {
 				side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
 				type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
 				amount: Decimal(order.amount),
-				price: order.price ? Decimal(order.price) : undefined,
+				price: order.price ? sanitizeOrderPrice(Decimal(order.price), market.raw.tick) : undefined,
 			})));
 		}
 
@@ -3056,10 +3060,6 @@ export class Fin {
 		validateMarket(orders.place?.toArray() || [], 'Place');
 		validateMarket(orders.replace?.toArray() || [], 'Replace');
 
-		if (!market) {
-			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
-		}
-
 		// Validate place orders
 		if (orders.place) {
 			orders.place.forEach((order: FinPlaceOrderRequest) => {
@@ -3070,7 +3070,7 @@ export class Fin {
 					throw new Error("A valid order price is required for placing fixed price orders");
 				}
 
-				validateOrderPrice(order.price, Number(market.raw.tick));
+				validateOrderPrice(order.price, market.raw.tick);
 			});
 		}
 
@@ -3084,7 +3084,7 @@ export class Fin {
 					throw new Error("A valid order price is required for replacing fixed price orders");
 				}
 
-				validateOrderPrice(order.price, Number(market.raw.tick));
+				validateOrderPrice(order.price, market.raw.tick);
 			});
 		}
 
@@ -3427,6 +3427,6 @@ export class Fin {
 			orderPrice = get<Order>(order).price;
 		}
 
-		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice}`;
+		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed()}`;
 	}
 }
