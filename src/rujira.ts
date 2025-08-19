@@ -3051,10 +3051,17 @@ export class Fin {
 		if (orders.place) {
 			orders.place.forEach((order: FinPlaceOrderRequest) => {
 				if (!order.side || !order.type || !order.amount) {
-					throw new Error("Order side, type, and amount are required for place orders");
+					throw new Error("Order side, type, and amount are required for placing orders");
 				}
-				if (order.type === OrderType.FIXED_PRICE && !order.price) {
-					throw new Error("Order price is required for limit place orders");
+				if ([OrderType.FIXED_PRICE].includes(order.type) && (!order.price || !order.price.gt(DECIMAL_0))) {
+					throw new Error("A valid order price is required for placing fixed price orders");
+				}
+
+				if (order.price && Number(market.raw.tick) > 0) {
+					const priceStringWithoutDecimalsAndLeadingZeroes = order.price.toString().replace(/^0+|\.+|0+$/g, '').replace(/0+$/g, '');
+					if (priceStringWithoutDecimalsAndLeadingZeroes.length > Number(market.raw.tick)) {
+						throw new Error(`Order price must have at most ${market.raw.tick} non-zero leading digits because of the market tick. Got: ${order.price}`);
+					}
 				}
 			});
 		}
@@ -3063,10 +3070,17 @@ export class Fin {
 		if (orders.replace) {
 			orders.replace.forEach((order: FinReplaceOrderRequest) => {
 				if (!order.side || !order.type || !order.amount) {
-					throw new Error("Order side, type, and amount are required for replace orders");
+					throw new Error("Order side, type, and amount are required for replacing orders");
 				}
-				if (order.type === OrderType.FIXED_PRICE && !order.price) {
-					throw new Error("Order price is required for limit replace orders");
+				if ([OrderType.FIXED_PRICE].includes(order.type) && (!order.price || !order.price.gt(DECIMAL_0))) {
+					throw new Error("A valid order price is required for replacing fixed price orders");
+				}
+
+				if (order.price && Number(market.raw.tick) > 0) {
+					const priceStringWithoutDecimalsAndLeadingZeroes = order.price.toString().replace(/^0+|\.+|0+$/g, '').replace(/0+$/g, '');
+					if (priceStringWithoutDecimalsAndLeadingZeroes.length > Number(market.raw.tick)) {
+						throw new Error(`Order price must have at most ${market.raw.tick} non-zero leading digits because of the market tick. Got: ${order.price}`);
+					}
 				}
 			});
 		}
