@@ -280,7 +280,7 @@ export const sanitizeOrderPrice = (price: Decimal, tick: number, maximumPrecisio
 
 	if (integerPartString !== '0') {
 		if (integerPartString.length > tick) {
-			throw new Error(`Order price must have at most ${tick} non-zero leading digits because of the market tick. Got: ${price}`);
+			throw new Error(`Order price must have at most ${tick} non-zero leading digits because of the market tick. Got: ${price.toFixed()}`);
 		}
 
 		const result = Decimal(`${integerPartString}.${fractionalPartString.slice(0, tick - integerPartString.length)}`);
@@ -305,9 +305,9 @@ export const sanitizeOrderPrice = (price: Decimal, tick: number, maximumPrecisio
  * @returns The validated price.
  * @throws An error if the price has more than the allowed number of non-zero leading digits because of the market tick.
  */
-export const validateOrderPrice = (price?: Decimal, tick?: number | string) => {
+export const validateOrderPrice = (price?: Decimal, tick?: number | string): Decimal | undefined => {
 	if (!price || !tick?.toString().trim()) {
-		return;
+		return undefined;
 	}
 
 	if (!price.gt(Decimal(0))) {
@@ -316,9 +316,9 @@ export const validateOrderPrice = (price?: Decimal, tick?: number | string) => {
 
 	tick = Number(tick?.toString().trim());
 
-	const significantPriceDigitsString = price.toFixed().replace(/^0+\.?0*/g, '').replace(/0+$/g, '');
+	const significantPriceDigitsString = price.toFixed().replace(/^0+\.?0*/g, '').replace(/0+$/g, '').replace('.', '');
 	if (significantPriceDigitsString.length > tick) {
-		throw new Error(`Order price must have at most ${tick} non-zero leading digits because of the market tick. Got: ${price}`);
+		throw new Error(`Order price must have at most ${tick} non-zero leading digits because of the market tick. Got: ${price.toFixed()}`);
 	}
 
 	return price;
