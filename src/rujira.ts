@@ -3058,8 +3058,8 @@ export class Fin {
 				}
 
 				if (order.price && Number(market.raw.tick) > 0) {
-					const priceStringWithoutDecimalsAndLeadingZeroes = order.price.toString().replace(/^0+|\.+|0+$/g, '').replace(/0+$/g, '');
-					if (priceStringWithoutDecimalsAndLeadingZeroes.length > Number(market.raw.tick)) {
+					const significantPriceDigitsString = order.price.toFixed().replace(/^0+\.?0+/g, '').replace(/0+$/g, '');
+					if (significantPriceDigitsString.length > Number(market.raw.tick)) {
 						throw new Error(`Order price must have at most ${market.raw.tick} non-zero leading digits because of the market tick. Got: ${order.price}`);
 					}
 				}
@@ -3077,8 +3077,8 @@ export class Fin {
 				}
 
 				if (order.price && Number(market.raw.tick) > 0) {
-					const priceStringWithoutDecimalsAndLeadingZeroes = order.price.toString().replace(/^0+|\.+|0+$/g, '').replace(/0+$/g, '');
-					if (priceStringWithoutDecimalsAndLeadingZeroes.length > Number(market.raw.tick)) {
+					const significantPriceDigitsString = order.price.toFixed().replace(/^0+\.?0+/g, '').replace(/0+$/g, '');
+					if (significantPriceDigitsString.length > Number(market.raw.tick)) {
 						throw new Error(`Order price must have at most ${market.raw.tick} non-zero leading digits because of the market tick. Got: ${order.price}`);
 					}
 				}
