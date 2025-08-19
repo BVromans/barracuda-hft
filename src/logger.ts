@@ -9,7 +9,7 @@ import { List, Map } from "immutable";
  */
 const jsonReplacer = (key: string, value: any) => {
 	if (value instanceof Decimal) {
-		return value.toString();
+		return value.toFixed();
 	}
 	if (typeof value === "bigint") {
 		return value.toString();
@@ -35,6 +35,14 @@ const jsonReplacer = (key: string, value: any) => {
 			for (const property in value) {
 				if (Object.prototype.hasOwnProperty.call(value, property)) {
 					object[property] = value[property];
+				}
+			}
+			return object;
+		} else {
+			const object: any = {};
+			for (const property in value) {
+				if (Object.prototype.hasOwnProperty.call(value, property)) {
+					object[property] = jsonReplacer(property, value[property]);
 				}
 			}
 			return object;
