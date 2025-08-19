@@ -270,16 +270,33 @@ export const dump = (target: any) => {
 /**
  * Sanitize the order price.
  * @param price - The price to sanitize.
- * @param tick - The tick of the market.
+ * @param tick - The tick of the market (max significant digits).
  * @returns The sanitized price.
  */
-export const sanitizeOrderPrice = (price: Decimal, tick: number): Decimal => {
-	const significantPriceDigitsString = price.toFixed().replace(/^0+\.?0*/g, '').replace(/0+$/g, '');
-	if (significantPriceDigitsString.length > tick) {
-		return price.div(Decimal(10).pow(tick - significantPriceDigitsString.length));
+export const sanitizeOrderPrice = (price: Decimal, tick: number, maximumPrecision: number = 12): Decimal => {
+	const priceString = price.toFixed(maximumPrecision + 2); // extra digits for safety
+	const [integerPart, fractionalPart = ""] = priceString.split(".");
+	const integerPartNoLeadingZeros = integerPart.replace(/^0+/, "");
+	let significantDigits = integerPartNoLeadingZeros.length;
+
+	if (significantDigits >= tick) {
+		// The price is already invalid, so we return it as is
+		return price;
 	}
-	return price;
-}
+
+	// How many decimal digits can we keep?
+	const allowedDecimals = tick - significantDigits;
+	const decimalsToKeep = Math.min(allowedDecimals, maximumPrecision, fractionalPart.length);
+
+	if (decimalsToKeep <= 0) {
+		return new Decimal(integerPartNoLeadingZeros || "0");
+	}
+
+	const truncatedFractional = fractionalPart.slice(0, decimalsToKeep);
+	const sanitizedString = `${integerPart}.${truncatedFractional}`.replace(/\.$/, "");
+
+	return new Decimal(sanitizedString);
+};
 
 /**
  * Validate the order price.
@@ -291,6 +308,10 @@ export const sanitizeOrderPrice = (price: Decimal, tick: number): Decimal => {
 export const validateOrderPrice = (price?: Decimal, tick?: number | string) => {
 	if (!price || !tick?.toString().trim()) {
 		return;
+	}
+
+	if (!price.gt(Decimal(0))) {
+		throw new Error(`Order price must be greater than 0. Got: ${price}`);
 	}
 
 	tick = Number(tick?.toString().trim());
