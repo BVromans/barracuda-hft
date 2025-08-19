@@ -72,17 +72,17 @@ import { dump, get } from "./utils";
 
 	const defaultBuyOrderMininumPrice = Decimal('0.000000000001'); // Usually 1e-12
 	const defaultBuyOrderMiddlePrice = Decimal('0.001234'); // Depends on the market tick
-	const defaultBuyOrderMaximumPrice = get<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.div(DECIMAL_100));
-	const defaultBuyOrderFillablePrice = get<OrderBookOrder>(defaultMarketOrderBook.book.bestAsk).price;
+	const defaultBuyOrderMaximumPrice = get<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.div(DECIMAL_100)); // Depends on the market tick
+	const defaultBuyOrderFillablePrice = get<OrderBookOrder>(defaultMarketOrderBook.book.bestAsk).price; // Depends on the market tick
 
 	const defaultSellOrderMininumAmount = Decimal('0.00000001'); // Depends on the market decimals
 	const defaultSellOrderMiddleAmount = Decimal('0.12345678'); // Depends on the market decimals
 	const defaultSellOrderMaximumAmount = Decimal('1.12345678'); // Depends on the market decimals
 
 	const defaultSellOrderMiniumPrice = get<Price>(defaultMarketTicker.middlePrice.quoteToBase).mul(defaultSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100)); // Depends on the market tick
-	const defaultSellOrderMiddlePrice = Decimal('98.76');
+	const defaultSellOrderMiddlePrice = Decimal('98.76'); // Depends on the market tick
 	const defaultSellOrderMaximumPrice = Decimal('9999'); // Depends from the market "tick", which blocks the max precision
-	const defaultSellOrderFillablePrice = get<OrderBookOrder>(defaultMarketOrderBook.book.bestBid).price;
+	const defaultSellOrderFillablePrice = get<OrderBookOrder>(defaultMarketOrderBook.book.bestBid).price; // Depends on the market tick
 
 	const orderTemplates = {
 		place: {
