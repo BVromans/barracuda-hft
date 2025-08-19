@@ -57,8 +57,6 @@ let testsTimeout: number;
 
 const indicatorMap = ["bbands", "bop", "rsi", "macd", "atr", "vwap"]
 
-
-
 beforeAll(async () => {
 	const requiredProperties = [
 		'rujira.wallet.mnemonic',
@@ -831,6 +829,7 @@ describe("Rujira", async() => {
 			});
 
 			it("should be able to get candles with specific interval", async () => {
+
 				const result = await rujira.fin.getCandles({
 					marketSymbol: firstMarketSymbol,
 					interval: CandleInterval.ONE_MINUTE
@@ -849,6 +848,170 @@ describe("Rujira", async() => {
 					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(candle.raw).toBeDefined();
 				});
+			});
+
+			it("should verify that candles are exactly 1 minute apart", async () => {
+
+				const result = await rujira.fin.getCandles({
+					marketSymbol: firstMarketSymbol,
+					interval: CandleInterval.ONE_MINUTE,
+					maximumNumberOfCandles: 2
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThanOrEqual(2);
+
+				const firstCandle = result.get(0);
+				const secondCandle = result.get(1);
+
+				expect(firstCandle).toBeDefined();
+				expect(secondCandle).toBeDefined();
+
+				const firstTimestamp = new Date(firstCandle!.timestamp * 1000);
+				const secondTimestamp = new Date(secondCandle!.timestamp * 1000);
+
+				const timeDifferenceMs = Math.abs(secondTimestamp.getTime() - firstTimestamp.getTime());
+				const timeDifferenceMinutes = timeDifferenceMs / (1000 * 60);
+
+				console.log(`First candle timestamp: ${firstTimestamp.toISOString()}`);
+				console.log(`Second candle timestamp: ${secondTimestamp.toISOString()}`);
+				console.log(`Time difference: ${timeDifferenceMinutes.toFixed(2)} minutes`);
+
+				expect(timeDifferenceMinutes).toBeCloseTo(1, 1);
+
+				expect(firstCandle!.open.toNumber()).toBeGreaterThan(0);
+				expect(firstCandle!.high.toNumber()).toBeGreaterThan(0);
+				expect(firstCandle!.low.toNumber()).toBeGreaterThan(0);
+				expect(firstCandle!.close.toNumber()).toBeGreaterThan(0);
+				expect(firstCandle!.volume.toNumber()).toBeGreaterThanOrEqual(0);
+
+				expect(secondCandle!.open.toNumber()).toBeGreaterThan(0);
+				expect(secondCandle!.high.toNumber()).toBeGreaterThan(0);
+				expect(secondCandle!.low.toNumber()).toBeGreaterThan(0);
+				expect(secondCandle!.close.toNumber()).toBeGreaterThan(0);
+				expect(secondCandle!.volume.toNumber()).toBeGreaterThanOrEqual(0);
+			});
+
+
+		});
+
+		describe.skip("indicators", () => {
+
+			it("should be able to get indicators", async () => {
+
+				const result = await rujira.fin.getIndicators({ marketAddress: firstMarketAddress });
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				for (const [indicatorId, indicatorData] of result.entries()) {
+					expect(indicatorId).toBeDefined();
+					expect(indicatorId.length).toBeGreaterThan(0);
+
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData.indicator).toBeDefined();
+					expect(indicatorData.indicator.id).toBe(indicatorId);
+					expect(indicatorData.indicator.name).toBeDefined();
+					expect(indicatorData.indicator.parameters).toBeDefined();
+					expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
+
+					expect(indicatorData.value).toBeDefined();
+				}
+			});
+
+			it("should be able to get indicators by market address", async () => {
+
+				const result = await rujira.fin.getIndicators({
+					marketAddress: firstMarketAddress,
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				for (const [indicatorId, indicatorData] of result.entries()) {
+					expect(indicatorId).toBeDefined();
+					expect(indicatorId.length).toBeGreaterThan(0);
+
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData.indicator).toBeDefined();
+					expect(indicatorData.indicator.id).toBe(indicatorId);
+					expect(indicatorData.indicator.name).toBeDefined();
+					expect(indicatorData.indicator.parameters).toBeDefined();
+					expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
+
+					expect(indicatorData.value).toBeDefined();
+				}
+			});
+
+			it("should be able to get all indicators by market symbol", async () => {
+
+				const result = await rujira.fin.getIndicators({
+					marketSymbol: firstMarketSymbol,
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				for (const [indicatorId, indicatorData] of result.entries()) {
+					expect(indicatorId).toBeDefined();
+
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData.indicator).toBeDefined();
+					expect(indicatorData.indicator.id).toBe(indicatorId);
+					expect(indicatorData.indicator.name).toBeDefined();
+					expect(indicatorData.indicator.parameters).toBeDefined();
+					expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
+
+					expect(indicatorData.value).toBeDefined();
+				}
+			});
+
+			it("should be able to get specific indicators by market address", async () => {
+
+				const indicators = [indicatorMap [0]];
+
+				const result = await rujira.fin.getIndicators({
+					marketAddress: firstMarketAddress,
+					indicatorsIds: indicators
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBe(indicators.length);
+
+				for (const [indicatorId, indicatorData] of result.entries()) {
+					expect(indicatorId).toBeDefined();
+
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData.indicator.id).toBe(indicatorId);
+					expect(indicatorData.indicator.name).toBeDefined();
+					expect(indicatorData.indicator.parameters).toBeDefined();
+					expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
+					expect(indicatorData.value).toBeDefined();
+				}
+			});
+
+			it("should be able to get specific indicators by market symbol", async () => {
+
+				const indicators = [indicatorMap[0]];
+
+				const result = await rujira.fin.getIndicators({
+					marketSymbol: firstMarketSymbol,
+					indicatorsIds: indicators
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBe(indicators.length);
+
+				for (const indicatorId of indicators) {
+					const indicatorData = result.get(indicatorId);
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData?.indicator.id).toBe(indicatorId);
+					expect(indicatorData?.indicator.name).toBeDefined();
+					expect(indicatorData?.value).toBeDefined();
+				}
+
+				for (const [indicatorId] of result.entries()) {
+					expect(indicators).toContain(indicatorId);
+				}
 			});
 		});
 
