@@ -21,7 +21,7 @@ strategy:
       whenStop:
         cancelAllOrders: true
         withdrawAllFilledOrders: true
-      stopLoss:
+      monitorProfitAndLoss:
         enabled: true
         maximumAllowedWalletLossFromInitialValue: 10 # 1 means 1%
         maximumAllowedWalletLossFromPreviousValue: 10 # 1 means 1%

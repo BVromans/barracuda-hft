@@ -1,3 +1,4 @@
+import "./bootstrap";
 import { properties } from "./properties";
 import { SimplePureMarketMarkingStrategy } from "./strategies/simple_pure_market_marking_strategy";
 import { EnhancedPureMarketMarkingStrategy } from "./strategies/enhanced_pure_market_marking_strategy";

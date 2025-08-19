@@ -1,10 +1,11 @@
 import Decimal from "decimal.js";
-import { Map } from "immutable";
+import { List, Map } from "immutable";
 import { properties } from "../properties";
 import { Rujira } from "../rujira";
-import { Balances, DECIMAL_100, DECIMAL_NaN, Market, MarketSymbol, MList, MMap, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
+import { Balances, DECIMAL_100, DECIMAL_NaN, Market, MarketSymbol, MList, MMap, Order, OrderId, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
 import { runAndRepeat, sleep } from "../utils";
 import { BaseStrategy, Proposal } from "./base_strategy";
+import { logger } from "../logger";
 
 /**
  * Pure market marking strategy
@@ -169,13 +170,39 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		const market: Market = this.state.getOrThrow('market');
 		const proposal: Proposal = this.state.getOrThrow('proposal');
 
+		if (
+			!proposal ||
+			(
+				(
+					!proposal.place ||
+					proposal.place.isEmpty()
+				) &&
+				(
+					!proposal.replace ||
+					proposal.replace.isEmpty()
+				) &&
+				(
+					!proposal.cancel ||
+					(proposal.cancel instanceof List ? (proposal.cancel as List<OrderId | Order>).isEmpty() : (proposal.cancel as (OrderId[] | Order[])).length === 0)
+				) &&
+				(
+					!proposal.withdraw ||
+					(proposal.withdraw instanceof List ? (proposal.withdraw as List<OrderId | Order>).isEmpty() : (proposal.withdraw as (OrderId[] | Order[])).length === 0)
+				)
+			)
+		) {
+			logger.debug(`No proposal to apply.`);
+
+			return;
+		}
+
 		const result = await this.rujira.fin.persistOrders({
 			ownerAddress: this.rujira.walletAddress,
 			market: market,
 			orders: proposal,
 		});
 
-		console.debug(`Proposal applied successfully. Transactions: `, result.transactions.toJS());
+		logger.debug(`Proposal applied successfully. Transactions: `, result.transactions.toJS());
 	}
 
 	/**
@@ -447,7 +474,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		}
 
 		if (shouldWithdrawAllFilledOrders) {
-			await this.rujira.fin.withdrawFilledOrders({
+			await this.rujira.fin.withdrawAllFilledOrders({
 				ownerAddress: this.rujira.walletAddress,
 				market: this.state.getOrThrow('market'),
 			});
