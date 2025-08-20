@@ -2109,12 +2109,15 @@ export class Fin {
 
 		if (tokenAddresses.size > 0 || tokenSymbols.size > 0) {
 			tokens = tokens.filter((token: Token) => {
-				return tokenAddresses.includes(token.address)
-					|| tokenSymbols.includes(token.symbol)
+				return tokenAddresses?.includes(token.address)
+					|| tokenSymbols?.includes(token.symbol)
 					|| token.address === this.nativeToken.address
 					|| token.address === this.usdToken.address;
 			});
 		}
+
+		tokenSymbols = tokens.keySeq().toList();
+		tokenAddresses = tokens.valueSeq().map((token: Token) => token.address).toList();
 
 		const tokenToNativePrices = MMap<TokenSymbol, TickerPrice>();
 		const tokenToUSDPrices = MMap<TokenSymbol, TickerPrice>();
@@ -2122,6 +2125,11 @@ export class Fin {
 		const nativeToUSDTicker = (await this.getTicker({ marketSymbol: `${this.nativeToken.symbol}/${this.usdToken.symbol}` }));
 		const nativeToUSDPrice = get<TickerPrice>(nativeToUSDTicker.middlePrice.baseToQuote);
 		const USDToNativePrice = get<TickerPrice>(nativeToUSDTicker.middlePrice.quoteToBase);
+
+		tokenToUSDPrices.set(this.usdToken.symbol, DECIMAL_1, true);
+		tokenToNativePrices.set(this.nativeToken.symbol, DECIMAL_1, true);
+		tokenToUSDPrices.set(this.nativeToken.symbol, nativeToUSDPrice, true);
+		tokenToNativePrices.set(this.usdToken.symbol, USDToNativePrice, true);
 
 		// Fetch token prices using a ticker with the USD token or the native token
 		for (const token of tokens.values()) {
@@ -2140,7 +2148,7 @@ export class Fin {
 						tokenToNativePrices.set(token.symbol, price);
 						tokenToUSDPrices.set(token.symbol, price.mul(nativeToUSDPrice));
 					} catch (exception) {
-						logger.ignoreException(exception, `Failed to get price for token ${token.symbol} using ${token.symbol}/${this.usdToken.symbol} or ${token.symbol}/${this.nativeToken.symbol} markets.`);
+						// logger.ignoreException(exception, `Failed to get price for token ${token.symbol} using ${token.symbol}/${this.usdToken.symbol} or ${token.symbol}/${this.nativeToken.symbol} markets.`);
 					}
 				}
 			}
@@ -2162,20 +2170,19 @@ export class Fin {
 					]
 				}
 			*/
-			const data = await oracleResponse.json() as { prices: Array<{ symbol: string; price: string }> };
-			for (const priceData of data.prices) {
-				if (priceData.symbol && priceData.price) {
-					const oracleSymbol = priceData.symbol.toUpperCase();
-					const token = tokens.find((token: Token) => token.symbol == `THOR-${oracleSymbol}`);
+			const oracleRawBalances = await oracleResponse.json() as { prices: Array<{ symbol: string; price: string }> };
+			for (const token of tokens.values()) {
+				if (!tokenToUSDPrices.has(token.symbol)) {
+					const rawBalance = oracleRawBalances.prices.find((oracleRawBalance: { symbol: string; price: string }) => {
+						return token.symbol.toLowerCase().endsWith(oracleRawBalance.symbol.toString().trim().toLowerCase());
+					});
 
-					if (token) {
-						if (!tokenToUSDPrices.has(token.symbol)) {
-							const price = new Decimal(priceData.price.toString().trim());
-							tokenToUSDPrices.set(token.symbol, price);
-							tokenToNativePrices.set(token.symbol, price.mul(USDToNativePrice));
-						}
+					if (rawBalance) {
+						const price = new Decimal(rawBalance.price.toString().trim());
+						tokenToUSDPrices.set(token.symbol, price);
+						tokenToNativePrices.set(token.symbol, price.mul(USDToNativePrice));
 					} else {
-						logger.ignoreException(new Error(`Token not found`), `Oracle price token ${oracleSymbol} not found, ignoring this price.`);
+						// logger.ignoreException(new Error(`Token not found`), `Oracle price token ${token.symbol} not found, ignoring this price.`);
 					}
 				}
 			}
@@ -2216,7 +2223,7 @@ export class Fin {
 					}
 				]
 			*/
-			const data = await poolResponse.json() as Array<{
+			const poolRawBalances = await poolResponse.json() as Array<{
 				asset: string;
 				short_code: string;
 				status: string;
@@ -2241,23 +2248,26 @@ export class Fin {
 				derived_depth_bps: string;
 				trading_halted: boolean;
 			}>;
-			if (Array.isArray(data)) {
-				for (const poolData of data) {
-					if (poolData.asset && poolData.asset_tor_price) {
-						const poolSymbol = poolData.asset.toString().trim();
-						const token = await this.getToken({ address: poolData.asset });
+			for (const token of tokens.values()) {
+				if (!tokenToUSDPrices.has(token.symbol)) {
+					const rawBalance = poolRawBalances.find((poolRawBalance: { asset: string; asset_tor_price: string }) => {
+						return token.address.toLowerCase() == poolRawBalance.asset.toString().trim().toLowerCase();
+					});
 
-						if (token) {
-							if (!tokenToUSDPrices.has(token.symbol)) {
-								const price = new Decimal(poolData.asset_tor_price.toString().trim()).div(DECIMAL_10.pow(8));
-								tokenToUSDPrices.set(token.symbol, price);
-								tokenToNativePrices.set(token.symbol, price.mul(USDToNativePrice));
-							}
-						} else {
-							logger.ignoreException(new Error(`Token not found`), `Pool price token ${poolSymbol} not found, ignoring this price.`);
-						}
+					if (rawBalance) {
+						const price = new Decimal(rawBalance.asset_tor_price.toString().trim()).div(DECIMAL_10.pow(8));
+						tokenToUSDPrices.set(token.symbol, price);
+						tokenToNativePrices.set(token.symbol, price.mul(USDToNativePrice));
+					} else {
+						// logger.ignoreException(new Error(`Token not found`), `Pool price token ${token.symbol} not found, ignoring this price.`);
 					}
 				}
+			}
+		}
+
+		for (const token of tokens.values()) {
+			if (!tokenToUSDPrices.has(token.symbol)) {
+				logger.ignoreException(new Error(`Token price for ${token.symbol} not found, ignoring this token price.`));
 			}
 		}
 
@@ -2291,16 +2301,16 @@ export class Fin {
 				};
 			};
 
-			for (const rawBalance of freeBalanceResponseData.balances) {
-				const token = await this.getToken({ address: rawBalance.denom });
+			for (const token of tokens.values()) {
+				const rawBalance = freeBalanceResponseData.balances.find((rawBalance: { denom: string }) => {
+					return rawBalance.denom.toLowerCase() == token.address.toLowerCase();
+				});
 
-				if (token) {
-					if (tokens.has(token.symbol)) {
-						const amount = Decimal(rawBalance.amount.toString().trim()).div(DECIMAL_10.pow(token.decimals));
-						freeBalances.set(token.symbol, amount, true);
-					}
+				if (rawBalance) {
+					const amount = Decimal(rawBalance.amount.toString().trim()).div(DECIMAL_10.pow(token.decimals));
+					freeBalances.set(token.symbol, amount, true);
 				} else {
-					logger.ignoreException(new Error(`Token not found`), `Balance token ${rawBalance.denom} not found, ignoring this balance.`);
+					logger.ignoreException(new Error(`Balance for token ${token.symbol} not found, ignoring this token balance.`));
 				}
 			}
 		}
@@ -2308,9 +2318,12 @@ export class Fin {
 		const lockedInOrdersMap = MMap<TokenSymbol, Amount>();
 		const withdrawableMap = MMap<TokenSymbol, Amount>();
 
-		// TODO: improve this logic to make it more efficient!!!
 		// Use getOrders to get all orders across all markets for the wallet
 		for (const market of markets.values()) {
+			if (!tokenSymbols.includes(market.tokens.base.symbol) && !tokenSymbols.includes(market.tokens.quote.symbol)) {
+				continue;
+			}
+
 			const orders = await this.getOrders({
 				ownerAddress: walletAddress,
 				market
@@ -2632,7 +2645,7 @@ export class Fin {
 			const type = OrderType.FIXED_PRICE;
 			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
 			const price = Decimal(rawOrder.price.fixed);
-			const amount = Decimal(rawOrder.offer).div(DECIMAL_10.pow(market.decimals));
+			const amount = (side == OrderSide.BUY ? Decimal(rawOrder.offer).div(price) : Decimal(rawOrder.offer)).div(DECIMAL_10.pow(market.decimals));
 			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(Decimal(rawOrder.offer))));
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 			const id = this.getOrderId({
