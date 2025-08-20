@@ -69,6 +69,7 @@ import { dump, get } from "./utils";
 	const defaultSpreadPercentage = Decimal('50');
 	const defaultFillableSpreadPercentage = Decimal('1');
 	const defaultPriceIncrementPercentage = Decimal('1');
+	const defaultMaximumMarketOrderSlippagePercentage = Decimal('2.5');
 
 	const defaultOrderMininumAmountIncrement = Decimal('0.00000001'); // Depends on the market decimals
 	const defaultOrderMinimumPriceIncrement = Decimal('0.000000000001'); // Usually 1e-12
@@ -168,7 +169,8 @@ import { dump, get } from "./utils";
 					type: OrderType.MARKET,
 					side: OrderSide.BUY,
 					amount: defaultBuyOrderMininumAmount,
-					// price: undefined
+					// price: undefined,
+					// maximumSlippagePercentage: defaultMaximumMarketOrderSlippagePercentage
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -220,10 +222,11 @@ import { dump, get } from "./utils";
 					marketAddress: defaultMarketAddress,
 					marketSymbol: defaultMarketSymbol,
 					market: defaultMarket,
-					type: OrderType.FIXED_PRICE,
+					type: OrderType.MARKET,
 					side: OrderSide.SELL,
 					amount: defaultSellOrderMininumAmount,
-					// price: undefined
+					// price: undefined,
+					// maximumSlippagePercentage: defaultMaximumMarketOrderSlippagePercentage
 				} as FinPlaceOrderRequest,
 			]
 		},

@@ -110,7 +110,8 @@ import {
 	Wallet,
 	WalletAddress,
 	WalletMnemonic,
-	WalletPrivateKey
+	WalletPrivateKey,
+	OrderMaximumSlippagePercentage
 } from './types';
 import { get, runWithRetryAndTimeout, sanitizeOrderPrice, validateOrderPrice } from "./utils";
 import { loggedClass } from "./annotations";
@@ -3064,6 +3065,7 @@ export class Fin {
 				type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
 				amount: Decimal(order.amount),
 				price: order.price ? sanitizeOrderPrice(Decimal(order.price), market.raw.tick) : undefined,
+				maximumSlippagePercentage: order.maximumSlippagePercentage ? Decimal(order.maximumSlippagePercentage) : Decimal(properties.get('rujira.default.orders.maximumSlippagePercentage'))
 			})));
 		}
 
@@ -3202,7 +3204,8 @@ export class Fin {
 		});
 
 		// Build the complete order message structure
-		const persistMessages: any[] = [];
+		const limitOrdersMessages: any[] = [];
+		const marketOrdersMessages: any[] = [];
 
 		// Process place orders
 		if (orders.place && !orders.place.isEmpty()) {
@@ -3220,24 +3223,32 @@ export class Fin {
 				// Use precise price formatting like playgrounds
 				const price = order.price ? order.price.toFixed(18) : '0.000000000000000000';
 
-				// Standardize on base token decimals for consistency with UI
-				// Always convert order.amount to base token decimals
-				const baseTokenAmount = order.amount.mul(10 ** market.tokens.base.decimals).toFixed(0);
-
 				// For BUY orders, we need to send quote tokens as funds
 				// For SELL orders, we need to send base tokens as funds
-				let contractAmount: string;
+				let contractAmount: Amount;
 				if (order.side === OrderSide.BUY) {
 					// For BUY orders, contract expects quote token amount
 					// Calculate: base token amount × price = quote token amount
-					const quoteTokenAmount = order.amount.mul(order.price || 0).mul(10 ** market.tokens.quote.decimals).toFixed(0);
+					const quoteTokenAmount = order.amount.mul(order.price || 0).mul(10 ** market.tokens.quote.decimals).toDecimalPlaces(0);
 					contractAmount = quoteTokenAmount;
 				} else {
 					// For SELL orders, contract expects base token amount
+					const baseTokenAmount = order.amount.mul(10 ** market.tokens.base.decimals).toDecimalPlaces(0);
 					contractAmount = baseTokenAmount;
 				}
 
-				persistMessages.push([side, { fixed: price }, contractAmount]);
+				if ([OrderType.MARKET].includes(order.type)) {
+					contractAmount = contractAmount.mul(DECIMAL_100.minus(get<OrderMaximumSlippagePercentage>(order.maximumSlippagePercentage))).div(DECIMAL_100).toDecimalPlaces(0);
+
+					marketOrdersMessages.push({
+						min_return: contractAmount.toFixed(),
+						to: ownerAddress
+					});
+				} else if ([OrderType.FIXED_PRICE].includes(order.type)) {
+					limitOrdersMessages.push([side, { fixed: price }, contractAmount.toFixed()]);
+				} else {
+					throw new Error(`Order type ${order.type} not supported`);
+				}
 
 				// Create a proper Order object at this moment
 				const orderObject: Order = {
@@ -3288,24 +3299,32 @@ export class Fin {
 				// Use precise price formatting like playgrounds
 				const price = order.price ? order.price.toFixed(18) : '0.000000000000000000';
 
-				// Standardize on base token decimals for consistency with UI
-				// Always convert order.amount to base token decimals
-				const baseTokenAmount = order.amount.mul(10 ** market.tokens.base.decimals).toFixed(0);
-
 				// For BUY orders, we need to send quote tokens as funds
 				// For SELL orders, we need to send base tokens as funds
-				let contractAmount: string;
+				let contractAmount: Amount;
 				if (order.side === OrderSide.BUY) {
 					// For BUY orders, contract expects quote token amount
 					// Calculate: base token amount × price = quote token amount
-					const quoteTokenAmount = order.amount.mul(order.price || 0).mul(10 ** market.tokens.quote.decimals).toFixed(0);
+					const quoteTokenAmount = order.amount.mul(order.price || 0).mul(10 ** market.tokens.quote.decimals).toDecimalPlaces(0);
 					contractAmount = quoteTokenAmount;
 				} else {
 					// For SELL orders, contract expects base token amount
+					const baseTokenAmount = order.amount.mul(10 ** market.tokens.base.decimals).toDecimalPlaces(0);
 					contractAmount = baseTokenAmount;
 				}
 
-				persistMessages.push([side, { fixed: price }, contractAmount]);
+				if ([OrderType.MARKET].includes(order.type)) {
+					contractAmount = contractAmount.mul(DECIMAL_100.minus(get<OrderMaximumSlippagePercentage>(order.maximumSlippagePercentage))).div(DECIMAL_100).toDecimalPlaces(0);
+
+					marketOrdersMessages.push({
+						min_return: contractAmount.toFixed(),
+						to: ownerAddress
+					});
+				} else if ([OrderType.FIXED_PRICE].includes(order.type)) {
+					limitOrdersMessages.push([side, { fixed: price }, contractAmount.toFixed()]);
+				} else {
+					throw new Error(`Order type ${order.type} not supported`);
+				}
 
 				// Create a proper Order object using existing order and new amount
 				const orderObject: Order = {
@@ -3348,7 +3367,7 @@ export class Fin {
 				// Use precise price formatting like playgrounds
 				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
-				persistMessages.push([side, { fixed: price }, '0']);
+				limitOrdersMessages.push([side, { fixed: price }, '0']);
 
 				// Update order status to CANCELLED and update timestamp
 				const cancelledOrder: Order = {
@@ -3382,7 +3401,7 @@ export class Fin {
 				// Use precise price formatting like playgrounds
 				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
-				persistMessages.push([side, { fixed: price }, null]);
+				limitOrdersMessages.push([side, { fixed: price }, null]);
 
 				// Update timestamp for withdrawn order
 				const withdrawnOrder: Order = {
@@ -3394,7 +3413,7 @@ export class Fin {
 			ordersMap.set('withdraw', withdrawOrdersMap);
 		}
 
-		if (persistMessages.length === 0) {
+		if (limitOrdersMessages.length === 0) {
 			throw new Error("No valid orders to persist");
 		}
 
@@ -3461,15 +3480,18 @@ export class Fin {
 					}];
 				}
 			}
-		} // End of hasPlaceOrders conditional
+		}
+
+		const message = {
+			order: [limitOrdersMessages, null],
+			swap: marketOrdersMessages[0]
+		}
 
 		// Execute the transaction
 		const response = await this.cosmClient.execute(
 			ownerAddress,
 			contractAddress,
-			{
-				order: [persistMessages, null]
-			},
+			message,
 			'auto',
 			undefined,
 			funds

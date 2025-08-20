@@ -1665,6 +1665,7 @@ export type OrderFilledAmount = Amount;
 export type OrderFilledPercentage = Percentage;
 export type OrderCreationTimestamp = Timestamp;
 export type OrderUpdateTimestamp = Timestamp;
+export type OrderMaximumSlippagePercentage = Percentage;
 
 export type Wallet = {
 	cosmWallet: DirectSecp256k1Wallet;
@@ -2706,6 +2707,11 @@ export interface FinPlaceOrderRequest {
 	 * Order price (required for limit orders)
 	 */
 	price?: OrderPrice;
+
+	/**
+	 * Maximum slippage percentage
+	 */
+	maximumSlippagePercentage?: OrderMaximumSlippagePercentage;
 }
 
 /**
