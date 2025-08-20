@@ -102,8 +102,8 @@ import { dump, get } from "./utils";
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
-					amount: defaultBuyOrderMininumAmount,
-					price: defaultBuyOrderMininumPrice
+					amount: defaultBuyOrderMiddleAmount,
+					price: defaultBuyOrderMiddlePrice
 				} as FinPlaceOrderRequest,
 				sell: {
 					ownerAddress: walletAddress,
@@ -113,8 +113,8 @@ import { dump, get } from "./utils";
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
-					amount: defaultSellOrderMininumAmount,
-					price: defaultSellOrderMaximumPrice
+					amount: defaultSellOrderMiddleAmount,
+					price: defaultSellOrderMiddlePrice
 				} as FinPlaceOrderRequest,
 			},
 			multiple: [
@@ -215,8 +215,8 @@ import { dump, get } from "./utils";
 					// market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
-					amount: defaultBuyOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
-					price: defaultBuyOrderMininumPrice
+					amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultBuyOrderMiddleAmount)),
+					price: defaultBuyOrderMiddlePrice
 				} as FinReplaceOrderRequest,
 				sell: {
 					ownerAddress: walletAddress,
@@ -225,8 +225,8 @@ import { dump, get } from "./utils";
 					// market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
-					amount: defaultSellOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
-					price: defaultSellOrderMaximumPrice
+					amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultSellOrderMiddleAmount)),
+					price: defaultSellOrderMiddlePrice
 				} as FinReplaceOrderRequest,
 			},
 			multiple: [
@@ -286,8 +286,8 @@ import { dump, get } from "./utils";
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
-					amount: defaultBuyOrderMininumAmount,
-					price: defaultBuyOrderMininumPrice
+					amount: defaultBuyOrderMiddleAmount,
+					price: defaultBuyOrderMiddlePrice
 				} as FinPlaceOrderRequest,
 				sell: {
 					ownerAddress: walletAddress,
@@ -297,8 +297,8 @@ import { dump, get } from "./utils";
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
-					amount: defaultSellOrderMininumAmount,
-					price: defaultSellOrderMaximumPrice
+					amount: defaultSellOrderMiddleAmount,
+					price: defaultSellOrderMiddlePrice
 				} as FinPlaceOrderRequest,
 			},
 			multiple: [
