@@ -162,6 +162,16 @@ import { dump, get } from "./utils";
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
+					marketAddress: defaultMarketAddress,
+					marketSymbol: defaultMarketSymbol,
+					market: defaultMarket,
+					type: OrderType.MARKET,
+					side: OrderSide.BUY,
+					amount: defaultBuyOrderMininumAmount,
+					// price: undefined
+				} as FinPlaceOrderRequest,
+				{
+					ownerAddress: walletAddress,
 					// owner: undefined,
 					marketAddress: defaultMarketAddress,
 					marketSymbol: defaultMarketSymbol,
@@ -203,6 +213,17 @@ import { dump, get } from "./utils";
 					side: OrderSide.SELL,
 					amount: defaultSellOrderMininumAmount,
 					price: defaultSellOrderFillablePrice
+				} as FinPlaceOrderRequest,
+				{
+					ownerAddress: walletAddress,
+					// owner: undefined,
+					marketAddress: defaultMarketAddress,
+					marketSymbol: defaultMarketSymbol,
+					market: defaultMarket,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.SELL,
+					amount: defaultSellOrderMininumAmount,
+					// price: undefined
 				} as FinPlaceOrderRequest,
 			]
 		},
