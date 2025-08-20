@@ -294,9 +294,7 @@ export const sanitizeOrderPrice = (price: Decimal, tick: number, maximumPrecisio
 		const result = Decimal(`${integerPartString}.${fractionalPartString.slice(0, tick - integerPartString.length)}`);
 
 		return result;
-	}
-
-	if (fractionalPartString) {
+	} else {
 		const fractionalPartStringLeadingZeros = fractionalPartString.replace(/(0*)([^0]+)$/g, '$1');
 		const fractionalPartStringWithoutLeadingZeros = fractionalPartString.replace(/^0+/g, '');
 
