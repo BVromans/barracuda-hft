@@ -21,7 +21,7 @@ import { dump, get } from "./utils";
 		getIndicators: false,
 		getBalances: false,
 		placeOrder: false,
-		placeOrders: false, // TODO: also test market orders!!!
+		placeOrders: false,
 		getOrder: false,
 		getOrders: false,
 		replaceOrder: false,
