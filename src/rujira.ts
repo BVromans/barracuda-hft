@@ -2378,6 +2378,21 @@ export class Fin {
 		}
 
 		const tokensBalancesMap = MMap<TokenSymbol, TokenBalance>();
+		const totalNative: BaseBalance = {
+			free: DECIMAL_0,
+			lockedInOrders: DECIMAL_0,
+			lockedInPools: DECIMAL_0,
+			withdrawable: DECIMAL_0,
+			total: DECIMAL_0
+		};
+		const totalUSD: BaseBalance = {
+			free: DECIMAL_0,
+			lockedInOrders: DECIMAL_0,
+			lockedInPools: DECIMAL_0,
+			withdrawable: DECIMAL_0,
+			total: DECIMAL_0
+		};
+
 		for (const token of tokens.values()) {
 			const free = freeBalances.getOrThrow(token.symbol, DECIMAL_0);
 			const lockedInOrders = lockedInOrdersMap.getOrThrow(token.symbol, DECIMAL_0);
@@ -2445,23 +2460,19 @@ export class Fin {
 				},
 				true
 			);
+
+			totalNative.free = totalNative.free.plus(nativeTokenBalance.free);
+			totalNative.lockedInOrders = totalNative.lockedInOrders.plus(nativeTokenBalance.lockedInOrders);
+			totalNative.lockedInPools = totalNative.lockedInPools.plus(nativeTokenBalance.lockedInPools);
+			totalNative.withdrawable = totalNative.withdrawable.plus(nativeTokenBalance.withdrawable);
+			totalNative.total = totalNative.total.plus(nativeTokenBalance.total);
+
+			totalUSD.free = totalUSD.free.plus(usdTokenBalance.free);
+			totalUSD.lockedInOrders = totalUSD.lockedInOrders.plus(usdTokenBalance.lockedInOrders);
+			totalUSD.lockedInPools = totalUSD.lockedInPools.plus(usdTokenBalance.lockedInPools);
+			totalUSD.withdrawable = totalUSD.withdrawable.plus(usdTokenBalance.withdrawable);
+			totalUSD.total = totalUSD.total.plus(usdTokenBalance.total);
 		}
-
-		const totalNative: BaseBalance = {
-			free: freeBalances.getOrThrow(this.nativeToken.symbol, DECIMAL_0),
-			lockedInOrders: lockedInOrdersMap.getOrThrow(this.nativeToken.symbol, DECIMAL_0),
-			lockedInPools: DECIMAL_0,
-			withdrawable: withdrawableMap.getOrThrow(this.nativeToken.symbol, DECIMAL_0),
-			total: freeBalances.getOrThrow(this.nativeToken.symbol, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.nativeToken.symbol, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.nativeToken.symbol, DECIMAL_0))
-		};
-
-		const totalUSD: BaseBalance = {
-			free: freeBalances.getOrThrow(this.usdToken.symbol, DECIMAL_0),
-			lockedInOrders: lockedInOrdersMap.getOrThrow(this.usdToken.symbol, DECIMAL_0),
-			lockedInPools: DECIMAL_0,
-			withdrawable: withdrawableMap.getOrThrow(this.usdToken.symbol, DECIMAL_0),
-			total: freeBalances.getOrThrow(this.usdToken.symbol, DECIMAL_0).plus(lockedInOrdersMap.getOrThrow(this.usdToken.symbol, DECIMAL_0)).plus(DECIMAL_0).plus(withdrawableMap.getOrThrow(this.usdToken.symbol, DECIMAL_0))
-		};
 
 		const balances: Balances = {
 			tokens: tokensBalancesMap,
