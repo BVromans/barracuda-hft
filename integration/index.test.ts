@@ -918,8 +918,56 @@ describe("Rujira", async() => {
 				}
 			});
 
+			it("should verify that a specific indicator has the same quantity as maximumNumberOfCandles", async () => {
+				const maximumNumberOfCandles = 100;
+				const specificIndicator = indicatorMap[0];
+
+				const result = await rujira.fin.getIndicators({
+					marketAddress: firstMarketAddress,
+					indicatorsIds: [specificIndicator],
+					maximumNumberOfCandles: maximumNumberOfCandles
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBe(1);
+
+				const indicatorData = result.get(specificIndicator);
+				expect(indicatorData).toBeDefined();
+				expect(indicatorData?.indicator.id).toBe(specificIndicator);
+				expect(indicatorData?.indicator.name).toBeDefined();
+				expect(indicatorData?.value).toBeDefined();
+
+				// Verify that the indicator data has the expected quantity
+				if (indicatorData?.value && Array.isArray(indicatorData.value)) {
+					expect(indicatorData.value.length).toBeLessThanOrEqual(maximumNumberOfCandles);
+				}
+			});
+
 			it("should be able to get indicators by market address", async () => {
 
+				const result = await rujira.fin.getIndicators({
+					marketAddress: firstMarketAddress,
+				});
+
+				expect(result).toBeDefined();
+				expect(result.size).toBeGreaterThan(0);
+
+				for (const [indicatorId, indicatorData] of result.entries()) {
+					expect(indicatorId).toBeDefined();
+					expect(indicatorId.length).toBeGreaterThan(0);
+
+					expect(indicatorData).toBeDefined();
+					expect(indicatorData.indicator).toBeDefined();
+					expect(indicatorData.indicator.id).toBe(indicatorId);
+					expect(indicatorData.indicator.name).toBeDefined();
+					expect(indicatorData.indicator.parameters).toBeDefined();
+					expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
+
+					expect(indicatorData.value).toBeDefined();
+				}
+			});
+
+			it("should be able to get all indicators by market address", async () => {
 				const result = await rujira.fin.getIndicators({
 					marketAddress: firstMarketAddress,
 				});
@@ -1013,6 +1061,7 @@ describe("Rujira", async() => {
 					expect(indicators).toContain(indicatorId);
 				}
 			});
+
 		});
 
 		describe.skip("balances", () => {
