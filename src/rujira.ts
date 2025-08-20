@@ -3129,7 +3129,15 @@ export class Fin {
 					throw new Error("A valid order price is required for placing fixed price orders");
 				}
 
-				validateOrderPrice(order.price, market.raw.tick);
+				// Validate that amount is positive
+				if (!order.amount.gt(DECIMAL_0)) {
+					throw new Error("Order amount must be greater than zero");
+				}
+
+				// Validate price if provided
+				if (order.price) {
+					validateOrderPrice(order.price, market.raw.tick);
+				}
 			});
 		}
 
@@ -3143,7 +3151,15 @@ export class Fin {
 					throw new Error("A valid order price is required for replacing fixed price orders");
 				}
 
-				validateOrderPrice(order.price, market.raw.tick);
+				// Validate that amount is positive
+				if (!order.amount.gt(DECIMAL_0)) {
+					throw new Error("Order amount must be greater than zero");
+				}
+
+				// Validate price if provided
+				if (order.price) {
+					validateOrderPrice(order.price, market.raw.tick);
+				}
 			});
 		}
 
@@ -3192,11 +3208,25 @@ export class Fin {
 				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
 				// Use precise price formatting like playgrounds
 				const price = order.price ? order.price.toFixed(18) : '0.000000000000000000';
-				// For BUY orders, amount should be in quote token decimals (Ex.: USDC = 6)
-				// For SELL orders, amount should be in base token decimals (Ex.: RUJI = 6)
-				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toFixed(0);
 
-				persistMessages.push([side, { fixed: price }, amount]);
+				// Standardize on base token decimals for consistency with UI
+				// Always convert order.amount to base token decimals
+				const baseTokenAmount = order.amount.mul(10 ** market.tokens.base.decimals).toFixed(0);
+
+				// For BUY orders, we need to send quote tokens as funds
+				// For SELL orders, we need to send base tokens as funds
+				let contractAmount: string;
+				if (order.side === OrderSide.BUY) {
+					// For BUY orders, contract expects quote token amount
+					// Calculate: base token amount × price = quote token amount
+					const quoteTokenAmount = order.amount.mul(order.price || 0).mul(10 ** market.tokens.quote.decimals).toFixed(0);
+					contractAmount = quoteTokenAmount;
+				} else {
+					// For SELL orders, contract expects base token amount
+					contractAmount = baseTokenAmount;
+				}
+
+				persistMessages.push([side, { fixed: price }, contractAmount]);
 
 				// Create a proper Order object at this moment
 				const orderObject: Order = {
@@ -3205,7 +3235,7 @@ export class Fin {
 					ownerAddress: ownerAddress,
 					type: order.type,
 					side: order.side,
-					price: order.price,
+					price: order.price || Decimal(0),
 					amount: order.amount,
 					filledPercentage: DECIMAL_0,
 					status: OrderStatus.OPEN,
@@ -3246,11 +3276,25 @@ export class Fin {
 				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
 				// Use precise price formatting like playgrounds
 				const price = order.price ? order.price.toFixed(18) : '0.000000000000000000';
-				// For BUY orders, amount should be in quote token decimals (Ex.: USDC = 6)
-				// For SELL orders, amount should be in base token decimals (Ex.: RUJI = 6)
-				const amount = order.amount.mul(10 ** (order.side === OrderSide.BUY ? market.tokens.quote.decimals : market.tokens.base.decimals)).toFixed(0);
 
-				persistMessages.push([side, { fixed: price }, amount]);
+				// Standardize on base token decimals for consistency with UI
+				// Always convert order.amount to base token decimals
+				const baseTokenAmount = order.amount.mul(10 ** market.tokens.base.decimals).toFixed(0);
+
+				// For BUY orders, we need to send quote tokens as funds
+				// For SELL orders, we need to send base tokens as funds
+				let contractAmount: string;
+				if (order.side === OrderSide.BUY) {
+					// For BUY orders, contract expects quote token amount
+					// Calculate: base token amount × price = quote token amount
+					const quoteTokenAmount = order.amount.mul(order.price || 0).mul(10 ** market.tokens.quote.decimals).toFixed(0);
+					contractAmount = quoteTokenAmount;
+				} else {
+					// For SELL orders, contract expects base token amount
+					contractAmount = baseTokenAmount;
+				}
+
+				persistMessages.push([side, { fixed: price }, contractAmount]);
 
 				// Create a proper Order object using existing order and new amount
 				const orderObject: Order = {
@@ -3354,52 +3398,54 @@ export class Fin {
 			const buyOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
 			const sellOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
 
-		// For BUY orders (place only), we need quote tokens (USDC)
-		if (buyOrders && buyOrders.size > 0) {
-			let totalQuoteAmount = DECIMAL_0;
+			// For BUY orders (place only), we need quote tokens (USDC)
+			if (buyOrders && buyOrders.size > 0) {
+				let totalQuoteAmount = DECIMAL_0;
 
-			// For place orders, use the full amount
-			buyOrders.forEach((order: FinPlaceOrderRequest) => {
-				totalQuoteAmount = totalQuoteAmount.plus(order.amount);
-			});
+				// For place orders, calculate quote token amount needed
+				buyOrders.forEach((order: FinPlaceOrderRequest) => {
+					// Calculate: base token amount × price = quote token amount needed
+					const quoteAmount = order.amount.mul(order.price || 0);
+					totalQuoteAmount = totalQuoteAmount.plus(quoteAmount);
+				});
 
-			// Convert to raw amount (no buffer needed - contract handles fees)
-			const rawQuoteAmount = totalQuoteAmount.mul(10 ** market.tokens.quote.decimals).toFixed(0);
+				// Convert to raw amount (no buffer needed - contract handles fees)
+				const rawQuoteAmount = totalQuoteAmount.mul(10 ** market.tokens.quote.decimals).toFixed(0);
 
-			funds = [{
-				denom: market.tokens.quote.address,
-				amount: rawQuoteAmount
-			}];
-		}
-
-		// For SELL orders (place only), we need base tokens (RUJI)
-		if (sellOrders && sellOrders.size > 0) {
-			let totalBaseAmount = DECIMAL_0;
-
-			// For place orders, use the full amount
-			sellOrders.forEach((order: FinPlaceOrderRequest) => {
-				totalBaseAmount = totalBaseAmount.plus(order.amount);
-			});
-
-			// Convert to raw amount (no buffer needed - contract handles fees)
-			const rawBaseAmount = totalBaseAmount.mul(10 ** market.tokens.base.decimals).toFixed(0);
-
-			// If we already have funds for BUY orders, add to it, otherwise create new
-			if (funds) {
-				funds = [
-					...funds,
-					{
-						denom: market.tokens.base.address,
-						amount: rawBaseAmount
-					}
-				];
-			} else {
 				funds = [{
-					denom: market.tokens.base.address,
-					amount: rawBaseAmount
+					denom: market.tokens.quote.address,
+					amount: rawQuoteAmount
 				}];
 			}
-		}
+
+			// For SELL orders (place only), we need base tokens
+			if (sellOrders && sellOrders.size > 0) {
+				let totalBaseAmount = DECIMAL_0;
+
+				// For place orders, use the base token amount directly
+				sellOrders.forEach((order: FinPlaceOrderRequest) => {
+					totalBaseAmount = totalBaseAmount.plus(order.amount);
+				});
+
+				// Convert to raw amount (no buffer needed - contract handles fees)
+				const rawBaseAmount = totalBaseAmount.mul(10 ** market.tokens.base.decimals).toFixed(0);
+
+				// If we already have funds for BUY orders, add to it, otherwise create new
+				if (funds) {
+					funds = [
+						...funds,
+						{
+							denom: market.tokens.base.address,
+							amount: rawBaseAmount
+						}
+					];
+				} else {
+					funds = [{
+						denom: market.tokens.base.address,
+						amount: rawBaseAmount
+					}];
+				}
+			}
 		} // End of hasPlaceOrders conditional
 
 		// Execute the transaction
@@ -3478,6 +3524,17 @@ export class Fin {
 
 		orderPrice = orderPrice || get<Order>(order).price;
 
-		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed()}`;
+		// Include both base amount and calculated quote amount for better tracking
+		let baseAmount = '0';
+		let quoteAmount = '0';
+
+		if (order) {
+			baseAmount = get<Order>(order).amount.toFixed();
+			if (orderPrice && orderPrice.gt(0)) {
+				quoteAmount = get<Order>(order).amount.mul(orderPrice).toFixed();
+			}
+		}
+
+		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|base:${baseAmount}|quote:${quoteAmount}|price:${orderPrice?.toFixed()}`;
 	}
 }
