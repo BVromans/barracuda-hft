@@ -2091,7 +2091,7 @@ export class Fin {
 
 		walletAddress = this.getWalletAddress(walletAddress, wallet);
 		tokenAddresses = tokenAddresses?.map((address: TokenAddress) => address.toLowerCase().trim()) || MList<TokenAddress>();
-		tokenSymbols = tokenSymbols?.map((symbol: TokenSymbol) => symbol.toLowerCase().trim()) || MList<TokenSymbol>();
+		tokenSymbols = tokenSymbols?.map((symbol: TokenSymbol) => symbol.toUpperCase().trim()) || MList<TokenSymbol>();
 
 		if (!walletAddress && !wallet) {
 			throw new Error('The wallet address or wallet is required');
@@ -2108,36 +2108,154 @@ export class Fin {
 		let tokens = await this.getAllTokens({} as FinGetAllTokensRequest);
 
 		if (tokenAddresses.size > 0 || tokenSymbols.size > 0) {
-			tokens = tokens.filter((token: Token) => tokenAddresses.includes(token.address) || tokenSymbols.includes(token.symbol));
+			tokens = tokens.filter((token: Token) => {
+				return tokenAddresses.includes(token.address)
+					|| tokenSymbols.includes(token.symbol)
+					|| token.address === this.nativeToken.address
+					|| token.address === this.usdToken.address;
+			});
 		}
 
-		// Fetch THORChain oracle prices for USD conversion rates
-		let oraclePrices = MMap<string, Decimal>();
-		const oracleResponse = await this.parent.fetch('https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices');
+		const tokenToNativePrices = MMap<TokenSymbol, TickerPrice>();
+		const tokenToUSDPrices = MMap<TokenSymbol, TickerPrice>();
 
-		if (oracleResponse.ok) {
-			const data = await oracleResponse.json() as { prices: Array<{ symbol: string; price: string }> };
-			for (const priceData of data.prices) {
-				if (priceData.symbol && priceData.price) {
-					const oracleSymbol = priceData.symbol.toUpperCase();
-					oraclePrices = oraclePrices.set(oracleSymbol, new Decimal(priceData.price));
+		const nativeToUSDTicker = (await this.getTicker({ marketSymbol: `${this.nativeToken.symbol}/${this.usdToken.symbol}` }));
+		const nativeToUSDPrice = get<TickerPrice>(nativeToUSDTicker.middlePrice.baseToQuote);
+		const USDToNativePrice = get<TickerPrice>(nativeToUSDTicker.middlePrice.quoteToBase);
+
+		// Fetch token prices using a ticker with the USD token or the native token
+		for (const token of tokens.values()) {
+			if (!tokenToUSDPrices.has(token.symbol)) {
+				try {
+					const tokenToUsdMarket = await this.getMarket({ symbol: `${token.symbol}/${this.usdToken.symbol}` });
+					const ticker = await this.getTicker({ marketAddress: tokenToUsdMarket.address });
+					const price = get<TickerPrice>(ticker.middlePrice.baseToQuote);
+					tokenToUSDPrices.set(token.symbol, price);
+					tokenToNativePrices.set(token.symbol, price.mul(USDToNativePrice));
+				} catch (exception) {
+					try {
+						const tokenToNativeMarket = await this.getMarket({ symbol: `${token.symbol}/${this.nativeToken.symbol}` });
+						const ticker = await this.getTicker({ marketAddress: tokenToNativeMarket.address });
+						const price = get<TickerPrice>(ticker.middlePrice.baseToQuote);
+						tokenToNativePrices.set(token.symbol, price);
+						tokenToUSDPrices.set(token.symbol, price.mul(nativeToUSDPrice));
+					} catch (exception) {
+						logger.ignoreException(exception, `Failed to get price for token ${token.symbol} using ${token.symbol}/${this.usdToken.symbol} or ${token.symbol}/${this.nativeToken.symbol} markets.`);
+					}
 				}
 			}
 		}
 
-		// 2. Fetch base layer pool prices as fallback
-		let poolPrices = MMap<string, Decimal>();
-		const poolResponse = await this.parent.fetch('https://thornode.ninerealms.com/thorchain/pools').catch(() => null);
+		// Fetch THORChain oracle prices as fallback
+		const oracleResponse = await this.parent.fetch('https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices')
+			.catch((exception) => logger.ignoreException(exception, 'Failed to fetch THORChain oracle prices.'));
+
+		if (oracleResponse?.ok) {
+			/*
+			Example response:
+				{
+					"prices": [
+						{
+							"symbol": "ATOM",
+							"price": "4.329"
+						}
+					]
+				}
+			*/
+			const data = await oracleResponse.json() as { prices: Array<{ symbol: string; price: string }> };
+			for (const priceData of data.prices) {
+				if (priceData.symbol && priceData.price) {
+					const oracleSymbol = priceData.symbol.toUpperCase();
+					const token = tokens.find((token: Token) => token.symbol == `THOR-${oracleSymbol}`);
+
+					if (token) {
+						if (!tokenToUSDPrices.has(token.symbol)) {
+							const price = new Decimal(priceData.price.toString().trim());
+							tokenToUSDPrices.set(token.symbol, price);
+							tokenToNativePrices.set(token.symbol, price.mul(USDToNativePrice));
+						}
+					} else {
+						logger.ignoreException(new Error(`Token not found`), `Oracle price token ${oracleSymbol} not found, ignoring this price.`);
+					}
+				}
+			}
+		}
+
+		// Fetch base layer pool prices as fallback
+		const poolResponse = await this.parent.fetch('https://thornode.ninerealms.com/thorchain/pools')
+			.catch((exception) => logger.ignoreException(exception, 'Failed to fetch THORChain pool prices.'));
+
 		if (poolResponse?.ok) {
-			const data = await poolResponse.json().catch(() => null);
+			/*
+			Example response:
+				[
+					{
+						"asset": "AVAX.AVAX",
+						"short_code": "a",
+						"status": "Available",
+						"pending_inbound_asset": "0",
+						"pending_inbound_rune": "0",
+						"balance_asset": "7882937787649",
+						"balance_rune": "138875179713185",
+						"asset_tor_price": "2282237044",
+						"pool_units": "86137445582153",
+						"LP_units": "63855886936577",
+						"synth_units": "22281558645576",
+						"synth_supply": "4078229611474",
+						"savers_depth": "3960836133855",
+						"savers_units": "3450281845752",
+						"savers_fill_bps": "0",
+						"savers_capacity_remaining": "0",
+						"synth_mint_paused": true,
+						"synth_supply_remaining": "5381295733704",
+						"loan_collateral": "0",
+						"loan_collateral_remaining": "0",
+						"loan_cr": "0",
+						"derived_depth_bps": "8790",
+						"trading_halted": false
+					}
+				]
+			*/
+			const data = await poolResponse.json() as Array<{
+				asset: string;
+				short_code: string;
+				status: string;
+				pending_inbound_asset: string;
+				pending_inbound_rune: string;
+				balance_asset: string;
+				balance_rune: string;
+				asset_tor_price: string;
+				pool_units: string;
+				LP_units: string;
+				synth_units: string;
+				synth_supply: string;
+				savers_depth: string;
+				savers_units: string;
+				savers_fill_bps: string;
+				savers_capacity_remaining: string;
+				synth_mint_paused: boolean;
+				synth_supply_remaining: string;
+				loan_collateral: string;
+				loan_collateral_remaining: string;
+				loan_cr: string;
+				derived_depth_bps: string;
+				trading_halted: boolean;
+			}>;
 			if (Array.isArray(data)) {
 				for (const poolData of data) {
 					if (poolData.asset && poolData.asset_tor_price) {
-						// Convert asset format (e.g., "THOR.RUJI" -> "THOR-RUJI")
-						const poolSymbol = poolData.asset.replace('.', '-');
-						// asset_tor_price is in 8 decimal places, convert to standard price
-						const poolPrice = new Decimal(poolData.asset_tor_price).div(100000000);
-						poolPrices = poolPrices.set(poolSymbol, poolPrice);
+						const poolSymbol = poolData.asset.toString().trim();
+						const token = await this.getToken({ address: poolData.asset });
+
+						if (token) {
+							if (!tokenToUSDPrices.has(token.symbol)) {
+								const price = new Decimal(poolData.asset_tor_price.toString().trim()).div(DECIMAL_10.pow(8));
+								tokenToUSDPrices.set(token.symbol, price);
+								tokenToNativePrices.set(token.symbol, price.mul(USDToNativePrice));
+							}
+						} else {
+							logger.ignoreException(new Error(`Token not found`), `Pool price token ${poolSymbol} not found, ignoring this price.`);
+						}
 					}
 				}
 			}
@@ -2146,7 +2264,7 @@ export class Fin {
 		const freeBalances = MMap<TokenSymbol, Amount>();
 		const freeBalanceResponse = await this.parent.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
 
-		if (freeBalanceResponse.ok) {
+		if (freeBalanceResponse?.ok) {
 			/*
 			Example response:
 				{
@@ -2162,7 +2280,7 @@ export class Fin {
 					}
 				}
 			*/
-			const freeBalanceResponseData = (await freeBalanceResponse.json()) as {
+			const freeBalanceResponseData = await freeBalanceResponse.json() as {
 				balances: Array<{
 					denom: string;
 					amount: string;
@@ -2174,14 +2292,13 @@ export class Fin {
 			};
 
 			for (const rawBalance of freeBalanceResponseData.balances) {
-				// Try to get token by address first
-				const token = await this.getToken({ address: rawBalance.denom }).catch(() => null);
+				const token = await this.getToken({ address: rawBalance.denom });
 
 				if (token) {
-					// Convert raw amount to proper decimal format
-					const rawAmount = Decimal(rawBalance.amount);
-					const convertedAmount = rawAmount.div(DECIMAL_10.pow(token.decimals));
-					freeBalances.set(token.symbol, convertedAmount, true);
+					if (tokens.has(token.symbol)) {
+						const amount = Decimal(rawBalance.amount.toString().trim()).div(DECIMAL_10.pow(token.decimals));
+						freeBalances.set(token.symbol, amount, true);
+					}
 				} else {
 					logger.ignoreException(new Error(`Token not found`), `Balance token ${rawBalance.denom} not found, ignoring this balance.`);
 				}
@@ -2191,53 +2308,55 @@ export class Fin {
 		const lockedInOrdersMap = MMap<TokenSymbol, Amount>();
 		const withdrawableMap = MMap<TokenSymbol, Amount>();
 
+		// TODO: improve this logic to make it more efficient!!!
 		// Use getOrders to get all orders across all markets for the wallet
 		for (const market of markets.values()) {
-			const marketOrders = await this.getOrders({
+			const orders = await this.getOrders({
 				ownerAddress: walletAddress,
-				marketSymbol: market.symbol
-			}).catch((error) => {
-				logger.ignoreException(error, `Failed to get orders for market ${market.symbol}`);
-				return MMap<OrderId, Order>();
+				market
 			});
 
-			for (const order of marketOrders.values()) {
+			for (const order of orders.values()) {
 				const baseTokenSymbol = market.tokens.base.symbol;
 				const quoteTokenSymbol = market.tokens.quote.symbol;
 
-				// Calculate locked amounts for ALL orders (not just partially filled ones)
-				if (order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED) {
-					let lockedAmount: Decimal;
+				// Calculate locked amounts for all non filled orders
+				if ([ OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED].includes(order.status)) {
+					let lockedAmount: Amount;
+					let lockedTokenSymbol: TokenSymbol;
 
 					if (order.side === OrderSide.SELL) {
 						// For SELL orders, lock the base token amount
+						lockedTokenSymbol = baseTokenSymbol;
 						lockedAmount = order.amount;
 					} else {
 						// For BUY orders, lock the quote token amount (price * amount)
-						lockedAmount = order.price ? order.amount.mul(order.price) : order.amount;
+						lockedTokenSymbol = quoteTokenSymbol;
+						lockedAmount = order.price ? order.amount.mul(get<OrderPrice>(order.price)) : order.amount;
 					}
 
 					if (lockedAmount.gt(0)) {
-						const lockedTokenSymbol = order.side === OrderSide.SELL ? baseTokenSymbol : quoteTokenSymbol;
 						const currentLocked = lockedInOrdersMap.getOrThrow(lockedTokenSymbol, DECIMAL_0);
 						lockedInOrdersMap.set(lockedTokenSymbol, currentLocked.plus(lockedAmount), true);
 					}
 				}
 
 				// Calculate withdrawable amounts for filled orders
-				if (order.status === OrderStatus.FILLED && order.price) {
-					let withdrawAmount: Decimal;
+				if (order.status === OrderStatus.FILLED) {
+					let withdrawAmount: Amount;
+					let withdrawTokenSymbol: TokenSymbol;
 
 					if (order.side === OrderSide.SELL) {
 						// For filled SELL orders, withdrawable is the quote token amount received
-						withdrawAmount = order.amount.mul(order.price);
+						withdrawTokenSymbol = quoteTokenSymbol;
+						withdrawAmount = order.amount.mul(get<OrderPrice>(order.price));
 					} else {
 						// For filled BUY orders, withdrawable is the base token amount received
+						withdrawTokenSymbol = baseTokenSymbol;
 						withdrawAmount = order.amount;
 					}
 
 					if (withdrawAmount.gt(0)) {
-						const withdrawTokenSymbol = order.side === OrderSide.SELL ? quoteTokenSymbol : baseTokenSymbol;
 						const currentWithdrawable = withdrawableMap.getOrThrow(withdrawTokenSymbol, DECIMAL_0);
 						withdrawableMap.set(withdrawTokenSymbol, currentWithdrawable.plus(withdrawAmount), true);
 					}
@@ -2261,89 +2380,16 @@ export class Fin {
 				total
 			};
 
-			// Get conversion rates using THORChain oracle prices (fallback to ticker if not available)
-			let conversionRateNativeToken: TickerPrice = DECIMAL_0;
-			if (token.symbol !== this.nativeToken.symbol) {
-				// Try oracle price first, then fallback to ticker
-				const tokenOraclePrice = oraclePrices.get(token.symbol);
-				const nativeOraclePrice = oraclePrices.get(this.nativeToken.symbol);
-
-				if (tokenOraclePrice && nativeOraclePrice && nativeOraclePrice.gt(DECIMAL_0)) {
-					conversionRateNativeToken = tokenOraclePrice.div(nativeOraclePrice);
-				} else {
-					// 2. Try base layer pool price as fallback
-					const tokenPoolPrice = poolPrices.get(token.symbol);
-					const nativePoolPrice = poolPrices.get(this.nativeToken.symbol);
-
-					if (tokenPoolPrice && nativePoolPrice && nativePoolPrice.gt(DECIMAL_0)) {
-						conversionRateNativeToken = tokenPoolPrice.div(nativePoolPrice);
-					} else {
-						// 3. Fallback to ticker prices (most reliable)
-						const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` }).catch(() => null);
-						if (quotingMarketTicker?.middlePrice.baseToQuote) {
-							conversionRateNativeToken = quotingMarketTicker.middlePrice.baseToQuote;
-						} else {
-							// If direct market doesn't exist, try to calculate via RUJI-USDC market
-							const rujiUSDCTicker = await this.getTicker({ marketSymbol: `${this.nativeToken.symbol}/${this.usdToken.symbol}` }).catch(() => null);
-							const tokenUSDTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` }).catch(() => null);
-
-							if (rujiUSDCTicker?.middlePrice.baseToQuote && tokenUSDTicker?.middlePrice.baseToQuote) {
-								// Calculate: (token/USDC) / (RUJI/USDC) = token/RUJI
-								conversionRateNativeToken = tokenUSDTicker.middlePrice.baseToQuote.div(rujiUSDCTicker.middlePrice.baseToQuote);
-							}
-						}
-					}
-				}
-			} else {
-				conversionRateNativeToken = DECIMAL_1;
-			}
-
-			let conversionRateUSD: TickerPrice = DECIMAL_0;
-			if (token.symbol !== this.usdToken.symbol) {
-				// 1. Try enshrined oracle price first (direct USD price)
-				const tokenOraclePrice = oraclePrices.get(token.symbol);
-
-				if (tokenOraclePrice) {
-					conversionRateUSD = tokenOraclePrice;
-				} else {
-					// 2. Try base layer pool price as fallback (convert via RUNE)
-					const tokenPoolPrice = poolPrices.get(token.symbol);
-					if (tokenPoolPrice) {
-						// Get RUNE USD price directly (not via nativeToken.symbol)
-						const runeUSDPrice = oraclePrices.get('RUNE');
-						if (runeUSDPrice && runeUSDPrice.gt(DECIMAL_0)) {
-							conversionRateUSD = tokenPoolPrice.mul(runeUSDPrice);
-						}
-					}
-
-					// 3. If still no price, fallback to ticker
-					if (conversionRateUSD.eq(DECIMAL_0)) {
-						const quotingMarketTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.usdToken.symbol}` }).catch(() => null);
-						if (quotingMarketTicker?.middlePrice.baseToQuote) {
-							conversionRateUSD = quotingMarketTicker.middlePrice.baseToQuote;
-						} else {
-							// If direct market doesn't exist, try to calculate via RUJI-USDC market
-							const rujiUSDCTicker = await this.getTicker({ marketSymbol: `${this.nativeToken.symbol}/${this.usdToken.symbol}` }).catch(() => null);
-							const tokenRujiTicker = await this.getTicker({ marketSymbol: `${token.symbol}/${this.nativeToken.symbol}` }).catch(() => null);
-
-							if (rujiUSDCTicker?.middlePrice.baseToQuote && tokenRujiTicker?.middlePrice.baseToQuote) {
-								// Calculate: (token/RUJI) * (RUJI/USDC) = token/USDC
-								conversionRateUSD = tokenRujiTicker.middlePrice.baseToQuote.mul(rujiUSDCTicker.middlePrice.baseToQuote);
-							}
-						}
-					}
-				}
-			} else {
-				conversionRateUSD = DECIMAL_1;
-			}
+			const conversionRateUSD: TickerPrice = token.address == this.usdToken.address ? DECIMAL_1 : tokenToUSDPrices.getOrThrow(token.symbol, DECIMAL_0);
+			const conversionRateNative: TickerPrice = token.address == this.nativeToken.address ? DECIMAL_1 : tokenToNativePrices.getOrThrow(token.symbol, DECIMAL_0);
 
 			// Convert balances to native token (RUJI) amounts
 			const nativeTokenBalance: BaseBalance = {
-				free: free.mul(conversionRateNativeToken),
-				lockedInOrders: lockedInOrders.mul(conversionRateNativeToken),
-				lockedInPools: lockedInPools.mul(conversionRateNativeToken),
-				withdrawable: withdrawable.mul(conversionRateNativeToken),
-				total: total.mul(conversionRateNativeToken)
+				free: free.mul(conversionRateNative),
+				lockedInOrders: lockedInOrders.mul(conversionRateNative),
+				lockedInPools: lockedInPools.mul(conversionRateNative),
+				withdrawable: withdrawable.mul(conversionRateNative),
+				total: total.mul(conversionRateNative)
 			};
 
 			// Convert balances to USD token (USDC) amounts
@@ -2359,8 +2405,8 @@ export class Fin {
 				...nativeTokenBalance,
 				quotation: {
 					token: this.nativeToken || token,
-					tokenToQuote: conversionRateNativeToken,
-					quoteToToken: conversionRateNativeToken.gt(DECIMAL_0) ? DECIMAL_1.div(conversionRateNativeToken) : DECIMAL_0
+					tokenToQuote: conversionRateNative,
+					quoteToToken: conversionRateNative.gt(DECIMAL_0) ? DECIMAL_1.div(conversionRateNative) : DECIMAL_0
 				}
 			};
 			const baseBalanceWithUSDQuotation: BaseBalanceWithQuotation = {
