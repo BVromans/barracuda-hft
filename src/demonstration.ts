@@ -571,7 +571,13 @@ import { dump, get } from "./utils";
 
 	if (active.getBalances) {
 		const getBalances = await rujira.fin.getBalances({
-			walletAddress
+			walletAddress,
+			// wallet: undefined,
+			// tokenAddresses: [],
+			// tokenSymbols: [
+			// 	'THOR-NAMI',
+			// 	// 'ETH-GUSD',
+			// ],
 		});
 		console.log('getBalances:\n', dump(getBalances));
 		console.log('\n--------------------------------------------------------------------------------\n');
