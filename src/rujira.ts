@@ -112,7 +112,7 @@ import {
 	WalletMnemonic,
 	WalletPrivateKey
 } from './types';
-import { get, runWithRetryAndTimeout } from "./utils";
+import { get, runWithRetryAndTimeout, sanitizeOrderPrice, validateOrderPrice } from "./utils";
 import { loggedClass } from "./annotations";
 
 /**
@@ -648,12 +648,12 @@ export class Rujira {
 	logger: logger,
 	allowedMethods: [''],
 	disallowedMethods: [],
-	includeStaticMethods: true,
-	logStart: true,
-	logEnd: true,
-	logInput: true,
-	logOutput: true,
-	logExecutionTime: true,
+	includeStaticMethods: false,
+	logStart: false,
+	logEnd: false,
+	logInput: false,
+	logOutput: false,
+	logExecutionTime: false,
 })
 export class Fin {
 	/**
@@ -2714,9 +2714,20 @@ export class Fin {
 	async placeOrders(request: FinPlaceOrdersRequest): Promise<FinPlaceOrdersResponse> {
 		let { ownerAddress, owner, orders } = request;
 
+		if (orders) {
+			orders = MList<FinPlaceOrderRequest>(orders);
+		}
+
+		const marketAddress = orders.first()?.marketAddress;
+		const marketSymbol = orders.first()?.marketSymbol;
+		const market = orders.first()?.market;
+
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
+			marketAddress,
+			marketSymbol,
+			market,
 			orders: {
 				place: MList<FinPlaceOrderRequest>(orders)
 			}
@@ -2775,18 +2786,20 @@ export class Fin {
 	async replaceOrders(request: FinReplaceOrdersRequest): Promise<FinReplaceOrdersResponse> {
 		let { ownerAddress, owner, orders } = request;
 
-		// Extract market information from the first order since all orders should be in the same market
-		const firstOrder = Array.isArray(orders) ? orders[0] : orders.first();
-		if (!firstOrder) {
-			throw new Error("At least one order is required for replacement");
+		if (orders) {
+			orders = MList<FinPlaceOrderRequest>(orders);
 		}
+
+		const marketAddress = orders.first()?.marketAddress;
+		const marketSymbol = orders.first()?.marketSymbol;
+		const market = orders.first()?.market;
 
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
-			marketSymbol: firstOrder.marketSymbol,
-			marketAddress: firstOrder.marketAddress,
-			market: firstOrder.market,
+			marketAddress,
+			marketSymbol,
+			market,
 			orders: {
 				replace: MList<FinPlaceOrderRequest>(orders)
 			}
@@ -2963,6 +2976,13 @@ export class Fin {
 		marketAddress = marketAddress?.trim().toLowerCase();
 		marketSymbol = marketSymbol?.trim().toUpperCase();
 
+		if (!market) {
+			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
+		}
+
+		marketAddress = market.address;
+		marketSymbol = market.symbol;
+
 		// Sanitize place orders
 		if (orders.place) {
 			orders.place = MList<FinPlaceOrderRequest>(orders.place.map((order: FinPlaceOrderRequest) => ({
@@ -2973,7 +2993,7 @@ export class Fin {
 				side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
 				type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
 				amount: Decimal(order.amount),
-				price: order.price ? Decimal(order.price) : undefined,
+				price: order.price ? sanitizeOrderPrice(Decimal(order.price), market.raw.tick) : undefined,
 			})));
 		}
 
@@ -2987,7 +3007,7 @@ export class Fin {
 				side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
 				type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
 				amount: Decimal(order.amount),
-				price: order.price ? Decimal(order.price) : undefined,
+				price: order.price ? sanitizeOrderPrice(Decimal(order.price), market.raw.tick) : undefined,
 			})));
 		}
 
@@ -3030,11 +3050,8 @@ export class Fin {
 		const validateMarket = (orders: any[], operation: string) => {
 			if (orders && orders.length > 0) {
 				orders.forEach((order: any) => {
-					if (order.marketAddress && order.marketAddress !== marketAddress) {
-						throw new Error(`${operation} orders must use the same market. Expected: ${marketAddress}, Got: ${order.marketAddress}`);
-					}
-					if (order.marketSymbol && order.marketSymbol !== marketSymbol) {
-						throw new Error(`${operation} orders must use the same market. Expected: ${marketSymbol}, Got: ${order.marketSymbol}`);
+					if (order.marketAddress && order.marketAddress !== market.address) {
+						throw new Error(`${operation} orders must use the same market. Expected: ${market.address}, Got: ${order.marketAddress}`);
 					}
 				});
 			}
@@ -3043,19 +3060,17 @@ export class Fin {
 		validateMarket(orders.place?.toArray() || [], 'Place');
 		validateMarket(orders.replace?.toArray() || [], 'Replace');
 
-		if (!market) {
-			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
-		}
-
 		// Validate place orders
 		if (orders.place) {
 			orders.place.forEach((order: FinPlaceOrderRequest) => {
 				if (!order.side || !order.type || !order.amount) {
-					throw new Error("Order side, type, and amount are required for place orders");
+					throw new Error("Order side, type, and amount are required for placing orders");
 				}
-				if (order.type === OrderType.FIXED_PRICE && !order.price) {
-					throw new Error("Order price is required for limit place orders");
+				if ([OrderType.FIXED_PRICE].includes(order.type) && (!order.price || !order.price.gt(DECIMAL_0))) {
+					throw new Error("A valid order price is required for placing fixed price orders");
 				}
+
+				validateOrderPrice(order.price, market.raw.tick);
 			});
 		}
 
@@ -3063,11 +3078,13 @@ export class Fin {
 		if (orders.replace) {
 			orders.replace.forEach((order: FinReplaceOrderRequest) => {
 				if (!order.side || !order.type || !order.amount) {
-					throw new Error("Order side, type, and amount are required for replace orders");
+					throw new Error("Order side, type, and amount are required for replacing orders");
 				}
-				if (order.type === OrderType.FIXED_PRICE && !order.price) {
-					throw new Error("Order price is required for limit replace orders");
+				if ([OrderType.FIXED_PRICE].includes(order.type) && (!order.price || !order.price.gt(DECIMAL_0))) {
+					throw new Error("A valid order price is required for replacing fixed price orders");
 				}
+
+				validateOrderPrice(order.price, market.raw.tick);
 			});
 		}
 
@@ -3392,24 +3409,16 @@ export class Fin {
 	}): OrderId {
 		let { ownerAddress, marketSymbol, market, order, orderType, orderSide, orderPrice } = options;
 
-		if (!ownerAddress) {
-			ownerAddress = get<Order>(order).ownerAddress;
-		}
+		ownerAddress = ownerAddress || get<Order>(order).ownerAddress;
 
-		marketSymbol = order?.market?.symbol || get<Market>(market).symbol;
+		marketSymbol = marketSymbol || order?.market?.symbol || get<Market>(market).symbol;
 
-		if (!orderType) {
-			orderType = get<Order>(order).type;
-		}
+		orderType = orderType || get<Order>(order).type;
 
-		if (!orderSide) {
-			orderSide = get<Order>(order).side;
-		}
+		orderSide = orderSide || get<Order>(order).side;
 
-		if (!orderPrice) {
-			orderPrice = get<Order>(order).price;
-		}
+		orderPrice = orderPrice || get<Order>(order).price;
 
-		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice}`;
+		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed()}`;
 	}
 }

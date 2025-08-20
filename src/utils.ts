@@ -221,7 +221,7 @@ export function runWithRetryAndTimeout(options?: {
  */
 const jsonReplacer = (key: string, value: any) => {
 	if (value instanceof Decimal) {
-		return value.toString();
+		return value.toFixed();
 	}
 	if (typeof value === "bigint") {
 		return value.toString();
@@ -243,13 +243,21 @@ const jsonReplacer = (key: string, value: any) => {
 		const prototype = Object.getPrototypeOf(value);
 		if (prototype && prototype !== Object.prototype) {
 			// For class instances, include class name
-			const obj: any = { __class__: prototype.constructor.name };
-			for (const prop in value) {
-				if (Object.prototype.hasOwnProperty.call(value, prop)) {
-					obj[prop] = value[prop];
+			const object: any = { __class__: prototype.constructor.name };
+			for (const property in value) {
+				if (Object.prototype.hasOwnProperty.call(value, property)) {
+					object[property] = value[property];
 				}
 			}
-			return obj;
+			return object;
+		} else {
+			const object: any = {};
+			for (const property in value) {
+				if (Object.prototype.hasOwnProperty.call(value, property)) {
+					object[property] = jsonReplacer(property, value[property]);
+				}
+			}
+			return object;
 		}
 	}
 	return value;
@@ -266,3 +274,60 @@ export const dump = (target: any) => {
 		return target;
 	}
 };
+
+/**
+ * Sanitize the order price.
+ * @param price - The price to sanitize.
+ * @param tick - The tick of the market (max significant digits).
+ * @returns The sanitized price.
+ */
+export const sanitizeOrderPrice = (price: Decimal, tick: number, maximumPrecision: number = 12): Decimal => {
+	const priceString = price.toFixed(maximumPrecision).trim().replace(/^0+/g, '').replace(/0+$/g, '');
+	let [ integerPartString, fractionalPartString ] = priceString.split('.');
+	integerPartString = integerPartString || '0';
+
+	if (integerPartString !== '0') {
+		if (integerPartString.length > tick) {
+			throw new Error(`Order price must have at most ${tick} non-zero leading digits because of the market tick. Got: ${price.toFixed()}`);
+		}
+
+		const result = Decimal(`${integerPartString}.${fractionalPartString.slice(0, tick - integerPartString.length)}`);
+
+		return result;
+	}
+
+	if (fractionalPartString) {
+		const fractionalPartStringLeadingZeros = fractionalPartString.replace(/(0*)([^0]+)$/g, '$1');
+		const fractionalPartStringWithoutLeadingZeros = fractionalPartString.replace(/^0+/g, '');
+
+		const result = `0.${fractionalPartStringLeadingZeros}${fractionalPartStringWithoutLeadingZeros.slice(0, tick)}`;
+
+		return new Decimal(result);
+	}
+};
+
+/**
+ * Validate the order price.
+ * @param price - The price to validate.
+ * @param tick - The tick of the market.
+ * @returns The validated price.
+ * @throws An error if the price has more than the allowed number of non-zero leading digits because of the market tick.
+ */
+export const validateOrderPrice = (price?: Decimal, tick?: number | string): boolean => {
+	if (!price || !tick?.toString().trim()) {
+		return false;
+	}
+
+	if (!price.gt(Decimal(0))) {
+		throw new Error(`Order price must be greater than 0. Got: ${price}`);
+	}
+
+	tick = Number(tick?.toString().trim());
+
+	const significantPriceDigitsString = price.toFixed().replace(/^0+\.?0*/g, '').replace(/0+$/g, '').replace('.', '');
+	if (significantPriceDigitsString.length > tick) {
+		throw new Error(`Order price must have at most ${tick} non-zero leading digits because of the market tick. Got: ${price.toFixed()}`);
+	}
+
+	return true;
+}
