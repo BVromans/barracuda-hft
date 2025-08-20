@@ -3404,10 +3404,14 @@ export class Fin {
 
 		// Only calculate funds if we have place orders (NOT replace orders)
 		const hasPlaceOrders = (orders.place && !orders.place.isEmpty());
+		const hasReplaceOrders = (orders.replace && !orders.replace.isEmpty());
 
-		if (hasPlaceOrders) {
-			const buyOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
-			const sellOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
+		if (hasPlaceOrders || hasReplaceOrders) {
+			let buyOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
+			buyOrders = buyOrders.merge(orders.replace?.filter((order: FinReplaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinReplaceOrderRequest>());
+
+			let sellOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
+			sellOrders = sellOrders.merge(orders.replace?.filter((order: FinReplaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinReplaceOrderRequest>());
 
 			// For BUY orders (place only), we need quote tokens (USDC)
 			if (buyOrders && buyOrders.size > 0) {
