@@ -11,10 +11,10 @@ strategy:
       market: "THOR-RUJI/ETH-USDC"
       tickInterval: 60_000 # 1 minute in milliseconds
       orders:
-        minimumTokenAmountPerOrder: 0 # Minimum base token amount per order
-        desiredTokenFreeBalancePercentagePerOrder: 10 # Desired base token percentage of the free balance per order (0-100)
-        desiredTokenFreeBalanceAmountPerOrder: 1 # Desired base token free balance amount per order
-        maximumTokenAmountPerOrder: 10 # Maximum base token amount per order
+        minimumTokenAmountPerOrder: 0 # Minimum token amount per order
+        desiredTokenFreeBalancePercentagePerOrder: 10 # Desired token percentage of the free balance per order (0-100)
+        desiredTokenFreeBalanceAmountPerOrder: 1 # Desired token free balance amount per order
+        maximumTokenAmountPerOrder: 10 # Maximum token amount per order
       whenStart:
         cancelAllOrders: false
         withdrawAllFilledOrders: false

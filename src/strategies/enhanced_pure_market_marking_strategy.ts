@@ -15,11 +15,11 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 	 * @param _options - Options for the strategy
 	 */
 	protected override async createProposal(_options: {}) {
-		// Base token parameters
-		const minimumTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.minimumTokenAmountPerOrder')); // Lower bound safeguard for base token size per order
-		const desiredTokenFreeBalancePercentagePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredTokenFreeBalancePercentagePerOrder')); // Desired base token percentage of the free balance per order (0-100)
-		const desiredTokenFreeBalanceAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredTokenFreeBalanceAmountPerOrder')); // Desired base token free balance amount per order
-		const maximumTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.maximumTokenAmountPerOrder')); // Upper bound for base token size per order
+		// Token parameters
+		const minimumTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.minimumTokenAmountPerOrder')); // Lower bound safeguard for token size per order
+		const desiredTokenFreeBalancePercentagePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredTokenFreeBalancePercentagePerOrder')); // Desired token percentage of the free balance per order (0-100)
+		const desiredTokenFreeBalanceAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredTokenFreeBalanceAmountPerOrder')); // Desired token free balance amount per order
+		const maximumTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.maximumTokenAmountPerOrder')); // Upper bound for token size per order
 
 		// Spread parameters
 		const minimumSpreadPercentage = Decimal(properties.getAs<number>('strategy.pure_market_making.enhanced.orders.minimumSpreadPercentage')); // Minimum spread as a percentage of the middle price (example: 1 means 1%)
@@ -151,9 +151,9 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 		);
 
 		const buyOrderAmount = Decimal.max(
-			minimumTokenAmountPerOrder,
+			minimumTokenAmountPerOrder.mul(middlePrice),
 			Decimal.min(
-				maximumTokenAmountPerOrder,
+				maximumTokenAmountPerOrder.mul(middlePrice),
 				buyOrderBudget.mul(sizePercentageMultipler.div(DECIMAL_100))
 			)
 		);
