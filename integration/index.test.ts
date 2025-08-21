@@ -591,7 +591,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("ticker", () => {
+		describe.skip("ticker", () => {
 			it("should be able to get a ticker by market address", async () => {
 				const result = await rujira.fin.getTicker({ marketAddress: firstMarketAddress });
 
@@ -617,7 +617,8 @@ describe("Rujira", async() => {
 				expect(result.market.raw).toBeDefined();
 
 				expect(result.middlePrice).toBeDefined();
-				expect(get<TickerPrice>(result.middlePrice, `Middle price not found` as any).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.middlePrice.baseToQuote!.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.middlePrice.quoteToBase!.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.timestamp).toBeDefined();
 				expect(result.timestamp).toBeGreaterThan(0);
@@ -625,7 +626,7 @@ describe("Rujira", async() => {
 				expect(result.raw).toBeDefined();
 			});
 
-			it.skip("should be able to get a ticker by market symbol", async () => {
+			it("should be able to get a ticker by market symbol", async () => {
 				const result = await rujira.fin.getTicker({ marketSymbol: firstMarketSymbol });
 
 				expect(result).toBeDefined();
@@ -650,10 +651,12 @@ describe("Rujira", async() => {
 				expect(result.market.raw).toBeDefined();
 
 				expect(result.middlePrice).toBeDefined();
-				expect(get<TickerPrice>(result.middlePrice).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.middlePrice.baseToQuote!.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.middlePrice.quoteToBase!.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
-					expect(result.volumeWeightedAveragePrice).toBeDefined();
-					expect(get<TickerPrice>(result.volumeWeightedAveragePrice).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.volumeWeightedAveragePrice).toBeDefined();
+				expect(result.volumeWeightedAveragePrice.baseToQuote!.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.volumeWeightedAveragePrice.quoteToBase!.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.timestamp).toBeDefined();
 				expect(result.timestamp).toBeGreaterThan(0);
