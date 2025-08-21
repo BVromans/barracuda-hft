@@ -111,7 +111,8 @@ import {
 	WalletAddress,
 	WalletMnemonic,
 	WalletPrivateKey,
-	OrderMaximumSlippagePercentage
+	OrderMaximumSlippagePercentage,
+	Price
 } from './types';
 import { get, runWithRetryAndTimeout, sanitizeOrderPrice, validateOrderPrice } from "./utils";
 import { loggedClass } from "./annotations";
@@ -3054,13 +3055,15 @@ export class Fin {
 		marketAddress = market.address;
 		marketSymbol = market.symbol;
 
-		// Sanitize place orders
-		if (orders.place) {
-			orders.place = MList<FinPlaceOrderRequest>(orders.place.map((order: FinPlaceOrderRequest) => ({
+		let placeAndReplaceOrders = MList<FinPlaceOrderRequest>(orders.place || []).merge(MList<FinReplaceOrderRequest>(orders.replace || []));
+
+		// Sanitize place and replace orders
+		if (placeAndReplaceOrders) {
+			placeAndReplaceOrders = MList<FinPlaceOrderRequest>(placeAndReplaceOrders.map((order: FinPlaceOrderRequest) => ({
 				...order,
 				ownerAddress: this.getWalletAddress(order.ownerAddress, order.owner),
-				marketAddress: order.marketAddress?.trim().toLowerCase(),
-				marketSymbol: order.marketSymbol?.trim().toUpperCase(),
+				marketAddress: order.marketAddress?.trim().toLowerCase() || marketAddress,
+				marketSymbol: order.marketSymbol?.trim().toUpperCase() || marketSymbol,
 				side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
 				type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
 				amount: Decimal(order.amount),
@@ -3069,28 +3072,14 @@ export class Fin {
 			})));
 		}
 
-		// Sanitize replace orders
-		if (orders.replace) {
-			orders.replace = MList<FinReplaceOrderRequest>(orders.replace.map((order: FinReplaceOrderRequest) => ({
-				...order,
-				ownerAddress: this.getWalletAddress(order.ownerAddress, order.owner),
-				marketAddress: order.marketAddress?.trim().toLowerCase(),
-				marketSymbol: order.marketSymbol?.trim().toUpperCase(),
-				side: OrderSide[order.side?.trim().toUpperCase() as keyof typeof OrderSide] || undefined,
-				type: OrderType[order.type?.trim().toUpperCase() as keyof typeof OrderType] || undefined,
-				amount: Decimal(order.amount),
-				price: order.price ? sanitizeOrderPrice(Decimal(order.price), market.raw.tick) : undefined,
-			})));
-		}
-
 		// Sanitize cancel orders
 		if (orders.cancel) {
 			const cancelOrderIds = MList<OrderId>();
 			orders.cancel.forEach((item: OrderId | Order) => {
 				if (typeof item === 'string') {
-					cancelOrderIds.push(item.trim()); // Keep original case for order IDs
+					cancelOrderIds.push(item.trim());
 				} else if (item.id) {
-					cancelOrderIds.push(item.id.trim()); // Keep original case for order IDs
+					cancelOrderIds.push(item.id.trim());
 				}
 			});
 			orders.cancel = cancelOrderIds;
@@ -3101,9 +3090,9 @@ export class Fin {
 			const withdrawOrderIds = MList<OrderId>();
 			orders.withdraw.forEach((item: OrderId | Order) => {
 				if (typeof item === 'string') {
-					withdrawOrderIds.push(item.trim()); // Keep original case for order IDs
+					withdrawOrderIds.push(item.trim());
 				} else if (item.id) {
-					withdrawOrderIds.push(item.id.trim()); // Keep original case for order IDs
+					withdrawOrderIds.push(item.id.trim());
 				}
 			});
 			orders.withdraw = withdrawOrderIds;
@@ -3118,23 +3107,15 @@ export class Fin {
 			throw new Error("Market address, market symbol, or market object is required");
 		}
 
-		// Validate that all orders use the same market
-		const validateMarket = (orders: any[], operation: string) => {
-			if (orders && orders.length > 0) {
-				orders.forEach((order: any) => {
-					if (order.marketAddress && order.marketAddress !== market.address) {
-						throw new Error(`${operation} orders must use the same market. Expected: ${market.address}, Got: ${order.marketAddress}`);
-					}
-				});
-			}
-		};
+		// Validate place and replace orders
+		let hasMarketOrder = false;
+		let hasNonMarketOrder = false;
+		if (placeAndReplaceOrders) {
+			placeAndReplaceOrders.forEach((order: FinPlaceOrderRequest | FinReplaceOrderRequest) => {
+				if (order.marketAddress !== market.address) {
+					throw new Error(`All orders must use the same market. Expected: ${market.address}, Got: ${order.marketAddress}`);
+				}
 
-		validateMarket(orders.place?.toArray() || [], 'Place');
-		validateMarket(orders.replace?.toArray() || [], 'Replace');
-
-		// Validate place orders
-		if (orders.place) {
-			orders.place.forEach((order: FinPlaceOrderRequest) => {
 				if (!order.side || !order.type || !order.amount) {
 					throw new Error("Order side, type, and amount are required for placing orders");
 				}
@@ -3142,53 +3123,38 @@ export class Fin {
 					throw new Error("A valid order price is required for placing fixed price orders");
 				}
 
-				// Validate that amount is positive
 				if (!order.amount.gt(DECIMAL_0)) {
 					throw new Error("Order amount must be greater than zero");
 				}
 
-				// Validate price if provided
 				if (order.price) {
 					validateOrderPrice(order.price, market.raw.tick);
 				}
-			});
-		}
 
-		// Validate replace orders
-		if (orders.replace) {
-			orders.replace.forEach((order: FinReplaceOrderRequest) => {
-				if (!order.side || !order.type || !order.amount) {
-					throw new Error("Order side, type, and amount are required for replacing orders");
-				}
-				if ([OrderType.FIXED_PRICE].includes(order.type) && (!order.price || !order.price.gt(DECIMAL_0))) {
-					throw new Error("A valid order price is required for replacing fixed price orders");
-				}
-
-				// Validate that amount is positive
-				if (!order.amount.gt(DECIMAL_0)) {
-					throw new Error("Order amount must be greater than zero");
-				}
-
-				// Validate price if provided
-				if (order.price) {
-					validateOrderPrice(order.price, market.raw.tick);
+				if ([OrderType.MARKET].includes(order.type)) {
+					if (hasMarketOrder) {
+						throw new Error("Only one market order is allowed per operation");
+					}
+					if (hasNonMarketOrder) {
+						throw new Error("Market order is not allowed when a non-market order is present");
+					}
+					hasMarketOrder = true;
+				} else {
+					if (hasMarketOrder) {
+						throw new Error("Non-market order is not allowed when a market order is present");
+					}
+					hasNonMarketOrder = true;
 				}
 			});
 		}
 
 		// Validate cancel orders
-		if (orders.cancel) {
-			if (orders.cancel.isEmpty()) {
-				throw new Error("Valid order IDs are required for cancellation");
-			}
-		}
+		// if (orders.cancel) {
+		// }
 
 		// Validate withdraw filled orders
-		if (orders.withdraw) {
-			if (orders.withdraw.isEmpty()) {
-				throw new Error("Valid order IDs are required for withdrawal");
-			}
-		}
+		// if (orders.withdraw) {
+		// }
 
 		// ===== INITIALIZATION =====
 		const contractAddress = market.address;
@@ -3203,146 +3169,158 @@ export class Fin {
 			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED]
 		});
 
+		const marketTicker = await this.getTicker({ market });
+
 		// Build the complete order message structure
-		const limitOrdersMessages: any[] = [];
-		const marketOrdersMessages: any[] = [];
+		const ordersMessages: any[] = [];
+		const swapMessages: any[] = [];
 
-		// Process place orders
-		if (orders.place && !orders.place.isEmpty()) {
+		// IMPORTANT: Only place and replace orders need funds. Cancel and withdraw operations send NO funds.
+		const fundsMap: Map<TokenAddress, Amount> = MMap<TokenAddress, Amount>();
+		fundsMap.set(market.tokens.quote.address, DECIMAL_0);
+		fundsMap.set(market.tokens.base.address, DECIMAL_0);
+		fundsMap.set(this.nativeToken.address, DECIMAL_0);
+		fundsMap.set(this.usdToken.address, DECIMAL_0);
+		fundsMap.set(this.feePaymentToken.address, DECIMAL_0);
+
+		// Process place and replace orders
+		if (placeAndReplaceOrders && !placeAndReplaceOrders.isEmpty()) {
+			const placeAndReplaceOrdersMap = MMap<OrderId, Order>();
 			const placeOrdersMap = MMap<OrderId, Order>();
+			const replaceOrdersMap = MMap<OrderId, Order>();
 
-			orders.place.forEach((order: FinPlaceOrderRequest) => {
+			placeAndReplaceOrders.forEach((requestOrder: FinPlaceOrderRequest | FinReplaceOrderRequest) => {
 				const orderId = this.getOrderId({
 					ownerAddress,
 					market,
-					order
+					order: requestOrder
 				});
 
+				const existingOrder = existingOrders.get(orderId);
+
+				const type = existingOrder?.type || requestOrder.type;
+
 				// Create message with exact format from playground
-				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
+				const side = existingOrder?.side || requestOrder.side === OrderSide.BUY ? 'quote' : 'base';
 				// Use precise price formatting like playgrounds
-				const price = order.price ? order.price.toFixed(18) : '0.000000000000000000';
+				const price = existingOrder?.price || requestOrder.price ? get<OrderPrice>(existingOrder?.price || requestOrder.price).toFixed(18) : '0.000000000000000000';
 
-				// For BUY orders, we need to send quote tokens as funds
-				// For SELL orders, we need to send base tokens as funds
-				let contractAmount: Amount;
-				if (order.side === OrderSide.BUY) {
-					// For BUY orders, contract expects quote token amount
-					// Calculate: base token amount × price = quote token amount
-					const quoteTokenAmount = order.amount.mul(order.price || 0).mul(10 ** market.tokens.quote.decimals).toDecimalPlaces(0);
-					contractAmount = quoteTokenAmount;
+				if ([OrderType.MARKET].includes(type)) {
+					let inputToken: Token;
+					let outputToken: Token;
+					let outputToInputPrice: Price;
+					let inputTokenAmount: Amount;
+					let outputTokenAmount: Amount;
+					let inputTokenAmountWithoutDecimals: Amount;
+					let outputTokenAmountWithoutDecimals: Amount;
+					let slippagePercentage: OrderMaximumSlippagePercentage = get<OrderMaximumSlippagePercentage>(requestOrder.maximumSlippagePercentage);
+
+					if (requestOrder.side === OrderSide.BUY) {
+						inputToken = market.tokens.quote;
+						outputToken = market.tokens.base;
+
+						outputToInputPrice = get<Price>(marketTicker.middlePrice.baseToQuote);
+
+						inputTokenAmount = requestOrder.amount;
+						outputTokenAmount = inputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
+						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(10 ** inputToken.decimals).toDecimalPlaces(0);
+						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(10 ** outputToken.decimals).toDecimalPlaces(0);
+
+						swapMessages.push({
+							min_return: outputTokenAmountWithoutDecimals.toFixed(),
+							to: ownerAddress
+						});
+
+						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address)).plus(inputTokenAmountWithoutDecimals));
+					} else if (requestOrder.side === OrderSide.SELL) {
+						inputToken = market.tokens.base;
+						outputToken = market.tokens.quote;
+
+						outputToInputPrice = get<Price>(marketTicker.middlePrice.quoteToBase);
+
+						inputTokenAmount = requestOrder.amount;
+						outputTokenAmount = inputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
+						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(10 ** inputToken.decimals).toDecimalPlaces(0);
+						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(10 ** outputToken.decimals).toDecimalPlaces(0);
+
+						swapMessages.push({
+							min_return: outputTokenAmountWithoutDecimals.toFixed(),
+							to: ownerAddress
+						});
+
+						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address)).plus(inputTokenAmountWithoutDecimals));
+					} else {
+						throw new Error(`Order side ${requestOrder.side} not supported`);
+					}
+				} else if ([OrderType.FIXED_PRICE].includes(type)) {
+					let price: OrderPrice;
+					let payingToken: Token;
+					let receivingToken: Token;
+					let payingTokenAmount: Amount;
+					let payingTokenAmountWithoutDecimals: Amount;
+					if (requestOrder.side === OrderSide.BUY) {
+						payingToken = market.tokens.quote;
+						receivingToken = market.tokens.base;
+						price = get<OrderPrice>(requestOrder.price);
+						payingTokenAmount = requestOrder.amount.mul(price);
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
+
+						ordersMessages.push([
+							side,
+							{
+								fixed: price.toFixed()
+							},
+							payingTokenAmountWithoutDecimals.toFixed()
+						]);
+
+						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals));
+					} else if (requestOrder.side === OrderSide.SELL) {
+						payingToken = market.tokens.base;
+						receivingToken = market.tokens.quote;
+						price = get<OrderPrice>(requestOrder.price);
+						payingTokenAmount = requestOrder.amount;
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
+
+						ordersMessages.push([
+							side,
+							{
+								fixed: price.toFixed()
+							},
+							payingTokenAmountWithoutDecimals.toFixed()
+						]);
+
+						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals));
+					} else {
+						throw new Error(`Order side ${requestOrder.side} not supported`);
+					}
 				} else {
-					// For SELL orders, contract expects base token amount
-					const baseTokenAmount = order.amount.mul(10 ** market.tokens.base.decimals).toDecimalPlaces(0);
-					contractAmount = baseTokenAmount;
-				}
-
-				if ([OrderType.MARKET].includes(order.type)) {
-					contractAmount = contractAmount.mul(DECIMAL_100.minus(get<OrderMaximumSlippagePercentage>(order.maximumSlippagePercentage))).div(DECIMAL_100).toDecimalPlaces(0);
-
-					marketOrdersMessages.push({
-						min_return: contractAmount.toFixed(),
-						to: ownerAddress
-					});
-				} else if ([OrderType.FIXED_PRICE].includes(order.type)) {
-					limitOrdersMessages.push([side, { fixed: price }, contractAmount.toFixed()]);
-				} else {
-					throw new Error(`Order type ${order.type} not supported`);
+					throw new Error(`Order type ${type} not supported`);
 				}
 
 				// Create a proper Order object at this moment
-				const orderObject: Order = {
+				const order: Order = {
 					id: orderId,
 					market: market,
 					ownerAddress: ownerAddress,
-					type: order.type,
-					side: order.side,
-					price: order.price || Decimal(0),
-					amount: order.amount,
-					filledPercentage: DECIMAL_0,
-					status: OrderStatus.OPEN,
+					type: existingOrder?.type || requestOrder.type,
+					side: existingOrder?.side || requestOrder.side,
+					price: existingOrder?.price || requestOrder.price,
+					amount: existingOrder?.amount || requestOrder.amount,
+					filledPercentage: [OrderType.MARKET].includes(type) ? DECIMAL_100 : DECIMAL_0,
+					status: [OrderType.MARKET].includes(type) ? OrderStatus.FILLED : OrderStatus.OPEN,
 					creationTimestamp: Date.now(),
 					updateTimestamp: Date.now(),
-					raw: order
+					raw: requestOrder
 				};
-				placeOrdersMap.set(orderId, orderObject, true);
+				placeAndReplaceOrdersMap.set(orderId, order, true);
+				if (existingOrder) {
+					replaceOrdersMap.set(orderId, order, true);
+				} else {
+					placeOrdersMap.set(orderId, order, true);
+				}
 			});
+			ordersMap.set('placeAndReplace', placeAndReplaceOrdersMap);
 			ordersMap.set('place', placeOrdersMap);
-		}
-
-		// Process replace orders
-		if (orders.replace && !orders.replace.isEmpty()) {
-			const replaceOrdersMap = MMap<OrderId, Order>();
-
-			orders.replace.forEach((order: FinReplaceOrderRequest) => {
-				const orderId = this.getOrderId({
-					ownerAddress,
-					market: market,
-					orderType: order.type,
-					orderSide: order.side,
-					orderPrice: order.price
-				});
-
-				// Check if order exists in existing orders (same validation as cancel orders)
-				const existingOrder = existingOrders.get(orderId);
-				if (!existingOrder) {
-					throw new Error(`Order not found for replacement: ${orderId}`);
-				}
-
-				// Validate order status for replacement (same validation as cancel orders)
-				if (existingOrder.status !== OrderStatus.OPEN) {
-					throw new Error(`Cannot replace order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.OPEN}`);
-				}
-
-				// Create message with exact format from playground
-				const side = order.side === OrderSide.BUY ? 'quote' : 'base';
-				// Use precise price formatting like playgrounds
-				const price = order.price ? order.price.toFixed(18) : '0.000000000000000000';
-
-				// For BUY orders, we need to send quote tokens as funds
-				// For SELL orders, we need to send base tokens as funds
-				let contractAmount: Amount;
-				if (order.side === OrderSide.BUY) {
-					// For BUY orders, contract expects quote token amount
-					// Calculate: base token amount × price = quote token amount
-					const quoteTokenAmount = order.amount.mul(order.price || 0).mul(10 ** market.tokens.quote.decimals).toDecimalPlaces(0);
-					contractAmount = quoteTokenAmount;
-				} else {
-					// For SELL orders, contract expects base token amount
-					const baseTokenAmount = order.amount.mul(10 ** market.tokens.base.decimals).toDecimalPlaces(0);
-					contractAmount = baseTokenAmount;
-				}
-
-				if ([OrderType.MARKET].includes(order.type)) {
-					contractAmount = contractAmount.mul(DECIMAL_100.minus(get<OrderMaximumSlippagePercentage>(order.maximumSlippagePercentage))).div(DECIMAL_100).toDecimalPlaces(0);
-
-					marketOrdersMessages.push({
-						min_return: contractAmount.toFixed(),
-						to: ownerAddress
-					});
-				} else if ([OrderType.FIXED_PRICE].includes(order.type)) {
-					limitOrdersMessages.push([side, { fixed: price }, contractAmount.toFixed()]);
-				} else {
-					throw new Error(`Order type ${order.type} not supported`);
-				}
-
-				// Create a proper Order object using existing order and new amount
-				const orderObject: Order = {
-					id: orderId,
-					market: market,
-					ownerAddress: ownerAddress,
-					type: order.type,
-					side: order.side,
-					price: order.price,
-					amount: order.amount,
-					filledPercentage: DECIMAL_0,
-					status: OrderStatus.OPEN,
-					creationTimestamp: existingOrder.creationTimestamp, // Keep original creation time
-					updateTimestamp: Date.now(), // Update the timestamp
-					raw: order
-				};
-				replaceOrdersMap.set(orderId, orderObject, true);
-			});
 			ordersMap.set('replace', replaceOrdersMap);
 		}
 
@@ -3364,10 +3342,11 @@ export class Fin {
 
 				// Create cancel message with exact format from playground: [side, { fixed: price }, '0']
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
+
 				// Use precise price formatting like playgrounds
 				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
-				limitOrdersMessages.push([side, { fixed: price }, '0']);
+				ordersMessages.push([side, { fixed: price }, '0']);
 
 				// Update order status to CANCELLED and update timestamp
 				const cancelledOrder: Order = {
@@ -3398,10 +3377,11 @@ export class Fin {
 
 				// Create withdraw message with exact format from playground: [side, { fixed: price }, null]
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
+
 				// Use precise price formatting like playgrounds
 				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
-				limitOrdersMessages.push([side, { fixed: price }, null]);
+				ordersMessages.push([side, { fixed: price }, null]);
 
 				// Update timestamp for withdrawn order
 				const withdrawnOrder: Order = {
@@ -3413,78 +3393,32 @@ export class Fin {
 			ordersMap.set('withdraw', withdrawOrdersMap);
 		}
 
-		if (limitOrdersMessages.length === 0) {
+		if (ordersMessages.length === 0 && swapMessages.length === 0) {
 			throw new Error("No valid orders to persist");
+		} else if (ordersMessages.length > 0 && swapMessages.length > 0) {
+			throw new Error("Due the Rujira limitations, it is not possible to persist both limit and market orders");
+		} else if (swapMessages.length > 1) {
+			throw new Error("Due the Rujira limitations, it is not possible to persist more than one market order");
 		}
 
-		// Calculate funds for orders
-		// IMPORTANT: Only PLACE orders need funds. Replace, cancel and withdraw operations send NO funds.
-		let funds: readonly Coin[] | undefined;
+		const message: any = {};
 
-		// Only calculate funds if we have place orders (NOT replace orders)
-		const hasPlaceOrders = (orders.place && !orders.place.isEmpty());
-		const hasReplaceOrders = (orders.replace && !orders.replace.isEmpty());
-
-		if (hasPlaceOrders || hasReplaceOrders) {
-			let buyOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinPlaceOrderRequest>();
-			buyOrders = buyOrders.merge(orders.replace?.filter((order: FinReplaceOrderRequest) => order.side === OrderSide.BUY) || MList<FinReplaceOrderRequest>());
-
-			let sellOrders = orders.place?.filter((order: FinPlaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinPlaceOrderRequest>();
-			sellOrders = sellOrders.merge(orders.replace?.filter((order: FinReplaceOrderRequest) => order.side === OrderSide.SELL) || MList<FinReplaceOrderRequest>());
-
-			// For BUY orders (place only), we need quote tokens (USDC)
-			if (buyOrders && buyOrders.size > 0) {
-				let totalQuoteAmount = DECIMAL_0;
-
-				// For place orders, calculate quote token amount needed
-				buyOrders.forEach((order: FinPlaceOrderRequest) => {
-					// Calculate: base token amount × price = quote token amount needed
-					const quoteAmount = order.amount.mul(order.price || 0);
-					totalQuoteAmount = totalQuoteAmount.plus(quoteAmount);
-				});
-
-				// Convert to raw amount (no buffer needed - contract handles fees)
-				const rawQuoteAmount = totalQuoteAmount.mul(10 ** market.tokens.quote.decimals).toFixed(0);
-
-				funds = [{
-					denom: market.tokens.quote.address,
-					amount: rawQuoteAmount
-				}];
-			}
-
-			// For SELL orders (place only), we need base tokens
-			if (sellOrders && sellOrders.size > 0) {
-				let totalBaseAmount = DECIMAL_0;
-
-				// For place orders, use the base token amount directly
-				sellOrders.forEach((order: FinPlaceOrderRequest) => {
-					totalBaseAmount = totalBaseAmount.plus(order.amount);
-				});
-
-				// Convert to raw amount (no buffer needed - contract handles fees)
-				const rawBaseAmount = totalBaseAmount.mul(10 ** market.tokens.base.decimals).toFixed(0);
-
-				// If we already have funds for BUY orders, add to it, otherwise create new
-				if (funds) {
-					funds = [
-						...funds,
-						{
-							denom: market.tokens.base.address,
-							amount: rawBaseAmount
-						}
-					];
-				} else {
-					funds = [{
-						denom: market.tokens.base.address,
-						amount: rawBaseAmount
-					}];
-				}
-			}
+		if (ordersMessages.length > 0) {
+			message.order = [ordersMessages, null];
 		}
 
-		const message = {
-			order: [limitOrdersMessages, null],
-			swap: marketOrdersMessages[0]
+		if (swapMessages.length > 0) {
+			// Only one market order is allowed per operation
+			message.swap = swapMessages[0];
+		}
+
+		let funds: Coin[] | undefined = undefined;
+
+		if (fundsMap && !fundsMap.isEmpty()) {
+			funds = Array.from(fundsMap.entries()).map(([denom, amount]) => ({
+				denom,
+				amount: amount.toFixed()
+			}));
 		}
 
 		// Execute the transaction
