@@ -16,16 +16,10 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 	 */
 	protected override async createProposal(_options: {}) {
 		// Base token parameters
-		const minimumBaseTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.minimumBaseTokenAmountPerOrder')); // Lower bound safeguard for base token size per order
-		const desiredBaseTokenFreeBalancePercentagePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredBaseTokenFreeBalancePercentagePerOrder')); // Desired base token percentage of the free balance per order (0-100)
-		const desiredBaseTokenFreeBalanceAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredBaseTokenFreeBalanceAmountPerOrder')); // Desired base token free balance amount per order
-		const maximumBaseTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.maximumBaseTokenAmountPerOrder')); // Upper bound for base token size per order
-
-		// Quote token parameters
-		const minimumQuoteTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.minimumQuoteTokenAmountPerOrder')); // Lower bound safeguard for quote token size per order
-		const desiredQuoteTokenFreeBalancePercentagePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredQuoteTokenFreeBalancePercentagePerOrder')) || DECIMAL_0; // Desired quote token percentage of the free balance per order (0-100)
-		const desiredQuoteTokenFreeBalanceAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredQuoteTokenFreeBalanceAmountPerOrder')) || DECIMAL_0; // Desired quote token free balance amount per order
-		const maximumQuoteTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.maximumQuoteTokenAmountPerOrder')); // Upper bound for quote token size per order
+		const minimumTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.minimumTokenAmountPerOrder')); // Lower bound safeguard for base token size per order
+		const desiredTokenFreeBalancePercentagePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredTokenFreeBalancePercentagePerOrder')); // Desired base token percentage of the free balance per order (0-100)
+		const desiredTokenFreeBalanceAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredTokenFreeBalanceAmountPerOrder')); // Desired base token free balance amount per order
+		const maximumTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.maximumTokenAmountPerOrder')); // Upper bound for base token size per order
 
 		// Spread parameters
 		const minimumSpreadPercentage = Decimal(properties.getAs<number>('strategy.pure_market_making.enhanced.orders.minimumSpreadPercentage')); // Minimum spread as a percentage of the middle price (example: 1 means 1%)
@@ -145,40 +139,40 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 		const sizePercentageMultipler = DECIMAL_100.div(DECIMAL_1.plus(averageTrueRangeTerm));
 
 		// Determine budgets and convert to final order amounts
-		const buyQuoteTokenBudget = Decimal.max(
+		const buyOrderBudget = Decimal.max(
 			DECIMAL_0,
-			quoteTokenFreeBalance.mul(desiredQuoteTokenFreeBalancePercentagePerOrder.div(DECIMAL_100)),
-			desiredQuoteTokenFreeBalanceAmountPerOrder
+			quoteTokenFreeBalance.mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100)).mul(middlePrice),
+			desiredTokenFreeBalanceAmountPerOrder.mul(middlePrice)
 		);
-		const sellBaseTokenBudget = Decimal.max(
+		const sellOrderBudget = Decimal.max(
 			DECIMAL_0,
-			baseTokenFreeBalance.mul(desiredBaseTokenFreeBalancePercentagePerOrder.div(DECIMAL_100)),
-			desiredBaseTokenFreeBalanceAmountPerOrder
+			baseTokenFreeBalance.mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100)),
+			desiredTokenFreeBalanceAmountPerOrder
 		);
 
-		const buyAmountInQuoteToken = Decimal.max(
-			minimumQuoteTokenAmountPerOrder,
+		const buyOrderAmount = Decimal.max(
+			minimumTokenAmountPerOrder,
 			Decimal.min(
-				maximumQuoteTokenAmountPerOrder,
-				buyQuoteTokenBudget.mul(sizePercentageMultipler.div(DECIMAL_100))
+				maximumTokenAmountPerOrder,
+				buyOrderBudget.mul(sizePercentageMultipler.div(DECIMAL_100))
 			)
 		);
-		const sellAmountInBaseToken = Decimal.max(
-			minimumBaseTokenAmountPerOrder,
+		const sellOrderAmount = Decimal.max(
+			minimumTokenAmountPerOrder,
 			Decimal.min(
-				maximumBaseTokenAmountPerOrder,
-				sellBaseTokenBudget.mul(sizePercentageMultipler.div(DECIMAL_100))
+				maximumTokenAmountPerOrder,
+				sellOrderBudget.mul(sizePercentageMultipler.div(DECIMAL_100))
 			)
 		);
 
 		// Populate orders only if valid, with final prices and amounts
-		if (buyAmountInQuoteToken.gt(DECIMAL_0) && buyPrice.isFinite() && buyPrice.gt(DECIMAL_0)) {
+		if (buyOrderAmount.gt(DECIMAL_0) && buyPrice.isFinite() && buyPrice.gt(DECIMAL_0)) {
 			buyOrder.price = buyPrice;
-			buyOrder.amount = buyAmountInQuoteToken;
+			buyOrder.amount = buyOrderAmount;
 		}
-		if (sellAmountInBaseToken.gt(DECIMAL_0) && sellPrice.isFinite() && sellPrice.gt(DECIMAL_0)) {
+		if (sellOrderAmount.gt(DECIMAL_0) && sellPrice.isFinite() && sellPrice.gt(DECIMAL_0)) {
 			sellOrder.price = sellPrice;
-			sellOrder.amount = sellAmountInBaseToken;
+			sellOrder.amount = sellOrderAmount;
 		}
 
 		const buyOrderId = this.rujira.fin.getOrderId(buyOrder);
