@@ -1,6 +1,6 @@
 import { ExecuteResult, JsonObject, SigningCosmWasmClient, SigningCosmWasmClientOptions } from "@cosmjs/cosmwasm-stargate";
 import { Bip39, EnglishMnemonic, Slip10, Slip10Curve, stringToPath } from "@cosmjs/crypto";
-import { fromBase64 } from "@cosmjs/encoding";
+import { fromBase64, normalizeBech32 } from "@cosmjs/encoding";
 import { AccountData, Coin, DirectSecp256k1Wallet, OfflineSigner } from "@cosmjs/proto-signing";
 import { GasPrice, HttpEndpoint, StdFee } from "@cosmjs/stargate";
 import * as Indicators from "@ixjb94/indicators-js";
@@ -2097,6 +2097,8 @@ export class Fin {
 		if (!walletAddress && !wallet) {
 			throw new Error('The wallet address or wallet is required');
 		}
+
+		if (walletAddress) { normalizeBech32(walletAddress);	}
 
 		if (Array.isArray(tokenAddresses)) {
 			tokenAddresses = MList<TokenAddress>(tokenAddresses);
