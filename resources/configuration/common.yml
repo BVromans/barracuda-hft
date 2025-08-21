@@ -42,6 +42,7 @@ rujira:
       interval: "1m"
       maximumNumberOfCandles: 100 # Optional, leaving empty or null will return all candles
     orders:
+      maximumSlippagePercentage: 2.5 # 1 means 1%
       maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
 tests:
   unit:
