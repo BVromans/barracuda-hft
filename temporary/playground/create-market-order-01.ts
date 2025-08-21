@@ -1,4 +1,4 @@
-import "./bootstrap";
+import "../../src/bootstrap";
 import { properties } from "../../src/properties";
 import { Rujira } from "../../src/rujira";
 import { DECIMAL_100, OrderSide, RujiraConstructorOptions, RujiraInitializeOptions, WalletAddress, WalletMnemonic } from "../../src/types";
@@ -30,17 +30,20 @@ import { Coin } from "@cosmjs/proto-signing";
 
 	const slippagePercentage = Decimal('2.5'); // 1 means 1%
 
-	const orderSide = OrderSide.BUY;
+	const orderSide: OrderSide = OrderSide.SELL;
 
 	let message: any;
 	let funds: Coin[] | undefined;
 
+	console.log('Order side:', orderSide);
+
+	// @ts-ignore
 	if (orderSide === OrderSide.BUY) {
 		const amount = Decimal('0.1'); // USDC
 
 		const outputToken = baseToken;
 		const price = outputToken === baseToken ? ticker.middlePrice.baseToQuote! : ticker.middlePrice.quoteToBase!;
-		const outputTokenAmount = amount.mul(price).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
+		const outputTokenAmount = amount.div(price).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
 		const outputTokenAmountString = outputTokenAmount.mul(10 ** outputToken.decimals).toDecimalPlaces(0).toFixed();
 		message = {
 			swap: {
@@ -58,12 +61,22 @@ import { Coin } from "@cosmjs/proto-signing";
 				amount: inputTokenAmountString
 			}
 		];
+
+		console.log({
+			amount: amount.toFixed(),
+			price: price.toFixed(),
+			slippagePercentage: slippagePercentage.toFixed(),
+			inputToken: inputToken.address,
+			inputTokenAmount: inputTokenAmount.toFixed(),
+			outputToken: outputToken.address,
+			outputTokenAmount: outputTokenAmount.toFixed(),
+		});
 	} else if (orderSide === OrderSide.SELL) {
 		const amount = Decimal('0.1'); // RUJI
 
 		const outputToken = quoteToken;
 		const price = outputToken === baseToken ? ticker.middlePrice.baseToQuote! : ticker.middlePrice.quoteToBase!;
-		const outputTokenAmount = amount.mul(price).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
+		const outputTokenAmount = amount.div(price).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
 		const outputTokenAmountString = outputTokenAmount.mul(10 ** outputToken.decimals).toDecimalPlaces(0).toFixed();
 		message = {
 			swap: {
@@ -81,9 +94,22 @@ import { Coin } from "@cosmjs/proto-signing";
 				amount: inputTokenAmountString
 			}
 		];
+
+		console.log({
+			amount: amount.toFixed(),
+			price: price.toFixed(),
+			slippagePercentage: slippagePercentage.toFixed(),
+			inputToken: inputToken.address,
+			inputTokenAmount: inputTokenAmount.toFixed(),
+			outputToken: outputToken.address,
+			outputTokenAmount: outputTokenAmount.toFixed(),
+		});
 	} else {
 		throw new Error('Invalid order side');
 	}
+
+	console.log(dump(message));
+	console.log(dump(funds));
 
 	// @ts-ignore
 	const response = await rujira.fin.cosmClient.execute(
