@@ -120,52 +120,52 @@ import { dump, get } from "./utils";
 					} as FinPlaceOrderRequest,
 				},
 				limit: {
-					buy: {
-						ownerAddress: walletAddress,
-						// owner: undefined,
-						marketAddress: defaultMarketAddress,
-						marketSymbol: defaultMarketSymbol,
-						market: defaultMarket,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.BUY,
-						amount: defaultBuyOrderMiddleAmount,
-						price: defaultBuyOrderMiddlePrice
-					} as FinPlaceOrderRequest,
-					sell: {
-						ownerAddress: walletAddress,
-						// owner: undefined,
-						marketAddress: defaultMarketAddress,
-						marketSymbol: defaultMarketSymbol,
-						market: defaultMarket,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.SELL,
-						amount: defaultSellOrderMiddleAmount,
-						price: defaultSellOrderMiddlePrice
-					} as FinPlaceOrderRequest,
+					// buy: {
+					// 	ownerAddress: walletAddress,
+					// 	// owner: undefined,
+					// 	marketAddress: defaultMarketAddress,
+					// 	marketSymbol: defaultMarketSymbol,
+					// 	market: defaultMarket,
+					// 	type: OrderType.LIMIT,
+					// 	side: OrderSide.BUY,
+					// 	amount: defaultBuyOrderMiddleAmount,
+					// 	price: defaultBuyOrderMiddlePrice
+					// } as FinPlaceOrderRequest,
+					// sell: {
+					// 	ownerAddress: walletAddress,
+					// 	// owner: undefined,
+					// 	marketAddress: defaultMarketAddress,
+					// 	marketSymbol: defaultMarketSymbol,
+					// 	market: defaultMarket,
+					// 	type: OrderType.LIMIT,
+					// 	side: OrderSide.SELL,
+					// 	amount: defaultSellOrderMiddleAmount,
+					// 	price: defaultSellOrderMiddlePrice
+					// } as FinPlaceOrderRequest,
 				},
 				tracking: {
-					buy: {
-						ownerAddress: walletAddress,
-						// owner: undefined,
-						marketAddress: defaultMarketAddress,
-						marketSymbol: defaultMarketSymbol,
-						market: defaultMarket,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.BUY,
-						amount: defaultBuyOrderMiddleAmount,
-						price: defaultBuyOrderMiddlePrice
-					} as FinPlaceOrderRequest,
-					sell: {
-						ownerAddress: walletAddress,
-						// owner: undefined,
-						marketAddress: defaultMarketAddress,
-						marketSymbol: defaultMarketSymbol,
-						market: defaultMarket,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.SELL,
-						amount: defaultSellOrderMiddleAmount,
-						price: defaultSellOrderMiddlePrice
-					} as FinPlaceOrderRequest,
+					// buy: {
+					// 	ownerAddress: walletAddress,
+					// 	// owner: undefined,
+					// 	marketAddress: defaultMarketAddress,
+					// 	marketSymbol: defaultMarketSymbol,
+					// 	market: defaultMarket,
+					// 	type: OrderType.TRACKING_ORDER,
+					// 	side: OrderSide.BUY,
+					// 	amount: defaultBuyOrderMiddleAmount,
+					// 	price: defaultBuyOrderMiddlePrice
+					// } as FinPlaceOrderRequest,
+					// sell: {
+					// 	ownerAddress: walletAddress,
+					// 	// owner: undefined,
+					// 	marketAddress: defaultMarketAddress,
+					// 	marketSymbol: defaultMarketSymbol,
+					// 	market: defaultMarket,
+					// 	type: OrderType.TRACKING_ORDER,
+					// 	side: OrderSide.SELL,
+					// 	amount: defaultSellOrderMiddleAmount,
+					// 	price: defaultSellOrderMiddlePrice
+					// } as FinPlaceOrderRequest,
 				},
 				market: {
 					buy: {
@@ -329,48 +329,48 @@ import { dump, get } from "./utils";
 					} as FinReplaceOrderRequest,
 				},
 				limit: {
-					buy: {
-						ownerAddress: walletAddress,
-						// marketAddress: defaultMarketAddress,
-						marketSymbol: defaultMarketSymbol,
-						// market: defaultMarket,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.BUY,
-						amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultBuyOrderMiddleAmount)),
-						price: defaultBuyOrderMiddlePrice
-					} as FinReplaceOrderRequest,
-					sell: {
-						ownerAddress: walletAddress,
-						// marketAddress: defaultMarketAddress,
-						marketSymbol: defaultMarketSymbol,
-						// market: defaultMarket,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.SELL,
-						amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultSellOrderMiddleAmount)),
-						price: defaultSellOrderMiddlePrice
-					} as FinReplaceOrderRequest,
+					// buy: {
+					// 	ownerAddress: walletAddress,
+					// 	// marketAddress: defaultMarketAddress,
+					// 	marketSymbol: defaultMarketSymbol,
+					// 	// market: defaultMarket,
+					// 	type: OrderType.LIMIT,
+					// 	side: OrderSide.BUY,
+					// 	amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultBuyOrderMiddleAmount)),
+					// 	price: defaultBuyOrderMiddlePrice
+					// } as FinReplaceOrderRequest,
+					// sell: {
+					// 	ownerAddress: walletAddress,
+					// 	// marketAddress: defaultMarketAddress,
+					// 	marketSymbol: defaultMarketSymbol,
+					// 	// market: defaultMarket,
+					// 	type: OrderType.LIMIT,
+					// 	side: OrderSide.SELL,
+					// 	amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultSellOrderMiddleAmount)),
+					// 	price: defaultSellOrderMiddlePrice
+					// } as FinReplaceOrderRequest,
 				},
 				tracking: {
-					buy: {
-						ownerAddress: walletAddress,
-						// marketAddress: defaultMarketAddress,
-						marketSymbol: defaultMarketSymbol,
-						// market: defaultMarket,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.BUY,
-						amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultBuyOrderMiddleAmount)),
-						price: defaultBuyOrderMiddlePrice
-					} as FinReplaceOrderRequest,
-					sell: {
-						ownerAddress: walletAddress,
-						// marketAddress: defaultMarketAddress,
-						marketSymbol: defaultMarketSymbol,
-						// market: defaultMarket,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.SELL,
-						amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultSellOrderMiddleAmount)),
-						price: defaultSellOrderMiddlePrice
-					} as FinReplaceOrderRequest,
+					// buy: {
+					// 	ownerAddress: walletAddress,
+					// 	// marketAddress: defaultMarketAddress,
+					// 	marketSymbol: defaultMarketSymbol,
+					// 	// market: defaultMarket,
+					// 	type: OrderType.TRACKING_ORDER,
+					// 	side: OrderSide.BUY,
+					// 	amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultBuyOrderMiddleAmount)),
+					// 	price: defaultBuyOrderMiddlePrice
+					// } as FinReplaceOrderRequest,
+					// sell: {
+					// 	ownerAddress: walletAddress,
+					// 	// marketAddress: defaultMarketAddress,
+					// 	marketSymbol: defaultMarketSymbol,
+					// 	// market: defaultMarket,
+					// 	type: OrderType.TRACKING_ORDER,
+					// 	side: OrderSide.SELL,
+					// 	amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultSellOrderMiddleAmount)),
+					// 	price: defaultSellOrderMiddlePrice
+					// } as FinReplaceOrderRequest,
 				},
 				market: {
 					buy: undefined as unknown as FinReplaceOrderRequest,
@@ -451,52 +451,52 @@ import { dump, get } from "./utils";
 					} as FinPlaceOrderRequest,
 				},
 				limit: {
-					buy: {
-						ownerAddress: walletAddress,
-						// owner: undefined,
-						marketAddress: defaultMarketAddress,
-						marketSymbol: defaultMarketSymbol,
-						market: defaultMarket,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.BUY,
-						amount: defaultBuyOrderMiddleAmount,
-						price: defaultBuyOrderMiddlePrice
-					} as FinPlaceOrderRequest,
-					sell: {
-						ownerAddress: walletAddress,
-						// owner: undefined,
-						marketAddress: defaultMarketAddress,
-						marketSymbol: defaultMarketSymbol,
-						market: defaultMarket,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.SELL,
-						amount: defaultSellOrderMiddleAmount,
-						price: defaultSellOrderMiddlePrice
-					} as FinPlaceOrderRequest,
+					// buy: {
+					// 	ownerAddress: walletAddress,
+					// 	// owner: undefined,
+					// 	marketAddress: defaultMarketAddress,
+					// 	marketSymbol: defaultMarketSymbol,
+					// 	market: defaultMarket,
+					// 	type: OrderType.LIMIT,
+					// 	side: OrderSide.BUY,
+					// 	amount: defaultBuyOrderMiddleAmount,
+					// 	price: defaultBuyOrderMiddlePrice
+					// } as FinPlaceOrderRequest,
+					// sell: {
+					// 	ownerAddress: walletAddress,
+					// 	// owner: undefined,
+					// 	marketAddress: defaultMarketAddress,
+					// 	marketSymbol: defaultMarketSymbol,
+					// 	market: defaultMarket,
+					// 	type: OrderType.LIMIT,
+					// 	side: OrderSide.SELL,
+					// 	amount: defaultSellOrderMiddleAmount,
+					// 	price: defaultSellOrderMiddlePrice
+					// } as FinPlaceOrderRequest,
 				},
 				tracking: {
-					buy: {
-						ownerAddress: walletAddress,
-						// owner: undefined,
-						marketAddress: defaultMarketAddress,
-						marketSymbol: defaultMarketSymbol,
-						market: defaultMarket,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.BUY,
-						amount: defaultBuyOrderMiddleAmount,
-						price: defaultBuyOrderMiddlePrice
-					} as FinPlaceOrderRequest,
-					sell: {
-						ownerAddress: walletAddress,
-						// owner: undefined,
-						marketAddress: defaultMarketAddress,
-						marketSymbol: defaultMarketSymbol,
-						market: defaultMarket,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.SELL,
-						amount: defaultSellOrderMiddleAmount,
-						price: defaultSellOrderMiddlePrice
-					} as FinPlaceOrderRequest,
+					// buy: {
+					// 	ownerAddress: walletAddress,
+					// 	// owner: undefined,
+					// 	marketAddress: defaultMarketAddress,
+					// 	marketSymbol: defaultMarketSymbol,
+					// 	market: defaultMarket,
+					// 	type: OrderType.TRACKING_ORDER,
+					// 	side: OrderSide.BUY,
+					// 	amount: defaultBuyOrderMiddleAmount,
+					// 	price: defaultBuyOrderMiddlePrice
+					// } as FinPlaceOrderRequest,
+					// sell: {
+					// 	ownerAddress: walletAddress,
+					// 	// owner: undefined,
+					// 	marketAddress: defaultMarketAddress,
+					// 	marketSymbol: defaultMarketSymbol,
+					// 	market: defaultMarket,
+					// 	type: OrderType.TRACKING_ORDER,
+					// 	side: OrderSide.SELL,
+					// 	amount: defaultSellOrderMiddleAmount,
+					// 	price: defaultSellOrderMiddlePrice
+					// } as FinPlaceOrderRequest,
 				},
 				market: {
 					buy: undefined as unknown as FinPlaceOrderRequest,
