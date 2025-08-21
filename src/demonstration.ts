@@ -161,17 +161,17 @@ import { dump, get } from "./utils";
 					amount: defaultBuyOrderMininumAmount,
 					price: defaultBuyOrderFillablePrice
 				} as FinPlaceOrderRequest,
-				{
-					ownerAddress: walletAddress,
-					marketAddress: defaultMarketAddress,
-					marketSymbol: defaultMarketSymbol,
-					market: defaultMarket,
-					type: OrderType.MARKET,
-					side: OrderSide.BUY,
-					amount: defaultBuyOrderMininumAmount,
-					// price: undefined,
-					// maximumSlippagePercentage: defaultMaximumMarketOrderSlippagePercentage
-				} as FinPlaceOrderRequest,
+				// {
+				// 	ownerAddress: walletAddress,
+				// 	marketAddress: defaultMarketAddress,
+				// 	marketSymbol: defaultMarketSymbol,
+				// 	market: defaultMarket,
+				// 	type: OrderType.MARKET,
+				// 	side: OrderSide.BUY,
+				// 	amount: defaultBuyOrderMiddleAmount,
+				// 	// price: undefined,
+				// 	// maximumSlippagePercentage: defaultMaximumMarketOrderSlippagePercentage
+				// } as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
 					// owner: undefined,
@@ -216,18 +216,18 @@ import { dump, get } from "./utils";
 					amount: defaultSellOrderMininumAmount,
 					price: defaultSellOrderFillablePrice
 				} as FinPlaceOrderRequest,
-				{
-					ownerAddress: walletAddress,
-					// owner: undefined,
-					marketAddress: defaultMarketAddress,
-					marketSymbol: defaultMarketSymbol,
-					market: defaultMarket,
-					type: OrderType.MARKET,
-					side: OrderSide.SELL,
-					amount: defaultSellOrderMininumAmount,
-					// price: undefined,
-					// maximumSlippagePercentage: defaultMaximumMarketOrderSlippagePercentage
-				} as FinPlaceOrderRequest,
+				// {
+				// 	ownerAddress: walletAddress,
+				// 	// owner: undefined,
+				// 	marketAddress: defaultMarketAddress,
+				// 	marketSymbol: defaultMarketSymbol,
+				// 	market: defaultMarket,
+				// 	type: OrderType.MARKET,
+				// 	side: OrderSide.SELL,
+				// 	amount: defaultSellOrderMiddleAmount,
+				// 	// price: undefined,
+				// 	// maximumSlippagePercentage: defaultMaximumMarketOrderSlippagePercentage
+				// } as FinPlaceOrderRequest,
 			]
 		},
 		replace: {
