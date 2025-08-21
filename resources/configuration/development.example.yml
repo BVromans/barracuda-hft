@@ -11,16 +11,20 @@ strategy:
       market: "THOR-RUJI/ETH-USDC"
       tickInterval: 60_000 # 1 minute in milliseconds
       orders:
-        minimumBaseTokenAmountPerOrder: 0
-        minimumQuoteTokenAmountPerOrder: 0
-        maximumBaseTokenAmountPerOrder: 10
-        maximumQuoteTokenAmountPerOrder: 10
+        minimumBaseTokenAmountPerOrder: 0 # Minimum base token amount per order
+        desiredBaseTokenFreeBalancePercentagePerOrder: 10 # Desired base token percentage of the free balance per order (0-100)
+        desiredBaseTokenFreeBalanceAmountPerOrder: 1 # Desired base token free balance amount per order
+        maximumBaseTokenAmountPerOrder: 10 # Maximum base token amount per order
+        minimumQuoteTokenAmountPerOrder: 0 # Minimum quote token amount per order
+        desiredQuoteTokenFreeBalancePercentagePerOrder: 10 # Desired quote token percentage of the free balance per order (0-100)
+        desiredQuoteTokenFreeBalanceAmountPerOrder: 10 # Desired quote token free balance amount per order
+        maximumQuoteTokenAmountPerOrder: 10 # Maximum quote token amount per order
       whenStart:
-        cancelAllOrders: true
-        withdrawAllFilledOrders: true
+        cancelAllOrders: false
+        withdrawAllFilledOrders: false
       whenStop:
-        cancelAllOrders: true
-        withdrawAllFilledOrders: true
+        cancelAllOrders: false
+        withdrawAllFilledOrders: false
       monitorProfitAndLoss:
         enabled: true
         maximumAllowedWalletLossFromInitialValue: 10 # 1 means 1%
@@ -43,4 +47,10 @@ strategy:
         spreadPercentage: 10 # 1 means 1%
         buyQuoteTokenAmountPerOrder: 10
         sellBaseTokenAmountPerOrder: 10
-    enhanced: {}
+    enhanced:
+      orders:
+        minimumSpreadPercentage: 10 # // Minimum spread as a percentage of the middle price (example: 1 means 1%)
+        bollingerBandsWidthSpreadWidthMultiplier: 1.2 # Multiplier for the spread using Bollinger Bands width (≈1.0–1.8)
+        volumeWeightedAveragePriceSkewMultiplier: 0.8 # Pull intensity toward the volume weighted average price (≈0.5–1.2)
+        maximumSkewPercentage: 0.40 # Maximum absolute skew as a percentage (example: 1 means 1%) (~0.4)
+        volatilitySizeShrinkageMultiplier: 4.0 # Multiplier for size shrinkage based on average true range (≈3–6)
