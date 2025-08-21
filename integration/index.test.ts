@@ -26,8 +26,8 @@ import {
 	WalletAddress,
 	WalletMnemonic
 } from "../src/types";
-import { getOrThrow } from "../src/utils";
 import Decimal from "decimal.js";
+import { get } from "../src/utils";
 
 let rujira: Rujira;
 
@@ -252,12 +252,14 @@ describe("Rujira", async() => {
 				expect(result).toBeDefined();
 				expect(result.size).toBe(symbols.length);
 
-				const baseToken = getOrThrow<Token>(
+				const baseToken = get<Token>(
 					result.valueSeq().find((token: Token) => token.symbol === firstMarketBaseTokenSymbol),
+					undefined,
 					`Token with symbol ${firstMarketBaseTokenSymbol} not found`
 				);
-				const quoteToken = getOrThrow<Token>(
+				const quoteToken = get<Token>(
 					result.valueSeq().find((token: Token) => token.symbol === firstMarketQuoteTokenSymbol),
+					undefined,
 					`Token with symbol ${firstMarketQuoteTokenSymbol} not found`
 				);
 
@@ -282,7 +284,7 @@ describe("Rujira", async() => {
 				expect(result).toBeDefined();
 				expect(result.size).toBeGreaterThan(1);
 
-				// Use entries() to find tokens since getOrThrow has issues with dot notation
+				// Use entries() to find tokens since get has issues with dot notation
 				const baseTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === firstMarketBaseTokenAddress.toLowerCase());
 				const quoteTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === firstMarketQuoteTokenAddress.toLowerCase());
 				const nativeTokenEntry = Array.from(result.entries()).find(([key]) => key.toLowerCase() === rujira.fin.nativeToken.address.toLowerCase());
@@ -636,8 +638,9 @@ describe("Rujira", async() => {
 					expect(firstBidOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(firstBidOrder.raw).toBeDefined();
 
-					const bestBid = getOrThrow<OrderBookOrder>(
+					const bestBid = get<OrderBookOrder>(
 						result.book.bestBid,
+						undefined,
 						`Best bid order not found`
 					);
 					expect(bestBid).toBeDefined();
@@ -655,8 +658,9 @@ describe("Rujira", async() => {
 					expect(firstAskOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(firstAskOrder.raw).toBeDefined();
 
-					const bestAsk = getOrThrow<OrderBookOrder>(
+					const bestAsk = get<OrderBookOrder>(
 						result.book.bestAsk,
+						undefined,
 						`Best ask order not found`
 					);
 					expect(bestAsk).toBeDefined();
@@ -668,21 +672,23 @@ describe("Rujira", async() => {
 				}
 
 				if (asks.size > 0 && bids.size > 0) {
-					const bestAsk = getOrThrow<OrderBookOrder>(
+					const bestAsk = get<OrderBookOrder>(
 						result.book.bestAsk,
+						undefined,
 						`Best ask order not found`
 					);
-					const bestBid = getOrThrow<OrderBookOrder>(
+					const bestBid = get<OrderBookOrder>(
 						result.book.bestBid,
+						undefined,
 						`Best bid order not found`
 					);
-					const baseToQuoteMiddlePrice = getOrThrow<Amount>(result.statistics.middlePrice.baseToQuote);
+					const baseToQuoteMiddlePrice = get<Amount>(result.statistics.middlePrice.baseToQuote);
 					expect(baseToQuoteMiddlePrice).toBeDefined();
 					expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(baseToQuoteMiddlePrice.toNumber()).toBeLessThanOrEqual(bestAsk.price.toNumber());
 					expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThanOrEqual(bestBid.price.toNumber());
 
-					const quoteToBaseMiddlePrice = getOrThrow<Amount>(result.statistics.middlePrice.quoteToBase);
+					const quoteToBaseMiddlePrice = get<Amount>(result.statistics.middlePrice.quoteToBase);
 					expect(quoteToBaseMiddlePrice).toBeDefined();
 					expect(quoteToBaseMiddlePrice.toNumber()).toBe(DECIMAL_1.div(baseToQuoteMiddlePrice).toNumber());
 				} else if (asks.size > 0 && bids.size === 0) {
@@ -731,7 +737,7 @@ describe("Rujira", async() => {
 				expect(result.market.raw).toBeDefined();
 
 				expect(result.middlePrice).toBeDefined();
-				expect(getOrThrow<TickerPrice>(result.middlePrice, `Middle price not found`).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(get<TickerPrice>(result.middlePrice, undefined, `Middle price not found`).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.timestamp).toBeDefined();
 				expect(result.timestamp).toBeGreaterThan(0);
@@ -764,10 +770,10 @@ describe("Rujira", async() => {
 				expect(result.market.raw).toBeDefined();
 
 				expect(result.middlePrice).toBeDefined();
-				expect(getOrThrow<TickerPrice>(result.middlePrice).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(get<TickerPrice>(result.middlePrice).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 					expect(result.volumeWeightedAveragePrice).toBeDefined();
-					expect(getOrThrow<TickerPrice>(result.volumeWeightedAveragePrice).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+					expect(get<TickerPrice>(result.volumeWeightedAveragePrice).toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.timestamp).toBeDefined();
 				expect(result.timestamp).toBeGreaterThan(0);
