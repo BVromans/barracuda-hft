@@ -3415,10 +3415,16 @@ export class Fin {
 		let funds: Coin[] | undefined = undefined;
 
 		if (fundsMap && !fundsMap.isEmpty()) {
-			funds = Array.from(fundsMap.entries()).map(([denom, amount]) => ({
-				denom,
-				amount: amount.toFixed()
-			}));
+			const rawFunds: Coin[] = [];
+			fundsMap.forEach((amount, denom) => {
+				if (amount.gt(DECIMAL_0)) {
+				rawFunds.push({
+						denom,
+						amount: amount.toFixed()
+					});
+				}
+			});
+			funds = rawFunds;
 		}
 
 		// Execute the transaction
