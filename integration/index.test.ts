@@ -936,7 +936,7 @@ describe("Rujira", async() => {
 
 		});
 
-		describe.skip("balances", () => {
+		describe("balances", () => {
 			it("should be able to get balances for a wallet", async () => {
 				const result = await rujira.fin.getBalances({ walletAddress: walletPublicKeyThor });
 
@@ -961,7 +961,7 @@ describe("Rujira", async() => {
 				for (const [tokenAddress, tokenBalance] of result.tokens.entries()) {
 					expect(tokenBalance).toBeDefined();
 					expect(tokenBalance.token).toBeDefined();
-					expect(tokenBalance.token.address).toBe(tokenAddress);
+					expect(tokenBalance.token.address).toBe(tokenAddress.toUpperCase());
 					expect(tokenBalance.token.symbol).toBeDefined();
 					expect(tokenBalance.token.name).toBeDefined();
 					expect(tokenBalance.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
