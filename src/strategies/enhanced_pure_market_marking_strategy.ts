@@ -150,29 +150,27 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			desiredTokenFreeBalanceAmountPerOrder
 		);
 
-		const buyOrderAmount = Decimal.max(
-			minimumTokenAmountPerOrder.mul(middlePrice),
-			Decimal.min(
-				maximumTokenAmountPerOrder.mul(middlePrice),
-				buyOrderBudget.mul(sizePercentageMultipler.div(DECIMAL_100))
-			)
-		);
-		const sellOrderAmount = Decimal.max(
+		const amount = Decimal.max(
 			minimumTokenAmountPerOrder,
 			Decimal.min(
 				maximumTokenAmountPerOrder,
 				sellOrderBudget.mul(sizePercentageMultipler.div(DECIMAL_100))
-			)
+			),
+			baseTokenFreeBalance,
+			quoteTokenFreeBalance.mul(middlePrice)
 		);
 
 		// Populate orders only if valid, with final prices and amounts
-		if (buyOrderAmount.gt(DECIMAL_0) && buyPrice.isFinite() && buyPrice.gt(DECIMAL_0)) {
-			buyOrder.price = buyPrice;
-			buyOrder.amount = buyOrderAmount;
+		if (amount.gt(DECIMAL_0)) {
+			buyOrder.amount = amount;
+			sellOrder.amount = amount;
 		}
-		if (sellOrderAmount.gt(DECIMAL_0) && sellPrice.isFinite() && sellPrice.gt(DECIMAL_0)) {
+
+		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0)) {
+			buyOrder.price = buyPrice;
+		}
+		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0)) {
 			sellOrder.price = sellPrice;
-			sellOrder.amount = sellOrderAmount;
 		}
 
 		const buyOrderId = this.rujira.fin.getOrderId(buyOrder);
