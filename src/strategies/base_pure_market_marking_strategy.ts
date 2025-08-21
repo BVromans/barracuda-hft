@@ -175,11 +175,11 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			(
 				(
 					!proposal.place ||
-					proposal.place.isEmpty()
+					(Array.isArray(proposal.place) ? proposal.place.length === 0 : proposal.place.isEmpty())
 				) &&
 				(
 					!proposal.replace ||
-					proposal.replace.isEmpty()
+					(Array.isArray(proposal.replace) ? proposal.replace.length === 0 : proposal.replace.isEmpty())
 				) &&
 				(
 					!proposal.cancel ||
@@ -247,10 +247,10 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		);
 
 		tasks.set(
-			'monitoreProfitAndLoss',
+			'monitorProfitAndLoss',
 			await runAndRepeat(
-				this.monitoreProfitAndLoss.bind(this),
-				properties.getAs<number>('strategy.pure_market_making.common.tasks.monitoreProfitAndLoss.interval')
+				this.monitorProfitAndLoss.bind(this),
+				properties.getAs<number>('strategy.pure_market_making.common.tasks.monitorProfitAndLoss.interval')
 			)
 		);
 	}
@@ -418,7 +418,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * Monitor the profit and loss of the strategy
 	 * @param _options - Options for the strategy
 	 */
-	private async monitoreProfitAndLoss(_options: {}) {
+	private async monitorProfitAndLoss(_options: {}) {
 		const enabled = properties.getAs<boolean>('strategy.pure_market_making.common.monitorProfitAndLoss.enabled');
 
 		if (enabled) {
