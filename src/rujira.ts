@@ -2015,7 +2015,7 @@ export class Fin {
 					after,
 					before,
 					resolution,
-					last: maximumNumberOfCandles // TODO: it seems this field is not being respected!!!
+					last: maximumNumberOfCandles // This field is not respected by the API, but we handle it client-side
 				}
 			})
 		});
@@ -2034,7 +2034,21 @@ export class Fin {
 
 		const rawCandles = data?.node?.candles?.edges?.map((edge: any) => edge.node) || [];
 
-		const candles = MList<Candle>(rawCandles).map((entry: any): Candle => ({
+		// Apply client-side limiting since GraphQL API ignores 'last' parameter
+		let limitedCandles = rawCandles;
+		if (maximumNumberOfCandles && maximumNumberOfCandles > 0 && maximumNumberOfCandles < DECIMAL_INFINITY.toNumber()) {
+			// Sort candles by timestamp (newest first) and limit to requested count
+			limitedCandles = rawCandles
+				.sort((a: any, b: any) => new Date(b.bin).getTime() - new Date(a.bin).getTime())
+				.slice(0, maximumNumberOfCandles);
+
+			// Log warning when API doesn't respect limits
+			if (rawCandles.length > maximumNumberOfCandles) {
+				console.debug(`GraphQL API returned ${rawCandles.length} candles despite requesting ${maximumNumberOfCandles}. Applied client-side limiting.`);
+			}
+		}
+
+		const candles = MList<Candle>(limitedCandles).map((entry: any) => ({
 			timestamp: new Date(entry.bin).getTime(),
 			open: Decimal(entry.open || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
 			high: Decimal(entry.high || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
