@@ -11,7 +11,6 @@ set -ex
 mkdir -p resources/references/rujira
 
 git submodule update --init --remote --force ./resources/references/rujira/contracts ./resources/references/rujira/api ./resources/references/rujira/ui
-git submodule update --init --remote --force ./resources/references/rujira/contracts ./resources/references/rujira/api ./resources/references/rujira/ui
 
 bun install
 
