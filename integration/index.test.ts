@@ -10,6 +10,7 @@ import {
 	CandleInterval,
 	DECIMAL_0,
 	DECIMAL_1,
+	DECIMAL_100,
 	Integer,
 	Indicator,
 	IndicatorId,
@@ -17,7 +18,9 @@ import {
 	MarketStatus,
 	MarketSymbol,
 	OrderBookOrder,
+	OrderSide,
 	OrderStatus,
+	OrderType,
 	SystemStatus,
 	TickerPrice,
 	Token,
@@ -1116,6 +1119,312 @@ describe("Rujira", async() => {
 			});
 		});
 
+		describe("orders", () => {
+			it("PHASE 1: Complete order lifecycle - initialization, market data", async () => {
+				/*
+				 * PHASE 1: INITIALIZATION AND MARKET DATA
+				 * ========================================
+				 * 1. Initialize Rujira client with wallet credentials
+				 * 2. Get market information for both markets
+				 * 3. Get market tickers and order books
+				 * 4. Get wallet balances for tokens 1, 2, and 3
+				 * 5. Verify market liquidity and pricing
+				 */
+
+				// 1. Initialize Rujira client with wallet credentials
+				expect(rujira).toBeDefined();
+				expect(rujira.fin).toBeDefined();
+				expect(walletPublicKeyThor).toBeDefined();
+
+				// 2. Get market information for both markets
+				const firstMarket = await rujira.fin.getMarket({
+					address: firstMarketAddress,
+					symbol: firstMarketSymbol,
+				});
+				expect(firstMarket).toBeDefined();
+				expect(firstMarket.address).toBe(firstMarketAddress);
+				expect(firstMarket.symbol).toBe(firstMarketSymbol);
+
+				const secondMarket = await rujira.fin.getMarket({
+					address: secondMarketAddress,
+					symbol: secondMarketSymbol,
+				});
+				expect(secondMarket).toBeDefined();
+				expect(secondMarket.address).toBe(secondMarketAddress);
+				expect(secondMarket.symbol).toBe(secondMarketSymbol);
+
+				// 3. Get market tickers and order books
+				const firstMarketTicker = await rujira.fin.getTicker({
+					marketAddress: firstMarketAddress,
+					marketSymbol: firstMarketSymbol,
+				});
+				expect(firstMarketTicker).toBeDefined();
+				expect(firstMarketTicker.middlePrice).toBeDefined();
+
+				const secondMarketTicker = await rujira.fin.getTicker({
+					marketAddress: secondMarketAddress,
+					marketSymbol: secondMarketSymbol,
+				});
+				expect(secondMarketTicker).toBeDefined();
+				expect(secondMarketTicker.middlePrice).toBeDefined();
+
+				const firstMarketOrderBook = await rujira.fin.getOrderBook({
+					marketAddress: firstMarketAddress,
+					marketSymbol: firstMarketSymbol,
+				});
+				expect(firstMarketOrderBook).toBeDefined();
+				expect(firstMarketOrderBook.book).toBeDefined();
+
+				const secondMarketOrderBook = await rujira.fin.getOrderBook({
+					marketAddress: secondMarketAddress,
+					marketSymbol: secondMarketSymbol,
+				});
+				expect(secondMarketOrderBook).toBeDefined();
+				expect(secondMarketOrderBook.book).toBeDefined();
+
+				// 4. Get wallet balances for tokens 1, 2, and 3
+				const walletBalances = await rujira.fin.getBalances({
+					walletAddress: walletPublicKeyThor,
+				});
+				expect(walletBalances).toBeDefined();
+				expect(walletBalances.tokens.size).toBeGreaterThan(DECIMAL_0.toNumber());
+
+				// Verify balances for specific tokens
+				const firstMarketBaseTokenBalance = walletBalances.tokens.getOrThrow(firstMarketBaseTokenSymbol);
+				expect(firstMarketBaseTokenBalance).toBeDefined();
+				expect(firstMarketBaseTokenBalance.balances.token.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+				const firstMarketQuoteTokenBalance = walletBalances.tokens.getOrThrow(firstMarketQuoteTokenSymbol);
+				expect(firstMarketQuoteTokenBalance).toBeDefined();
+				expect(firstMarketQuoteTokenBalance.balances.token.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+				const secondMarketBaseTokenBalance = walletBalances.tokens.getOrThrow(secondMarketBaseTokenSymbol);
+				expect(secondMarketBaseTokenBalance).toBeDefined();
+				expect(secondMarketBaseTokenBalance.balances.token.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+				// 5. Verify market liquidity and pricing
+				expect(firstMarketTicker.middlePrice.baseToQuote).toBeDefined();
+				expect(firstMarketTicker.middlePrice.baseToQuote!.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+				expect(secondMarketTicker.middlePrice.baseToQuote).toBeDefined();
+				expect(secondMarketTicker.middlePrice.baseToQuote!.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+
+				// Verify order book has liquidity
+				expect(firstMarketOrderBook.book.bestBid).toBeDefined();
+				expect(firstMarketOrderBook.book.bestAsk).toBeDefined();
+				expect(secondMarketOrderBook.book.bestBid).toBeDefined();
+				expect(secondMarketOrderBook.book.bestAsk).toBeDefined();
+
+				console.log(`✅ PHASE 1 COMPLETED: Markets initialized and verified`);
+				console.log(`   Market 1: ${firstMarketSymbol} (${firstMarketAddress})`);
+				console.log(`   Market 2: ${secondMarketSymbol} (${secondMarketAddress})`);
+				console.log(`   Wallet: ${walletPublicKeyThor}`);
+
+			it('PHASE 2: Complete order lifecycle - single order operations', async () => {
+				/*
+				 * PHASE 2: SINGLE ORDER OPERATIONS
+				 * =================================
+				 * 6. Create fixedPrice buy order 1 for market 1 (RUJI/USDC)
+				 * 7. Create fixedPrice sell order 2 for market 2 (NAMI/USDC)
+				 * 8. Create market sell order 3 for market 1
+				 * 9. Create market buy order 4 for market 2
+				 */
+
+				// 6. Create fixedPrice buy order 1 for market 1 (RUJI/USDC)
+				console.log(`🔄 Creating fixedPrice buy order 1 for market 1...`);
+				const order1Request = {
+					ownerAddress: walletPublicKeyThor,
+					marketAddress: firstMarketAddress,
+					marketSymbol: firstMarketSymbol,
+					market: firstMarket,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.BUY,
+					amount: firstMarketBaseTokenAmount,
+					price: firstMarketTicker.middlePrice.baseToQuote!.mul(DECIMAL_1.minus(DECIMAL_1.div(DECIMAL_100))) // 1% below market price
+				};
+
+				const order1 = await rujira.fin.placeOrder(order1Request);
+				expect(order1).toBeDefined();
+				expect(order1.order).toBeDefined();
+				expect(order1.transaction).toBeDefined();
+				expect(order1.order.id).toBeDefined();
+				expect(order1.order.market.address).toBe(firstMarketAddress);
+				expect(order1.order.market.symbol).toBe(firstMarketSymbol);
+				expect(order1.order.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+				expect(order1.order.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
+				expect(order1.order.market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
+				expect(order1.order.market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
+				expect(order1.order.market.decimals).toBe(firstMarket.decimals);
+				expect(order1.order.market.status).toBe(MarketStatus.ACTIVE);
+				expect(order1.order.market.raw).toBeDefined();
+				expect(order1.order.market.raw.base.length).toBeGreaterThan(DECIMAL_0.toNumber());
+				expect(order1.order.market.raw.quote.length).toBeGreaterThan(DECIMAL_0.toNumber());
+				expect(order1.order.market.raw.base[0].address).toBe(firstMarketBaseTokenAddress);
+				expect(order1.order.market.raw.quote[0].address).toBe(firstMarketQuoteTokenAddress);
+				expect(order1.order.ownerAddress).toBe(walletPublicKeyThor);
+				expect(order1.order.status).toBe(OrderStatus.OPEN);
+				expect(order1.order.side).toBe(OrderSide.BUY);
+				expect(order1.order.type).toBe(OrderType.FIXED_PRICE);
+
+				// Verify order placement success
+				console.log(`✅ Order 1 created successfully: ${order1.order.id}`);
+
+				// Check the available wallet balances from tokens 1 and 2
+				const balancesAfterOrder1 = await rujira.fin.getBalances({
+					walletAddress: walletPublicKeyThor,
+				});
+				expect(balancesAfterOrder1).toBeDefined();
+
+				// Get the open order 1 and verify details
+				if (order1Request.price) {
+					const retrievedOrder1 = await rujira.fin.getOrder({
+						ownerAddress: walletPublicKeyThor,
+						marketSymbol: firstMarketSymbol,
+						orderSide: OrderSide.BUY,
+						orderPrice: order1Request.price
+					});
+					expect(retrievedOrder1).toBeDefined();
+					expect(retrievedOrder1.id).toBe(order1.order.id!);
+				}
+
+				// 7. Create fixedPrice sell order 2 for market 2 (NAMI/USDC) - slightly better than market price
+				console.log(`🔄 Creating fixedPrice sell order 2 for market 2...`);
+				const order2Request = {
+					ownerAddress: walletPublicKeyThor,
+					marketAddress: secondMarketAddress,
+					marketSymbol: secondMarketSymbol,
+					market: secondMarket,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.SELL,
+					amount: secondMarketBaseTokenAmount,
+					price: secondMarketTicker.middlePrice.baseToQuote!.mul(DECIMAL_1.plus(DECIMAL_1.div(DECIMAL_100))) // 1% above market price
+				};
+
+				const order2 = await rujira.fin.placeOrder(order2Request);
+				expect(order2).toBeDefined();
+				expect(order2.order).toBeDefined();
+				expect(order2.transaction).toBeDefined();
+				expect(order2.order.id).toBeDefined();
+				expect(order2.order.status).toBe(OrderStatus.OPEN);
+				expect(order2.order.side).toBe(OrderSide.SELL);
+				expect(order2.order.type).toBe(OrderType.FIXED_PRICE);
+
+				// Verify order placement success
+				console.log(`✅ Order 2 created successfully: ${order2.order.id}`);
+
+				// Check the available wallet balances from tokens 2 and 3
+				const balancesAfterOrder2 = await rujira.fin.getBalances({
+					walletAddress: walletPublicKeyThor,
+				});
+				expect(balancesAfterOrder2).toBeDefined();
+
+				// Get the open order 2 and verify details
+				if (order2Request.price) {
+					const retrievedOrder2 = await rujira.fin.getOrder({
+						ownerAddress: walletPublicKeyThor,
+						marketSymbol: secondMarketSymbol,
+						orderSide: OrderSide.SELL,
+						orderPrice: order2Request.price
+					});
+					expect(retrievedOrder2).toBeDefined();
+					expect(retrievedOrder2.id).toBe(order2.order.id!);
+				}
+
+				// 8. Create market sell order 3 for market 1
+				console.log(`🔄 Creating market sell order 3 for market 1...`);
+				const order3Request = {
+					ownerAddress: walletPublicKeyThor,
+					marketAddress: firstMarketAddress,
+					marketSymbol: firstMarketSymbol,
+					market: firstMarket,
+					type: OrderType.MARKET,
+					side: OrderSide.SELL,
+					amount: firstMarketBaseTokenAmount.div(DECIMAL_100), // Small amount for market order
+					maximumSlippagePercentage: Decimal('2.5') // 2.5% slippage tolerance
+				};
+
+				const order3 = await rujira.fin.placeOrder(order3Request);
+				expect(order3).toBeDefined();
+				expect(order3.order).toBeDefined();
+				expect(order3.transaction).toBeDefined();
+				expect(order3.order.id).toBeDefined();
+				expect(order3.order.type).toBe(OrderType.MARKET);
+				expect(order3.order.side).toBe(OrderSide.SELL);
+
+				// Verify order execution (market orders should execute immediately)
+				console.log(`✅ Order 3 (market sell) executed: ${order3.order.id}`);
+
+				// Check the available wallet balances from tokens 1 and 2
+				const balancesAfterOrder3 = await rujira.fin.getBalances({
+					walletAddress: walletPublicKeyThor,
+				});
+				expect(balancesAfterOrder3).toBeDefined();
+
+				// Get the filled order 3 and verify execution details
+				if (order3.order.price) {
+					const retrievedOrder3 = await rujira.fin.getOrder({
+						ownerAddress: walletPublicKeyThor,
+						marketSymbol: firstMarketSymbol,
+						orderSide: OrderSide.SELL,
+						orderPrice: order3.order.price
+					});
+					expect(retrievedOrder3).toBeDefined();
+					expect(retrievedOrder3.id).toBe(order3.order.id!);
+				}
+
+				// 9. Create market buy order 4 for market 2
+				console.log(`🔄 Creating market buy order 4 for market 2...`);
+				const order4Request = {
+					ownerAddress: walletPublicKeyThor,
+					marketAddress: secondMarketAddress,
+					marketSymbol: secondMarketSymbol,
+					market: secondMarket,
+					type: OrderType.MARKET,
+					side: OrderSide.BUY,
+					amount: secondMarketBaseTokenAmount.div(DECIMAL_100), // Small amount for market order
+					maximumSlippagePercentage: Decimal('2.5') // 2.5% slippage tolerance
+				};
+
+				const order4 = await rujira.fin.placeOrder(order4Request);
+				expect(order4).toBeDefined();
+				expect(order4.order).toBeDefined();
+				expect(order4.transaction).toBeDefined();
+				expect(order4.order.id).toBeDefined();
+				expect(order4.order.type).toBe(OrderType.MARKET);
+				expect(order4.order.side).toBe(OrderSide.BUY);
+
+				// Verify order execution (market orders should execute immediately)
+				console.log(`✅ Order 4 (market buy) executed: ${order4.order.id}`);
+
+				// Check the available wallet balances from tokens 2 and 3
+				const balancesAfterOrder4 = await rujira.fin.getBalances({
+					walletAddress: walletPublicKeyThor,
+				});
+				expect(balancesAfterOrder4).toBeDefined();
+
+				// Get the filled order 4 and verify execution details
+				if (order4.order.price) {
+					const retrievedOrder4 = await rujira.fin.getOrder({
+						ownerAddress: walletPublicKeyThor,
+						marketSymbol: secondMarketSymbol,
+						orderSide: OrderSide.BUY,
+						orderPrice: order4.order.price
+					});
+					expect(retrievedOrder4).toBeDefined();
+					expect(retrievedOrder4.id).toBe(order4.order.id!);
+				}
+
+				console.log(`✅ PHASE 2 COMPLETED: All single orders created and verified`);
+				console.log(`   Order 1 (fixedPrice buy): ${order1.order.id} - Status: ${order1.order.status}`);
+				console.log(`   Order 2 (fixedPrice sell): ${order2.order.id} - Status: ${order2.order.status}`);
+					console.log(`   Order 3 (market sell): ${order3.order.id} - Status: ${order3.order.status}`);
+					console.log(`   Order 4 (market buy): ${order4.order.id} - Status: ${order4.order.status}`);
+				});
+			});
+
+
+		});
+
+
 
 
 // describe.skip("orderbook", () => {
@@ -1354,253 +1663,6 @@ describe("Rujira", async() => {
 		// 			expect(transaction.fee.token.raw).toBeDefined();
 		// 			expect(transaction.raw).toBeDefined();
 		// 		}
-		// 	});
-		// });
-
-		// describe("orders", () => {
-		// 	it("should handle complete order lifecycle", async () => {
-		// 		==============================================================
-		// 		Optimized flow for testing Rujira orders (8 orders total)
-		// 		market 1: TOKEN1/TOKEN2 (RUJI/USDC)
-		// 		market 2: TOKEN3/TOKEN2 (NAMI/USDC)
-		// 		==============================================================
-
-		// 		// Phase 1: Setup and Initial Balances
-		// 		// ==============================================================
-		// 		const initialBalances = await rujira.fin.getBalances({
-		// 			walletAddress: walletPublicKeyThor,
-		// 		});
-
-		// 		// Phase 2: Individual Order Testing (4 orders)
-		// 		// ==============================================================
-
-		// 		// Order 1: limit buy, market 1
-		// 		const order1 = await rujira.fin.placeOrder({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			marketSymbol: firstMarketSymbol,
-		// 			side: "buy",
-		// 			type: "limit",
-		// 			amount: firstMarketBaseTokenAmount,
-		// 			price: firstMarketQuoteTokenAmount,
-		// 		});
-
-		// 		// Order 2: limit sell, market 2 (better than market price) - will fill
-		// 		const order2 = await rujira.fin.placeOrder({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			marketSymbol: secondMarketSymbol,
-		// 			side: "sell",
-		// 			type: "limit",
-		// 			amount: secondMarketBaseTokenAmount,
-		// 			price: secondMarketQuoteTokenAmount.times(0.9), // Better price to ensure fill
-		// 		});
-
-		// 		// Order 3: market sell, market 1 - will fill
-		// 		const order3 = await rujira.fin.placeOrder({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			marketSymbol: firstMarketSymbol,
-		// 			side: "sell",
-		// 			type: "market",
-		// 			amount: firstMarketBaseTokenAmount.times(0.1), // Small amount for market order
-		// 		});
-
-		// 		// Order 4: market buy, market 2 - will fill
-		// 		const order4 = await rujira.fin.placeOrder({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			marketSymbol: secondMarketSymbol,
-		// 			side: "buy",
-		// 			type: "market",
-		// 			amount: secondMarketBaseTokenAmount.times(0.1), // Small amount for market order
-		// 		});
-
-		// 		// Check balances after individual orders
-		// 		const balancesAfterIndividual = await rujira.fin.getBalances({
-		// 			walletAddress: walletPublicKeyThor,
-		// 		});
-
-		// 		// Get all open orders and validate order 1 is present
-		// 		const openOrdersAfterIndividual = await rujira.fin.getOrders({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			orderStatus: "open",
-		// 		});
-
-		// 		// Test getOrder() with an individual order
-		// 		const individualOrder1 = await rujira.fin.getOrder({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			orderId: order1.order.id,
-		// 		});
-
-		// 		// Get all filled orders and validate orders 2, 3, 4 are present
-		// 		const filledOrdersAfterIndividual = await rujira.fin.getOrders({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			orderStatus: "filled",
-		// 		});
-
-		// 		// Phase 3: Batch Order Testing (4 orders)
-		// 		// ==============================================================
-
-		// 		// Create 4 orders at once
-		// 		const batchOrders = await rujira.fin.placeOrders({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			orders: [
-		// 				{
-		// 					marketSymbol: firstMarketSymbol,
-		// 					side: "buy",
-		// 					type: "limit",
-		// 					amount: firstMarketBaseTokenAmount.times(0.5),
-		// 					price: firstMarketQuoteTokenAmount.times(0.8),
-		// 				}, // order 5
-		// 				{
-		// 					marketSymbol: secondMarketSymbol,
-		// 					side: "sell",
-		// 					type: "limit",
-		// 					amount: secondMarketBaseTokenAmount.times(0.5),
-		// 					price: secondMarketQuoteTokenAmount.times(1.2),
-		// 				}, // order 6
-		// 				{
-		// 					marketSymbol: firstMarketSymbol,
-		// 					side: "buy",
-		// 					type: "limit",
-		// 					amount: firstMarketBaseTokenAmount.times(0.3),
-		// 					price: firstMarketQuoteTokenAmount.times(1.1), // Better price to ensure fill
-		// 				}, // order 7 - will fill
-		// 				{
-		// 					marketSymbol: secondMarketSymbol,
-		// 					side: "sell",
-		// 					type: "limit",
-		// 					amount: secondMarketBaseTokenAmount.times(0.3),
-		// 					price: secondMarketQuoteTokenAmount.times(0.85), // Better price to ensure fill
-		// 				}, // order 8 - will fill
-		// 			],
-		// 		});
-
-		// 		// Check balances after batch order creation
-		// 		const balancesAfterBatch = await rujira.fin.getBalances({
-		// 			walletAddress: walletPublicKeyThor,
-		// 		});
-
-		// 		// Get all open orders and validate orders 1, 5, 6 are present
-		// 		const openOrdersAfterBatch = await rujira.fin.getOrders({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			orderStatus: "open",
-		// 		});
-
-		// 		// Get all filled orders and validate orders 2, 3, 4, 7, 8 are present
-		// 		const filledOrdersAfterBatch = await rujira.fin.getOrders({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			orderStatus: "filled",
-		// 		});
-
-		// 		// Phase 4: Replacement Testing
-		// 		// ==============================================================
-
-		// 		// Replace order 5 with new price and amount
-		// 		const replacedOrder5 = await rujira.fin.replaceOrder({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			marketSymbol: firstMarketSymbol,
-		// 			side: "buy",
-		// 			type: "limit",
-		// 			amount: firstMarketBaseTokenAmount.times(0.6),
-		// 			price: firstMarketQuoteTokenAmount.times(0.75),
-		// 		});
-
-		// 		// Check balances after replacement
-		// 		const balancesAfterReplacement = await rujira.fin.getBalances({
-		// 			walletAddress: walletPublicKeyThor,
-		// 		});
-
-		// 		// Replace orders 6 and 1 as a batch with new parameters
-		// 		const replacedOrdersBatch = await rujira.fin.replaceOrders({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			orders: [
-		// 				{
-		// 					marketSymbol: secondMarketSymbol,
-		// 					side: "sell",
-		// 					type: "limit",
-		// 					amount: secondMarketBaseTokenAmount.times(0.7),
-		// 					price: secondMarketQuoteTokenAmount.times(1.3),
-		// 				}, // new order 6
-		// 				{
-		// 					marketSymbol: firstMarketSymbol,
-		// 					side: "buy",
-		// 					type: "limit",
-		// 					amount: firstMarketBaseTokenAmount.times(0.8),
-		// 					price: firstMarketQuoteTokenAmount.times(0.7),
-		// 				}, // new order 1
-		// 			],
-		// 		});
-
-		// 		// Phase 5: Cancellation Testing
-		// 		// ==============================================================
-
-		// 		// Cancel order 5 individually
-		// 		const cancelledOrder5 = await rujira.fin.cancelOrder({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			orderId: replacedOrder5.order.id,
-		// 		});
-
-		// 		// Check balances after cancellation
-		// 		const balancesAfterCancellation = await rujira.fin.getBalances({
-		// 			walletAddress: walletPublicKeyThor,
-		// 		});
-
-		// 		// Cancel orders 6 and 1 as a batch
-		// 		const cancelledOrdersBatch = await rujira.fin.cancelOrders({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			orderIds: [
-		// 				replacedOrdersBatch.orders.get(0)?.id || "",
-		// 				replacedOrdersBatch.orders.get(1)?.id || "",
-		// 			],
-		// 		});
-
-		// 		// Phase 6: Final Testing
-		// 		// ==============================================================
-
-		// 		// Get all orders (open + filled) and validate correct mix
-		// 		const allOrders = await rujira.fin.getOrders({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 		});
-
-		// 		// Cancel all open orders
-		// 		const cancelledAllOrders = await rujira.fin.cancelAllOrders({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 		});
-
-		// 		// Check balances after cancel all
-		// 		const finalBalances = await rujira.fin.getBalances({
-		// 			walletAddress: walletPublicKeyThor,
-		// 		});
-
-		// 		// Get all open orders and verify no open orders remain
-		// 		const finalOpenOrders = await rujira.fin.getOrders({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			orderStatus: "open",
-		// 		});
-
-		// 		// Get all filled orders and verify orders 2, 3, 4, 7, 8 are present
-		// 		const finalFilledOrders = await rujira.fin.getOrders({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			orderStatus: "filled",
-		// 		});
-
-		// 		// Phase 7: Withdrawal Testing
-		// 		// ==============================================================
-
-		// 		// Withdraw from market 1
-		// 		const withdrawMarket1 = await rujira.fin.withdrawFromMarket({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			marketSymbol: firstMarketSymbol,
-		// 		});
-
-		// 		// Withdraw from market 2
-		// 		const withdrawMarket2 = await rujira.fin.withdrawFromMarket({
-		// 			ownerAddress: walletPublicKeyThor,
-		// 			marketSymbol: secondMarketSymbol,
-		// 		});
-
-		// 		// Check wallet balances after withdraw from the markets
-		// 		const balancesAfterWithdraw = await rujira.fin.getBalances({
-		// 			walletAddress: walletPublicKeyThor,
-		// 		});
 		// 	});
 		// });
 	});
