@@ -3207,10 +3207,9 @@ export class Fin {
 
 				const type = existingOrder?.type || requestOrder.type;
 
-				// Create message with exact format from playground
 				const side = existingOrder?.side || requestOrder.side === OrderSide.BUY ? 'quote' : 'base';
-				// Use precise price formatting like playgrounds
-				const price = existingOrder?.price || requestOrder.price ? get<OrderPrice>(existingOrder?.price || requestOrder.price).toFixed(18) : '0.000000000000000000';
+
+				const price = existingOrder?.price?.toFixed(18) || requestOrder.price?.toFixed(18) || '0.000000000000000000';
 
 				if ([OrderType.MARKET].includes(type)) {
 					let inputToken: Token;
@@ -3347,10 +3346,9 @@ export class Fin {
 					throw new Error(`Cannot cancel order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.OPEN}`);
 				}
 
-				// Create cancel message with exact format from playground: [side, { fixed: price }, '0']
+				// Create cancel message: [side, { fixed: price }, '0']
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
 
-				// Use precise price formatting like playgrounds
 				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
 				ordersMessages.push([side, { fixed: price }, '0']);
@@ -3382,10 +3380,9 @@ export class Fin {
 					throw new Error(`Cannot withdraw order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.FILLED}`);
 				}
 
-				// Create withdraw message with exact format from playground: [side, { fixed: price }, null]
+				// Create withdraw message: [side, { fixed: price }, null]
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
 
-				// Use precise price formatting like playgrounds
 				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
 				ordersMessages.push([side, { fixed: price }, null]);
