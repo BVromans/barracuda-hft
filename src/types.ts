@@ -67,10 +67,8 @@ export enum MarketStatus {
 	INACTIVE = 'inactive'
 }
 
-
 /**
  * Candle interval
- * export type CandleInterval = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w' | '1M' | '1y';
  */
 export enum CandleInterval {
 	// ONE_SECOND = '1s',
@@ -84,7 +82,6 @@ export enum CandleInterval {
 	// ONE_MONTH = '1M',
 	// ONE_YEAR = '1y'
 }
-
 
 /**
  * Order side

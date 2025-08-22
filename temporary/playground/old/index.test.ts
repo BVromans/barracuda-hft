@@ -1236,5 +1236,553 @@ describe("Rujira", async() => {
 				expect(accumulatedUSDTotal.toNumber()).toBe(totalUSDToken.total.toNumber());
 			});
 		});
+
+		describe.skip("orders", () => {
+			it("PHASE 1: Complete order lifecycle - initialization, market data", async () => {
+				/*
+				 * PHASE 1: INITIALIZATION AND MARKET DATA
+				 * ========================================
+				 * 1. Initialize Rujira client with wallet credentials
+				 * 2. Get market information for both markets
+				 * 3. Get market tickers and order books
+				 * 4. Get wallet balances for tokens 1, 2, and 3
+				 * 5. Verify market liquidity and pricing
+				 */
+
+				// 1. Initialize Rujira client with wallet credentials
+				expect(rujira).toBeDefined();
+				expect(rujira.fin).toBeDefined();
+				expect(walletPublicKeyThor).toBeDefined();
+
+				// 2. Get market information for both markets
+				const firstMarket = await rujira.fin.getMarket({
+					address: firstMarketAddress,
+					symbol: firstMarketSymbol,
+				});
+				expect(firstMarket).toBeDefined();
+				expect(firstMarket.address).toBe(firstMarketAddress);
+				expect(firstMarket.symbol).toBe(firstMarketSymbol);
+
+				const secondMarket = await rujira.fin.getMarket({
+					address: secondMarketAddress,
+					symbol: secondMarketSymbol,
+				});
+				expect(secondMarket).toBeDefined();
+				expect(secondMarket.address).toBe(secondMarketAddress);
+				expect(secondMarket.symbol).toBe(secondMarketSymbol);
+
+				// 3. Get market tickers and order books
+				const firstMarketTicker = await rujira.fin.getTicker({
+					marketAddress: firstMarketAddress,
+					marketSymbol: firstMarketSymbol,
+				});
+				expect(firstMarketTicker).toBeDefined();
+				expect(firstMarketTicker.middlePrice).toBeDefined();
+
+				const secondMarketTicker = await rujira.fin.getTicker({
+					marketAddress: secondMarketAddress,
+					marketSymbol: secondMarketSymbol,
+				});
+				expect(secondMarketTicker).toBeDefined();
+				expect(secondMarketTicker.middlePrice).toBeDefined();
+
+				const firstMarketOrderBook = await rujira.fin.getOrderBook({
+					marketAddress: firstMarketAddress,
+					marketSymbol: firstMarketSymbol,
+				});
+				expect(firstMarketOrderBook).toBeDefined();
+				expect(firstMarketOrderBook.book).toBeDefined();
+
+				const secondMarketOrderBook = await rujira.fin.getOrderBook({
+					marketAddress: secondMarketAddress,
+					marketSymbol: secondMarketSymbol,
+				});
+				expect(secondMarketOrderBook).toBeDefined();
+				expect(secondMarketOrderBook.book).toBeDefined();
+
+				// 4. Get wallet balances for tokens 1, 2, and 3
+				const walletBalances = await rujira.fin.getBalances({
+					walletAddress: walletPublicKeyThor,
+				});
+				expect(walletBalances).toBeDefined();
+				expect(walletBalances.tokens.size).toBeGreaterThan(DECIMAL_0.toNumber());
+
+				// Verify balances for specific tokens
+				const firstMarketBaseTokenBalance = walletBalances.tokens.getOrThrow(firstMarketBaseTokenSymbol);
+				expect(firstMarketBaseTokenBalance).toBeDefined();
+				expect(firstMarketBaseTokenBalance.balances.token.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+				const firstMarketQuoteTokenBalance = walletBalances.tokens.getOrThrow(firstMarketQuoteTokenSymbol);
+				expect(firstMarketQuoteTokenBalance).toBeDefined();
+				expect(firstMarketQuoteTokenBalance.balances.token.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+				const secondMarketBaseTokenBalance = walletBalances.tokens.getOrThrow(secondMarketBaseTokenSymbol);
+				expect(secondMarketBaseTokenBalance).toBeDefined();
+				expect(secondMarketBaseTokenBalance.balances.token.free.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+
+				// 5. Verify market liquidity and pricing
+				expect(firstMarketTicker.middlePrice.baseToQuote).toBeDefined();
+				expect(firstMarketTicker.middlePrice.baseToQuote!.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+				expect(secondMarketTicker.middlePrice.baseToQuote).toBeDefined();
+				expect(secondMarketTicker.middlePrice.baseToQuote!.toNumber()).toBeGreaterThan(DECIMAL_0.toNumber());
+
+				// Verify order book has liquidity
+				expect(firstMarketOrderBook.book.bestBid).toBeDefined();
+				expect(firstMarketOrderBook.book.bestAsk).toBeDefined();
+				expect(secondMarketOrderBook.book.bestBid).toBeDefined();
+				expect(secondMarketOrderBook.book.bestAsk).toBeDefined();
+
+				console.log(`✅ PHASE 1 COMPLETED: Markets initialized and verified`);
+				console.log(`   Market 1: ${firstMarketSymbol} (${firstMarketAddress})`);
+				console.log(`   Market 2: ${secondMarketSymbol} (${secondMarketAddress})`);
+				console.log(`   Wallet: ${walletPublicKeyThor}`);
+
+			it('PHASE 2: Complete order lifecycle - single order operations', async () => {
+				/*
+				 * PHASE 2: SINGLE ORDER OPERATIONS
+				 * =================================
+				 * 6. Create fixedPrice buy order 1 for market 1 (RUJI/USDC)
+				 * 7. Create fixedPrice sell order 2 for market 2 (NAMI/USDC)
+				 * 8. Create market sell order 3 for market 1
+				 * 9. Create market buy order 4 for market 2
+				 */
+
+				// 6. Create fixedPrice buy order 1 for market 1 (RUJI/USDC)
+				console.log(`🔄 Creating fixedPrice buy order 1 for market 1...`);
+				const order1Request = {
+					ownerAddress: walletPublicKeyThor,
+					marketAddress: firstMarketAddress,
+					marketSymbol: firstMarketSymbol,
+					market: firstMarket,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.BUY,
+					amount: firstMarketBaseTokenAmount,
+					price: firstMarketTicker.middlePrice.baseToQuote!.mul(DECIMAL_1.minus(DECIMAL_1.div(DECIMAL_100))) // 1% below market price
+				};
+
+				const order1 = await rujira.fin.placeOrder(order1Request);
+				expect(order1).toBeDefined();
+				expect(order1.order).toBeDefined();
+				expect(order1.transaction).toBeDefined();
+				expect(order1.order.id).toBeDefined();
+				expect(order1.order.market.address).toBe(firstMarketAddress);
+				expect(order1.order.market.symbol).toBe(firstMarketSymbol);
+				expect(order1.order.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+				expect(order1.order.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
+				expect(order1.order.market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
+				expect(order1.order.market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
+				expect(order1.order.market.decimals).toBe(firstMarket.decimals);
+				expect(order1.order.market.status).toBe(MarketStatus.ACTIVE);
+				expect(order1.order.market.raw).toBeDefined();
+				expect(order1.order.market.raw.base.length).toBeGreaterThan(DECIMAL_0.toNumber());
+				expect(order1.order.market.raw.quote.length).toBeGreaterThan(DECIMAL_0.toNumber());
+				expect(order1.order.market.raw.base[0].address).toBe(firstMarketBaseTokenAddress);
+				expect(order1.order.market.raw.quote[0].address).toBe(firstMarketQuoteTokenAddress);
+				expect(order1.order.ownerAddress).toBe(walletPublicKeyThor);
+				expect(order1.order.status).toBe(OrderStatus.OPEN);
+				expect(order1.order.side).toBe(OrderSide.BUY);
+				expect(order1.order.type).toBe(OrderType.FIXED_PRICE);
+
+				// Verify order placement success
+				console.log(`✅ Order 1 created successfully: ${order1.order.id}`);
+
+				// Check the available wallet balances from tokens 1 and 2
+				const balancesAfterOrder1 = await rujira.fin.getBalances({
+					walletAddress: walletPublicKeyThor,
+				});
+				expect(balancesAfterOrder1).toBeDefined();
+
+				// Get the open order 1 and verify details
+				if (order1Request.price) {
+					const retrievedOrder1 = await rujira.fin.getOrder({
+						ownerAddress: walletPublicKeyThor,
+						marketSymbol: firstMarketSymbol,
+						orderSide: OrderSide.BUY,
+						orderPrice: order1Request.price
+					});
+					expect(retrievedOrder1).toBeDefined();
+					expect(retrievedOrder1.id).toBe(order1.order.id!);
+				}
+
+				// 7. Create fixedPrice sell order 2 for market 2 (NAMI/USDC) - slightly better than market price
+				console.log(`🔄 Creating fixedPrice sell order 2 for market 2...`);
+				const order2Request = {
+					ownerAddress: walletPublicKeyThor,
+					marketAddress: secondMarketAddress,
+					marketSymbol: secondMarketSymbol,
+					market: secondMarket,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.SELL,
+					amount: secondMarketBaseTokenAmount,
+					price: secondMarketTicker.middlePrice.baseToQuote!.mul(DECIMAL_1.plus(DECIMAL_1.div(DECIMAL_100))) // 1% above market price
+				};
+
+				const order2 = await rujira.fin.placeOrder(order2Request);
+				expect(order2).toBeDefined();
+				expect(order2.order).toBeDefined();
+				expect(order2.transaction).toBeDefined();
+				expect(order2.order.id).toBeDefined();
+				expect(order2.order.status).toBe(OrderStatus.OPEN);
+				expect(order2.order.side).toBe(OrderSide.SELL);
+				expect(order2.order.type).toBe(OrderType.FIXED_PRICE);
+
+				// Verify order placement success
+				console.log(`✅ Order 2 created successfully: ${order2.order.id}`);
+
+				// Check the available wallet balances from tokens 2 and 3
+				const balancesAfterOrder2 = await rujira.fin.getBalances({
+					walletAddress: walletPublicKeyThor,
+				});
+				expect(balancesAfterOrder2).toBeDefined();
+
+				// Get the open order 2 and verify details
+				if (order2Request.price) {
+					const retrievedOrder2 = await rujira.fin.getOrder({
+						ownerAddress: walletPublicKeyThor,
+						marketSymbol: secondMarketSymbol,
+						orderSide: OrderSide.SELL,
+						orderPrice: order2Request.price
+					});
+					expect(retrievedOrder2).toBeDefined();
+					expect(retrievedOrder2.id).toBe(order2.order.id!);
+				}
+
+				// 8. Create market sell order 3 for market 1
+				console.log(`🔄 Creating market sell order 3 for market 1...`);
+				const order3Request = {
+					ownerAddress: walletPublicKeyThor,
+					marketAddress: firstMarketAddress,
+					marketSymbol: firstMarketSymbol,
+					market: firstMarket,
+					type: OrderType.MARKET,
+					side: OrderSide.SELL,
+					amount: firstMarketBaseTokenAmount.div(DECIMAL_100), // Small amount for market order
+					maximumSlippagePercentage: Decimal('2.5') // 2.5% slippage tolerance
+				};
+
+				const order3 = await rujira.fin.placeOrder(order3Request);
+				expect(order3).toBeDefined();
+				expect(order3.order).toBeDefined();
+				expect(order3.transaction).toBeDefined();
+				expect(order3.order.id).toBeDefined();
+				expect(order3.order.type).toBe(OrderType.MARKET);
+				expect(order3.order.side).toBe(OrderSide.SELL);
+
+				// Verify order execution (market orders should execute immediately)
+				console.log(`✅ Order 3 (market sell) executed: ${order3.order.id}`);
+
+				// Check the available wallet balances from tokens 1 and 2
+				const balancesAfterOrder3 = await rujira.fin.getBalances({
+					walletAddress: walletPublicKeyThor,
+				});
+				expect(balancesAfterOrder3).toBeDefined();
+
+				// Get the filled order 3 and verify execution details
+				if (order3.order.price) {
+					const retrievedOrder3 = await rujira.fin.getOrder({
+						ownerAddress: walletPublicKeyThor,
+						marketSymbol: firstMarketSymbol,
+						orderSide: OrderSide.SELL,
+						orderPrice: order3.order.price
+					});
+					expect(retrievedOrder3).toBeDefined();
+					expect(retrievedOrder3.id).toBe(order3.order.id!);
+				}
+
+				// 9. Create market buy order 4 for market 2
+				console.log(`🔄 Creating market buy order 4 for market 2...`);
+				const order4Request = {
+					ownerAddress: walletPublicKeyThor,
+					marketAddress: secondMarketAddress,
+					marketSymbol: secondMarketSymbol,
+					market: secondMarket,
+					type: OrderType.MARKET,
+					side: OrderSide.BUY,
+					amount: secondMarketBaseTokenAmount.div(DECIMAL_100), // Small amount for market order
+					maximumSlippagePercentage: Decimal('2.5') // 2.5% slippage tolerance
+				};
+
+				const order4 = await rujira.fin.placeOrder(order4Request);
+				expect(order4).toBeDefined();
+				expect(order4.order).toBeDefined();
+				expect(order4.transaction).toBeDefined();
+				expect(order4.order.id).toBeDefined();
+				expect(order4.order.type).toBe(OrderType.MARKET);
+				expect(order4.order.side).toBe(OrderSide.BUY);
+
+				// Verify order execution (market orders should execute immediately)
+				console.log(`✅ Order 4 (market buy) executed: ${order4.order.id}`);
+
+				// Check the available wallet balances from tokens 2 and 3
+				const balancesAfterOrder4 = await rujira.fin.getBalances({
+					walletAddress: walletPublicKeyThor,
+				});
+				expect(balancesAfterOrder4).toBeDefined();
+
+				// Get the filled order 4 and verify execution details
+				if (order4.order.price) {
+					const retrievedOrder4 = await rujira.fin.getOrder({
+						ownerAddress: walletPublicKeyThor,
+						marketSymbol: secondMarketSymbol,
+						orderSide: OrderSide.BUY,
+						orderPrice: order4.order.price
+					});
+					expect(retrievedOrder4).toBeDefined();
+					expect(retrievedOrder4.id).toBe(order4.order.id!);
+				}
+
+				console.log(`✅ PHASE 2 COMPLETED: All single orders created and verified`);
+				console.log(`   Order 1 (fixedPrice buy): ${order1.order.id} - Status: ${order1.order.status}`);
+				console.log(`   Order 2 (fixedPrice sell): ${order2.order.id} - Status: ${order2.order.status}`);
+					console.log(`   Order 3 (market sell): ${order3.order.id} - Status: ${order3.order.status}`);
+					console.log(`   Order 4 (market buy): ${order4.order.id} - Status: ${order4.order.status}`);
+				});
+			});
+
+
+		});
+
+
+
+
+// describe.skip("orderbook", () => {
+		// 	it("should be able to get the order book for a market", async () => {
+		// 		const maximumNumberOfOrders = 10;
+
+		// 		const result = await rujira.fin.getOrderBook({
+		// 			marketAddress: firstMarketAddress,
+		// 			marketSymbol: undefined,
+		// 			maximumNumberOfOrders: maximumNumberOfOrders,
+		// 		});
+
+		// 		expect(result).toBeDefined();
+
+		// 		expect(result.market).toBeDefined();
+		// 		expect(result.market.address).toBe(firstMarketAddress);
+		// 		expect(result.market.symbol).toBe(firstMarketSymbol);
+
+		// 		expect(result.market.tokens.base).toBeDefined();
+		// 		expect(result.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+		// 		expect(result.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
+		// 		expect(result.market.tokens.base.name).toBe(firstMarketBaseTokenSymbol);
+		// 		expect(result.market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 		expect(result.market.tokens.base.raw).toBeDefined();
+
+		// 		expect(result.market.tokens.quote).toBeDefined();
+		// 		expect(result.market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
+		// 		expect(result.market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
+		// 		expect(result.market.tokens.quote.name).toBe(firstMarketQuoteTokenSymbol);
+		// 		expect(result.market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 		expect(result.market.tokens.quote.raw).toBeDefined();
+
+		// 		expect(result.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 		expect(result.market.status).toBe(MarketStatus.ACTIVE);
+		// 		expect(result.market.raw).toBeDefined();
+
+		// 		expect(result.book).toBeDefined();
+
+		// 		const asks = result.book.asks;
+		// 		const bids = result.book.bids;
+
+		// 		expect(asks.size).toBeLessThanOrEqual(maximumNumberOfOrders);
+		// 		expect(bids.size).toBeLessThanOrEqual(maximumNumberOfOrders);
+
+		// 		expect(asks.size).toBe(result.raw.base.length);
+		// 		expect(bids.size).toBe(result.raw.quote.length);
+
+		// 		if (bids.size > 0) {
+		// 			const firstBidOrder = bids.get(0);
+		// 			if (!firstBidOrder) throw new Error("First bid order not found");
+		// 			expect(firstBidOrder).toBeDefined();
+		// 			expect(firstBidOrder.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(firstBidOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(firstBidOrder.raw).toBeDefined();
+
+		// 			const bestBid = get<OrderBookOrder>(
+		// 				result.book.bestBid,
+		// 				`Best bid order not found` as any
+		// 			);
+		// 			expect(bestBid).toBeDefined();
+		// 			expect(bestBid.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(bestBid.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(bestBid.raw).toBeDefined();
+		// 		} else {
+		// 			expect(result.book.bestBid).toBeUndefined();
+		// 		}
+
+		// 		if (asks.size > 0) {
+		// 			const firstAskOrder = asks.get(0);
+		// 			expect(firstAskOrder).toBeDefined();
+		// 			if (!firstAskOrder) throw new Error("First ask order not found");
+
+		// 			expect(firstAskOrder.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(firstAskOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(firstAskOrder.raw).toBeDefined();
+
+		// 			const bestAsk = get<OrderBookOrder>(
+		// 				result.book.bestAsk,
+		// 				`Best ask order not found` as any
+		// 			);
+		// 			expect(bestAsk).toBeDefined();
+		// 			expect(bestAsk.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(bestAsk.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(bestAsk.raw).toBeDefined();
+		// 		} else {
+		// 			expect(result.book.bestAsk).toBeUndefined();
+		// 		}
+
+		// 		if (asks.size > 0 && bids.size > 0) {
+		// 			const bestAsk = get<OrderBookOrder>(
+		// 				result.book.bestAsk,
+		// 				`Best ask order not found` as any
+		// 			);
+		// 			const bestBid = get<OrderBookOrder>(
+		// 				result.book.bestBid,
+		// 				`Best bid order not found` as any
+		// 			);
+		// 			const baseToQuoteMiddlePrice = get<Amount>(result.statistics.middlePrice.baseToQuote);
+		// 			expect(baseToQuoteMiddlePrice).toBeDefined();
+		// 			expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(baseToQuoteMiddlePrice.toNumber()).toBeLessThanOrEqual(bestAsk.price.toNumber());
+		// 			expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThanOrEqual(bestBid.price.toNumber());
+
+		// 			const quoteToBaseMiddlePrice = get<Amount>(result.statistics.middlePrice.quoteToBase);
+		// 			expect(quoteToBaseMiddlePrice).toBeDefined();
+		// 			expect(quoteToBaseMiddlePrice.toNumber()).toBe(DECIMAL_1.div(baseToQuoteMiddlePrice).toNumber());
+		// 		} else if (asks.size > 0 && bids.size === 0) {
+		// 			expect(result.book.bestAsk).toBeDefined();
+		// 			expect(result.book.bestBid).toBeUndefined();
+		// 			expect(result.statistics.middlePrice.baseToQuote).toBeUndefined();
+		// 			expect(result.statistics.middlePrice.quoteToBase).toBeUndefined();
+		// 		} else if (bids.size > 0 && asks.size === 0) {
+		// 			expect(result.book.bestBid).toBeDefined();
+		// 			expect(result.book.bestAsk).toBeUndefined();
+		// 			expect(result.statistics.middlePrice.baseToQuote).toBeUndefined();
+		// 			expect(result.statistics.middlePrice.quoteToBase).toBeUndefined();
+		// 		} else {
+		// 			expect(result.book.bestAsk).toBeUndefined();
+		// 			expect(result.book.bestBid).toBeUndefined();
+		// 			expect(result.statistics.middlePrice.baseToQuote).toBeUndefined();
+		// 			expect(result.statistics.middlePrice.quoteToBase).toBeUndefined();
+		// 		}
+		// 		expect(result.raw).toBeDefined();
+		// 	});
+		// });
+
+
+		// describe.skip("withdraw", () => {
+		// 	it("should be able to withdraw market by address", async () => {
+		// 			const result = await rujira.fin.withdrawAllFilledOrders({
+		// 				marketAddress: firstMarketAddress,
+		// 				marketSymbol: undefined,
+		// 				ownerAddress: walletPublicKeyThor
+		// 			});
+
+		// 			expect(result).toBeDefined();
+
+		// 			expect(result.orders).toBeDefined();
+		// 			expect(result.orders.size).toBeGreaterThan(0);
+
+		// 			for (const order of result.orders.values()) {
+		// 				expect(order).toBeDefined();
+		// 				expect(order.id).toBeDefined();
+		// 				expect(order.market).toBeDefined();
+		// 				expect(order.market.address).toBe(firstMarketAddress);
+		// 				expect(order.market.symbol).toBe(firstMarketSymbol);
+		// 				expect(order.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 				expect(order.market.status).toBe(MarketStatus.ACTIVE);
+		// 				expect(order.market.raw).toBeDefined();
+		// 				expect(order.ownerAddress).toBeDefined();
+		// 				expect(order.side).toBeDefined();
+		// 				expect(order.type).toBeDefined();
+		// 				expect(order.amount).toBeDefined();
+		// 				expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 				expect(order.price).toBeDefined();
+		// 				expect(order.price?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 				expect(order.filledPercentage).toBeDefined();
+		// 				expect(order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 				expect(order.status).toBe(OrderStatus.FILLED);
+		// 				expect(order.creationTimestamp).toBeDefined();
+		// 				expect(order.updateTimestamp).toBeDefined();
+		// 				expect(order.raw).toBeDefined();
+		// 			}
+
+		// 			expect(result.transactions).toBeDefined();
+		// 			expect(result.transactions.size).toBeGreaterThan(0);
+
+		// 			for (const transaction of result.transactions.values()) {
+		// 				expect(transaction).toBeDefined();
+		// 				expect(transaction.hash).toBeDefined();
+		// 				expect(transaction.status).toBe(TransactionStatus.SUCCESS);
+		// 				expect(transaction.fee).toBeDefined();
+		// 				expect(transaction.fee.amount).toBeDefined();
+		// 				expect(transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 				expect(transaction.fee.token).toBeDefined();
+		// 				expect(transaction.fee.token.address).toBeDefined();
+		// 				expect(transaction.fee.token.symbol).toBeDefined();
+		// 				expect(transaction.fee.token.name).toBeDefined();
+		// 				expect(transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 				expect(transaction.fee.token.raw).toBeDefined();
+		// 				expect(transaction.raw).toBeDefined();
+		// 			}
+		// 	});
+
+		// 	it("should be able to withdraw market by symbol", async () => {
+		// 		const result = await rujira.fin.withdrawAllFilledOrders({
+		// 			marketAddress: undefined,
+		// 			marketSymbol: firstMarketSymbol,
+		// 			ownerAddress: walletPublicKeyThor,
+		// 		});
+
+		// 		expect(result).toBeDefined();
+
+		// 		expect(result.orders).toBeDefined();
+		// 		expect(result.orders.size).toBeGreaterThan(0);
+
+		// 		for (const order of result.orders.values()) {
+		// 			expect(order).toBeDefined();
+		// 			expect(order.id).toBeDefined();
+		// 			expect(order.market).toBeDefined();
+		// 			expect(order.market.address).toBe(firstMarketAddress);
+		// 			expect(order.market.symbol).toBe(firstMarketSymbol);
+		// 			expect(order.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(order.market.status).toBe(MarketStatus.ACTIVE);
+		// 			expect(order.market.raw).toBeDefined();
+		// 			expect(order.ownerAddress).toBeDefined();
+		// 			expect(order.side).toBeDefined();
+		// 			expect(order.type).toBeDefined();
+		// 			expect(order.amount).toBeDefined();
+		// 			expect(order.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(order.price).toBeDefined();
+		// 			expect(order.price?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(order.filledPercentage).toBeDefined();
+		// 			expect(order.filledPercentage.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(order.status).toBe(OrderStatus.FILLED);
+		// 			expect(order.creationTimestamp).toBeDefined();
+		// 			expect(order.updateTimestamp).toBeDefined();
+		// 			expect(order.raw).toBeDefined();
+		// 		}
+
+		// 		expect(result.transactions).toBeDefined();
+		// 		expect(result.transactions.size).toBeGreaterThan(0);
+
+		// 		for (const transaction of result.transactions.values()) {
+		// 			expect(transaction).toBeDefined();
+		// 			expect(transaction.hash).toBeDefined();
+		// 			expect(transaction.status).toBe(TransactionStatus.SUCCESS);
+		// 			expect(transaction.fee).toBeDefined();
+		// 			expect(transaction.fee.amount).toBeDefined();
+		// 			expect(transaction.fee.amount.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+		// 			expect(transaction.fee.token).toBeDefined();
+		// 			expect(transaction.fee.token.address).toBeDefined();
+		// 			expect(transaction.fee.token.symbol).toBeDefined();
+		// 			expect(transaction.fee.token.name).toBeDefined();
+		// 			expect(transaction.fee.token.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+		// 			expect(transaction.fee.token.raw).toBeDefined();
+		// 			expect(transaction.raw).toBeDefined();
+		// 		}
+		// 	});
+		// });
 	});
 });
+
