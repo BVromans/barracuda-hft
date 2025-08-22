@@ -594,7 +594,132 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("ticker", () => {
+		describe("orderbook", () => {
+			it("should be able to get the order book for a market", async () => {
+				const maximumNumberOfOrders = 10;
+
+				const result = await rujira.fin.getOrderBook({
+					marketAddress: firstMarketAddress,
+					marketSymbol: undefined,
+					maximumNumberOfOrders: maximumNumberOfOrders,
+				});
+
+				expect(result).toBeDefined();
+
+				expect(result.market).toBeDefined();
+				expect(result.market.address).toBe(firstMarketAddress);
+				expect(result.market.symbol).toBe(firstMarketSymbol);
+
+				expect(result.market.tokens.base).toBeDefined();
+				expect(result.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
+				expect(result.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
+				expect(result.market.tokens.base.name).toBe(firstMarketBaseTokenSymbol);
+				expect(result.market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.market.tokens.base.raw).toBeDefined();
+
+				expect(result.market.tokens.quote).toBeDefined();
+				expect(result.market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
+				expect(result.market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
+				expect(result.market.tokens.quote.name).toBe(firstMarketQuoteTokenSymbol);
+				expect(result.market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.market.tokens.quote.raw).toBeDefined();
+
+				expect(result.market.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.market.status).toBe(MarketStatus.ACTIVE);
+				expect(result.market.raw).toBeDefined();
+
+				expect(result.book).toBeDefined();
+
+				const asks = result.book.asks;
+				const bids = result.book.bids;
+
+				expect(asks.size).toBeLessThanOrEqual(maximumNumberOfOrders);
+				expect(bids.size).toBeLessThanOrEqual(maximumNumberOfOrders);
+
+				expect(asks.size).toBe(result.raw.base.length);
+				expect(bids.size).toBe(result.raw.quote.length);
+
+				if (bids.size > 0) {
+					const firstBidOrder = bids.getOrThrow(0);
+					expect(firstBidOrder).toBeDefined();
+					expect(firstBidOrder.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(firstBidOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(firstBidOrder.raw).toBeDefined();
+
+					const bestBid = get<OrderBookOrder>(
+						result.book.bestBid,
+						undefined,
+						`Best bid order not found`
+					);
+					expect(bestBid).toBeDefined();
+					expect(bestBid.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(bestBid.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(bestBid.raw).toBeDefined();
+				} else {
+					expect(result.book.bestBid).toBeUndefined();
+				}
+
+				if (asks.size > 0) {
+					const firstAskOrder = asks.getOrThrow(0);
+					expect(firstAskOrder).toBeDefined();
+					expect(firstAskOrder.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(firstAskOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(firstAskOrder.raw).toBeDefined();
+
+					const bestAsk = get<OrderBookOrder>(
+						result.book.bestAsk,
+						undefined,
+						`Best ask order not found`
+					);
+					expect(bestAsk).toBeDefined();
+					expect(bestAsk.price.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(bestAsk.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(bestAsk.raw).toBeDefined();
+				} else {
+					expect(result.book.bestAsk).toBeUndefined();
+				}
+
+				if (asks.size > 0 && bids.size > 0) {
+					const bestAsk = get<OrderBookOrder>(
+						result.book.bestAsk,
+						undefined,
+						`Best ask order not found`
+					);
+					const bestBid = get<OrderBookOrder>(
+						result.book.bestBid,
+						undefined,
+						`Best bid order not found`
+					);
+					const baseToQuoteMiddlePrice = get<Amount>(result.statistics.middlePrice.baseToQuote);
+					expect(baseToQuoteMiddlePrice).toBeDefined();
+					expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+					expect(baseToQuoteMiddlePrice.toNumber()).toBeLessThanOrEqual(bestAsk.price.toNumber());
+					expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThanOrEqual(bestBid.price.toNumber());
+
+					const quoteToBaseMiddlePrice = get<Amount>(result.statistics.middlePrice.quoteToBase);
+					expect(quoteToBaseMiddlePrice).toBeDefined();
+					expect(quoteToBaseMiddlePrice.toNumber()).toBe(DECIMAL_1.div(baseToQuoteMiddlePrice).toNumber());
+				} else if (asks.size > 0 && bids.size === 0) {
+					expect(result.book.bestAsk).toBeDefined();
+					expect(result.book.bestBid).toBeUndefined();
+					expect(result.statistics.middlePrice.baseToQuote).toBeUndefined();
+					expect(result.statistics.middlePrice.quoteToBase).toBeUndefined();
+				} else if (bids.size > 0 && asks.size === 0) {
+					expect(result.book.bestBid).toBeDefined();
+					expect(result.book.bestAsk).toBeUndefined();
+					expect(result.statistics.middlePrice.baseToQuote).toBeUndefined();
+					expect(result.statistics.middlePrice.quoteToBase).toBeUndefined();
+				} else {
+					expect(result.book.bestAsk).toBeUndefined();
+					expect(result.book.bestBid).toBeUndefined();
+					expect(result.statistics.middlePrice.baseToQuote).toBeUndefined();
+					expect(result.statistics.middlePrice.quoteToBase).toBeUndefined();
+				}
+				expect(result.raw).toBeDefined();
+			});
+		});
+
+		describe("ticker", () => {
 			it("should be able to get a ticker by market address", async () => {
 				const result = await rujira.fin.getTicker({ marketAddress: firstMarketAddress });
 
@@ -620,8 +745,8 @@ describe("Rujira", async() => {
 				expect(result.market.raw).toBeDefined();
 
 				expect(result.middlePrice).toBeDefined();
-				expect(result.middlePrice.baseToQuote!.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(result.middlePrice.quoteToBase!.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.middlePrice.baseToQuote?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.middlePrice.quoteToBase?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.timestamp).toBeDefined();
 				expect(result.timestamp).toBeGreaterThan(0);
@@ -654,12 +779,12 @@ describe("Rujira", async() => {
 				expect(result.market.raw).toBeDefined();
 
 				expect(result.middlePrice).toBeDefined();
-				expect(result.middlePrice.baseToQuote!.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(result.middlePrice.quoteToBase!.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.middlePrice.baseToQuote?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.middlePrice.quoteToBase?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.volumeWeightedAveragePrice).toBeDefined();
-				expect(result.volumeWeightedAveragePrice.baseToQuote!.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
-				expect(result.volumeWeightedAveragePrice.quoteToBase!.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.volumeWeightedAveragePrice.baseToQuote?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
+				expect(result.volumeWeightedAveragePrice.quoteToBase?.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 
 				expect(result.timestamp).toBeDefined();
 				expect(result.timestamp).toBeGreaterThan(0);

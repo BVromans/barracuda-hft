@@ -13,10 +13,10 @@ import Decimal from "decimal.js";
  * @returns The value or the default value.
  * @throws An error if the value is undefined or null and no default value is provided.
  */
-export const get = <R>(value: any, defaultValue?: R): R => {
+export const get = <R>(value: any, defaultValue?: R, errorMessage?: string): R => {
 	if (value === undefined || value === null) {
 		if (defaultValue === undefined || defaultValue === null) {
-			throw new Error('Value is null or undefined and no default value provided');
+			throw new Error(errorMessage || 'Value is null or undefined and no default value provided');
 		}
 
 		return defaultValue as R;

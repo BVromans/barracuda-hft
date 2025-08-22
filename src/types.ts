@@ -73,16 +73,16 @@ export enum MarketStatus {
  * export type CandleInterval = '1s' | '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w' | '1M' | '1y';
  */
 export enum CandleInterval {
-	ONE_SECOND = '1s',
+	// ONE_SECOND = '1s',
 	ONE_MINUTE = '1m',
 	FIVE_MINUTES = '5m',
 	FIFTEEN_MINUTES = '15m',
 	ONE_HOUR = '1h',
 	FOUR_HOURS = '4h',
-	ONE_DAY = '1d',
-	ONE_WEEK = '1w',
-	ONE_MONTH = '1M',
-	ONE_YEAR = '1y'
+	// ONE_DAY = '1d',
+	// ONE_WEEK = '1w',
+	// ONE_MONTH = '1M',
+	// ONE_YEAR = '1y'
 }
 
 
