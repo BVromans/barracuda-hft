@@ -1691,12 +1691,12 @@ export class Fin {
 								description
 								display
 							}
-							price {
-								current
-								changeDay
-								mcap
-								timestamp
-							}
+							# price {
+							# 	current
+							# 	changeDay
+							# 	mcap
+							# 	timestamp
+							# }
 							variants {
 								layer1 { asset }
 								secured { asset }
@@ -1717,12 +1717,12 @@ export class Fin {
 								description
 								display
 							}
-							price {
-								current
-								changeDay
-								mcap
-								timestamp
-							}
+							# price {
+							# 	current
+							# 	changeDay
+							# 	mcap
+							# 	timestamp
+							# }
 							variants {
 								layer1 { asset }
 								secured { asset }
@@ -1730,26 +1730,27 @@ export class Fin {
 							}
 						}
 
-						# Oracles
-						oracleBase {
-							id
-							asset {
-								asset
-								metadata { symbol name decimals }
-							}
-							price
-						}
-						oracleQuote {
-							id
-							asset {
-								asset
-								metadata { symbol name decimals }
-							}
-							price
-						}
+						# # Oracles
+						# oracleBase {
+						# 	id
+						# 	asset {
+						# 		asset
+						# 		metadata { symbol name decimals }
+						# 	}
+						# 	price
+						# }
+						# oracleQuote {
+						# 	id
+						# 	asset {
+						# 		asset
+						# 		metadata { symbol name decimals }
+						# 	}
+						# 	price
+						# }
 					}
 				}
-			}`;
+			}
+		`;
 
 		const response = await this.parent.fetch(graphQLEndPoint, {
 			method: 'POST',
