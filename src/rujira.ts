@@ -140,13 +140,13 @@ cacheManager.setOptions(<CacheManagerOptions>{
  */
 @loggedClass({
 	logger: logger,
-	allowedMethods: [''],
+	allowedMethods: [],
 	disallowedMethods: [],
 	includeStaticMethods: true,
 	logStart: true,
 	logEnd: true,
-	logInput: true,
-	logOutput: true,
+	logInput: false,
+	logOutput: false,
 	logExecutionTime: true,
 })
 export class Rujira {
@@ -648,14 +648,14 @@ export class Rujira {
  */
 @loggedClass({
 	logger: logger,
-	allowedMethods: [''],
+	allowedMethods: [],
 	disallowedMethods: [],
-	includeStaticMethods: false,
-	logStart: false,
-	logEnd: false,
+	includeStaticMethods: true,
+	logStart: true,
+	logEnd: true,
 	logInput: false,
 	logOutput: false,
-	logExecutionTime: false,
+	logExecutionTime: true,
 })
 export class Fin {
 	/**

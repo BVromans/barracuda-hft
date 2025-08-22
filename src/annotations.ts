@@ -2,24 +2,18 @@ function valueLooksLikeAPromise(value: unknown): value is Promise<unknown> {
 	return !!value && typeof (value as any).then === "function" && typeof (value as any).catch === "function";
 }
 
-function getBestEffortCallerStackFrame(stackSkipCount: number = 2): string | undefined {
+function getBestEffortCallerStack(stackSkipCount: number = 2): string | undefined {
 	const errorObject = new Error();
 	const stackAny: any = (errorObject as any).stack;
 
-	// Support both default string stack traces and the custom structured stack used by this project
-	if (Array.isArray(stackAny)) {
-		const frame = stackAny[stackSkipCount] ?? stackAny[stackAny.length - 1];
-		if (!frame) return undefined;
-		if (typeof frame.string === "string") return frame.string;
-		const file = frame.fileName ?? "";
-		const line = frame.lineNumber != null ? `:${frame.lineNumber}` : "";
-		const col = frame.columnNumber != null ? `:${frame.columnNumber}` : "";
-		return `${file}${line}${col}`;
-	}
+	return stackAny.slice(stackSkipCount);
+}
 
-	const stackText = String(stackAny ?? "");
-	const stackLines = stackText.split("\n").map((line) => line.trim());
-	return stackLines[stackSkipCount] ?? stackLines[stackLines.length - 1] ?? undefined;
+function getBestEffortCallerStackFrame(stackSkipCount: number = 2): any {
+	const errorObject = new Error();
+	const stackAny: any = (errorObject as any).stack;
+
+	return stackAny[stackSkipCount] ?? stackAny[stackAny.length - 1] ?? undefined
 }
 
 function formatExceptionForLogging(exceptionValue: unknown): string {
@@ -101,8 +95,6 @@ export function loggedMethod(
 				const fullyQualifiedMethodName = buildFullyQualifiedMethodName(targetObject, propertyKey);
 
 				const wrappedMethod = function (this: any, ...argumentsList: any[]) {
-					const callerFrame = getBestEffortCallerStackFrame(2);
-
 					const flags = {
 						logStart: optionsObject?.logStart ?? true,
 						logEnd: optionsObject?.logEnd ?? true,
@@ -116,11 +108,12 @@ export function loggedMethod(
 					if (flags.logStart) {
 						const extra: any[] = [];
 						if (flags.logInput) extra.push({ arguments: argumentsList });
+						const stack = getBestEffortCallerStack(2);
 						loggerInstance.debug(
 							`Starting ${fullyQualifiedMethodName}...`,
-							undefined,
+							stack,
+							false,
 							...extra,
-							// callerFrame
 						);
 					}
 
@@ -135,11 +128,12 @@ export function loggedMethod(
 										const durationText = flags.logExecutionTime ? ` (duration: ${formatDurationMilliseconds(elapsedMs)})` : "";
 										const extra: any[] = [];
 										if (flags.logOutput) extra.push({ result: resolvedValue });
+										const stack = getBestEffortCallerStack(2);
 										loggerInstance.debug(
 											`Successfully executed ${fullyQualifiedMethodName}.${durationText}`,
-											undefined,
+											stack,
+											false,
 											...extra,
-											// callerFrame
 										);
 									}
 									return resolvedValue;
@@ -149,11 +143,12 @@ export function loggedMethod(
 									if (flags.logEnd) {
 										const elapsedMs = Date.now() - startTimestampMs;
 										const durationText = flags.logExecutionTime ? ` (duration: ${formatDurationMilliseconds(elapsedMs)})` : "";
+										const stack = getBestEffortCallerStack(2);
 										loggerInstance.debug(
 											`Exception raised in ${fullyQualifiedMethodName}${durationText}: ${String(exceptionObject)}\n${formattedExceptionText}`,
-											undefined,
+											stack,
+											false,
 											{},
-											// callerFrame
 										);
 									}
 									throw exceptionObject;
@@ -164,11 +159,12 @@ export function loggedMethod(
 								const durationText = flags.logExecutionTime ? ` (duration: ${formatDurationMilliseconds(elapsedMs)})` : "";
 								const extra: any[] = [];
 								if (flags.logOutput) extra.push({ result: resultValue });
+								const stack = getBestEffortCallerStack(2);
 								loggerInstance.debug(
 									`Successfully executed ${fullyQualifiedMethodName}.${durationText}`,
-									undefined,
+									stack,
+									false,
 									...extra,
-									// callerFrame
 								);
 							}
 							return resultValue;
@@ -178,11 +174,12 @@ export function loggedMethod(
 						if (flags.logEnd) {
 							const elapsedMs = Date.now() - startTimestampMs;
 							const durationText = flags.logExecutionTime ? ` (duration: ${formatDurationMilliseconds(elapsedMs)})` : "";
+							const stack = getBestEffortCallerStack(2);
 							loggerInstance.debug(
 								`Exception raised in ${fullyQualifiedMethodName}${durationText}: ${String(exceptionObject)}\n${formattedExceptionText}`,
-								undefined,
+								stack,
+								false,
 								{},
-								// callerFrame
 							);
 						}
 						throw exceptionObject;

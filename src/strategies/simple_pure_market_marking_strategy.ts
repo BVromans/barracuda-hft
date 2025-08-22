@@ -17,8 +17,8 @@ import { loggedClass } from "../annotations";
 	includeStaticMethods: true,
 	logStart: true,
 	logEnd: true,
-	logInput: true,
-	logOutput: true,
+	logInput: false,
+	logOutput: false,
 	logExecutionTime: true,
 })
 export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrategy {
