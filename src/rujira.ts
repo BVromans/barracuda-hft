@@ -3227,8 +3227,8 @@ export class Fin {
 
 						outputToInputPrice = get<Price>(marketTicker.middlePrice.baseToQuote);
 
-						inputTokenAmount = requestOrder.amount;
-						outputTokenAmount = inputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
+						outputTokenAmount = requestOrder.amount;
+						inputTokenAmount = outputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.plus(slippagePercentage).div(DECIMAL_100));
 						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(10 ** inputToken.decimals).toDecimalPlaces(0);
 						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(10 ** outputToken.decimals).toDecimalPlaces(0);
 
@@ -3242,7 +3242,7 @@ export class Fin {
 						inputToken = market.tokens.base;
 						outputToken = market.tokens.quote;
 
-						outputToInputPrice = get<Price>(marketTicker.middlePrice.quoteToBase);
+						outputToInputPrice = get<Price>(marketTicker.middlePrice.baseToQuote);
 
 						inputTokenAmount = requestOrder.amount;
 						outputTokenAmount = inputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
