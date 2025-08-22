@@ -210,7 +210,7 @@ export class Logger {
 		const now = new Date();
 		const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
-		let frame: any;
+		let frame: any | undefined;
 		let stacktrace: string | undefined = undefined;
 		if (!stack) {
 			stack = new Error().stack as any;
@@ -221,11 +221,11 @@ export class Logger {
 			stacktrace = stack.map((frame: any) => frame.string).join('\n');
 		}
 
-		const filePath = frame.fileName;
-		const lineNumber = frame.lineNumber;
-		const columnNumber = frame.columnNumber;
-		const functionName = frame.functionName;
-		const methodName = frame.methodName;
+		const filePath = frame?.fileName;
+		const lineNumber = frame?.lineNumber;
+		const columnNumber = frame?.columnNumber;
+		const functionName = frame?.functionName;
+		const methodName = frame?.methodName;
 
 		message = `\n[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}${includeStackTrace ? `\n\n${stacktrace}` : ''}\n`;
 
