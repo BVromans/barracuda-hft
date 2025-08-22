@@ -5,10 +5,23 @@ import { BasePureMarketMakingStrategy } from "./base_pure_market_marking_strateg
 import { Proposal } from "./base_strategy";
 import { get } from "../utils";
 import { properties } from "../properties";
+import { logger } from "../logger";
+import { loggedClass } from "../annotations";
 
 /**
  * Pure market marking strategy
  */
+@loggedClass({
+	logger: logger,
+	allowedMethods: [],
+	disallowedMethods: [],
+	includeStaticMethods: true,
+	logStart: true,
+	logEnd: true,
+	logInput: true,
+	logOutput: true,
+	logExecutionTime: true,
+})
 export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrategy {
 	/**
 	 * Create a proposal for the strategy

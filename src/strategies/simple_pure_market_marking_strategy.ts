@@ -4,10 +4,23 @@ import { properties } from "../properties";
 import { Balances, DECIMAL_0, DECIMAL_1, DECIMAL_100, DECIMAL_INFINITY, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
 import { BasePureMarketMakingStrategy } from "./base_pure_market_marking_strategy";
 import { Proposal } from "./base_strategy";
+import { logger } from "../logger";
+import { loggedClass } from "../annotations";
 
 /**
  * Pure market marking strategy
  */
+@loggedClass({
+	logger: logger,
+	allowedMethods: [],
+	disallowedMethods: [],
+	includeStaticMethods: true,
+	logStart: true,
+	logEnd: true,
+	logInput: true,
+	logOutput: true,
+	logExecutionTime: true,
+})
 export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrategy {
 	/**
 	 * Create a proposal for the strategy
