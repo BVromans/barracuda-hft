@@ -10,20 +10,13 @@ import {
 	CandleInterval,
 	DECIMAL_0,
 	DECIMAL_1,
-	DECIMAL_100,
-	Integer,
 	Indicator,
-	IndicatorId,
+	Integer,
 	MarketAddress,
 	MarketStatus,
 	MarketSymbol,
 	OrderBookOrder,
-	OrderSide,
-	OrderStatus,
-	OrderType,
 	SystemStatus,
-	TickerPrice,
-	Token,
 	TokenAddress,
 	TokenSymbol,
 	TransactionHash,
@@ -57,8 +50,6 @@ let secondMarketQuoteTokenSymbol: TokenSymbol;
 let secondMarketBaseTokenAmount: Amount;
 let secondMarketQuoteTokenAmount: Amount;
 let testsTimeout: number;
-
-const indicatorMap = ["bbands", "bop", "rsi", "macd", "atr", "vwap"]
 
 beforeAll(async () => {
 	const requiredProperties = [
@@ -917,7 +908,7 @@ describe("Rujira", async() => {
 			it("should verify that a indicator has the same quantity as maximumNumberOfCandles", async () => {
 
 				const maximumNumberOfCandles = 100;
-				const specificIndicator = indicatorMap[0];
+				const specificIndicator = Indicator.bollinger_bands.id;
 
 				const result = await rujira.fin.getIndicators({
 					marketAddress: firstMarketAddress,
@@ -1008,15 +999,15 @@ describe("Rujira", async() => {
 
 			it("should be able to get specific indicators by market address", async () => {
 
-				const indicators = [indicatorMap [0]];
+				const indicatorsIds = [Indicator.bollinger_bands.id];
 
 				const result = await rujira.fin.getIndicators({
 					marketAddress: firstMarketAddress,
-					indicatorsIds: indicators
+					indicatorsIds: indicatorsIds
 				});
 
 				expect(result).toBeDefined();
-				expect(result.size).toBe(indicators.length);
+				expect(result.size).toBe(indicatorsIds.length);
 
 				for (const [indicatorId, indicatorData] of result.entries()) {
 					expect(indicatorId).toBeDefined();
@@ -1032,17 +1023,17 @@ describe("Rujira", async() => {
 
 			it("should be able to get specific indicators by market symbol", async () => {
 
-				const indicators = [indicatorMap[0]];
+				const indicatorsIds = [Indicator.bollinger_bands.id];
 
 				const result = await rujira.fin.getIndicators({
 					marketSymbol: firstMarketSymbol,
-					indicatorsIds: indicators
+					indicatorsIds: indicatorsIds
 				});
 
 				expect(result).toBeDefined();
-				expect(result.size).toBe(indicators.length);
+				expect(result.size).toBe(indicatorsIds.length);
 
-				for (const indicatorId of indicators) {
+				for (const indicatorId of indicatorsIds) {
 					const indicatorData = result.get(indicatorId);
 					expect(indicatorData).toBeDefined();
 					expect(indicatorData?.indicator.id).toBe(indicatorId);
@@ -1051,7 +1042,7 @@ describe("Rujira", async() => {
 				}
 
 				for (const [indicatorId] of result.entries()) {
-					expect(indicators).toContain(indicatorId);
+					expect(indicatorsIds).toContain(indicatorId);
 				}
 			});
 
