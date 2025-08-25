@@ -34,7 +34,7 @@ strategy:
           interval: 60000 # 1 minute in milliseconds
         updateOrderBook:
           interval: 30000 # 30 seconds in milliseconds
-        monitoreProfitAndLoss:
+        monitorProfitAndLoss:
           interval: 60000 # 1 minute in milliseconds
       logger:
         level: "INFO"

@@ -69,6 +69,10 @@ export const sleep = (milliseconds: number) =>
  * @param interval
  */
 export const runAndRepeat = async (task: (...args: any[]) => any | Promise<any>, interval: number): Promise<NodeJS.Timeout> => {
+	if (interval === undefined || interval === null || interval <= 0 || isNaN(interval)) {
+		throw new Error('Interval is not defined or is not a positive number');
+	}
+
 	await task();
 
 	const intervalId = setInterval(task, Number(interval));
