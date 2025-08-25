@@ -1,0 +1,1731 @@
+{
+  "data": {
+    "rujira": {
+      "fin": [
+        {
+          "address": "thor1s8rxcvg83cwar87ehv4c866auxujkfj3k4wjkxkaren7vmvn9nass80ekp",
+          "assetBase": {
+            "asset": "GAIA-ATOM",
+            "chain": "GAIA",
+            "id": "QXNzZXQ6R0FJQS1BVE9N",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "ATOM"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "GAIA.ATOM"
+              },
+              "native": {
+                "denom": "gaia-atom"
+              },
+              "secured": {
+                "asset": "GAIA-ATOM"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMXM4cnhjdmc4M2N3YXI4N2VodjRjODY2YXV4dWprZmozazR3amt4a2FyZW43dm12bjluYXNzODBla3A=",
+          "tick": "6"
+        },
+        {
+          "address": "thor15t4cykf3mj8fsvd6ha8j0lnavcyex2h4a4l2pv8zkctandwck3zshs92jy",
+          "assetBase": {
+            "asset": "THOR.AUTO",
+            "chain": "THOR",
+            "id": "QXNzZXQ6VEhPUi5BVVRP",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "AUTO"
+            },
+            "type": "NATIVE",
+            "variants": {
+              "layer1": null,
+              "native": {
+                "denom": "thor.auto"
+              },
+              "secured": null
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMTV0NGN5a2YzbWo4ZnN2ZDZoYThqMGxuYXZjeWV4Mmg0YTRsMnB2OHprY3RhbmR3Y2szenNoczkyank=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1dw8tadkwy746ytvaugv26g5jwekwpfyjyvlvncvryukm07rc998s4ukvrt",
+          "assetBase": {
+            "asset": "AVAX-AVAX",
+            "chain": "AVAX",
+            "id": "QXNzZXQ6QVZBWC1BVkFY",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "AVAX"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "AVAX.AVAX"
+              },
+              "native": {
+                "denom": "avax-avax"
+              },
+              "secured": {
+                "asset": "AVAX-AVAX"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMWR3OHRhZGt3eTc0Nnl0dmF1Z3YyNmc1andla3dwZnlqeXZsdm5jdnJ5dWttMDdyYzk5OHM0dWt2cnQ=",
+          "tick": "6"
+        },
+        {
+          "address": "thor14sk3vqzt6rpp8c06ynfhw30ctk0wy5mqhvedccg8gnnlcdcyc9csaf4ngt",
+          "assetBase": {
+            "asset": "AVAX-USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E",
+            "chain": "AVAX",
+            "id": "QXNzZXQ6QVZBWC1VU0RDLTBYQjk3RUY5RUY4NzM0QzcxOTA0RDgwMDJGOEI2QkM2NkREOUM0OEE2RQ==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "AVAX.USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E"
+              },
+              "native": {
+                "denom": "avax-usdc-0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+              },
+              "secured": {
+                "asset": "AVAX-USDC-0XB97EF9EF8734C71904D8002F8B6BC66DD9C48A6E"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMTRzazN2cXp0NnJwcDhjMDZ5bmZodzMwY3RrMHd5NW1xaHZlZGNjZzhnbm5sY2RjeWM5Y3NhZjRuZ3Q=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1mj73004rhycffu6k56dalt0zmefzdc3ana6egkh4aes9aw43lxqqmfq2xg",
+          "assetBase": {
+            "asset": "AVAX-USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7",
+            "chain": "AVAX",
+            "id": "QXNzZXQ6QVZBWC1VU0RULTBYOTcwMjIzMEE4RUE1MzYwMUY1Q0QyREMwMEZEQkMxM0Q0REY0QThDNw==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDT"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "AVAX.USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7"
+              },
+              "native": {
+                "denom": "avax-usdt-0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7"
+              },
+              "secured": {
+                "asset": "AVAX-USDT-0X9702230A8EA53601F5CD2DC00FDBC13D4DF4A8C7"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMW1qNzMwMDRyaHljZmZ1Nms1NmRhbHQwem1lZnpkYzNhbmE2ZWdraDRhZXM5YXc0M2x4cXFtZnEyeGc=",
+          "tick": "6"
+        },
+        {
+          "address": "thor138ecngqarg0rfq2xt3q344mwke5g29sxs5067pkuacat73x9v7ts4ks9z0",
+          "assetBase": {
+            "asset": "BASE-CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF",
+            "chain": "BASE",
+            "id": "QXNzZXQ6QkFTRS1DQkJUQy0wWENCQjdDMDAwMEFCODhCNDczQjFGNUFGRDlFRjgwODQ0MEVFRDMzQkY=",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "CBBTC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "BASE.CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF"
+              },
+              "native": {
+                "denom": "base-cbbtc-0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf"
+              },
+              "secured": {
+                "asset": "BASE-CBBTC-0XCBB7C0000AB88B473B1F5AFD9EF808440EED33BF"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "BTC-BTC",
+            "chain": "BTC",
+            "id": "QXNzZXQ6QlRDLUJUQw==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "BTC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "BTC.BTC"
+              },
+              "native": {
+                "denom": "btc-btc"
+              },
+              "secured": {
+                "asset": "BTC-BTC"
+              }
+            }
+          },
+          "deploymentStatus": "PREVIEW",
+          "feeAddress": "thor1gm8q2gr25nzzsxzdp2mpja4hyvyhjlr4s6krcsgv2y953uu0js3qhwpus7",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMTM4ZWNuZ3FhcmcwcmZxMnh0M3EzNDRtd2tlNWcyOXN4czUwNjdwa3VhY2F0NzN4OXY3dHM0a3M5ejA=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1lvrwpwr6e0646fhfaxqyd7qq5k7k9qh9439czg9cy8wezvz3tfvqgdwue8",
+          "assetBase": {
+            "asset": "BASE-ETH",
+            "chain": "BASE",
+            "id": "QXNzZXQ6QkFTRS1FVEg=",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "ETH"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "BASE.ETH"
+              },
+              "native": {
+                "denom": "base-eth"
+              },
+              "secured": {
+                "asset": "BASE-ETH"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-ETH",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILUVUSA==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "ETH"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.ETH"
+              },
+              "native": {
+                "denom": "eth-eth"
+              },
+              "secured": {
+                "asset": "ETH-ETH"
+              }
+            }
+          },
+          "deploymentStatus": "PREVIEW",
+          "feeAddress": "thor1gm8q2gr25nzzsxzdp2mpja4hyvyhjlr4s6krcsgv2y953uu0js3qhwpus7",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMWx2cndwd3I2ZTA2NDZmaGZheHF5ZDdxcTVrN2s5cWg5NDM5Y3pnOWN5OHdlenZ6M3RmdnFnZHd1ZTg=",
+          "tick": "6"
+        },
+        {
+          "address": "thor16jhja3uc262huvpty36a4t48445dla69klzg3p63xwu2804dsm8q2j52e7",
+          "assetBase": {
+            "asset": "BASE-USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913",
+            "chain": "BASE",
+            "id": "QXNzZXQ6QkFTRS1VU0RDLTBYODMzNTg5RkNENkVEQjZFMDhGNEM3QzMyRDRGNzFCNTRCREEwMjkxMw==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "BASE.USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913"
+              },
+              "native": {
+                "denom": "base-usdc-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+              },
+              "secured": {
+                "asset": "BASE-USDC-0X833589FCD6EDB6E08F4C7C32D4F71B54BDA02913"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "PREVIEW",
+          "feeAddress": "thor1gm8q2gr25nzzsxzdp2mpja4hyvyhjlr4s6krcsgv2y953uu0js3qhwpus7",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMTZqaGphM3VjMjYyaHV2cHR5MzZhNHQ0ODQ0NWRsYTY5a2x6ZzNwNjN4d3UyODA0ZHNtOHEyajUyZTc=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1s4jpxtz0jsh6elyqcdujd303ptefz53gknmcp437rm9ykxnfhysqrm5hze",
+          "assetBase": {
+            "asset": "BCH-BCH",
+            "chain": "BCH",
+            "id": "QXNzZXQ6QkNILUJDSA==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "BCH"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "BCH.BCH"
+              },
+              "native": {
+                "denom": "bch-bch"
+              },
+              "secured": {
+                "asset": "BCH-BCH"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMXM0anB4dHowanNoNmVseXFjZHVqZDMwM3B0ZWZ6NTNna25tY3A0MzdybTl5a3huZmh5c3FybTVoemU=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1g49m6re9vgrte8twpgx0qcnvr92575tqhcgmnwq3g5s94msk4ersqsyw3x",
+          "assetBase": {
+            "asset": "BSC-BNB",
+            "chain": "BSC",
+            "id": "QXNzZXQ6QlNDLUJOQg==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "BNB"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "BSC.BNB"
+              },
+              "native": {
+                "denom": "bsc-bnb"
+              },
+              "secured": {
+                "asset": "BSC-BNB"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMWc0OW02cmU5dmdydGU4dHdwZ3gwcWNudnI5MjU3NXRxaGNnbW53cTNnNXM5NG1zazRlcnNxc3l3M3g=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1f9zc2sdua4n6nreuxzhed9435n0cf6v6lpx6nrjdadtkr294a26qhs676n",
+          "assetBase": {
+            "asset": "BSC-USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D",
+            "chain": "BSC",
+            "id": "QXNzZXQ6QlNDLVVTREMtMFg4QUM3NkE1MUNDOTUwRDk4MjJENjhCODNGRTFBRDk3QjMyQ0Q1ODBE",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "BSC.USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D"
+              },
+              "native": {
+                "denom": "bsc-usdc-0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
+              },
+              "secured": {
+                "asset": "BSC-USDC-0X8AC76A51CC950D9822D68B83FE1AD97B32CD580D"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMWY5emMyc2R1YTRuNm5yZXV4emhlZDk0MzVuMGNmNnY2bHB4Nm5yamRhZHRrcjI5NGEyNnFoczY3Nm4=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1mgjtf976cnurac63yh2tldmw2mme5f4a8n0u7m3d5yvxk6x5yrws4u37es",
+          "assetBase": {
+            "asset": "BSC-USDT-0X55D398326F99059FF775485246999027B3197955",
+            "chain": "BSC",
+            "id": "QXNzZXQ6QlNDLVVTRFQtMFg1NUQzOTgzMjZGOTkwNTlGRjc3NTQ4NTI0Njk5OTAyN0IzMTk3OTU1",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDT"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "BSC.USDT-0X55D398326F99059FF775485246999027B3197955"
+              },
+              "native": {
+                "denom": "bsc-usdt-0x55d398326f99059ff775485246999027b3197955"
+              },
+              "secured": {
+                "asset": "BSC-USDT-0X55D398326F99059FF775485246999027B3197955"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMW1nanRmOTc2Y251cmFjNjN5aDJ0bGRtdzJtbWU1ZjRhOG4wdTdtM2Q1eXZ4azZ4NXlyd3M0dTM3ZXM=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz",
+          "assetBase": {
+            "asset": "BTC-BTC",
+            "chain": "BTC",
+            "id": "QXNzZXQ6QlRDLUJUQw==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "BTC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "BTC.BTC"
+              },
+              "native": {
+                "denom": "btc-btc"
+              },
+              "secured": {
+                "asset": "BTC-BTC"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMWR3c25scXczbGZoYW1jNWR6M3I1N2hsc3BweDNhMm4yZDdrcHBjY3hmZGhmYXpqaDA2cnM1MDc3c3o=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1w8agselh7k2e4ty369v39lngkckljxfafm35d06f7wj3ar90h2esv75t7p",
+          "assetBase": {
+            "asset": "DOGE-DOGE",
+            "chain": "DOGE",
+            "id": "QXNzZXQ6RE9HRS1ET0dF",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "DOGE"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "DOGE.DOGE"
+              },
+              "native": {
+                "denom": "doge-doge"
+              },
+              "secured": {
+                "asset": "DOGE-DOGE"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMXc4YWdzZWxoN2syZTR0eTM2OXYzOWxuZ2tja2xqeGZhZm0zNWQwNmY3d2ozYXI5MGgyZXN2NzV0N3A=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1g3mymxjlmvyeadfys6lsj98sgg7mxut5pwz99q5rat7ny698elwq778ngf",
+          "assetBase": {
+            "asset": "ETH-ETH",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILUVUSA==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "ETH"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.ETH"
+              },
+              "native": {
+                "denom": "eth-eth"
+              },
+              "secured": {
+                "asset": "ETH-ETH"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "BTC-BTC",
+            "chain": "BTC",
+            "id": "QXNzZXQ6QlRDLUJUQw==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "BTC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "BTC.BTC"
+              },
+              "native": {
+                "denom": "btc-btc"
+              },
+              "secured": {
+                "asset": "BTC-BTC"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMWczbXlteGpsbXZ5ZWFkZnlzNmxzajk4c2dnN214dXQ1cHd6OTlxNXJhdDdueTY5OGVsd3E3NzhuZ2Y=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1tnd06uswj8033d0kzd5d7zre73u3uc44r2vvez26z5m4kr68vtusf2snva",
+          "assetBase": {
+            "asset": "ETH-ETH",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILUVUSA==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "ETH"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.ETH"
+              },
+              "native": {
+                "denom": "eth-eth"
+              },
+              "secured": {
+                "asset": "ETH-ETH"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMXRuZDA2dXN3ajgwMzNkMGt6ZDVkN3pyZTczdTN1YzQ0cjJ2dmV6MjZ6NW00a3I2OHZ0dXNmMnNudmE=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1qa2l2rrzjq30j2wphc3hcz3ykjz8aaqcjlrnzmp00hy0cpk233ysm9rr3c",
+          "assetBase": {
+            "asset": "ETH-DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILURBSS0wWDZCMTc1NDc0RTg5MDk0QzQ0REE5OEI5NTRFRURFQUM0OTUyNzFEMEY=",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "DAI"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F"
+              },
+              "native": {
+                "denom": "eth-dai-0x6b175474e89094c44da98b954eedeac495271d0f"
+              },
+              "secured": {
+                "asset": "ETH-DAI-0X6B175474E89094C44DA98B954EEDEAC495271D0F"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMXFhMmwycnJ6anEzMGoyd3BoYzNoY3ozeWtqejhhYXFjamxybnptcDAwaHkwY3BrMjMzeXNtOXJyM2M=",
+          "tick": "6"
+        },
+        {
+          "address": "thor19pdw7vjkhk0qhvn7r3xgj6f5zyyj700w6my3z28cv9ugzu7gp5rqv5596l",
+          "assetBase": {
+            "asset": "ETH-GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILUdVU0QtMFgwNTZGRDQwOUUxRDdBMTI0QkQ3MDE3NDU5REZFQTJGMzg3QjZENUNE",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "GUSD"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD"
+              },
+              "native": {
+                "denom": "eth-gusd-0x056fd409e1d7a124bd7017459dfea2f387b6d5cd"
+              },
+              "secured": {
+                "asset": "ETH-GUSD-0X056FD409E1D7A124BD7017459DFEA2F387B6D5CD"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMTlwZHc3dmpraGswcWh2bjdyM3hnajZmNXp5eWo3MDB3Nm15M3oyOGN2OXVnenU3Z3A1cnF2NTU5Nmw=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1zj84djje5t0cn3veezmlfewmzmn6yn793nkrtfkjhcywdyyca9tq9582yf",
+          "assetBase": {
+            "asset": "ETH-USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTRFAtMFg4RTg3MEQ2N0Y2NjBEOTVENUJFNTMwMzgwRDBFQzBCRDM4ODI4OUUx",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDP"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1"
+              },
+              "native": {
+                "denom": "eth-usdp-0x8e870d67f660d95d5be530380d0ec0bd388289e1"
+              },
+              "secured": {
+                "asset": "ETH-USDP-0X8E870D67F660D95D5BE530380D0EC0BD388289E1"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMXpqODRkamplNXQwY24zdmVlem1sZmV3bXptbjZ5bjc5M25rcnRma2poY3l3ZHl5Y2E5dHE5NTgyeWY=",
+          "tick": "6"
+        },
+        {
+          "address": "thor14qg8r6u7x4yt57565ztm6v8fwkd2t0j8wqnx6k872yt49ynx8d0q6s7kq0",
+          "assetBase": {
+            "asset": "ETH-USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTRFQtMFhEQUMxN0Y5NThEMkVFNTIzQTIyMDYyMDY5OTQ1OTdDMTNEODMxRUM3",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDT"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7"
+              },
+              "native": {
+                "denom": "eth-usdt-0xdac17f958d2ee523a2206206994597c13d831ec7"
+              },
+              "secured": {
+                "asset": "ETH-USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMTRxZzhyNnU3eDR5dDU3NTY1enRtNnY4ZndrZDJ0MGo4d3FueDZrODcyeXQ0OXlueDhkMHE2czdrcTA=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1e5dmfdtpveprsznzyqjdygy2fd782d0q9zm7246e7jhvmq04nqnqm78vek",
+          "assetBase": {
+            "asset": "ETH-WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVdCVEMtMFgyMjYwRkFDNUU1NTQyQTc3M0FBNDRGQkNGRURGN0MxOTNCQzJDNTk5",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "WBTC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599"
+              },
+              "native": {
+                "denom": "eth-wbtc-0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"
+              },
+              "secured": {
+                "asset": "ETH-WBTC-0X2260FAC5E5542A773AA44FBCFEDF7C193BC2C599"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "BTC-BTC",
+            "chain": "BTC",
+            "id": "QXNzZXQ6QlRDLUJUQw==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "BTC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "BTC.BTC"
+              },
+              "native": {
+                "denom": "btc-btc"
+              },
+              "secured": {
+                "asset": "BTC-BTC"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMWU1ZG1mZHRwdmVwcnN6bnp5cWpkeWd5MmZkNzgyZDBxOXptNzI0NmU3amh2bXEwNG5xbnFtNzh2ZWs=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1t76lvqjq7avt6kxnul4pt0zaq6y06fhkw29wxs5rm4kt873s6y9sdp8rxf",
+          "assetBase": {
+            "asset": "THOR.LQDY",
+            "chain": "THOR",
+            "id": "QXNzZXQ6VEhPUi5MUURZ",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "LQDY"
+            },
+            "type": "NATIVE",
+            "variants": {
+              "layer1": null,
+              "native": {
+                "denom": "thor.lqdy"
+              },
+              "secured": null
+            }
+          },
+          "assetQuote": {
+            "asset": "BTC-BTC",
+            "chain": "BTC",
+            "id": "QXNzZXQ6QlRDLUJUQw==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "BTC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "BTC.BTC"
+              },
+              "native": {
+                "denom": "btc-btc"
+              },
+              "secured": {
+                "asset": "BTC-BTC"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMXQ3Nmx2cWpxN2F2dDZreG51bDRwdDB6YXE2eTA2ZmhrdzI5d3hzNXJtNGt0ODczczZ5OXNkcDhyeGY=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1ax94w4rldvdgc4xgsfwgve7g7xfyxhvuvquvx57vtmr6y4alev0qw3mlvr",
+          "assetBase": {
+            "asset": "THOR.LQDY",
+            "chain": "THOR",
+            "id": "QXNzZXQ6VEhPUi5MUURZ",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "LQDY"
+            },
+            "type": "NATIVE",
+            "variants": {
+              "layer1": null,
+              "native": {
+                "denom": "thor.lqdy"
+              },
+              "secured": null
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMWF4OTR3NHJsZHZkZ2M0eGdzZndndmU3Zzd4Znl4aHZ1dnF1dng1N3Z0bXI2eTRhbGV2MHF3M21sdnI=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1ks9qq0nwv7qxtnznesys6ylflwruqlf85er6zls4erwgzkvw0m0qs3rghz",
+          "assetBase": {
+            "asset": "LTC-LTC",
+            "chain": "LTC",
+            "id": "QXNzZXQ6TFRDLUxUQw==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "LTC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "LTC.LTC"
+              },
+              "native": {
+                "denom": "ltc-ltc"
+              },
+              "secured": {
+                "asset": "LTC-LTC"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMWtzOXFxMG53djdxeHRuem5lc3lzNnlsZmx3cnVxbGY4NWVyNnpsczRlcndnemt2dzBtMHFzM3JnaHo=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty",
+          "assetBase": {
+            "asset": "THOR.NAMI",
+            "chain": "THOR",
+            "id": "QXNzZXQ6VEhPUi5OQU1J",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "NAMI"
+            },
+            "type": "NATIVE",
+            "variants": {
+              "layer1": null,
+              "native": {
+                "denom": "thor.nami"
+              },
+              "secured": null
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMXR4bXJjaHNyenljbXp2bHdzamwyMHE5emtkc3Awbnl3Y3RlZnVjZWVwZjAycGhwdWR2eHN4dHptdHk=",
+          "tick": "6"
+        },
+        {
+          "address": "thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a",
+          "assetBase": {
+            "asset": "THOR.RUJI",
+            "chain": "THOR",
+            "id": "QXNzZXQ6VEhPUi5SVUpJ",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "RUJI"
+            },
+            "type": "NATIVE",
+            "variants": {
+              "layer1": null,
+              "native": {
+                "denom": "x/ruji"
+              },
+              "secured": null
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMTdjYXd3ZzJsc252Y25lNjlmZWs2bnNxa2Y4c25tYTZnYzVjY2Nlc2h1bDg2cmwwdTNxNHM1bDVkMGE=",
+          "tick": "4"
+        },
+        {
+          "address": "thor1j9euq8fjd5zdxdkx7auser7kp84tmwtx3snuptpec6azakzwv3dqq6ahwp",
+          "assetBase": {
+            "asset": "THOR.RUJI",
+            "chain": "THOR",
+            "id": "QXNzZXQ6VEhPUi5SVUpJ",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "RUJI"
+            },
+            "type": "NATIVE",
+            "variants": {
+              "layer1": null,
+              "native": {
+                "denom": "x/ruji"
+              },
+              "secured": null
+            }
+          },
+          "assetQuote": {
+            "asset": "THOR.RUNE",
+            "chain": "THOR",
+            "id": "QXNzZXQ6VEhPUi5SVU5F",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "RUNE"
+            },
+            "type": "NATIVE",
+            "variants": {
+              "layer1": null,
+              "native": {
+                "denom": "rune"
+              },
+              "secured": null
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMWo5ZXVxOGZqZDV6ZHhka3g3YXVzZXI3a3A4NHRtd3R4M3NudXB0cGVjNmF6YWt6d3YzZHFxNmFod3A=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1y8g3yhzmnwyt6g7jque36eyregf85kgtzem6dgzqxuzrpmzpumvqts7ud7",
+          "assetBase": {
+            "asset": "THOR.RUNE",
+            "chain": "THOR",
+            "id": "QXNzZXQ6VEhPUi5SVU5F",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "RUNE"
+            },
+            "type": "NATIVE",
+            "variants": {
+              "layer1": null,
+              "native": {
+                "denom": "rune"
+              },
+              "secured": null
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMXk4ZzN5aHptbnd5dDZnN2pxdWUzNmV5cmVnZjg1a2d0emVtNmRnenF4dXpycG16cHVtdnF0czd1ZDc=",
+          "tick": "6"
+        },
+        {
+          "address": "thor12ds7fxj5g47jwzfzvzzhzxxd3cp6v55flgwxva0803r8k5mzm44skth6wa",
+          "assetBase": {
+            "asset": "THOR.TCY",
+            "chain": "THOR",
+            "id": "QXNzZXQ6VEhPUi5UQ1k=",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "TCY"
+            },
+            "type": "NATIVE",
+            "variants": {
+              "layer1": null,
+              "native": {
+                "denom": "tcy"
+              },
+              "secured": null
+            }
+          },
+          "assetQuote": {
+            "asset": "THOR.RUNE",
+            "chain": "THOR",
+            "id": "QXNzZXQ6VEhPUi5SVU5F",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "RUNE"
+            },
+            "type": "NATIVE",
+            "variants": {
+              "layer1": null,
+              "native": {
+                "denom": "rune"
+              },
+              "secured": null
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1mcy9jtp4kzl8q2lvdgfgsl8jvqrf504uphkf0pz2p9wud8tsntesjvccew",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMTJkczdmeGo1ZzQ3and6Znp2enpoenh4ZDNjcDZ2NTVmbGd3eHZhMDgwM3I4azVtem00NHNrdGg2d2E=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1kyjky2yprmamj0gfkevyc6tunxev0054gpxjap8k9vkyutkkf5lqyr0xxv",
+          "assetBase": {
+            "asset": "THOR.TCY",
+            "chain": "THOR",
+            "id": "QXNzZXQ6VEhPUi5UQ1k=",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "TCY"
+            },
+            "type": "NATIVE",
+            "variants": {
+              "layer1": null,
+              "native": {
+                "denom": "tcy"
+              },
+              "secured": null
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "LIVE",
+          "feeAddress": "thor1jduxxzpyyvrgzx7zcnl7e5cdj34tnq5jxy00a4wp86szye25dndq575c0y",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMWt5amt5Mnlwcm1hbWowZ2ZrZXZ5YzZ0dW54ZXYwMDU0Z3B4amFwOGs5dmt5dXRra2Y1bHF5cjB4eHY=",
+          "tick": "6"
+        },
+        {
+          "address": "thor1z5fkrpkwgqst520d4e9vp7f0c28vu4kh78t9c9vvu6ej8g0tmv8snqljre",
+          "assetBase": {
+            "asset": "XRP-XRP",
+            "chain": "XRP",
+            "id": "QXNzZXQ6WFJQLVhSUA==",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "XRP"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "XRP.XRP"
+              },
+              "native": {
+                "denom": "xrp-xrp"
+              },
+              "secured": {
+                "asset": "XRP-XRP"
+              }
+            }
+          },
+          "assetQuote": {
+            "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48",
+            "chain": "ETH",
+            "id": "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4",
+            "metadata": {
+              "decimals": 8,
+              "description": null,
+              "display": null,
+              "name": null,
+              "symbol": "USDC"
+            },
+            "type": "SECURED",
+            "variants": {
+              "layer1": {
+                "asset": "ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              },
+              "native": {
+                "denom": "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+              },
+              "secured": {
+                "asset": "ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48"
+              }
+            }
+          },
+          "deploymentStatus": "PREVIEW",
+          "feeAddress": "thor1gm8q2gr25nzzsxzdp2mpja4hyvyhjlr4s6krcsgv2y953uu0js3qhwpus7",
+          "feeMaker": "750000000",
+          "feeTaker": "1500000000",
+          "id": "RmluUGFpcjp0aG9yMXo1ZmtycGt3Z3FzdDUyMGQ0ZTl2cDdmMGMyOHZ1NGtoNzh0OWM5dnZ1NmVqOGcwdG12OHNucWxqcmU=",
+          "tick": "6"
+        }
+      ]
+    }
+  }
+}
