@@ -2666,7 +2666,7 @@ export class Fin {
       side: string,
       price: {
         fixed?: string,
-				oracle?: string
+        oracle?: string
       },
       rate: string,
       updated_at: string,
@@ -2678,16 +2678,19 @@ export class Fin {
 		let filteredOrders = MMap<OrderId, Order>();
 
 		for (const rawOrder of rawOrders) {
-			const type = OrderType.FIXED_PRICE;
-			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
+			let type: OrderType;
 			let price: OrderPrice;
 			let deviation: OrderDeviationPercentage;
+			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
+
 			if (rawOrder.price.fixed) {
+				type = OrderType.FIXED_PRICE;
 				price = Decimal(rawOrder.price.fixed);
 				deviation = DECIMAL_0;
 			} else if (rawOrder.price.oracle) {
+				type = OrderType.TRACKING_ORDER;
 				deviation = Decimal(rawOrder.price.oracle);
-				price = DECIMAL_0; // TODO: Implement tracking order / oracle price!!!
+				price = Decimal(rawOrder.rate || '0');
 			} else {
 				throw new Error(`Unknown order price type: ${JSON.stringify(rawOrder)}`);
 			}
@@ -2709,6 +2712,7 @@ export class Fin {
 				type,
 				side,
 				price,
+				deviation,
 				amount,
 				filledPercentage,
 				status,
@@ -3156,6 +3160,10 @@ export class Fin {
 					throw new Error("A valid order price is required for placing fixed price orders");
 				}
 
+				if ([OrderType.TRACKING_ORDER].includes(order.type) && (order.deviation === undefined)) {
+					throw new Error("Deviation is required for placing tracking orders");
+				}
+
 				if (!order.amount.gt(DECIMAL_0)) {
 					throw new Error("Order amount must be greater than zero");
 				}
@@ -3198,7 +3206,7 @@ export class Fin {
 		const existingOrders = await this.getOrders({
 			ownerAddress,
 			market,
-			orderTypes: [OrderType.FIXED_PRICE],
+			orderTypes: [OrderType.FIXED_PRICE, OrderType.TRACKING_ORDER],
 			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED]
 		});
 
@@ -3325,6 +3333,52 @@ export class Fin {
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
+				} else if ([OrderType.TRACKING_ORDER].includes(type)) {
+					let payingToken: Token;
+					let receivingToken: Token;
+					let payingTokenAmount: Amount;
+					let payingTokenAmountWithoutDecimals: Amount;
+					let deviation: OrderDeviationPercentage;
+
+					// Validate deviation parameter
+					if (requestOrder.deviation === undefined) {
+						throw new Error("Deviation is required for placing tracking orders");
+					}
+					deviation = requestOrder.deviation;
+
+					if (requestOrder.side === OrderSide.BUY) {
+						payingToken = market.tokens.quote;
+						receivingToken = market.tokens.base;
+						payingTokenAmount = requestOrder.amount;
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
+
+						ordersMessages.push([
+							side,
+							{
+								oracle: deviation.toNumber()
+							},
+							payingTokenAmountWithoutDecimals.toFixed()
+						]);
+
+						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals));
+					} else if (requestOrder.side === OrderSide.SELL) {
+						payingToken = market.tokens.base;
+						receivingToken = market.tokens.quote;
+						payingTokenAmount = requestOrder.amount;
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
+
+						ordersMessages.push([
+							side,
+							{
+								oracle: deviation.toNumber()
+							},
+							payingTokenAmountWithoutDecimals.toFixed()
+						]);
+
+						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals));
+					} else {
+						throw new Error(`Order side ${requestOrder.side} not supported`);
+					}
 				} else {
 					throw new Error(`Order type ${type} not supported`);
 				}
@@ -3337,6 +3391,7 @@ export class Fin {
 					type: existingOrder?.type || requestOrder.type,
 					side: existingOrder?.side || requestOrder.side,
 					price: existingOrder?.price || requestOrder.price,
+					deviation: existingOrder?.deviation || requestOrder.deviation,
 					amount: existingOrder?.amount || requestOrder.amount,
 					filledPercentage: [OrderType.MARKET].includes(type) ? DECIMAL_100 : DECIMAL_0,
 					status: [OrderType.MARKET].includes(type) ? OrderStatus.FILLED : OrderStatus.OPEN,
@@ -3375,9 +3430,15 @@ export class Fin {
 				// Create cancel message: [side, { fixed: price }, '0']
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
 
-				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
-
-				ordersMessages.push([side, { fixed: price }, '0']);
+				if (existingOrder.type === OrderType.TRACKING_ORDER) {
+					// For tracking orders, use the stored deviation
+					const deviation = existingOrder.deviation || DECIMAL_0;
+					ordersMessages.push([side, { oracle: deviation.toNumber() }, "0"]);
+				} else {
+					// For fixed price orders
+					const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
+					ordersMessages.push([side, { fixed: price }, "0"]);
+				}
 
 				// Update order status to CANCELLED and update timestamp
 				const cancelledOrder: Order = {
@@ -3409,9 +3470,15 @@ export class Fin {
 				// Create withdraw message: [side, { fixed: price }, null]
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
 
-				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
-
-				ordersMessages.push([side, { fixed: price }, null]);
+				if (existingOrder.type === OrderType.TRACKING_ORDER) {
+					// For tracking orders, use the stored deviation
+					const deviation = existingOrder.deviation || DECIMAL_0;
+					ordersMessages.push([side, { oracle: deviation.toNumber() }, null]);
+				} else {
+					// For fixed price orders
+					const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
+					ordersMessages.push([side, { fixed: price }, null]);
+				}
 
 				// Update timestamp for withdrawn order
 				const withdrawnOrder: Order = {
@@ -3529,8 +3596,19 @@ export class Fin {
 
 		orderSide = orderSide || get<Order>(order).side;
 
-		orderPrice = (orderPrice || get<Order>(order).price);
+		orderPrice = orderPrice || get<Order>(order).price;
 
-		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed(18)}`;
+		// Include both base amount and calculated quote amount for better tracking
+		let baseAmount = '0';
+		let quoteAmount = '0';
+
+		if (order) {
+			baseAmount = get<Order>(order).amount.toFixed();
+			if (orderPrice && orderPrice.gt(0)) {
+				quoteAmount = get<Order>(order).amount.mul(orderPrice).toFixed();
+			}
+		}
+
+		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|base:${baseAmount}|quote:${quoteAmount}|price:${orderPrice?.toFixed()}`;
 	}
 }

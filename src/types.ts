@@ -97,8 +97,8 @@ export enum OrderSide {
 export enum OrderType {
 	MARKET = 'market',
 	FIXED_PRICE = 'fixed_price',
+	TRACKING_ORDER = 'tracking_order',
 	// LIMIT = 'limit',
-	// TRACKING_ORDER = 'tracking_order' // They are also called "oracle orders" // TODO: Add support to this order!!!
 }
 
 /**
@@ -2139,6 +2139,11 @@ export interface Order {
 	price?: OrderPrice;
 
 	/**
+	 * Oracle deviation in basis points (for tracking orders)
+	 */
+	deviation?: OrderDeviationPercentage;
+
+	/**
 	 * Amount of the order
 	 */
 	amount: OrderAmount;
@@ -2708,6 +2713,11 @@ export interface FinPlaceOrderRequest {
 	 * Order price (required for limit orders)
 	 */
 	price?: OrderPrice;
+
+	/**
+	 * Oracle deviation in basis points (for tracking orders)
+	 */
+	deviation?: OrderDeviationPercentage;
 
 	/**
 	 * Maximum slippage percentage
