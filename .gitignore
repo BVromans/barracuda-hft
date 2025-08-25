@@ -1,15 +1,12 @@
 .env
 node_modules
 dist
+logs
 .bun
 debug.log
-*.iml
-*.yaml
-*.json
 *.log
-*.txt
-logs/
 .idea
+*.iml
 
 resources/configuration/development.yml
 resources/configuration/staging.yml
