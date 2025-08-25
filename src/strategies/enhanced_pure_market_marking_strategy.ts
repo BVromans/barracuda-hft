@@ -168,10 +168,10 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			minimumTokenAmountPerOrder,
 			Decimal.min(
 				maximumTokenAmountPerOrder,
-				sellOrderBudget.mul(sizePercentageMultipler.div(DECIMAL_100))
+				sellOrderBudget.mul(sizePercentageMultipler.div(DECIMAL_100)),
+				baseTokenFreeBalance,
+				quoteTokenFreeBalance.mul(middlePrice),
 			),
-			baseTokenFreeBalance,
-			quoteTokenFreeBalance.mul(middlePrice)
 		);
 
 		// Populate orders only if valid, with final prices and amounts
