@@ -3529,19 +3529,8 @@ export class Fin {
 
 		orderSide = orderSide || get<Order>(order).side;
 
-		orderPrice = orderPrice || get<Order>(order).price;
+		orderPrice = (orderPrice || get<Order>(order).price);
 
-		// Include both base amount and calculated quote amount for better tracking
-		let baseAmount = '0';
-		let quoteAmount = '0';
-
-		if (order) {
-			baseAmount = get<Order>(order).amount.toFixed();
-			if (orderPrice && orderPrice.gt(0)) {
-				quoteAmount = get<Order>(order).amount.mul(orderPrice).toFixed();
-			}
-		}
-
-		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|base:${baseAmount}|quote:${quoteAmount}|price:${orderPrice?.toFixed()}`;
+		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed(18)}`;
 	}
 }
