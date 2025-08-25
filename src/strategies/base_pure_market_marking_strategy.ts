@@ -246,45 +246,55 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 
 		this.state.set('tasks', tasks);
 
-		tasks.set(
-			'updateTokens',
-			await runAndRepeat(
-				this.updateTokens.bind(this),
-				properties.getAs<number>('strategy.pure_market_making.common.tasks.updateTokens.interval')
-			)
-		);
+		if (properties.getAs<number>('strategy.pure_market_making.common.tasks.updateTokens.interval')) {
+			tasks.set(
+				'updateTokens',
+				await runAndRepeat(
+					this.updateTokens.bind(this),
+					properties.getAs<number>('strategy.pure_market_making.common.tasks.updateTokens.interval')
+				)
+			);
+		}
 
-		tasks.set(
-			'updateMarkets',
-			await runAndRepeat(
-				this.updateMarkets.bind(this),
-				properties.getAs<number>('strategy.pure_market_making.common.tasks.updateMarkets.interval')
-			)
-		);
+		if (properties.getAs<number>('strategy.pure_market_making.common.tasks.updateMarkets.interval')) {
+			tasks.set(
+				'updateMarkets',
+				await runAndRepeat(
+					this.updateMarkets.bind(this),
+					properties.getAs<number>('strategy.pure_market_making.common.tasks.updateMarkets.interval')
+				)
+			);
+		}
 
-		tasks.set(
-			'updateOrderBook',
-			await runAndRepeat(
-				this.updateOrderBook.bind(this),
-				properties.getAs<number>('strategy.pure_market_making.common.tasks.updateOrderBook.interval')
-			)
-		);
+		if (properties.getAs<number>('strategy.pure_market_making.common.tasks.updateOrderBook.interval')) {
+			tasks.set(
+				'updateOrderBook',
+				await runAndRepeat(
+					this.updateOrderBook.bind(this),
+					properties.getAs<number>('strategy.pure_market_making.common.tasks.updateOrderBook.interval')
+				)
+			);
+		}
 
-		tasks.set(
-			'updateIndicators',
-			await runAndRepeat(
-				this.updateIndicators.bind(this),
-				properties.getAs<number>('strategy.pure_market_making.common.tasks.updateIndicators.interval')
-			)
-		);
+		if (properties.getAs<number>('strategy.pure_market_making.common.tasks.updateIndicators.interval')) {
+			tasks.set(
+				'updateIndicators',
+				await runAndRepeat(
+					this.updateIndicators.bind(this),
+					properties.getAs<number>('strategy.pure_market_making.common.tasks.updateIndicators.interval')
+				)
+			);
+		}
 
-		tasks.set(
-			'monitorProfitAndLoss',
-			await runAndRepeat(
-				this.monitorProfitAndLoss.bind(this),
-				properties.getAs<number>('strategy.pure_market_making.common.tasks.monitorProfitAndLoss.interval')
-			)
-		);
+		if (properties.getAs<number>('strategy.pure_market_making.common.tasks.monitorProfitAndLoss.interval')) {
+			tasks.set(
+				'monitorProfitAndLoss',
+				await runAndRepeat(
+					this.monitorProfitAndLoss.bind(this),
+					properties.getAs<number>('strategy.pure_market_making.common.tasks.monitorProfitAndLoss.interval')
+				)
+			);
+		}
 	}
 
 	/**

@@ -27,15 +27,15 @@ strategy:
         maximumAllowedWalletLossFromPreviousValue: 10 # 1 means 1%
       tasks:
         updateTokens:
-          interval: 21600000 # 6 hours in milliseconds
+          interval: 21600000 # 6 hours in milliseconds, to disable set it to null
         updateMarkets:
-          interval: 21600000 # 6 hours in milliseconds
+          interval: 21600000 # 6 hours in milliseconds, to disable set it to null
         updateIndicators:
-          interval: 60000 # 1 minute in milliseconds
+          interval: 60000 # 1 minute in milliseconds, to disable set it to null
         updateOrderBook:
-          interval: 30000 # 30 seconds in milliseconds
+          interval: 30000 # 30 seconds in milliseconds, to disable set it to null
         monitorProfitAndLoss:
-          interval: 60000 # 1 minute in milliseconds
+          interval: 60000 # 1 minute in milliseconds, to disable set it to null
       logger:
         level: "INFO"
     simple:
