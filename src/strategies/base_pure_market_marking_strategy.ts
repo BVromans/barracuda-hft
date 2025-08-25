@@ -138,6 +138,8 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			try {
 				if (this.status !== StrategyStatus.IDLE) return;
 
+				logger.info("Initiating new cycle...");
+
 				this.status = StrategyStatus.RUNNING;
 
 				await this.updateOrders({});
@@ -148,11 +150,18 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 
 				await this.updateBalances({});
 				await this.updateSummary({});
+
+				logger.info("Cycle completed successfully.");
 			} catch (exception) {
+				logger.error("Cycle failed.", exception);
+
 				throw exception;
 			} finally {
 				if (this.status === StrategyStatus.RUNNING) {
 					const tickInterval = this.state.getOrThrow('tickInterval');
+
+					logger.info(`Waiting for ${tickInterval}ms before next cycle...`);
+
 					await sleep(tickInterval);
 
 					this.status = StrategyStatus.IDLE;
