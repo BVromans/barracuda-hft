@@ -1,12 +1,12 @@
 import Decimal from "decimal.js";
 import { List, Map } from "immutable";
+import { loggedClass } from "../annotations";
+import { logger } from "../logger";
 import { properties } from "../properties";
 import { Rujira } from "../rujira";
 import { Balances, DECIMAL_100, DECIMAL_NaN, Market, MarketSymbol, MList, MMap, Order, OrderId, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
 import { runAndRepeat, sleep } from "../utils";
 import { BaseStrategy, Proposal } from "./base_strategy";
-import { logger } from "../logger";
-import { loggedClass } from "../annotations";
 
 /**
  * Pure market marking strategy
@@ -415,45 +415,56 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		const market: Market = this.state.getOrThrow('market');
 		const balances: Balances = this.state.getOrThrow('balances');
 
-		if (this.state.getOrThrow('summary.balances.initial.base').eq(DECIMAL_NaN)) {
-			this.state.set('summary.balances.initial.base', balances.tokens.getOrThrow(market.tokens.base.symbol));
-			this.state.set('summary.balances.initial.quote', balances.tokens.getOrThrow(market.tokens.quote.symbol));
-			this.state.set('summary.balances.initial.native', balances.tokens.getOrThrow(this.rujira.fin.nativeToken.symbol));
-			this.state.set('summary.balances.initial.feePayment', balances.tokens.getOrThrow(this.rujira.fin.feePaymentToken.symbol));
-			this.state.set('summary.balances.initial.usd', balances.tokens.getOrThrow(this.rujira.fin.usdToken.symbol));
+		if (!this.state.getOrThrow('summary.balances.initial.base').isFinite()) {
+			this.state.set('summary.balances.initial.base', balances.tokens.getOrThrow(market.tokens.base.symbol).balances.token.total);
+			this.state.set('summary.balances.initial.quote', balances.tokens.getOrThrow(market.tokens.quote.symbol).balances.token.total);
+			this.state.set('summary.balances.initial.native', balances.tokens.getOrThrow(this.rujira.fin.nativeToken.symbol).balances.token.total);
+			this.state.set('summary.balances.initial.feePayment', balances.tokens.getOrThrow(this.rujira.fin.feePaymentToken.symbol).balances.token.total);
+			this.state.set('summary.balances.initial.usd', balances.tokens.getOrThrow(this.rujira.fin.usdToken.symbol).balances.token.total);
 			this.state.set('summary.balances.initial.total', balances.total.usdToken.total);
+
+			this.state.set('summary.balances.current.base', balances.tokens.getOrThrow(market.tokens.base.symbol).balances.token.total);
+			this.state.set('summary.balances.current.quote', balances.tokens.getOrThrow(market.tokens.quote.symbol).balances.token.total);
+			this.state.set('summary.balances.current.native', balances.tokens.getOrThrow(this.rujira.fin.nativeToken.symbol).balances.token.total);
+			this.state.set('summary.balances.current.feePayment', balances.tokens.getOrThrow(this.rujira.fin.feePaymentToken.symbol).balances.token.total);
+			this.state.set('summary.balances.current.usd', balances.tokens.getOrThrow(this.rujira.fin.usdToken.symbol).balances.token.total);
+			this.state.set('summary.balances.current.total', balances.total.usdToken.total);
+		} else {
+			this.state.set('summary.balances.previous.base', this.state.getOrThrow('summary.balances.current.base'));
+			this.state.set('summary.balances.previous.quote', this.state.getOrThrow('summary.balances.current.quote'));
+			this.state.set('summary.balances.previous.native', this.state.getOrThrow('summary.balances.current.native'));
+			this.state.set('summary.balances.previous.feePayment', this.state.getOrThrow('summary.balances.current.feePayment'));
+			this.state.set('summary.balances.previous.usd', this.state.getOrThrow('summary.balances.current.usd'));
+			this.state.set('summary.balances.previous.total', this.state.getOrThrow('summary.balances.current.total'));
+
+			this.state.set('summary.balances.current.base', balances.tokens.getOrThrow(market.tokens.base.symbol).balances.token.total);
+			this.state.set('summary.balances.current.quote', balances.tokens.getOrThrow(market.tokens.quote.symbol).balances.token.total);
+			this.state.set('summary.balances.current.native', balances.tokens.getOrThrow(this.rujira.fin.nativeToken.symbol).balances.token.total);
+			this.state.set('summary.balances.current.feePayment', balances.tokens.getOrThrow(this.rujira.fin.feePaymentToken.symbol).balances.token.total);
+			this.state.set('summary.balances.current.usd', balances.tokens.getOrThrow(this.rujira.fin.usdToken.symbol).balances.token.total);
+			this.state.set('summary.balances.current.total', balances.total.usdToken.total);
+
+			this.state.set(
+				'summary.profitAndLoss.currentToInitial.absolute',
+				this.state.getOrThrow('summary.balances.current.total').minus(this.state.getOrThrow('summary.balances.initial.total'))
+			);
+			this.state.set(
+				'summary.profitAndLoss.currentToPrevious.absolute',
+				this.state.getOrThrow('summary.balances.current.total').minus(this.state.getOrThrow('summary.balances.previous.total'))
+			);
+			this.state.set(
+				'summary.profitAndLoss.currentToInitial.percentage',
+				this.state.getOrThrow('summary.profitAndLoss.currentToInitial.absolute').div(this.state.getOrThrow('summary.balances.initial.total')).mul(DECIMAL_100)
+			);
+			this.state.set(
+				'summary.profitAndLoss.currentToPrevious.percentage',
+				this.state.getOrThrow('summary.profitAndLoss.currentToPrevious.absolute').div(this.state.getOrThrow('summary.balances.previous.total')).mul(DECIMAL_100)
+			);
 		}
 
-		this.state.set('summary.balances.previous.base', this.state.getOrThrow('summary.balances.current.base'));
-		this.state.set('summary.balances.previous.quote', this.state.getOrThrow('summary.balances.current.quote'));
-		this.state.set('summary.balances.previous.native', this.state.getOrThrow('summary.balances.current.native'));
-		this.state.set('summary.balances.previous.feePayment', this.state.getOrThrow('summary.balances.current.feePayment'));
-		this.state.set('summary.balances.previous.usd', this.state.getOrThrow('summary.balances.current.usd'));
-		this.state.set('summary.balances.previous.total', this.state.getOrThrow('summary.balances.current.total'));
+		const summary = this.state.get('summary').toJS();
 
-		this.state.set('summary.balances.current.base', balances.tokens.getOrThrow(market.tokens.base.symbol));
-		this.state.set('summary.balances.current.quote', balances.tokens.getOrThrow(market.tokens.quote.symbol));
-		this.state.set('summary.balances.current.native', balances.tokens.getOrThrow(this.rujira.fin.nativeToken.symbol));
-		this.state.set('summary.balances.current.feePayment', balances.tokens.getOrThrow(this.rujira.fin.feePaymentToken.symbol));
-		this.state.set('summary.balances.current.usd', balances.tokens.getOrThrow(this.rujira.fin.usdToken.symbol));
-		this.state.set('summary.balances.current.total', balances.total.usdToken.total);
-
-		this.state.set(
-			'summary.profitAndLoss.currentToInitial.absolute',
-			this.state.getOrThrow('summary.balances.current.total').minus(this.state.getOrThrow('summary.balances.initial.total'))
-		);
-		this.state.set(
-			'summary.profitAndLoss.currentToPrevious.absolute',
-			this.state.getOrThrow('summary.balances.current.total').minus(this.state.getOrThrow('summary.balances.previous.total'))
-		);
-		this.state.set(
-			'summary.profitAndLoss.currentToInitial.percentage',
-			this.state.getOrThrow('summary.profitAndLoss.currentToInitial.absolute').div(this.state.getOrThrow('summary.balances.initial.total')).mul(DECIMAL_100)
-		);
-		this.state.set(
-			'summary.profitAndLoss.currentToPrevious.percentage',
-			this.state.getOrThrow('summary.profitAndLoss.currentToPrevious.absolute').div(this.state.getOrThrow('summary.balances.previous.total')).mul(DECIMAL_100)
-		);
+		logger.info(`Summary:\n${dump(summary)}`);
 	}
 
 	/**
