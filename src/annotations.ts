@@ -58,8 +58,25 @@ type LoggerLike = {
 	debug(messageText: string, ...args: any[]): void;
 };
 
+/**
+ * Options for configuring the loggedMethod decorator.
+ *
+ * @example
+ * // Enable logging with custom settings
+ * @loggedMethod({ enabled: true, logExecutionTime: true })
+ * async myMethod() { ... }
+ *
+ * // Disable logging for this method
+ * @loggedMethod({ enabled: false })
+ * myDisabledMethod() { ... }
+ *
+ * // Use default settings (enabled: true)
+ * @loggedMethod()
+ * myDefaultMethod() { ... }
+ */
 type LoggedMethodDecoratorOptions = {
 	logger?: LoggerLike;
+	enabled?: boolean; // default: true - controls whether logging is active
 	// Toggle which parts of the lifecycle are logged
 	logStart?: boolean; // default: true
 	logEnd?: boolean; // default: true (applies to both success and exception)
@@ -78,6 +95,13 @@ export function loggedMethod(
 	const createDecorator =
 		(optionsObject?: LoggedMethodDecoratorOptions): MethodDecorator =>
 			(targetObject: any, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<any>) => {
+				// If logging is disabled, return the original descriptor unchanged
+				if (optionsObject?.enabled === false) {
+					// Mark this method as explicitly disabled to prevent class decorator from overriding
+					(descriptor as TypedPropertyDescriptor<any>).value.__loggingDisabled = true;
+					return descriptor;
+				}
+
 				const loggerInstance =
 					optionsObject?.logger ??
 					// Assumes there is a concrete global or imported logger object available in your project
@@ -187,6 +211,10 @@ export function loggedMethod(
 				};
 
 				(descriptor as TypedPropertyDescriptor<any>).value = wrappedMethod as any;
+
+				// Register this method as decorated to avoid conflicts with loggedClass
+				registerMethodAsDecorated(targetObject, String(propertyKey));
+
 				return descriptor;
 			};
 
@@ -199,8 +227,52 @@ export function loggedMethod(
 	return createDecorator(firstArgument as LoggedMethodDecoratorOptions);
 }
 
+// Track methods that have been decorated by loggedMethod to avoid conflicts with loggedClass
+const decoratedMethodsRegistry = new WeakMap<Function, Set<string>>();
+
+function isMethodDecoratedByLoggedMethod(targetObject: any, methodName: string): boolean {
+	const target = typeof targetObject === 'function' ? targetObject : targetObject?.constructor;
+	if (!target) return false;
+
+	const decoratedMethods = decoratedMethodsRegistry.get(target);
+	return decoratedMethods ? decoratedMethods.has(methodName) : false;
+}
+
+function registerMethodAsDecorated(targetObject: any, methodName: string): void {
+	const target = typeof targetObject === 'function' ? targetObject : targetObject?.constructor;
+	if (!target) return;
+
+	let decoratedMethods = decoratedMethodsRegistry.get(target);
+	if (!decoratedMethods) {
+		decoratedMethods = new Set<string>();
+		decoratedMethodsRegistry.set(target, decoratedMethods);
+	}
+	decoratedMethods.add(methodName);
+}
+
+/**
+ * Options for configuring the loggedClass decorator.
+ *
+ * @example
+ * // Enable class-level logging with custom settings
+ * @loggedClass({
+ *   enabled: true,
+ *   logExecutionTime: true,
+ *   allowedMethods: ['publicMethod1', 'publicMethod2']
+ * })
+ * class MyClass { ... }
+ *
+ * // Disable class-level logging entirely
+ * @loggedClass({ enabled: false })
+ * class MyNonLoggedClass { ... }
+ *
+ * // Use default settings (enabled: true)
+ * @loggedClass()
+ * class MyDefaultClass { ... }
+ */
 type LoggedClassDecoratorOptions = {
 	logger?: LoggerLike;
+	enabled?: boolean; // default: true - controls whether logging is active
 	allowedMethods?: string[];
 	disallowedMethods?: string[];
 	includeStaticMethods?: boolean;
@@ -216,6 +288,11 @@ export function loggedClass(options?: LoggedClassDecoratorOptions): ClassDecorat
 export function loggedClass<TConstructorFunction extends Function>(constructorFunction: TConstructorFunction): void | TConstructorFunction;
 export function loggedClass(argument?: any): any {
 	const applyDecoratorToClass = (constructorFunction: any, options?: LoggedClassDecoratorOptions) => {
+		// If logging is disabled, return the constructor unchanged
+		if (options?.enabled === false) {
+			return constructorFunction;
+		}
+
 		const loggerInstance =
 			options?.logger ??
 			// Assumes there is a concrete global or imported logger object available in your project
@@ -253,6 +330,12 @@ export function loggedClass(argument?: any): any {
 
 			if (typeof propertyDescriptor.value !== "function") return;
 
+			// Check if the method already has a loggedMethod decorator applied
+			if (isMethodDecoratedByLoggedMethod(hostObject, methodName)) return;
+
+			// Check if logging is explicitly disabled for this method
+			if (propertyDescriptor.value.__loggingDisabled === true) return;
+
 			const methodDecorator = loggedMethod({
 				logger: loggerInstance,
 				logStart: options?.logStart,
@@ -260,6 +343,7 @@ export function loggedClass(argument?: any): any {
 				logInput: options?.logInput,
 				logOutput: options?.logOutput,
 				logExecutionTime: (options as any)?.logExecutionTime,
+				enabled: options?.enabled,
 			}) as MethodDecorator;
 			methodDecorator(hostObject, methodName, propertyDescriptor);
 			Object.defineProperty(hostObject, methodName, propertyDescriptor);

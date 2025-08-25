@@ -139,6 +139,7 @@ cacheManager.setOptions(<CacheManagerOptions>{
  * Rujira client
  */
 @loggedClass({
+	enabled: false,
 	logger: logger,
 	allowedMethods: [],
 	disallowedMethods: [],
@@ -647,6 +648,7 @@ export class Rujira {
  * Fin client
  */
 @loggedClass({
+	enabled: false,
 	logger: logger,
 	allowedMethods: [],
 	disallowedMethods: [],
