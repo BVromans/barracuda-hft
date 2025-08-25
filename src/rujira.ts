@@ -8,6 +8,7 @@ import cacheManager, { Cacheable, CacheManagerOptions } from "@type-cacheable/co
 import { useAdapter } from "@type-cacheable/lru-cache-adapter";
 import Decimal from 'decimal.js';
 import { LRUCache } from 'lru-cache';
+import * as fs from 'fs';
 import { properties } from "./properties";
 import { logger } from "./logger";
 import {
@@ -1666,105 +1667,115 @@ export class Fin {
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllMarkets'),
 	})
 	async getAllMarkets(_request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
-		const graphQLEndPoint = properties.getAs<URL>('rujira.endpoints.graphql');
+		let json: any;
 
-		const query = `
-			query {
-				rujira {
-					fin {
-						id
-						address
-						tick
-						feeTaker
-						feeMaker
-						feeAddress
-						deploymentStatus
+		const shouldLoadFromFile = properties.getAs<boolean>('rujira.default.markets.loadFromFile');
+		if (shouldLoadFromFile) {
+			const filePath = properties.getAs<string>('rujira.default.markets.filePath');
+			const fileContent = fs.readFileSync(filePath, 'utf8');
+			json = JSON.parse(fileContent);
+		} else {
+			const graphQLEndPoint = properties.getAs<URL>('rujira.endpoints.graphql');
 
-						# Asset Base
-						assetBase {
+			const query = `
+				query {
+					rujira {
+						fin {
 							id
-							asset
-							type
-							chain
-							metadata {
-								symbol
-								name
-								decimals
-								description
-								display
-							}
-							# price {
-							# 	current
-							# 	changeDay
-							# 	mcap
-							# 	timestamp
-							# }
-							variants {
-								layer1 { asset }
-								secured { asset }
-								native { denom }
-							}
-						}
+							address
+							tick
+							feeTaker
+							feeMaker
+							feeAddress
+							deploymentStatus
 
-						# Asset Quote
-						assetQuote {
-							id
-							asset
-							type
-							chain
-							metadata {
-								symbol
-								name
-								decimals
-								description
-								display
+							# Asset Base
+							assetBase {
+								id
+								asset
+								type
+								chain
+								metadata {
+									symbol
+									name
+									decimals
+									description
+									display
+								}
+								# price {
+								# 	current
+								# 	changeDay
+								# 	mcap
+								# 	timestamp
+								# }
+								variants {
+									layer1 { asset }
+									secured { asset }
+									native { denom }
+								}
 							}
-							# price {
-							# 	current
-							# 	changeDay
-							# 	mcap
-							# 	timestamp
-							# }
-							variants {
-								layer1 { asset }
-								secured { asset }
-								native { denom }
-							}
-						}
 
-						# # Oracles
-						# oracleBase {
-						# 	id
-						# 	asset {
-						# 		asset
-						# 		metadata { symbol name decimals }
-						# 	}
-						# 	price
-						# }
-						# oracleQuote {
-						# 	id
-						# 	asset {
-						# 		asset
-						# 		metadata { symbol name decimals }
-						# 	}
-						# 	price
-						# }
+							# Asset Quote
+							assetQuote {
+								id
+								asset
+								type
+								chain
+								metadata {
+									symbol
+									name
+									decimals
+									description
+									display
+								}
+								# price {
+								# 	current
+								# 	changeDay
+								# 	mcap
+								# 	timestamp
+								# }
+								variants {
+									layer1 { asset }
+									secured { asset }
+									native { denom }
+								}
+							}
+
+							# # Oracles
+							# oracleBase {
+							# 	id
+							# 	asset {
+							# 		asset
+							# 		metadata { symbol name decimals }
+							# 	}
+							# 	price
+							# }
+							# oracleQuote {
+							# 	id
+							# 	asset {
+							# 		asset
+							# 		metadata { symbol name decimals }
+							# 	}
+							# 	price
+							# }
+						}
 					}
 				}
+			`;
+
+			const response = await this.parent.fetch(graphQLEndPoint, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ query })
+			});
+
+			if (!response.ok) {
+				throw new Error(`GraphQL request failed: ${response.status} ${response.statusText}`);
 			}
-		`;
 
-		const response = await this.parent.fetch(graphQLEndPoint, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ query })
-		});
-
-		if (!response.ok) {
-			throw new Error(`GraphQL request failed: ${response.status} ${response.statusText}`);
+			json = await response.json();
 		}
 
-		const json: any = await response.json();
 		const { data, errors } = json;
 
 		if (errors) {
