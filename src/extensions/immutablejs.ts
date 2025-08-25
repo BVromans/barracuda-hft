@@ -42,6 +42,7 @@ declare module 'immutable' {
 		 * @param putAsRawKey - Whether to treat the key as a raw key
 		 * @returns The map with the value set
 		 */
+		// @ts-ignore
 		set(key: K, value: V, putAsRawKey?: boolean): Map<K, V>;
   }
 }

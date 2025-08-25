@@ -55,7 +55,7 @@ function buildFullyQualifiedMethodName(targetObject: any, propertyKey: string | 
 }
 
 type LoggerLike = {
-	debug(messageText: string, ...args: any[]): void;
+	debug(messageText: string, object?: any, ...args: any[]): void;
 };
 
 /**
@@ -135,6 +135,7 @@ export function loggedMethod(
 						const stack = getBestEffortCallerStack(2);
 						loggerInstance.debug(
 							`Starting ${fullyQualifiedMethodName}...`,
+							undefined,
 							stack,
 							false,
 							...extra,
@@ -155,6 +156,7 @@ export function loggedMethod(
 										const stack = getBestEffortCallerStack(2);
 										loggerInstance.debug(
 											`Successfully executed ${fullyQualifiedMethodName}.${durationText}`,
+											undefined,
 											stack,
 											false,
 											...extra,
@@ -170,6 +172,7 @@ export function loggedMethod(
 										const stack = getBestEffortCallerStack(2);
 										loggerInstance.debug(
 											`Exception raised in ${fullyQualifiedMethodName}${durationText}: ${String(exceptionObject)}\n${formattedExceptionText}`,
+											undefined,
 											stack,
 											false,
 											{},
@@ -186,6 +189,7 @@ export function loggedMethod(
 								const stack = getBestEffortCallerStack(2);
 								loggerInstance.debug(
 									`Successfully executed ${fullyQualifiedMethodName}.${durationText}`,
+									undefined,
 									stack,
 									false,
 									...extra,
@@ -201,6 +205,7 @@ export function loggedMethod(
 							const stack = getBestEffortCallerStack(2);
 							loggerInstance.debug(
 								`Exception raised in ${fullyQualifiedMethodName}${durationText}: ${String(exceptionObject)}\n${formattedExceptionText}`,
+								undefined,
 								stack,
 								false,
 								{},

@@ -41,8 +41,6 @@ strategy:
     simple:
       orders:
         spreadPercentage: 10 # 1 means 1%
-        buyQuoteTokenAmountPerOrder: 10
-        sellBaseTokenAmountPerOrder: 10
     enhanced:
       orders:
         minimumSpreadPercentage: 10 # // Minimum spread as a percentage of the middle price (example: 1 means 1%)

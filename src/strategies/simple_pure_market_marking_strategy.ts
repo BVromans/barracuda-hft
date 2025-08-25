@@ -32,7 +32,7 @@ export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrateg
 		const spreadPercentage = Decimal(properties.getAs<number>('strategy.pure_market_making.simple.orders.spreadPercentage'));
 		const minimumTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.minimumTokenAmountPerOrder'));
 		const maximumTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.maximumTokenAmountPerOrder'));
-		const desiredTokenFreeBalanceAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.simple.orders.desiredTokenFreeBalanceAmountPerOrder')) || DECIMAL_0;
+		const desiredTokenFreeBalanceAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredTokenFreeBalanceAmountPerOrder')) || DECIMAL_0;
 
 		const market: Market = this.state.getOrThrow('market');
 		const balances: Balances = this.state.getOrThrow('balances');
@@ -121,11 +121,11 @@ export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrateg
 			}
 		});
 
-		const buyOrderId = this.rujira.fin.getOrderId(buyOrder);
-		const sellOrderId = this.rujira.fin.getOrderId(sellOrder);
+		const buyOrderId = this.rujira.fin.getOrderId({ order: buyOrder });
+		const sellOrderId = this.rujira.fin.getOrderId({ order: sellOrder });
 
 		currentOrders.valueSeq().forEach((order: Order) => {
-			const orderId = this.rujira.fin.getOrderId(order);
+			const orderId = this.rujira.fin.getOrderId({ order });
 
 			// Cancel current open/partial orders to re-quote fresh
 			if (

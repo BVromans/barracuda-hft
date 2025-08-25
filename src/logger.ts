@@ -150,40 +150,40 @@ export class Logger {
 	 * Log a debug message
 	 * @param message - The message to log
 	 */
-	public debug(message: string, ...optionalParams: any[]): void {
-		this.log(LogLevel.DEBUG, message, ...optionalParams);
+	public debug(message: string, object?: any, ...optionalParams: any[]): void {
+		this.log(LogLevel.DEBUG, message, object, ...optionalParams);
 	}
 
 	/**
 	 * Log an information
 	 * @param message - The message to log
 	 */
-	public info(message: string, ...optionalParams: any[]): void {
-		this.log(LogLevel.INFO, message, ...optionalParams);
+	public info(message: string, object?: any, ...optionalParams: any[]): void {
+		this.log(LogLevel.INFO, message, object, ...optionalParams);
 	}
 
 	/**
 	 * Log a warning
 	 * @param message - The message to log
 	 */
-	public warning(message: string, ...optionalParams: any[]): void {
-		this.log(LogLevel.WARNING, message, ...optionalParams);
+	public warning(message: string, object?: any, ...optionalParams: any[]): void {
+		this.log(LogLevel.WARNING, message, object, ...optionalParams);
 	}
 
 	/**
 	 * Log an error
 	 * @param message - The message to log
 	 */
-	public error(message: string, ...optionalParams: any[]): void {
-		this.log(LogLevel.ERROR, message, ...optionalParams);
+	public error(message: string, object?: any, ...optionalParams: any[]): void {
+		this.log(LogLevel.ERROR, message, object, ...optionalParams);
 	}
 
 	/**
 	 * Log a critical message
 	 * @param message - The message to log
 	 */
-	public critical(message: string, ...optionalParams: any[]): void {
-		this.log(LogLevel.CRITICAL, message, ...optionalParams);
+	public critical(message: string, object?: any, ...optionalParams: any[]): void {
+		this.log(LogLevel.CRITICAL, message, object, ...optionalParams);
 	}
 
 	/**
@@ -206,7 +206,7 @@ export class Logger {
 	 * Log a message
 	 * @param message - The message to log
 	 */
-	private log(level: LogLevel, message: string, stack?: any, includeStackTrace?: boolean, ...optionalParams: any[]): void {
+	private log(level: LogLevel, message: string, object?: any, stack?: any, includeStackTrace?: boolean, ...optionalParams: any[]): void {
 		const now = new Date();
 		const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
@@ -215,10 +215,14 @@ export class Logger {
 		if (!stack) {
 			stack = new Error().stack as any;
 			frame = stack[2];
-			stacktrace = stack.slice(2).map((frame: any) => frame.string).join('\n');
+			stacktrace = stack?.slice(2).map((frame: any) => frame.string).join('\n');
 		} else {
 			frame = stack[0];
-			stacktrace = stack.map((frame: any) => frame.string).join('\n');
+			try {
+				stacktrace = stack?.map((frame: any) => frame.string).join('\n');
+			} catch (exception) {
+				throw exception;
+			}
 		}
 
 		const filePath = frame?.fileName;
@@ -243,7 +247,13 @@ export class Logger {
 			method = 'error';
 		}
 
-		if (optionalParams.length > 0) {
+		if (object) {
+			if (optionalParams.length > 0) {
+				console[method](message, dump(object), dump(optionalParams));
+			} else {
+				console[method](message, dump(object));
+			}
+		} else if (optionalParams.length > 0) {
 			console[method](message, dump(optionalParams));
 		} else {
 			console[method](message);
