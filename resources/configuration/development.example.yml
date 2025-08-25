@@ -9,7 +9,7 @@ strategy:
   pure_market_making:
     common:
       market: "THOR-RUJI/ETH-USDC"
-      tickInterval: 60_000 # 1 minute in milliseconds
+      tickInterval: 60000 # 1 minute in milliseconds
       orders:
         minimumTokenAmountPerOrder: 0 # Minimum token amount per order
         desiredTokenFreeBalancePercentagePerOrder: 10 # Desired token percentage of the free balance per order (0-100)
@@ -27,15 +27,15 @@ strategy:
         maximumAllowedWalletLossFromPreviousValue: 10 # 1 means 1%
       tasks:
         updateTokens:
-          interval: 21_600_000 # 6 hours in milliseconds
+          interval: 21600000 # 6 hours in milliseconds
         updateMarkets:
-          interval: 21_600_000 # 6 hours in milliseconds
+          interval: 21600000 # 6 hours in milliseconds
         updateIndicators:
-          interval: 60_000 # 1 minute in milliseconds
+          interval: 60000 # 1 minute in milliseconds
         updateOrderBook:
-          interval: 30_000 # 30 seconds in milliseconds
+          interval: 30000 # 30 seconds in milliseconds
         monitoreProfitAndLoss:
-          interval: 60_000 # 1 minute in milliseconds
+          interval: 60000 # 1 minute in milliseconds
       logger:
         level: "INFO"
     simple:

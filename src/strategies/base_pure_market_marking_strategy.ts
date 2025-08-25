@@ -270,13 +270,13 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			)
 		);
 
-		// tasks.set(
-		// 	'updateIndicators',
-		// 	await runAndRepeat(
-		// 		this.updateIndicators.bind(this),
-		// 		properties.getAs<number>('strategy.pure_market_making.common.tasks.updateIndicators.interval')
-		// 	)
-		// );
+		tasks.set(
+			'updateIndicators',
+			await runAndRepeat(
+				this.updateIndicators.bind(this),
+				properties.getAs<number>('strategy.pure_market_making.common.tasks.updateIndicators.interval')
+			)
+		);
 
 		tasks.set(
 			'monitorProfitAndLoss',

@@ -71,7 +71,7 @@ export const sleep = (milliseconds: number) =>
 export const runAndRepeat = async (task: (...args: any[]) => any | Promise<any>, interval: number): Promise<NodeJS.Timeout> => {
 	await task();
 
-	const intervalId = setInterval(task, interval);
+	const intervalId = setInterval(task, Number(interval));
 
 	return intervalId;
 };
