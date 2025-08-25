@@ -256,7 +256,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			orders: proposal,
 		});
 
-		logger.debug(`Proposal applied successfully. Transactions: `, result.transactions.keySeq().toJS());
+		logger.debug(`Proposal applied successfully. Transactions:\n${result.transactions.keySeq().toJS().join('\n')}`);
 	}
 
 	/**

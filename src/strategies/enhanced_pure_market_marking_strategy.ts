@@ -187,11 +187,11 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			sellOrder.price = sellPrice;
 		}
 
-		const buyOrderId = this.rujira.fin.getOrderId(buyOrder);
-		const sellOrderId = this.rujira.fin.getOrderId(sellOrder);
+		const buyOrderId = this.rujira.fin.getOrderId({ order: buyOrder });
+		const sellOrderId = this.rujira.fin.getOrderId({ order: sellOrder });
 
 		currentOrders.valueSeq().forEach((order: Order) => {
-			const orderId = this.rujira.fin.getOrderId(order);
+			const orderId = this.rujira.fin.getOrderId({ order: order });
 
 			// Cancel current open/partial orders to re-quote fresh
 			if (
