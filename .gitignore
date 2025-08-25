@@ -9,6 +9,7 @@ debug.log
 *.log
 *.txt
 logs/
+.idea
 
 resources/configuration/development.yml
 resources/configuration/staging.yml

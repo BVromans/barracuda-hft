@@ -6,10 +6,22 @@ import { Balances, DECIMAL_100, DECIMAL_NaN, Market, MarketSymbol, MList, MMap, 
 import { runAndRepeat, sleep } from "../utils";
 import { BaseStrategy, Proposal } from "./base_strategy";
 import { logger } from "../logger";
+import { loggedClass } from "../annotations";
 
 /**
  * Pure market marking strategy
  */
+@loggedClass({
+	logger: logger,
+	allowedMethods: [],
+	disallowedMethods: [],
+	includeStaticMethods: true,
+	logStart: true,
+	logEnd: true,
+	logInput: false,
+	logOutput: false,
+	logExecutionTime: true,
+})
 export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 
 	/**

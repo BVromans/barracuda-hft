@@ -206,35 +206,47 @@ export class Logger {
 	 * Log a message
 	 * @param message - The message to log
 	 */
-	private log(level: LogLevel, message: string, stack?: any, ...optionalParams: any[]): void {
-		const timestamp = new Date().toISOString();
+	private log(level: LogLevel, message: string, stack?: any, includeStackTrace?: boolean, ...optionalParams: any[]): void {
+		const now = new Date();
+		const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
+		let frame: any | undefined;
 		let stacktrace: string | undefined = undefined;
 		if (!stack) {
 			stack = new Error().stack as any;
-		} else {
+			frame = stack[2];
 			stacktrace = stack.slice(2).map((frame: any) => frame.string).join('\n');
+		} else {
+			frame = stack[0];
+			stacktrace = stack.map((frame: any) => frame.string).join('\n');
 		}
 
-		const frame = stack![2];
-		const filePath = frame.fileName;
-		const lineNumber = frame.lineNumber;
-		const columnNumber = frame.columnNumber;
-		const functionName = frame.functionName;
-		const methodName = frame.methodName;
+		const filePath = frame?.fileName;
+		const lineNumber = frame?.lineNumber;
+		const columnNumber = frame?.columnNumber;
+		const functionName = frame?.functionName;
+		const methodName = frame?.methodName;
 
-		message = `\n[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}${stacktrace ? `\n\n${stacktrace}` : ''}\n`;
+		message = `\n[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}${includeStackTrace ? `\n\n${stacktrace}` : ''}\n`;
+
+		let method: 'debug' | 'info' | 'warn' | 'error' = 'debug';
 
 		if (level === LogLevel.DEBUG) {
-			console.debug(message, dump(optionalParams));
+			method = 'debug';
 		} else if (level === LogLevel.INFO) {
-			console.info(message, dump(optionalParams));
+			method = 'info';
 		} else if (level === LogLevel.WARNING) {
-			console.warn(message, dump(optionalParams));
+			method = 'warn';
 		} else if (level === LogLevel.ERROR) {
-			console.error(message, dump(optionalParams));
+			method = 'error';
 		} else if (level === LogLevel.CRITICAL) {
-			console.error(message, dump(optionalParams));
+			method = 'error';
+		}
+
+		if (optionalParams.length > 0) {
+			console[method](message, dump(optionalParams));
+		} else {
+			console[method](message);
 		}
 	}
 }

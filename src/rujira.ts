@@ -140,13 +140,13 @@ cacheManager.setOptions(<CacheManagerOptions>{
  */
 @loggedClass({
 	logger: logger,
-	allowedMethods: [''],
+	allowedMethods: [],
 	disallowedMethods: [],
 	includeStaticMethods: true,
 	logStart: true,
 	logEnd: true,
-	logInput: true,
-	logOutput: true,
+	logInput: false,
+	logOutput: false,
 	logExecutionTime: true,
 })
 export class Rujira {
@@ -648,14 +648,14 @@ export class Rujira {
  */
 @loggedClass({
 	logger: logger,
-	allowedMethods: [''],
+	allowedMethods: [],
 	disallowedMethods: [],
-	includeStaticMethods: false,
-	logStart: false,
-	logEnd: false,
+	includeStaticMethods: true,
+	logStart: true,
+	logEnd: true,
 	logInput: false,
 	logOutput: false,
-	logExecutionTime: false,
+	logExecutionTime: true,
 })
 export class Fin {
 	/**
@@ -1691,12 +1691,12 @@ export class Fin {
 								description
 								display
 							}
-							price {
-								current
-								changeDay
-								mcap
-								timestamp
-							}
+							# price {
+							# 	current
+							# 	changeDay
+							# 	mcap
+							# 	timestamp
+							# }
 							variants {
 								layer1 { asset }
 								secured { asset }
@@ -1717,12 +1717,12 @@ export class Fin {
 								description
 								display
 							}
-							price {
-								current
-								changeDay
-								mcap
-								timestamp
-							}
+							# price {
+							# 	current
+							# 	changeDay
+							# 	mcap
+							# 	timestamp
+							# }
 							variants {
 								layer1 { asset }
 								secured { asset }
@@ -1730,26 +1730,27 @@ export class Fin {
 							}
 						}
 
-						# Oracles
-						oracleBase {
-							id
-							asset {
-								asset
-								metadata { symbol name decimals }
-							}
-							price
-						}
-						oracleQuote {
-							id
-							asset {
-								asset
-								metadata { symbol name decimals }
-							}
-							price
-						}
+						# # Oracles
+						# oracleBase {
+						# 	id
+						# 	asset {
+						# 		asset
+						# 		metadata { symbol name decimals }
+						# 	}
+						# 	price
+						# }
+						# oracleQuote {
+						# 	id
+						# 	asset {
+						# 		asset
+						# 		metadata { symbol name decimals }
+						# 	}
+						# 	price
+						# }
 					}
 				}
-			}`;
+			}
+		`;
 
 		const response = await this.parent.fetch(graphQLEndPoint, {
 			method: 'POST',
@@ -2037,15 +2038,8 @@ export class Fin {
 		// Apply client-side limiting since GraphQL API ignores 'last' parameter
 		let limitedCandles = rawCandles;
 		if (maximumNumberOfCandles && maximumNumberOfCandles > 0 && maximumNumberOfCandles < DECIMAL_INFINITY.toNumber()) {
-			// Sort candles by timestamp (newest first) and limit to requested count
 			limitedCandles = rawCandles
-				.sort((a: any, b: any) => new Date(b.bin).getTime() - new Date(a.bin).getTime())
 				.slice(0, maximumNumberOfCandles);
-
-			// Log warning when API doesn't respect limits
-			if (rawCandles.length > maximumNumberOfCandles) {
-				console.debug(`GraphQL API returned ${rawCandles.length} candles despite requesting ${maximumNumberOfCandles}. Applied client-side limiting.`);
-			}
 		}
 
 		const candles = MList<Candle>(limitedCandles).map((entry: any) => ({
@@ -3214,10 +3208,9 @@ export class Fin {
 
 				const type = existingOrder?.type || requestOrder.type;
 
-				// Create message with exact format from playground
 				const side = existingOrder?.side || requestOrder.side === OrderSide.BUY ? 'quote' : 'base';
-				// Use precise price formatting like playgrounds
-				const price = existingOrder?.price || requestOrder.price ? get<OrderPrice>(existingOrder?.price || requestOrder.price).toFixed(18) : '0.000000000000000000';
+
+				const price = existingOrder?.price?.toFixed(18) || requestOrder.price?.toFixed(18) || '0.000000000000000000';
 
 				if ([OrderType.MARKET].includes(type)) {
 					let inputToken: Token;
@@ -3235,8 +3228,8 @@ export class Fin {
 
 						outputToInputPrice = get<Price>(marketTicker.middlePrice.baseToQuote);
 
-						inputTokenAmount = requestOrder.amount;
-						outputTokenAmount = inputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
+						outputTokenAmount = requestOrder.amount;
+						inputTokenAmount = outputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.plus(slippagePercentage).div(DECIMAL_100));
 						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(10 ** inputToken.decimals).toDecimalPlaces(0);
 						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(10 ** outputToken.decimals).toDecimalPlaces(0);
 
@@ -3250,7 +3243,7 @@ export class Fin {
 						inputToken = market.tokens.base;
 						outputToken = market.tokens.quote;
 
-						outputToInputPrice = get<Price>(marketTicker.middlePrice.quoteToBase);
+						outputToInputPrice = get<Price>(marketTicker.middlePrice.baseToQuote);
 
 						inputTokenAmount = requestOrder.amount;
 						outputTokenAmount = inputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
@@ -3354,10 +3347,9 @@ export class Fin {
 					throw new Error(`Cannot cancel order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.OPEN}`);
 				}
 
-				// Create cancel message with exact format from playground: [side, { fixed: price }, '0']
+				// Create cancel message: [side, { fixed: price }, '0']
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
 
-				// Use precise price formatting like playgrounds
 				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
 				ordersMessages.push([side, { fixed: price }, '0']);
@@ -3389,10 +3381,9 @@ export class Fin {
 					throw new Error(`Cannot withdraw order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.FILLED}`);
 				}
 
-				// Create withdraw message with exact format from playground: [side, { fixed: price }, null]
+				// Create withdraw message: [side, { fixed: price }, null]
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
 
-				// Use precise price formatting like playgrounds
 				const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
 
 				ordersMessages.push([side, { fixed: price }, null]);
