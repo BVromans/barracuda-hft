@@ -1,12 +1,12 @@
 import Decimal from "decimal.js";
 import { List, Map } from "immutable";
+import { loggedClass } from "../annotations";
+import { logger } from "../logger";
+import { properties } from "../properties";
 import { Amount, Balances, DECIMAL_0, DECIMAL_1, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
+import { get } from "../utils";
 import { BasePureMarketMakingStrategy } from "./base_pure_market_marking_strategy";
 import { Proposal } from "./base_strategy";
-import { get } from "../utils";
-import { properties } from "../properties";
-import { logger } from "../logger";
-import { loggedClass } from "../annotations";
 
 /**
  * Pure market marking strategy
@@ -180,10 +180,10 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			sellOrder.amount = amount;
 		}
 
-		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0)) {
+		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0) && buyPrice.lt(get(orderBook.book.bestAsk?.price, DECIMAL_NaN))) {
 			buyOrder.price = buyPrice;
 		}
-		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0)) {
+		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0) && sellPrice.gt(get(orderBook.book.bestBid?.price, DECIMAL_NaN))) {
 			sellOrder.price = sellPrice;
 		}
 
