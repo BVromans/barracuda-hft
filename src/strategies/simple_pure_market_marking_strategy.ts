@@ -89,11 +89,11 @@ export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrateg
 				maximumTokenAmountPerOrder,
 				Decimal.max(
 					minimumTokenAmountPerOrder,
-					desiredTokenFreeBalanceAmountPerOrder
+					desiredTokenFreeBalanceAmountPerOrder,
+					baseTokenFreeBalanceAmount,
+					quoteTokenFreeBalanceAmount.mul(middlePrice)
 				)
-			),
-			baseTokenFreeBalanceAmount,
-			quoteTokenFreeBalanceAmount.mul(middlePrice)
+			)
 		);
 
 		// Populate orders only if within constraints

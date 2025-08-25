@@ -21,7 +21,8 @@ import { WalletMnemonic, WalletPrivateKey } from "./types";
 		walletPrivateKey: walletPrivateKey,
 	});
 
-	const strategy = simplePureMarketMarkingStrategy;
+	// const strategy = simplePureMarketMarkingStrategy;
+	const strategy = enhancedPureMarketMarkingStrategy;
 
 	await strategy.initialize({});
 
