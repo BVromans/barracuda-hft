@@ -113,7 +113,8 @@ import {
 	WalletMnemonic,
 	WalletPrivateKey,
 	OrderMaximumSlippagePercentage,
-	Price
+	Price,
+	OrderDeviationPercentage
 } from './types';
 import { get, runWithRetryAndTimeout, sanitizeOrderPrice, validateOrderPrice } from "./utils";
 import { loggedClass } from "./annotations";
@@ -2664,7 +2665,8 @@ export class Fin {
       owner: string,
       side: string,
       price: {
-        fixed: string
+        fixed?: string,
+				oracle?: string
       },
       rate: string,
       updated_at: string,
@@ -2678,7 +2680,17 @@ export class Fin {
 		for (const rawOrder of rawOrders) {
 			const type = OrderType.FIXED_PRICE;
 			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
-			const price = Decimal(rawOrder.price.fixed);
+			let price: OrderPrice;
+			let deviation: OrderDeviationPercentage;
+			if (rawOrder.price.fixed) {
+				price = Decimal(rawOrder.price.fixed);
+				deviation = DECIMAL_0;
+			} else if (rawOrder.price.oracle) {
+				deviation = Decimal(rawOrder.price.oracle);
+				price = DECIMAL_0; // TODO: Implement tracking order / oracle price!!!
+			} else {
+				throw new Error(`Unknown order price type: ${JSON.stringify(rawOrder)}`);
+			}
 			const amount = (side == OrderSide.BUY ? Decimal(rawOrder.offer).div(price) : Decimal(rawOrder.offer)).div(DECIMAL_10.pow(market.decimals));
 			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(Decimal(rawOrder.offer))));
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;

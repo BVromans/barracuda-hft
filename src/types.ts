@@ -1660,6 +1660,7 @@ export type IndicatorValue = any;
 
 export type OrderId = Id;
 export type OrderPrice = Price;
+export type OrderDeviationPercentage = Percentage;
 export type OrderAmount = Amount;
 export type OrderFilledAmount = Amount;
 export type OrderFilledPercentage = Percentage;
