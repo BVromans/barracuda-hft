@@ -35,3 +35,5 @@ or
 ```
 bun run start
 ```
+
+**Disclaimer**: This application is provided as a bootstrap for HFT strategies. You are solely responsible for your trading decisions and financial outcomes. Cryptocurrency trading involves substantial risk, including potential loss of your entire investment. Funttastic and Rujira are not responsible for any financial losses, bugs, or technical issues. Use at your own risk and only invest what you can afford to lose.
