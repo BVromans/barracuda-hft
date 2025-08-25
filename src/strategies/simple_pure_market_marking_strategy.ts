@@ -11,7 +11,7 @@ import { loggedClass } from "../annotations";
  * Pure market marking strategy
  */
 @loggedClass({
-	enabled: true,
+	enabled: false,
 	logger: logger,
 	allowedMethods: [],
 	disallowedMethods: [],

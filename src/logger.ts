@@ -199,7 +199,7 @@ export class Logger {
 			message += exception;
 		}
 
-		this.log(LogLevel.WARNING, message, new Error().stack as any);
+		this.log(LogLevel.WARNING, message, undefined, new Error().stack as any);
 	}
 
 	/**
@@ -218,11 +218,7 @@ export class Logger {
 			stacktrace = stack?.slice(2).map((frame: any) => frame.string).join('\n');
 		} else {
 			frame = stack[0];
-			try {
-				stacktrace = stack?.map((frame: any) => frame.string).join('\n');
-			} catch (exception) {
-				throw exception;
-			}
+			stacktrace = stack?.map((frame: any) => frame.string).join('\n');
 		}
 
 		const filePath = frame?.fileName;

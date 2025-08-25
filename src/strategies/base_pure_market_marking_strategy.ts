@@ -12,7 +12,7 @@ import { BaseStrategy, Proposal } from "./base_strategy";
  * Pure market marking strategy
  */
 @loggedClass({
-	enabled: true,
+	enabled: false,
 	logger: logger,
 	allowedMethods: [
 		'initialize',
@@ -80,53 +80,63 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	async initialize(_options: {}) {
-		this.status = StrategyStatus.INITIALIZING;
+		try {
+			logger.info("Initializing strategy...");
 
-		await this.rujira.initialize({});
+			this.status = StrategyStatus.INITIALIZING;
 
-		const tickInterval = Number(properties.getAs<number>('strategy.pure_market_making.common.tickInterval'));
+			await this.rujira.initialize({});
 
-		this.state.set('tickInterval', tickInterval);
+			const tickInterval = Number(properties.getAs<number>('strategy.pure_market_making.common.tickInterval'));
 
-		const market = await this.rujira.fin.getMarket({
-			symbol: properties.getAs<MarketSymbol>('strategy.pure_market_making.common.market')
-		});
+			this.state.set('tickInterval', tickInterval);
 
-		this.state.set('market', market);
+			const market = await this.rujira.fin.getMarket({
+				symbol: properties.getAs<MarketSymbol>('strategy.pure_market_making.common.market')
+			});
 
-		this.state.set('summary.market.symbol', market.symbol);
-		this.state.set('summary.balances.initial.base', DECIMAL_NaN);
-		this.state.set('summary.balances.initial.quote', DECIMAL_NaN);
-		this.state.set('summary.balances.initial.native', DECIMAL_NaN);
-		this.state.set('summary.balances.initial.feePayment', DECIMAL_NaN);
-		this.state.set('summary.balances.initial.usd', DECIMAL_NaN);
-		this.state.set('summary.balances.initial.total', DECIMAL_NaN);
-		this.state.set('summary.balances.previous.base', DECIMAL_NaN);
-		this.state.set('summary.balances.previous.quote', DECIMAL_NaN);
-		this.state.set('summary.balances.previous.native', DECIMAL_NaN);
-		this.state.set('summary.balances.previous.feePayment', DECIMAL_NaN);
-		this.state.set('summary.balances.previous.usd', DECIMAL_NaN);
-		this.state.set('summary.balances.previous.total', DECIMAL_NaN);
-		this.state.set('summary.balances.current.base', DECIMAL_NaN);
-		this.state.set('summary.balances.current.quote', DECIMAL_NaN);
-		this.state.set('summary.balances.current.native', DECIMAL_NaN);
-		this.state.set('summary.balances.current.feePayment', DECIMAL_NaN);
-		this.state.set('summary.balances.current.usd', DECIMAL_NaN);
-		this.state.set('summary.balances.current.total', DECIMAL_NaN);
-		this.state.set('summary.profitAndLoss.currentToInitial.absolute', DECIMAL_NaN);
-		this.state.set('summary.profitAndLoss.currentToPrevious.absolute', DECIMAL_NaN);
-		this.state.set('summary.profitAndLoss.currentToInitial.percentage', DECIMAL_NaN);
-		this.state.set('summary.profitAndLoss.currentToPrevious.percentage', DECIMAL_NaN);
+			this.state.set('market', market);
 
-		await this.cancelAllOrdersIfConfigured({});
-		await this.withdrawAllFilledOrdersIfConfigured({});
+			this.state.set('summary.market.symbol', market.symbol);
+			this.state.set('summary.balances.initial.base', DECIMAL_NaN);
+			this.state.set('summary.balances.initial.quote', DECIMAL_NaN);
+			this.state.set('summary.balances.initial.native', DECIMAL_NaN);
+			this.state.set('summary.balances.initial.feePayment', DECIMAL_NaN);
+			this.state.set('summary.balances.initial.usd', DECIMAL_NaN);
+			this.state.set('summary.balances.initial.total', DECIMAL_NaN);
+			this.state.set('summary.balances.previous.base', DECIMAL_NaN);
+			this.state.set('summary.balances.previous.quote', DECIMAL_NaN);
+			this.state.set('summary.balances.previous.native', DECIMAL_NaN);
+			this.state.set('summary.balances.previous.feePayment', DECIMAL_NaN);
+			this.state.set('summary.balances.previous.usd', DECIMAL_NaN);
+			this.state.set('summary.balances.previous.total', DECIMAL_NaN);
+			this.state.set('summary.balances.current.base', DECIMAL_NaN);
+			this.state.set('summary.balances.current.quote', DECIMAL_NaN);
+			this.state.set('summary.balances.current.native', DECIMAL_NaN);
+			this.state.set('summary.balances.current.feePayment', DECIMAL_NaN);
+			this.state.set('summary.balances.current.usd', DECIMAL_NaN);
+			this.state.set('summary.balances.current.total', DECIMAL_NaN);
+			this.state.set('summary.profitAndLoss.currentToInitial.absolute', DECIMAL_NaN);
+			this.state.set('summary.profitAndLoss.currentToPrevious.absolute', DECIMAL_NaN);
+			this.state.set('summary.profitAndLoss.currentToInitial.percentage', DECIMAL_NaN);
+			this.state.set('summary.profitAndLoss.currentToPrevious.percentage', DECIMAL_NaN);
 
-		await this.startRepeatingTasks({});
+			await this.cancelAllOrdersIfConfigured({});
+			await this.withdrawAllFilledOrdersIfConfigured({});
 
-		await this.updateBalances({});
-		await this.updateSummary({});
+			await this.startRepeatingTasks({});
 
-		this.status = StrategyStatus.IDLE;
+			await this.updateBalances({});
+			await this.updateSummary({});
+
+			this.status = StrategyStatus.IDLE;
+
+			logger.info("Strategy initialized successfully.");
+		} catch (exception) {
+			logger.error("Strategy failed to initialize.");
+
+			throw exception;
+		}
 	}
 
 	/**
@@ -153,14 +163,14 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 
 				logger.info("Cycle completed successfully.");
 			} catch (exception) {
-				logger.error("Cycle failed.", exception);
+				logger.error("Cycle failed.");
 
-				throw exception;
+				logger.ignoreException(exception);
 			} finally {
 				if (this.status === StrategyStatus.RUNNING) {
 					const tickInterval = this.state.getOrThrow('tickInterval');
 
-					logger.info(`Waiting for ${tickInterval}ms before next cycle...`);
+					logger.info(`Waiting for ${Decimal(tickInterval).div(Decimal(1000)).toFixed(2)}s before next cycle...`);
 
 					await sleep(tickInterval);
 
