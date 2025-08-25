@@ -3,9 +3,9 @@
     "version": "0.0.1",
     "private": true,
     "scripts": {
-        "dev": "NODE_ENV=development bun run --inspect=9222 src/index.ts",
+        "dev": "NODE_ENV=development bun run --inspect=9222 --enable-source-maps --async-stack-traces src/index.ts",
         "build": "bun build src/index.ts --outdir dist",
-        "start": "NODE_ENV=production bun run src/index.ts",
+        "start": "NODE_ENV=development bun run --inspect=9222 --enable-source-maps --async-stack-traces src/index.ts",
 				"demonstration": "NODE_ENV=development bun run --inspect=9222 --enable-source-maps --async-stack-traces src/demonstration.ts",
         "test:unit": "NODE_ENV=development bun test --inspect=9222 --enable-source-maps --async-stack-traces tests/index.test.ts",
         "test:integration": "NODE_ENV=development bun test --inspect=9222 --enable-source-maps --async-stack-traces integration/index.test.ts",
