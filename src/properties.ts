@@ -164,7 +164,7 @@ export class Properties {
 	public getOrDefault<T = any>(key: string, defaultValue?: T): T | undefined {
 		let result: T | undefined = this.map.get(key);
 
-		if (result) {
+		if (result !== undefined) {
 			return result;
 		}
 
@@ -172,7 +172,7 @@ export class Properties {
 
 		result = this.map.get(modifiedKey);
 
-		if (result) {
+		if (result !== undefined) {
 			return result;
 		}
 

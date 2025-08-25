@@ -67,7 +67,7 @@ function MList<T>(collection?: Iterable<T> | ArrayLike<T>): List<T> {
 		const value = originalGet.call(this, index, notSetValue);
 
 		if (value === undefined || value === null) {
-			if (notSetValue === undefined) {
+			if (notSetValue === undefined || notSetValue === null) {
 				throw new Error(`Index "${index}" not found.`);
 			}
 
@@ -160,7 +160,7 @@ function MMap(entries?: any): Map<any, any> {
 		const value = map.get(key, notSetValue, getAsRawKey);
 
 		if (value === undefined || value === null) {
-			if (notSetValue === undefined) {
+			if (notSetValue === undefined || notSetValue === null) {
 				throw new Error(`Key "${key}" not found.`);
 			}
 
@@ -179,7 +179,7 @@ function MMap(entries?: any): Map<any, any> {
 	 */
 	// @ts-ignore
 	map.set = function<K, V>(key: K, value: V, putAsRawKey: boolean = false): Map<K, V> {
-		if (key == null) {
+		if (key === null || key === undefined) {
 			throw new Error(`Invalid key ("${key}").`);
 		}
 

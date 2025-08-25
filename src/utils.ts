@@ -49,7 +49,7 @@ export const getIn = <K, V>(target: List<V> | Map<K, V>, key: K | string | Array
 
 	const value = target.get(key as any, defaultValue) as V;
 
-	if (value === undefined) {
+	if (value === undefined || value === null) {
 		throw new Error(`Value not found for key: ${key}`);
 	}
 

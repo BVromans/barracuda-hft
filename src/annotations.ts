@@ -18,7 +18,7 @@ function getBestEffortCallerStackFrame(stackSkipCount: number = 2): any {
 
 function formatExceptionForLogging(exceptionValue: unknown): string {
 	if (exceptionValue instanceof Error) {
-		return exceptionValue.stack ?? `${exceptionValue.name}: ${exceptionValue.message}`;
+		return (exceptionValue.stack as any)?.map((frame: any) => frame.string).join('\n');
 	}
 	try {
 		return JSON.stringify(exceptionValue);
