@@ -338,9 +338,13 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	private async updateTokens(_options: {}) {
-		const tokens = await this.rujira.fin.getAllTokens({});
+		try {
+			const tokens = await this.rujira.fin.getAllTokens({});
 
-		this.state.set("tokens", tokens);
+			this.state.set("tokens", tokens);
+		} catch (exception) {
+			logger.ignoreException(exception);
+		}
 	}
 
 	/**
@@ -348,9 +352,13 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	private async updateMarkets(_options: {}) {
-		const markets = await this.rujira.fin.getAllMarkets({});
+		try {
+			const markets = await this.rujira.fin.getAllMarkets({});
 
-		this.state.set("markets", markets);
+			this.state.set("markets", markets);
+		} catch (exception) {
+			logger.ignoreException(exception);
+		}
 	}
 
 	/**
@@ -358,13 +366,16 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	private async updateOrderBook(_options: {}) {
-		const market = this.state.getOrThrow('market');
+		try {
+			const market = this.state.getOrThrow('market');
+			const orderBook = await this.rujira.fin.getOrderBook({
+				market: market
+			});
 
-		const orderBook = await this.rujira.fin.getOrderBook({
-			market: market
-		});
-
-		this.state.set("orderBook", orderBook);
+			this.state.set("orderBook", orderBook);
+		} catch (exception) {
+			logger.ignoreException(exception);
+		}
 	}
 
 	/**
@@ -372,13 +383,17 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	private async updateIndicators(_options: {}) {
-		const market = this.state.getOrThrow('market');
+		try {
+			const market = this.state.getOrThrow('market');
 
-		const indicators = await this.rujira.fin.getIndicators({
-			market: market
-		});
+			const indicators = await this.rujira.fin.getIndicators({
+				market: market
+			});
 
-		this.state.set("indicators", indicators);
+			this.state.set("indicators", indicators);
+		} catch (exception) {
+			logger.ignoreException(exception);
+		}
 	}
 
 	/**
@@ -494,23 +509,27 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	private async monitorProfitAndLoss(_options: {}) {
-		const enabled = properties.getAs<boolean>('strategy.pure_market_making.common.monitorProfitAndLoss.enabled');
+		try {
+			const enabled = properties.getAs<boolean>('strategy.pure_market_making.common.monitorProfitAndLoss.enabled');
 
-		if (enabled) {
-			const maximumAllowedWalletLossFromInitialValue = Decimal(properties.getAs<number>('strategy.pure_market_making.common.monitorProfitAndLoss.maximumAllowedWalletLossFromInitialValue'));
-			const maximumAllowedWalletLossFromPreviousValue = Decimal(properties.getAs<number>('strategy.pure_market_making.common.monitorProfitAndLoss.maximumAllowedWalletLossFromPreviousValue'));
+			if (enabled) {
+				const maximumAllowedWalletLossFromInitialValue = Decimal(properties.getAs<number>('strategy.pure_market_making.common.monitorProfitAndLoss.maximumAllowedWalletLossFromInitialValue'));
+				const maximumAllowedWalletLossFromPreviousValue = Decimal(properties.getAs<number>('strategy.pure_market_making.common.monitorProfitAndLoss.maximumAllowedWalletLossFromPreviousValue'));
 
-			const currentToInitialProfitAndLoss: Decimal = this.state.getOrThrow('summary.profitAndLoss.currentToInitial.percentage');
-			const currentToPreviousProfitAndLoss: Decimal = this.state.getOrThrow('summary.profitAndLoss.currentToPrevious.percentage');
+				const currentToInitialProfitAndLoss: Decimal = this.state.getOrThrow('summary.profitAndLoss.currentToInitial.percentage');
+				const currentToPreviousProfitAndLoss: Decimal = this.state.getOrThrow('summary.profitAndLoss.currentToPrevious.percentage');
 
-			if (
-				currentToInitialProfitAndLoss.gte(maximumAllowedWalletLossFromInitialValue)
-				|| currentToPreviousProfitAndLoss.gte(maximumAllowedWalletLossFromPreviousValue)
-			) {
-				this.status = StrategyStatus.STOP_REQUESTED;
+				if (
+					currentToInitialProfitAndLoss.gte(maximumAllowedWalletLossFromInitialValue)
+					|| currentToPreviousProfitAndLoss.gte(maximumAllowedWalletLossFromPreviousValue)
+				) {
+					this.status = StrategyStatus.STOP_REQUESTED;
 
-				await this.stop({});
+					await this.stop({});
+				}
 			}
+		} catch (exception) {
+			logger.ignoreException(exception);
 		}
 	}
 
