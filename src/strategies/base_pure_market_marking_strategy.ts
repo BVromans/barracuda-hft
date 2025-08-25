@@ -123,6 +123,9 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 
 		await this.startRepeatingTasks({});
 
+		await this.updateBalances({});
+		await this.updateSummary({});
+
 		this.status = StrategyStatus.IDLE;
 	}
 
