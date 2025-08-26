@@ -13,3 +13,4 @@ resources/configuration/staging.yml
 resources/configuration/production.yml
 
 temporary
+resouces/references

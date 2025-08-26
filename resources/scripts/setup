@@ -8,11 +8,6 @@ echo -e "========================================\n"
 
 set -ex
 
-set +e
-mkdir -p resources/references/rujira
-git submodule update --init --remote --force ./resources/references/rujira/contracts ./resources/references/rujira/api ./resources/references/rujira/ui
-set -e
-
 bun install
 
 if [ ! -f "resources/configuration/production.yml" ]; then
