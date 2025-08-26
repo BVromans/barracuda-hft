@@ -139,7 +139,7 @@ export class Logger {
 	 * Constructor
 	 */
 	private constructor() {
-		this.logDirectory = path.join(process.cwd(), "log");
+		this.logDirectory = path.join(process.cwd(), "logs");
 		this.ensureLogDirectoryExists();
 	}
 
