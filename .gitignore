@@ -12,4 +12,4 @@ resources/configuration/development.yml
 resources/configuration/staging.yml
 resources/configuration/production.yml
 
-temporary/unversioned/**
+temporary
