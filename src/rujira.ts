@@ -1858,8 +1858,21 @@ export class Fin {
 			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 		}
 
-		// TODO: add an example response!!!
-		// TODO: add an interface for the response!!!
+		// Example response:
+		// 	{
+		// 		"base": [
+		// 			{
+		// 				"price": "1.59",
+		// 				"total": "15399999876"
+		// 			}
+		// 		],
+		// 		"quote": [
+		// 			{
+		// 				"price": "1.577",
+		// 				"total": "43386912812"
+		// 			}
+		// 		]
+		// 	}
 		const rawOrderBook = await this.parent.cosmClientQueryContractSmart(
 			market.address,
 			{
@@ -1867,7 +1880,16 @@ export class Fin {
 					limit: maximumNumberOfOrders
 				}
 			}
-		);
+		) as {
+			base: Array<{
+				price: string,
+				total: string;
+			}>,
+			quote: Array<{
+				price: string;
+				total: string;
+			}>;
+		};
 
 		const parseOrder = (entry: any): OrderBookOrder => ({
 			price: Decimal(entry.price),
