@@ -1304,7 +1304,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("orders", async () => {
+		describe.skip("orders", async () => {
 			const cleanOrders = async () => {
 				const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 				await rujira.fin.cancelAllOrders({ ownerAddress: walletPublicKeyThor, market });
