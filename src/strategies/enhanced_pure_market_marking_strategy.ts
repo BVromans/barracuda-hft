@@ -128,8 +128,10 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 		const spreadAmount = Decimal.max(minimumPriceSpreadAmount, bollingerBandsWidthSpreadAmount);
 
 		// Compute skew using the volume weighted average price, clamping/restricting it to an interval
-		// skewRatioPercentage = max(-maximumSkewRatio, min(volumeWeightedAveragePriceSkewMultiplier * (middlePrice − volumeWeightedAveragePrice) / middlePrice, +maximumSkewRatio)) * 100
-		const volumeWeightedAveragePricePullRatio = middlePrice.minus(volumeWeightedAveragePrice).div(middlePrice);
+		// Pull ratio is signed so that a VWAP below middle shifts fair price down (toward VWAP),
+		// and a VWAP above middle shifts fair price up.
+		// skewRatioPercentage = clamp(volumeWeightedAveragePriceSkewMultiplier * (volumeWeightedAveragePrice − middlePrice) / middlePrice, -maximumSkewRatio, +maximumSkewRatio) * 100
+		const volumeWeightedAveragePricePullRatio = volumeWeightedAveragePrice.minus(middlePrice).div(middlePrice);
 		const maximumSkewRatio = maximumSkewPercentage.div(DECIMAL_100);
 		const unclampedSkewRatio = volumeWeightedAveragePriceSkewMultiplier.mul(volumeWeightedAveragePricePullRatio);
 		const skewRatioPercentage = Decimal.max(maximumSkewRatio.neg(), Decimal.min(maximumSkewRatio, unclampedSkewRatio)).mul(DECIMAL_100);
