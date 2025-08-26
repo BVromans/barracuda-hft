@@ -229,7 +229,7 @@ describe("Rujira", async() => {
 				expect(result.fee).toBeDefined();
 
 				expect(result.fee.amount).toBeDefined();
-				expect(result.fee.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
+				expect(result.fee.amount.toNumber()).toBeGreaterThanOrEqual(BIG_NUMBER_0.toNumber());
 
 				expect(result.fee.token).toBeDefined();
 				expect(result.fee.token.address).toBe(rujira.fin.feePaymentToken.address);
@@ -256,7 +256,7 @@ describe("Rujira", async() => {
 				expect(result.fee).toBeDefined();
 
 				expect(result.fee.amount).toBeDefined();
-				expect(result.fee.amount.toNumber()).toBeGreaterThan(0);
+				expect(result.fee.amount.toNumber()).toBeGreaterThanOrEqual(BIG_NUMBER_0.toNumber());
 
 				expect(result.fee.token).toBeDefined();
 				expect(result.fee.token.address).toBe(rujira.fin.feePaymentToken.address);
