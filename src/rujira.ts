@@ -2021,7 +2021,6 @@ export class Fin {
 		const before = new Date().toISOString();
 		const after = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-		// TODO: add a example response!!!
 		const response = await this.parent.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -2061,8 +2060,47 @@ export class Fin {
 			throw new Error(`GraphQL request failed: ${response.status} ${response.statusText}`);
 		}
 
-		// TODO: add a interface for the response!!!
-		const json: any = (await response.json());
+		// Example response:
+		// 	{
+		// 		"data": {
+		// 			"node": {
+		// 				"address": "thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a",
+		// 				"candles": {
+		// 					"edges": [
+		// 						{
+		// 							"node": {
+		// 								"bin": "2025-08-19T14:55:00Z",
+		// 								"close": "1470000000000",
+		// 								"high": "1470000000000",
+		// 								"low": "1470000000000",
+		// 								"open": "1470000000000",
+		// 								"volume": "1470000000000"
+		// 							}
+		// 						}
+		// 					]
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		const json: any = (await response.json()) as {
+			data: {
+				node: {
+					candles: {
+						edges: Array<{
+							node: {
+								bin: string,
+								close: string,
+								high: string,
+								low: string,
+								open: string,
+								volume: string;
+							};
+						}>;
+					};
+				};
+			};
+			errors: Array<{ message: string }>;
+		};
 		const { data, errors } = json;
 
 		if (errors) {
