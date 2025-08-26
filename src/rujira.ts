@@ -2691,7 +2691,7 @@ export class Fin {
 			} else {
 				throw new Error(`Unknown order price type: ${JSON.stringify(rawOrder)}`);
 			}
-			const amount = (side == OrderSide.BUY ? Decimal(rawOrder.offer).div(price) : Decimal(rawOrder.offer)).div(DECIMAL_10.pow(market.decimals));
+			const amount = (side == OrderSide.BUY ? Decimal(rawOrder.offer).div(price) : Decimal(rawOrder.offer)).div(DECIMAL_10.pow(market.decimals)); // TODO: Check if this is correct!!!
 			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(Decimal(rawOrder.offer))));
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 			const id = this.getOrderId({

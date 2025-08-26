@@ -97,8 +97,8 @@ export enum OrderSide {
 export enum OrderType {
 	MARKET = 'market',
 	FIXED_PRICE = 'fixed_price',
+	TRACKING_ORDER = 'tracking_order', // They are also called "oracle orders"
 	// LIMIT = 'limit',
-	// TRACKING_ORDER = 'tracking_order' // They are also called "oracle orders" // TODO: Add support to this order!!!
 }
 
 /**
