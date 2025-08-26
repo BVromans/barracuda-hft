@@ -1821,7 +1821,8 @@ export class Fin {
 					base: baseToken,
 					quote: quoteToken
 				},
-				decimals: 8, // Number(pair.tick), // TODO: verify a better way to get the market decimals!!!
+				decimals: 8, // It seems Rujira fixed the decimals to 8 places for all markets
+				tick: Number(pair.tick),
 				status: MarketStatus.ACTIVE, // LIVE markets are active
 				raw: pair
 			};
@@ -2752,7 +2753,7 @@ export class Fin {
 			} else {
 				throw new Error(`Unknown order price type: ${JSON.stringify(rawOrder)}`);
 			}
-			const amount = (side == OrderSide.BUY ? Decimal(rawOrder.offer).div(price) : Decimal(rawOrder.offer)).div(DECIMAL_10.pow(market.decimals)); // TODO: Check if this is correct!!!
+			const amount = (side == OrderSide.BUY ? Decimal(rawOrder.offer).div(price).div(DECIMAL_10.pow(market.tokens.base.decimals)) : Decimal(rawOrder.offer)).div(DECIMAL_10.pow(market.tokens.base.decimals));
 			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(Decimal(rawOrder.offer))));
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 			const id = this.getOrderId({
