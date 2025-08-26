@@ -56,22 +56,22 @@ tests:
       hash: "73B63952539063431298020873CD37F37992AB5DCBC15BE4D58D4531DDCB2DC3" # Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
     markets:
       first:
-        symbol: "THOR-NAMI/ETH-USDC"
-        address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
-        tokens:
-          base:
-            address: "thor.nami"
-            symbol: "THOR-NAMI"
-          quote:
-            address: "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-            symbol: "ETH-USDC"
-      second:
         symbol: "THOR-RUJI/ETH-USDC"
         address: "thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a"
         tokens:
           base:
             address: "x/ruji"
             symbol: "THOR-RUJI"
+          quote:
+            address: "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+            symbol: "ETH-USDC"
+      second:
+        symbol: "THOR-NAMI/ETH-USDC"
+        address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
+        tokens:
+          base:
+            address: "thor.nami"
+            symbol: "THOR-NAMI"
           quote:
             address: "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
             symbol: "ETH-USDC"
