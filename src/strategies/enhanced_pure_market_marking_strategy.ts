@@ -150,56 +150,61 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 		// Compute order size scaling factor using the average true range
 		// size = baseNotional / (1 + volatilitySizeShrinkageMultiplier * averageTrueRange / middlePrice)
 		const averageTrueRangeTerm = volatilitySizeShrinkageMultiplier.mul(averageTrueRange.div(middlePrice));
-		const sizePercentageMultipler = DECIMAL_100.div(DECIMAL_1.plus(averageTrueRangeTerm));
+		const sizePercentageMultiplier = DECIMAL_100.div(DECIMAL_1.plus(averageTrueRangeTerm));
 
-		// Determine budgets and convert to final order amounts
-		const buyOrderBudget = Decimal.max(
-			DECIMAL_0,
-			quoteTokenFreeBalance.mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100)).mul(middlePrice),
-			desiredTokenFreeBalanceAmountPerOrder.mul(middlePrice)
+		// Determine desired base-token amount before funds constraints
+		const desiredPercentageRatio = desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100);
+		const desiredBaseAmountFromBaseBalance = baseTokenFreeBalance.mul(desiredPercentageRatio);
+		const desiredBaseAmountFromQuoteBalance = quoteTokenFreeBalance.div(middlePrice).mul(desiredPercentageRatio);
+		const desiredBaseAmountUncapped = Decimal.max(
+			desiredTokenFreeBalanceAmountPerOrder,
+			desiredBaseAmountFromBaseBalance,
+			desiredBaseAmountFromQuoteBalance,
 		);
-		const sellOrderBudget = Decimal.max(
-			DECIMAL_0,
-			baseTokenFreeBalance.mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100)),
-			desiredTokenFreeBalanceAmountPerOrder
-		);
-
-		const amount = Decimal.max(
+		const desiredBaseAmountCapped = Decimal.max(
 			minimumTokenAmountPerOrder,
-			Decimal.min(
-				maximumTokenAmountPerOrder,
-				sellOrderBudget.mul(sizePercentageMultipler.div(DECIMAL_100)),
-				baseTokenFreeBalance,
-				quoteTokenFreeBalance.mul(middlePrice),
-			),
+			Decimal.min(maximumTokenAmountPerOrder, desiredBaseAmountUncapped),
 		);
+		const desiredBaseAmountAfterVolatility = desiredBaseAmountCapped.mul(sizePercentageMultiplier).div(DECIMAL_100);
+
+		// Enforce funds constraints (convert quote to base using middle price)
+		const maximumAffordableBaseByFunds = Decimal.min(
+			baseTokenFreeBalance,
+			quoteTokenFreeBalance.div(middlePrice),
+		);
+		const amount = Decimal.min(desiredBaseAmountAfterVolatility, maximumAffordableBaseByFunds);
 
 		// Populate orders only if valid, with final prices and amounts
-		if (amount.gt(DECIMAL_0)) {
+		if (amount.gte(minimumTokenAmountPerOrder)) {
 			buyOrder.amount = amount;
 			sellOrder.amount = amount;
 		}
 
-		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0) && buyPrice.lt(get(orderBook.book.bestAsk?.price, DECIMAL_NaN))) {
+		const bestAskPrice = get(orderBook.book.bestAsk?.price, DECIMAL_NaN);
+		const bestBidPrice = get(orderBook.book.bestBid?.price, DECIMAL_NaN);
+		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0) && (!bestAskPrice.isFinite() || buyPrice.lt(bestAskPrice))) {
 			buyOrder.price = buyPrice;
 		}
-		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0) && sellPrice.gt(get(orderBook.book.bestBid?.price, DECIMAL_NaN))) {
+		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0) && (!bestBidPrice.isFinite() || sellPrice.gt(bestBidPrice))) {
 			sellOrder.price = sellPrice;
 		}
 
-		const buyOrderId = this.rujira.fin.getOrderId({ order: buyOrder });
-		const sellOrderId = this.rujira.fin.getOrderId({ order: sellOrder });
+		const isBuyPlaceable = Boolean(buyOrder.amount && buyOrder.price && buyOrder.amount.gt(DECIMAL_0) && buyOrder.price.gt(DECIMAL_0));
+		const isSellPlaceable = Boolean(sellOrder.amount && sellOrder.price && sellOrder.amount.gt(DECIMAL_0) && sellOrder.price.gt(DECIMAL_0));
+		const buyOrderId = isBuyPlaceable ? this.rujira.fin.getOrderId({ order: buyOrder }) : undefined;
+		const sellOrderId = isSellPlaceable ? this.rujira.fin.getOrderId({ order: sellOrder }) : undefined;
 
 		currentOrders.valueSeq().forEach((order: Order) => {
 			const orderId = this.rujira.fin.getOrderId({ order: order });
 
-			// Cancel current open/partial orders to re-quote fresh
-			if (
-				(order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED)
-				&& orderId !== buyOrderId
-				&& orderId !== sellOrderId
-			) {
-				proposal.cancel?.push(order as any);
+			// Cancel current open/partial orders to re-quote fresh, only per-side when a replacement exists
+			if (order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED) {
+				if (order.side === OrderSide.BUY && isBuyPlaceable && orderId !== buyOrderId) {
+					proposal.cancel?.push(order as any);
+				}
+				if (order.side === OrderSide.SELL && isSellPlaceable && orderId !== sellOrderId) {
+					proposal.cancel?.push(order as any);
+				}
 			}
 
 			// Withdraw current filled orders to withdraw funds
@@ -208,10 +213,10 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			}
 		});
 
-		if (buyOrder.amount && buyOrder.price && buyOrder.amount.gt(DECIMAL_0) && buyOrder.price.gt(DECIMAL_0)) {
+		if (isBuyPlaceable) {
 			proposal.place?.push(buyOrder);
 		}
-		if (sellOrder.amount && sellOrder.price && sellOrder.amount.gt(DECIMAL_0) && sellOrder.price.gt(DECIMAL_0)) {
+		if (isSellPlaceable) {
 			proposal.place?.push(sellOrder);
 		}
 
