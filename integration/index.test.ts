@@ -1324,8 +1324,6 @@ describe("Rujira", async() => {
 			describe("get", async () => {
 				it("get a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
-					const price = fixedPricePlaceSingleBuyOrderPrice;
-					const amount = fixedPricePlaceSingleBuyOrderAmount;
 
 					// place
 					const placed = await rujira.fin.placeOrder({
@@ -1333,8 +1331,8 @@ describe("Rujira", async() => {
 						market,
 						side: OrderSide.BUY,
 						type: OrderType.FIXED_PRICE,
-						amount,
-						price,
+						amount: fixedPricePlaceSingleBuyOrderAmount,
+						price: fixedPricePlaceSingleBuyOrderPrice,
 					});
 					expect(placed).toBeDefined();
 					expect(placed.order).toBeDefined();
@@ -1344,7 +1342,7 @@ describe("Rujira", async() => {
 						market,
 						orderType: OrderType.FIXED_PRICE,
 						orderSide: OrderSide.BUY,
-						orderPrice: price,
+						orderPrice: fixedPricePlaceSingleBuyOrderPrice,
 					});
 					expect(found).toBeDefined();
 					expect(found.market).toBeDefined();
@@ -1364,14 +1362,15 @@ describe("Rujira", async() => {
 					expect(found.market.tokens.quote.raw).toBeDefined();
 					expect(found.side).toBe(OrderSide.BUY);
 					expect(found.type).toBe(OrderType.FIXED_PRICE);
-					expect(found.price?.toFixed()).toBe(price.toFixed());
-					expect(found.amount.toFixed()).toBe(amount.toFixed());
+					expect(found.price?.toFixed()).toBe(fixedPricePlaceSingleBuyOrderPrice.toFixed());
+					expect(found.amount.toFixed()).toBe(fixedPricePlaceSingleBuyOrderAmount.toFixed());
+
+					// cleanup
+					await rujira.fin.cancelOrder({ ownerAddress: walletPublicKeyThor, market, order: placed.order });
 				});
 
 				it("get a fixed price sell order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
-					const price = fixedPricePlaceSingleSellOrderPrice;
-					const amount = fixedPricePlaceSingleSellOrderAmount;
 
 					// place
 					const placed = await rujira.fin.placeOrder({
@@ -1379,8 +1378,8 @@ describe("Rujira", async() => {
 						market,
 						side: OrderSide.SELL,
 						type: OrderType.FIXED_PRICE,
-						amount,
-						price,
+						amount: fixedPricePlaceSingleSellOrderAmount,
+						price: fixedPricePlaceSingleSellOrderPrice,
 					});
 					expect(placed).toBeDefined();
 					expect(placed.order).toBeDefined();
@@ -1390,7 +1389,7 @@ describe("Rujira", async() => {
 						market,
 						orderType: OrderType.FIXED_PRICE,
 						orderSide: OrderSide.SELL,
-						orderPrice: price,
+						orderPrice: fixedPricePlaceSingleSellOrderPrice,
 					});
 					expect(found).toBeDefined();
 					expect(found.market).toBeDefined();
@@ -1410,21 +1409,21 @@ describe("Rujira", async() => {
 					expect(found.market.tokens.quote.raw).toBeDefined();
 					expect(found.side).toBe(OrderSide.SELL);
 					expect(found.type).toBe(OrderType.FIXED_PRICE);
-					expect(found.price?.toFixed()).toBe(price.toFixed());
-					expect(found.amount.toFixed()).toBe(amount.toFixed());
+					expect(found.price?.toFixed()).toBe(fixedPricePlaceSingleSellOrderPrice.toFixed());
+					expect(found.amount.toFixed()).toBe(fixedPricePlaceSingleSellOrderAmount.toFixed());
+
+					// cleanup
+					await rujira.fin.cancelOrder({ ownerAddress: walletPublicKeyThor, market, order: placed.order });
 				});
 
 				it("get multiple orders by type/side/status filters", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
-					const firstOrderPrice = fixedPricePlaceSingleBuyOrderPrice;
-					const secondOrderPrice = fixedPricePlaceSingleSellOrderPrice;
-					const amount = fixedPricePlaceSingleBuyOrderAmount;
 
 					await rujira.fin.placeOrders({
 						ownerAddress: walletPublicKeyThor,
 						orders: [
-							{ ownerAddress: walletPublicKeyThor, market, side: OrderSide.BUY, type: OrderType.FIXED_PRICE, amount: amount, price: firstOrderPrice },
-							{ ownerAddress: walletPublicKeyThor, market, side: OrderSide.SELL, type: OrderType.FIXED_PRICE, amount: amount, price: secondOrderPrice },
+							{ ownerAddress: walletPublicKeyThor, market, side: OrderSide.BUY, type: OrderType.FIXED_PRICE, amount: fixedPricePlaceSingleBuyOrderAmount, price: fixedPricePlaceSingleBuyOrderPrice },
+							{ ownerAddress: walletPublicKeyThor, market, side: OrderSide.SELL, type: OrderType.FIXED_PRICE, amount: fixedPricePlaceSingleSellOrderAmount, price: fixedPricePlaceSingleSellOrderPrice },
 						],
 					});
 
@@ -1436,32 +1435,51 @@ describe("Rujira", async() => {
 					});
 					expect(many).toBeDefined();
 					expect(many.size).toBeGreaterThan(1);
+
+					// cleanup
+					await rujira.fin.cancelAllOrders({ ownerAddress: walletPublicKeyThor, market });
 				});
 			});
 
 			describe("place", async () => {
 				it("create a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
-					const price = fixedPricePlaceSingleBuyOrderPrice;
-					const amount = fixedPricePlaceSingleBuyOrderAmount;
 
-					const result = await rujira.fin.placeOrder({ ownerAddress: walletPublicKeyThor, market, side: OrderSide.BUY, type: OrderType.FIXED_PRICE, amount, price });
+					const result = await rujira.fin.placeOrder({
+						ownerAddress: walletPublicKeyThor,
+						market,
+						side: OrderSide.BUY,
+						type: OrderType.FIXED_PRICE,
+						amount: fixedPricePlaceSingleBuyOrderAmount,
+						price: fixedPricePlaceSingleBuyOrderPrice
+					});
 
 					expect(result).toBeDefined();
 					expect(result.order).toBeDefined();
 					expect(result.transaction).toBeDefined();
+
+					// cleanup
+					await rujira.fin.cancelOrder({ ownerAddress: walletPublicKeyThor, market, order: result.order });
 				});
 
 				it("create a fixed price sell order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
-					const price = fixedPricePlaceSingleSellOrderPrice;
-					const amount = fixedPricePlaceSingleSellOrderAmount;
 
-					const result = await rujira.fin.placeOrder({ ownerAddress: walletPublicKeyThor, market, side: OrderSide.SELL, type: OrderType.FIXED_PRICE, amount, price });
+					const result = await rujira.fin.placeOrder({
+						ownerAddress: walletPublicKeyThor,
+						market,
+						side: OrderSide.SELL,
+						type: OrderType.FIXED_PRICE,
+						amount: fixedPricePlaceSingleSellOrderAmount,
+						price: fixedPricePlaceSingleSellOrderPrice
+					});
 
 					expect(result).toBeDefined();
 					expect(result.order).toBeDefined();
 					expect(result.transaction).toBeDefined();
+
+					// cleanup
+					await rujira.fin.cancelOrder({ ownerAddress: walletPublicKeyThor, market, order: result.order });
 				});
 
 				it("create multiple fixed price orders at the same time", async () => {
@@ -1478,6 +1496,9 @@ describe("Rujira", async() => {
 					expect(result).toBeDefined();
 					expect(result.orders.size).toBe(2);
 					expect(result.transactions.size).toBeGreaterThan(0);
+
+					// cleanup
+					await rujira.fin.cancelAllOrders({ ownerAddress: walletPublicKeyThor, market });
 				});
 			});
 
@@ -1485,25 +1506,59 @@ describe("Rujira", async() => {
 				it("replace a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
-					const original = await rujira.fin.placeOrder({ ownerAddress: walletPublicKeyThor, market, side: OrderSide.BUY, type: OrderType.FIXED_PRICE, amount: fixedPricePlaceSingleBuyOrderAmount, price: fixedPricePlaceSingleBuyOrderPrice });
+					const original = await rujira.fin.placeOrder({
+						ownerAddress: walletPublicKeyThor,
+						market,
+						side: OrderSide.BUY,
+						type: OrderType.FIXED_PRICE,
+						amount: fixedPricePlaceSingleBuyOrderAmount,
+						price: fixedPricePlaceSingleBuyOrderPrice
+					});
 
 					expect(original.order).toBeDefined();
 
-					const replaced = await rujira.fin.replaceOrder({ ownerAddress: walletPublicKeyThor, market, side: OrderSide.BUY, type: OrderType.FIXED_PRICE, amount: fixedPriceReplaceSingleBuyOrderAmount, price: fixedPricePlaceSingleBuyOrderPrice });
+					const replaced = await rujira.fin.replaceOrder({
+						ownerAddress: walletPublicKeyThor,
+						market,
+						side: OrderSide.BUY,
+						type: OrderType.FIXED_PRICE,
+						amount: fixedPriceReplaceSingleBuyOrderAmount,
+						price: fixedPricePlaceSingleBuyOrderPrice
+					});
 
 					expect(replaced.order).toBeDefined();
+
+					// cleanup
+					await rujira.fin.cancelOrder({ ownerAddress: walletPublicKeyThor, market, order: replaced.order });
 				});
 
 				it("replace a fixed price sell order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
-					const original = await rujira.fin.placeOrder({ ownerAddress: walletPublicKeyThor, market, side: OrderSide.SELL, type: OrderType.FIXED_PRICE, amount: fixedPricePlaceSingleSellOrderAmount, price: fixedPricePlaceSingleSellOrderPrice });
+					const original = await rujira.fin.placeOrder({
+						ownerAddress: walletPublicKeyThor,
+						market,
+						side: OrderSide.SELL,
+						type: OrderType.FIXED_PRICE,
+						amount: fixedPricePlaceSingleSellOrderAmount,
+						price: fixedPricePlaceSingleSellOrderPrice
+					});
 
 					expect(original.order).toBeDefined();
 
-					const replaced = await rujira.fin.replaceOrder({ ownerAddress: walletPublicKeyThor, market, side: OrderSide.SELL, type: OrderType.FIXED_PRICE, amount: fixedPriceReplaceSingleSellOrderAmount, price: fixedPricePlaceSingleSellOrderPrice });
+					const replaced = await rujira.fin.replaceOrder({
+						ownerAddress: walletPublicKeyThor,
+						market,
+						side: OrderSide.SELL,
+						type: OrderType.FIXED_PRICE,
+						amount: fixedPriceReplaceSingleSellOrderAmount,
+						price: fixedPricePlaceSingleSellOrderPrice
+					});
 
 					expect(replaced.order).toBeDefined();
+
+					// cleanup
+					await rujira.fin.cancelOrder({ ownerAddress: walletPublicKeyThor, market, order: replaced.order });
 				});
 
 				it("replace multiple fixed price orders at the same time", async () => {
@@ -1527,6 +1582,9 @@ describe("Rujira", async() => {
 
 					expect(result).toBeDefined();
 					expect(result.orders.size).toBe(2);
+
+					// cleanup
+					await rujira.fin.cancelAllOrders({ ownerAddress: walletPublicKeyThor, market });
 				});
 			});
 
@@ -1534,7 +1592,14 @@ describe("Rujira", async() => {
 				it("cancel a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
-					const placed = await rujira.fin.placeOrder({ ownerAddress: walletPublicKeyThor, market, side: OrderSide.BUY, type: OrderType.FIXED_PRICE, amount: fixedPricePlaceSingleBuyOrderAmount, price: fixedPricePlaceSingleBuyOrderPrice });
+					const placed = await rujira.fin.placeOrder({
+						ownerAddress: walletPublicKeyThor,
+						market,
+						side: OrderSide.BUY,
+						type: OrderType.FIXED_PRICE,
+						amount: fixedPricePlaceSingleBuyOrderAmount,
+						price: fixedPricePlaceSingleBuyOrderPrice
+					});
 
 					expect(placed.order).toBeDefined();
 
@@ -1546,7 +1611,14 @@ describe("Rujira", async() => {
 				it("cancel a fixed price sell order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
-					const placed = await rujira.fin.placeOrder({ ownerAddress: walletPublicKeyThor, market, side: OrderSide.SELL, type: OrderType.FIXED_PRICE, amount: fixedPricePlaceSingleSellOrderAmount, price: fixedPricePlaceSingleSellOrderPrice });
+					const placed = await rujira.fin.placeOrder({
+						ownerAddress: walletPublicKeyThor,
+						market,
+						side: OrderSide.SELL,
+						type: OrderType.FIXED_PRICE,
+						amount: fixedPricePlaceSingleSellOrderAmount,
+						price: fixedPricePlaceSingleSellOrderPrice
+					});
 
 					expect(placed.order).toBeDefined();
 
