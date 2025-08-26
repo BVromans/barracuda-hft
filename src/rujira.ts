@@ -7,10 +7,11 @@ import * as Indicators from "@ixjb94/indicators-js";
 import cacheManager, { Cacheable, CacheManagerOptions } from "@type-cacheable/core";
 import { useAdapter } from "@type-cacheable/lru-cache-adapter";
 import Decimal from 'decimal.js';
-import { LRUCache } from 'lru-cache';
 import * as fs from 'fs';
-import { properties } from "./properties";
+import { LRUCache } from 'lru-cache';
+import { loggedClass } from "./annotations";
 import { logger } from "./logger";
+import { properties } from "./properties";
 import {
 	Amount,
 	Balances,
@@ -31,8 +32,6 @@ import {
 	FinCancelOrdersRequest,
 	FinCancelOrdersResponse,
 	FinConstructorOptions,
-	FinPersistOrdersRequest,
-	FinPersistOrdersResponse,
 	FinGetAllMarketsRequest,
 	FinGetAllMarketsResponse,
 	FinGetAllTokensRequest,
@@ -57,6 +56,8 @@ import {
 	FinGetStatusResponse,
 	FinGetTickerRequest,
 	FinGetTickerResponse,
+	FinGetTickersRequest,
+	FinGetTickersResponse,
 	FinGetTokenRequest,
 	FinGetTokenResponse,
 	FinGetTokensRequest,
@@ -64,6 +65,8 @@ import {
 	FinGetTransactionRequest,
 	FinGetTransactionResponse,
 	FinInitializeOptions,
+	FinPersistOrdersRequest,
+	FinPersistOrdersResponse,
 	FinPlaceOrderRequest,
 	FinPlaceOrderResponse,
 	FinPlaceOrdersRequest,
@@ -77,7 +80,6 @@ import {
 	Indicator,
 	IndicatorData,
 	IndicatorId,
-	Integer,
 	List,
 	Map,
 	Market,
@@ -90,19 +92,25 @@ import {
 	OrderBook,
 	OrderBookOrder,
 	OrderBookPrice,
+	OrderDeviationPercentage,
 	OrderId,
+	OrderMaximumSlippagePercentage,
 	OrderPrice,
 	OrderSide,
 	OrderStatus,
 	OrderType,
+	Price,
 	RujiraConstructorOptions,
 	RujiraInitializeOptions,
 	SystemStatus,
 	Ticker,
 	TickerPrice,
+	TickerQuotationToken,
+	TickerType,
 	Token,
 	TokenAddress,
 	TokenBalance,
+	TokenPrice,
 	TokenSymbol,
 	Transaction,
 	TransactionHash,
@@ -111,13 +119,9 @@ import {
 	Wallet,
 	WalletAddress,
 	WalletMnemonic,
-	WalletPrivateKey,
-	OrderMaximumSlippagePercentage,
-	Price,
-	OrderDeviationPercentage
+	WalletPrivateKey
 } from './types';
 import { get, runWithRetryAndTimeout, sanitizeOrderPrice, validateOrderPrice } from "./utils";
-import { loggedClass } from "./annotations";
 
 /**
  * LRU cache
@@ -1995,6 +1999,200 @@ export class Fin {
 	}
 
 	/**
+	 * Get tickers
+	 * @param request - The request object
+	 * @returns The tickers response
+	 */
+	async getTickers(request: FinGetTickersRequest): Promise<FinGetTickersResponse> {
+		let { tokenAddresses, tokenSymbols, tokens } = request;
+
+		tokenAddresses = MList<TokenAddress>(tokenAddresses?.map((address: TokenAddress) => address.toLowerCase().trim()) || []);
+		tokenSymbols = MList<TokenSymbol>(tokenSymbols?.map((symbol: TokenSymbol) => symbol.toUpperCase().trim()) || []);
+		tokens = MList<Token>(tokens || []);
+
+		if (tokens.isEmpty()) {
+			tokens = (await this.getAllTokens({} as FinGetAllTokensRequest)).valueSeq().toList();
+		}
+
+		if (!tokenAddresses.isEmpty() || !tokenSymbols.isEmpty()) {
+			tokens = tokens.filter((token: Token) => {
+				return tokenAddresses?.includes(token.address)
+					|| tokenSymbols?.includes(token.symbol)
+			});
+		}
+
+		tokenSymbols = tokens.asImmutable().map((token: Token) => token.symbol);
+		tokenAddresses = tokens.asImmutable().map((token: Token) => token.address);
+		tokens = tokens.asMutable();
+
+		const tickers = MMap<TickerType, Map<TickerQuotationToken, Map<TokenSymbol, TokenPrice>>>();
+
+		tickers.set(TickerType.UNIFIED, MMap<TickerQuotationToken, Map<TokenSymbol, TokenPrice>>());
+		tickers.getOrThrow(TickerType.UNIFIED).set(TickerQuotationToken.NATIVE, MMap<TokenSymbol, TokenPrice>());
+		tickers.getOrThrow(TickerType.UNIFIED).set(TickerQuotationToken.USD, MMap<TokenSymbol, TokenPrice>());
+
+		tickers.set(TickerType.ORDER_BOOK, MMap<TickerQuotationToken, Map<TokenSymbol, TokenPrice>>());
+		tickers.getOrThrow(TickerType.ORDER_BOOK).set(TickerQuotationToken.NATIVE, MMap<TokenSymbol, TokenPrice>());
+		tickers.getOrThrow(TickerType.ORDER_BOOK).set(TickerQuotationToken.USD, MMap<TokenSymbol, TokenPrice>());
+
+		tickers.set(TickerType.ORACLE, MMap<TickerQuotationToken, Map<TokenSymbol, TokenPrice>>());
+		tickers.getOrThrow(TickerType.ORACLE).set(TickerQuotationToken.NATIVE, MMap<TokenSymbol, TokenPrice>());
+		tickers.getOrThrow(TickerType.ORACLE).set(TickerQuotationToken.USD, MMap<TokenSymbol, TokenPrice>());
+
+		tickers.set(TickerType.LAYER_POOL, MMap<TickerQuotationToken, Map<TokenSymbol, TokenPrice>>());
+		tickers.getOrThrow(TickerType.LAYER_POOL).set(TickerQuotationToken.NATIVE, MMap<TokenSymbol, TokenPrice>());
+		tickers.getOrThrow(TickerType.LAYER_POOL).set(TickerQuotationToken.USD, MMap<TokenSymbol, TokenPrice>());
+
+		const nativeToUSDTicker = (await this.getTicker({ marketSymbol: `${this.nativeToken.symbol}/${this.usdToken.symbol}` }));
+		const nativeToUSDPrice = get<TickerPrice>(nativeToUSDTicker.middlePrice.baseToQuote);
+		const USDToNativePrice = get<TickerPrice>(nativeToUSDTicker.middlePrice.quoteToBase);
+
+		// Fetch THORChain oracle prices as fallback
+		let oracleRawBalances: { prices: Array<{ symbol: string; price: string }> } | undefined;
+		const oracleResponse = await this.parent.fetch('https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices')
+			.catch((exception) => logger.ignoreException(exception, 'Failed to fetch THORChain oracle prices.'));
+		if (oracleResponse?.ok) {
+			/*
+			Example response:
+				{
+					"prices": [
+						{
+							"symbol": "ATOM",
+							"price": "4.329"
+						}
+					]
+				}
+			*/
+			oracleRawBalances = await oracleResponse.json() as any;
+		}
+
+		// Fetch base layer pool prices as fallback
+		let poolRawBalances: Array<{
+			asset: string;
+			short_code: string;
+			status: string;
+			pending_inbound_asset: string;
+			pending_inbound_rune: string;
+			balance_asset: string;
+			balance_rune: string;
+			asset_tor_price: string;
+			pool_units: string;
+			LP_units: string;
+			synth_units: string;
+			synth_supply: string;
+			savers_depth: string;
+			savers_units: string;
+			savers_fill_bps: string;
+			savers_capacity_remaining: string;
+			synth_mint_paused: boolean;
+			synth_supply_remaining: string;
+			loan_collateral: string;
+			loan_collateral_remaining: string;
+			loan_cr: string;
+			derived_depth_bps: string;
+			trading_halted: boolean;
+		}> | undefined;
+		const poolResponse = await this.parent.fetch('https://thornode.ninerealms.com/thorchain/pools')
+			.catch((exception) => logger.ignoreException(exception, 'Failed to fetch THORChain pool prices.'));
+		if (poolResponse?.ok) {
+			/*
+			Example response:
+				[
+					{
+						"asset": "AVAX.AVAX",
+						"short_code": "a",
+						"status": "Available",
+						"pending_inbound_asset": "0",
+						"pending_inbound_rune": "0",
+						"balance_asset": "7882937787649",
+						"balance_rune": "138875179713185",
+						"asset_tor_price": "2282237044",
+						"pool_units": "86137445582153",
+						"LP_units": "63855886936577",
+						"synth_units": "22281558645576",
+						"synth_supply": "4078229611474",
+						"savers_depth": "3960836133855",
+						"savers_units": "3450281845752",
+						"savers_fill_bps": "0",
+						"savers_capacity_remaining": "0",
+						"synth_mint_paused": true,
+						"synth_supply_remaining": "5381295733704",
+						"loan_collateral": "0",
+						"loan_collateral_remaining": "0",
+						"loan_cr": "0",
+						"derived_depth_bps": "8790",
+						"trading_halted": false
+					}
+				]
+			*/
+			poolRawBalances = await poolResponse.json() as any;
+		}
+
+		for (const token of tokens) {
+			const rawOracleBalance = oracleRawBalances?.prices.find((oracleRawBalance: { symbol: string; price: string }) => {
+				return token.symbol.toLowerCase().endsWith(oracleRawBalance.symbol.toString().trim().toLowerCase());
+			});
+
+			if (rawOracleBalance) {
+				const price = new Decimal(rawOracleBalance.price.toString().trim());
+				tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price, true);
+				tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice), true);
+			} else {
+				// logger.ignoreException(new Error(`Token not found`), `Oracle price token ${token.symbol} not found, ignoring this price.`);
+			}
+
+			const rawPoolBalance = poolRawBalances?.find((poolRawBalance: { asset: string; asset_tor_price: string }) => {
+				return token.address.toLowerCase() == poolRawBalance.asset.toString().trim().toLowerCase();
+			});
+
+			if (rawPoolBalance) {
+				const price = new Decimal(rawPoolBalance.asset_tor_price.toString().trim()).div(DECIMAL_10.pow(8));
+
+				tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price, true);
+				tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice), true);
+			} else {
+				// logger.ignoreException(new Error(`Token not found`), `Pool price token ${token.symbol} not found, ignoring this price.`);
+			}
+
+			try {
+				const tokenToUsdMarket = await this.getMarket({ symbol: `${token.symbol}/${this.usdToken.symbol}` });
+				const ticker = await this.getTicker({ marketAddress: tokenToUsdMarket.address });
+				const price = get<TickerPrice>(ticker.middlePrice.baseToQuote);
+
+				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price, true);
+				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice), true);
+			} catch (exception) {
+				try {
+					const tokenToNativeMarket = await this.getMarket({ symbol: `${token.symbol}/${this.nativeToken.symbol}` });
+					const ticker = await this.getTicker({ marketAddress: tokenToNativeMarket.address });
+					const price = get<TickerPrice>(ticker.middlePrice.baseToQuote);
+					tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price, true);
+					tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price.mul(nativeToUSDPrice), true);
+				} catch (exception) {
+					// logger.ignoreException(exception, `Failed to get price for token ${token.symbol} using ${token.symbol}/${this.usdToken.symbol} or ${token.symbol}/${this.nativeToken.symbol} markets.`);
+				}
+			}
+
+			tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).set(
+				token.symbol,
+				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).get(token.symbol)
+				|| tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.USD).get(token.symbol)
+				|| tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.USD).getOrThrow(token.symbol, DECIMAL_0),
+				true
+			);
+			tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.NATIVE).set(
+				token.symbol,
+				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).get(token.symbol)
+				|| tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.NATIVE).get(token.symbol)
+				|| tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.NATIVE).getOrThrow(token.symbol, DECIMAL_0),
+				true
+			);
+		}
+
+		return tickers;
+	}
+
+	/**
 	 * Get candles
 	 * @param request - The request object
 	 * @returns The candles response
@@ -2205,157 +2403,7 @@ export class Fin {
 		tokenSymbols = tokens.keySeq().toList();
 		tokenAddresses = tokens.valueSeq().map((token: Token) => token.address).toList();
 
-		const tokenToNativePrices = MMap<TokenSymbol, TickerPrice>();
-		const tokenToUSDPrices = MMap<TokenSymbol, TickerPrice>();
-
-		const nativeToUSDTicker = (await this.getTicker({ marketSymbol: `${this.nativeToken.symbol}/${this.usdToken.symbol}` }));
-		const nativeToUSDPrice = get<TickerPrice>(nativeToUSDTicker.middlePrice.baseToQuote);
-		const USDToNativePrice = get<TickerPrice>(nativeToUSDTicker.middlePrice.quoteToBase);
-
-		tokenToUSDPrices.set(this.usdToken.symbol, DECIMAL_1, true);
-		tokenToNativePrices.set(this.nativeToken.symbol, DECIMAL_1, true);
-		tokenToUSDPrices.set(this.nativeToken.symbol, nativeToUSDPrice, true);
-		tokenToNativePrices.set(this.usdToken.symbol, USDToNativePrice, true);
-
-		// Fetch token prices using a ticker with the USD token or the native token
-		for (const token of tokens.values()) {
-			if (!tokenToUSDPrices.has(token.symbol)) {
-				try {
-					const tokenToUsdMarket = await this.getMarket({ symbol: `${token.symbol}/${this.usdToken.symbol}` });
-					const ticker = await this.getTicker({ marketAddress: tokenToUsdMarket.address });
-					const price = get<TickerPrice>(ticker.middlePrice.baseToQuote);
-					tokenToUSDPrices.set(token.symbol, price);
-					tokenToNativePrices.set(token.symbol, price.mul(USDToNativePrice));
-				} catch (exception) {
-					try {
-						const tokenToNativeMarket = await this.getMarket({ symbol: `${token.symbol}/${this.nativeToken.symbol}` });
-						const ticker = await this.getTicker({ marketAddress: tokenToNativeMarket.address });
-						const price = get<TickerPrice>(ticker.middlePrice.baseToQuote);
-						tokenToNativePrices.set(token.symbol, price);
-						tokenToUSDPrices.set(token.symbol, price.mul(nativeToUSDPrice));
-					} catch (exception) {
-						// logger.ignoreException(exception, `Failed to get price for token ${token.symbol} using ${token.symbol}/${this.usdToken.symbol} or ${token.symbol}/${this.nativeToken.symbol} markets.`);
-					}
-				}
-			}
-		}
-
-		// Fetch THORChain oracle prices as fallback
-		const oracleResponse = await this.parent.fetch('https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices')
-			.catch((exception) => logger.ignoreException(exception, 'Failed to fetch THORChain oracle prices.'));
-
-		if (oracleResponse?.ok) {
-			/*
-			Example response:
-				{
-					"prices": [
-						{
-							"symbol": "ATOM",
-							"price": "4.329"
-						}
-					]
-				}
-			*/
-			const oracleRawBalances = await oracleResponse.json() as { prices: Array<{ symbol: string; price: string }> };
-			for (const token of tokens.values()) {
-				if (!tokenToUSDPrices.has(token.symbol)) {
-					const rawBalance = oracleRawBalances.prices.find((oracleRawBalance: { symbol: string; price: string }) => {
-						return token.symbol.toLowerCase().endsWith(oracleRawBalance.symbol.toString().trim().toLowerCase());
-					});
-
-					if (rawBalance) {
-						const price = new Decimal(rawBalance.price.toString().trim());
-						tokenToUSDPrices.set(token.symbol, price);
-						tokenToNativePrices.set(token.symbol, price.mul(USDToNativePrice));
-					} else {
-						// logger.ignoreException(new Error(`Token not found`), `Oracle price token ${token.symbol} not found, ignoring this price.`);
-					}
-				}
-			}
-		}
-
-		// Fetch base layer pool prices as fallback
-		const poolResponse = await this.parent.fetch('https://thornode.ninerealms.com/thorchain/pools')
-			.catch((exception) => logger.ignoreException(exception, 'Failed to fetch THORChain pool prices.'));
-
-		if (poolResponse?.ok) {
-			/*
-			Example response:
-				[
-					{
-						"asset": "AVAX.AVAX",
-						"short_code": "a",
-						"status": "Available",
-						"pending_inbound_asset": "0",
-						"pending_inbound_rune": "0",
-						"balance_asset": "7882937787649",
-						"balance_rune": "138875179713185",
-						"asset_tor_price": "2282237044",
-						"pool_units": "86137445582153",
-						"LP_units": "63855886936577",
-						"synth_units": "22281558645576",
-						"synth_supply": "4078229611474",
-						"savers_depth": "3960836133855",
-						"savers_units": "3450281845752",
-						"savers_fill_bps": "0",
-						"savers_capacity_remaining": "0",
-						"synth_mint_paused": true,
-						"synth_supply_remaining": "5381295733704",
-						"loan_collateral": "0",
-						"loan_collateral_remaining": "0",
-						"loan_cr": "0",
-						"derived_depth_bps": "8790",
-						"trading_halted": false
-					}
-				]
-			*/
-			const poolRawBalances = await poolResponse.json() as Array<{
-				asset: string;
-				short_code: string;
-				status: string;
-				pending_inbound_asset: string;
-				pending_inbound_rune: string;
-				balance_asset: string;
-				balance_rune: string;
-				asset_tor_price: string;
-				pool_units: string;
-				LP_units: string;
-				synth_units: string;
-				synth_supply: string;
-				savers_depth: string;
-				savers_units: string;
-				savers_fill_bps: string;
-				savers_capacity_remaining: string;
-				synth_mint_paused: boolean;
-				synth_supply_remaining: string;
-				loan_collateral: string;
-				loan_collateral_remaining: string;
-				loan_cr: string;
-				derived_depth_bps: string;
-				trading_halted: boolean;
-			}>;
-			for (const token of tokens.values()) {
-				if (!tokenToUSDPrices.has(token.symbol)) {
-					const rawBalance = poolRawBalances.find((poolRawBalance: { asset: string; asset_tor_price: string }) => {
-						return token.address.toLowerCase() == poolRawBalance.asset.toString().trim().toLowerCase();
-					});
-
-					if (rawBalance) {
-						const price = new Decimal(rawBalance.asset_tor_price.toString().trim()).div(DECIMAL_10.pow(8));
-						tokenToUSDPrices.set(token.symbol, price);
-						tokenToNativePrices.set(token.symbol, price.mul(USDToNativePrice));
-					} else {
-						// logger.ignoreException(new Error(`Token not found`), `Pool price token ${token.symbol} not found, ignoring this price.`);
-					}
-				}
-			}
-		}
-
-		for (const token of tokens.values()) {
-			if (!tokenToUSDPrices.has(token.symbol)) {
-				logger.ignoreException(new Error(`Token price for ${token.symbol} not found, ignoring this token price.`));
-			}
-		}
+		const tickers = await this.getTickers({ tokens: tokens.valueSeq().toList() })
 
 		const freeBalances = MMap<TokenSymbol, Amount>();
 		const freeBalanceResponse = await this.parent.fetch(`${properties.getAs<string>('rujira.endpoints.rest')}/cosmos/bank/v1beta1/balances/${walletAddress}`);
@@ -2424,14 +2472,27 @@ export class Fin {
 					let lockedAmount: Amount;
 					let lockedTokenSymbol: TokenSymbol;
 
-					if (order.side === OrderSide.SELL) {
+					if (order.side === OrderSide.BUY) {
+						// For BUY orders, calculate locked amount based on order type
+						lockedTokenSymbol = quoteTokenSymbol;
+						if (order.type === OrderType.FIXED_PRICE) {
+							// For fixed price orders, use order price directly
+							lockedAmount = order.amount.mul(get<OrderPrice>(order.price));
+						} else if (order.type === OrderType.TRACKING_ORDER) {
+							// For tracking orders, use current market price + deviation
+							const deviationMultiplier = DECIMAL_100.minus(get<OrderDeviationPercentage>(order.deviation)).div(DECIMAL_100);
+							const currentPrice = tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).getOrThrow(lockedTokenSymbol);
+							const adjustedPrice = currentPrice.mul(deviationMultiplier);
+							lockedAmount = order.amount.mul(adjustedPrice);
+						} else {
+							throw new Error(`Unsupported order type: ${order.type}`);
+						}
+					} else if (order.side === OrderSide.SELL) {
 						// For SELL orders, lock the base token amount
 						lockedTokenSymbol = baseTokenSymbol;
 						lockedAmount = order.amount;
 					} else {
-						// For BUY orders, lock the quote token amount (price * amount)
-						lockedTokenSymbol = quoteTokenSymbol;
-						lockedAmount = order.price ? order.amount.mul(get<OrderPrice>(order.price)) : order.amount;
+						throw new Error(`Unsupported order side: ${order.side}`);
 					}
 
 					if (lockedAmount.gt(0)) {
@@ -2445,14 +2506,27 @@ export class Fin {
 					let withdrawAmount: Amount;
 					let withdrawTokenSymbol: TokenSymbol;
 
-					if (order.side === OrderSide.SELL) {
-						// For filled SELL orders, withdrawable is the quote token amount received
-						withdrawTokenSymbol = quoteTokenSymbol;
-						withdrawAmount = order.amount.mul(get<OrderPrice>(order.price));
-					} else {
+					if (order.side === OrderSide.BUY) {
 						// For filled BUY orders, withdrawable is the base token amount received
 						withdrawTokenSymbol = baseTokenSymbol;
 						withdrawAmount = order.amount;
+					} else if (order.side === OrderSide.SELL) {
+						// For filled SELL orders, withdrawable is the quote token amount received
+						withdrawTokenSymbol = quoteTokenSymbol;
+						if (order.type === OrderType.FIXED_PRICE) {
+							// For fixed price orders, use order price directly
+							withdrawAmount = order.amount.mul(get<OrderPrice>(order.price));
+						} else if (order.type === OrderType.TRACKING_ORDER) {
+							// For tracking orders, we need to estimate the quote amount received
+							const deviationMultiplier = DECIMAL_100.plus(get<OrderDeviationPercentage>(order.deviation)).div(DECIMAL_100);
+							const currentPrice = tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).getOrThrow(withdrawTokenSymbol);
+							const adjustedPrice = currentPrice.mul(deviationMultiplier);
+							withdrawAmount = order.amount.mul(adjustedPrice);
+						} else {
+							throw new Error(`Unsupported order type: ${order.type}`);
+						}
+					} else {
+						throw new Error(`Unsupported order side: ${order.side}`);
 					}
 
 					if (withdrawAmount.gt(0)) {
@@ -2494,8 +2568,8 @@ export class Fin {
 				total
 			};
 
-			const conversionRateUSD: TickerPrice = token.address == this.usdToken.address ? DECIMAL_1 : tokenToUSDPrices.getOrThrow(token.symbol, DECIMAL_0);
-			const conversionRateNative: TickerPrice = token.address == this.nativeToken.address ? DECIMAL_1 : tokenToNativePrices.getOrThrow(token.symbol, DECIMAL_0);
+			const conversionRateUSD: TickerPrice = token.address == this.usdToken.address ? DECIMAL_1 : tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).getOrThrow(token.symbol, DECIMAL_0);
+			const conversionRateNative: TickerPrice = token.address == this.nativeToken.address ? DECIMAL_1 : tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.NATIVE).getOrThrow(token.symbol, DECIMAL_0);
 
 			// Convert balances to native token (RUJI) amounts
 			const nativeTokenBalance: BaseBalance = {
@@ -2751,7 +2825,7 @@ export class Fin {
 				deviation = DECIMAL_0;
 			} else if (rawOrder.price.oracle) {
 				type = OrderType.TRACKING_ORDER;
-				deviation = Decimal(rawOrder.price.oracle);
+				deviation = Decimal(rawOrder.price.oracle).div(DECIMAL_100); // Convert from bps (basis points) to percentage
 				price = Decimal(rawOrder.rate || '0');
 			} else {
 				throw new Error(`Unknown order price type: ${JSON.stringify(rawOrder)}`);

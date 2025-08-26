@@ -60,6 +60,24 @@ export enum TransactionStatus {
 }
 
 /**
+ * Ticker type
+ */
+export enum TickerType {
+	UNIFIED = 'unified', // Unified ticker, using the order book, oracle and layer pool tickers
+	ORDER_BOOK = 'order_book',
+	ORACLE = 'oracle',
+	LAYER_POOL = 'layer_pool',
+}
+
+/**
+ * Ticker quotation token
+ */
+export enum TickerQuotationToken {
+	NATIVE = 'native',
+	USD = 'usd',
+}
+
+/**
  * Market status
  */
 export enum MarketStatus {
@@ -1631,6 +1649,7 @@ export type TokenAddress = Address;
 export type TokenSymbol = Symbol;
 export type TokenName = Name;
 export type TokenDecimals = Integer;
+export type TokenPrice = Price;
 
 export type FeeAmount = Amount;
 export type FeeToken = Token;
@@ -2417,6 +2436,32 @@ export interface FinGetTickerResponse extends Ticker {
 }
 
 /**
+ * Get tickers request (if no addresses or symbols are provided, all tickers will be returned)
+ */
+export interface FinGetTickersRequest {
+	/**
+	 * Market addresses
+	 */
+	tokenAddresses?: List<TokenAddress> | TokenAddress[];
+
+	/**
+	 * Market symbols
+	 */
+	tokenSymbols?: List<TokenSymbol> | TokenSymbol[];
+
+	/**
+	 * Tokens
+	 */
+	tokens?: List<Token> | Token[];
+}
+
+/**
+ * Get tickers response
+ */
+export interface FinGetTickersResponse extends Map<TickerType, Map<TickerQuotationToken, Map<TokenSymbol, TokenPrice>>> {
+}
+
+/**
  * Get candles request
  */
 export interface FinGetCandlesRequest {
@@ -2724,7 +2769,7 @@ export interface FinPlaceOrderRequest {
 	price?: OrderPrice;
 
 	/**
-	 * Oracle deviation in basis points (for tracking orders)
+	 * Oracle deviation in percentage (for tracking orders) or in 100 basis points (bps)
 	 */
 	deviation?: OrderDeviationPercentage;
 
