@@ -242,8 +242,6 @@ describe("Rujira", async() => {
 			});
 
 			it("should validate a confirmed transaction waiting confirmation", async () => {
-				// TODO Add a new call for testing a pending transaction!!!
-
 				const result = await rujira.fin.getTransaction({
 					hash: transactionHash,
 					waitForConfirmation: true,
