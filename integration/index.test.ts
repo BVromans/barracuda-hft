@@ -1306,10 +1306,11 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("orders", async () => {
+		describe("orders", async () => {
 			const cleanOrders = async () => {
-				await rujira.fin.cancelAllOrders({ ownerAddress: walletPublicKeyThor, marketAddress: firstMarketAddress });
-				await rujira.fin.withdrawAllFilledOrders({ ownerAddress: walletPublicKeyThor, marketAddress: firstMarketAddress });
+				const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
+				await rujira.fin.cancelAllOrders({ ownerAddress: walletPublicKeyThor, market });
+				await rujira.fin.withdrawAllFilledOrders({ ownerAddress: walletPublicKeyThor, market });
 			};
 
 			beforeAll(async () => {
