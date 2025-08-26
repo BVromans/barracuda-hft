@@ -2118,10 +2118,11 @@ export class Fin {
 
 		const candles = MList<Candle>(limitedCandles).map((entry: any) => ({
 			timestamp: new Date(entry.bin).getTime(),
-			open: Decimal(entry.open || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
-			high: Decimal(entry.high || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
-			low: Decimal(entry.low || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
-			close: Decimal(entry.close || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
+			// Rujira is using 12 decimals for the price in the candles, which might differ from the market
+			open: Decimal(entry.open || 0).div(DECIMAL_10.pow(12)),
+			high: Decimal(entry.high || 0).div(DECIMAL_10.pow(12)),
+			low: Decimal(entry.low || 0).div(DECIMAL_10.pow(12)),
+			close: Decimal(entry.close || 0).div(DECIMAL_10.pow(12)),
 			volume: Decimal(entry.volume || 0),
 			raw: entry
 		}));
