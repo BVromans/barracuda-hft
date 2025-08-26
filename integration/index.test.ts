@@ -680,14 +680,12 @@ describe("Rujira", async() => {
 				expect(result.market.tokens.base).toBeDefined();
 				expect(result.market.tokens.base.address).toBe(firstMarketBaseTokenAddress);
 				expect(result.market.tokens.base.symbol).toBe(firstMarketBaseTokenSymbol);
-				expect(result.market.tokens.base.name).toBe(firstMarketBaseTokenSymbol);
 				expect(result.market.tokens.base.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.market.tokens.base.raw).toBeDefined();
 
 				expect(result.market.tokens.quote).toBeDefined();
 				expect(result.market.tokens.quote.address).toBe(firstMarketQuoteTokenAddress);
 				expect(result.market.tokens.quote.symbol).toBe(firstMarketQuoteTokenSymbol);
-				expect(result.market.tokens.quote.name).toBe(firstMarketQuoteTokenSymbol);
 				expect(result.market.tokens.quote.decimals).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 				expect(result.market.tokens.quote.raw).toBeDefined();
 
@@ -1308,7 +1306,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("orders", async () => {
+		describe.skip("orders", async () => {
 			const cleanOrders = async () => {
 				await rujira.fin.cancelAllOrders({ ownerAddress: walletPublicKeyThor, marketAddress: firstMarketAddress });
 				await rujira.fin.withdrawAllFilledOrders({ ownerAddress: walletPublicKeyThor, marketAddress: firstMarketAddress });

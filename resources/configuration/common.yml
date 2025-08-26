@@ -60,20 +60,20 @@ tests:
         address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
         tokens:
           base:
-            address: "QXNzZXQ6VEhPUi5OQU1J"
+            address: "thor.nami"
             symbol: "THOR-NAMI"
           quote:
-            address: "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4"
+            address: "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
             symbol: "ETH-USDC"
       second:
-        symbol: "THOR-NAMI/ETH-USDC"
-        address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
+        symbol: "THOR-RUJI/ETH-USDC"
+        address: "thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a"
         tokens:
           base:
-            address: "QXNzZXQ6VEhPUi5OQU1J"
-            symbol: "THOR-NAMI"
+            address: "x/ruji"
+            symbol: "THOR-RUJI"
           quote:
-            address: "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4"
+            address: "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
             symbol: "ETH-USDC"
     orders:
       place:
