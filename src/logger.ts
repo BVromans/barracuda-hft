@@ -1,5 +1,7 @@
 import Decimal from "decimal.js";
 import { List, Map } from "immutable";
+import * as fs from "fs";
+import * as path from "path";
 
 /**
  * Replacer for JSON.stringify to handle special cases.
@@ -108,7 +110,6 @@ Error.prepareStackTrace = (err, stack) => {
 	});
 };
 
-
 /**
  * Log levels
  */
@@ -130,9 +131,16 @@ export class Logger {
 	private static instance: Logger;
 
 	/**
+	 * Log directory path
+	 */
+	private readonly logDirectory: string;
+
+	/**
 	 * Constructor
 	 */
 	private constructor() {
+		this.logDirectory = path.join(process.cwd(), "logs");
+		this.ensureLogDirectoryExists();
 	}
 
 	/**
@@ -144,6 +152,30 @@ export class Logger {
 		}
 
 		return Logger.instance;
+	}
+
+	/**
+	 * Ensures the log directory exists, creating it if necessary
+	 */
+	private ensureLogDirectoryExists(): void {
+		if (!fs.existsSync(this.logDirectory)) {
+			fs.mkdirSync(this.logDirectory, { recursive: true });
+		}
+	}
+
+	/**
+	 * Writes a message to a specific log file
+	 * @param filename - The name of the log file
+	 * @param message - The message to write
+	 */
+	private writeToLogFile(filename: string, message: string): void {
+		try {
+			const filePath = path.join(this.logDirectory, filename);
+			fs.appendFileSync(filePath, message, 'utf8');
+		} catch (error) {
+			// Fallback to console if file writing fails
+			console.error(`Failed to write to log file ${filename}:`, error);
+		}
 	}
 
 	/**
@@ -227,7 +259,7 @@ export class Logger {
 		const functionName = frame?.functionName;
 		const methodName = frame?.methodName;
 
-		message = `\n[${timestamp}][${level}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}${includeStackTrace ? `\n\n${stacktrace}` : ''}\n`;
+		message = `\n[${timestamp}][${level.toUpperCase()}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}${includeStackTrace ? `\n\n${stacktrace}` : ''}\n`;
 
 		let method: 'debug' | 'info' | 'warn' | 'error' = 'debug';
 
@@ -254,6 +286,10 @@ export class Logger {
 		} else {
 			console[method](message);
 		}
+
+		this.writeToLogFile("all.log", message);
+
+		this.writeToLogFile(`${level}.log`, message);
 	}
 }
 
