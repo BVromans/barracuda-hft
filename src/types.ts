@@ -2148,6 +2148,11 @@ export interface Order {
 	price?: OrderPrice;
 
 	/**
+	 * Oracle deviation in basis points (for tracking orders)
+	 */
+	deviation?: OrderDeviationPercentage;
+
+	/**
 	 * Amount of the order
 	 */
 	amount: OrderAmount;
@@ -2717,6 +2722,11 @@ export interface FinPlaceOrderRequest {
 	 * Order price (required for limit orders)
 	 */
 	price?: OrderPrice;
+
+	/**
+	 * Oracle deviation in basis points (for tracking orders)
+	 */
+	deviation?: OrderDeviationPercentage;
 
 	/**
 	 * Maximum slippage percentage
