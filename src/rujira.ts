@@ -1821,7 +1821,8 @@ export class Fin {
 					base: baseToken,
 					quote: quoteToken
 				},
-				decimals: 8, // Number(pair.tick), // TODO: verify a better way to get the market decimals!!!
+				decimals: 8, // It seems Rujira fixed the decimals to 8 places for all markets
+				tick: Number(pair.tick),
 				status: MarketStatus.ACTIVE, // LIVE markets are active
 				raw: pair
 			};
@@ -1858,8 +1859,21 @@ export class Fin {
 			market = await this.getMarket({ address: marketAddress, symbol: marketSymbol });
 		}
 
-		// TODO: add an example response!!!
-		// TODO: add an interface for the response!!!
+		// Example response:
+		// 	{
+		// 		"base": [
+		// 			{
+		// 				"price": "1.59",
+		// 				"total": "15399999876"
+		// 			}
+		// 		],
+		// 		"quote": [
+		// 			{
+		// 				"price": "1.577",
+		// 				"total": "43386912812"
+		// 			}
+		// 		]
+		// 	}
 		const rawOrderBook = await this.parent.cosmClientQueryContractSmart(
 			market.address,
 			{
@@ -1867,16 +1881,25 @@ export class Fin {
 					limit: maximumNumberOfOrders
 				}
 			}
-		);
+		) as {
+			base: Array<{
+				price: string,
+				total: string;
+			}>,
+			quote: Array<{
+				price: string;
+				total: string;
+			}>;
+		};
 
 		const parseOrder = (entry: any): OrderBookOrder => ({
 			price: Decimal(entry.price),
 			amount: Decimal(entry.total).div(DECIMAL_10.pow(market.decimals)),
 			raw: entry
-		});
+		} as OrderBookOrder);
 
-		let asks: List<OrderBookOrder> = MList<OrderBookOrder>(rawOrderBook.base || []).map(parseOrder);
-		let bids: List<OrderBookOrder> = MList<OrderBookOrder>(rawOrderBook.quote || []).map(parseOrder);
+		let asks: List<OrderBookOrder> = MList<{ price: string, total: string }>(rawOrderBook.base || []).map(parseOrder);
+		let bids: List<OrderBookOrder> = MList<{ price: string, total: string }>(rawOrderBook.quote || []).map(parseOrder);
 
 		asks = maximumNumberOfOrders ? asks.slice(0, maximumNumberOfOrders) : asks;
 		bids = maximumNumberOfOrders ? bids.slice(0, maximumNumberOfOrders) : bids;
@@ -1999,7 +2022,6 @@ export class Fin {
 		const before = new Date().toISOString();
 		const after = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-		// TODO: add a example response!!!
 		const response = await this.parent.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -2039,8 +2061,47 @@ export class Fin {
 			throw new Error(`GraphQL request failed: ${response.status} ${response.statusText}`);
 		}
 
-		// TODO: add a interface for the response!!!
-		const json: any = (await response.json());
+		// Example response:
+		// 	{
+		// 		"data": {
+		// 			"node": {
+		// 				"address": "thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a",
+		// 				"candles": {
+		// 					"edges": [
+		// 						{
+		// 							"node": {
+		// 								"bin": "2025-08-19T14:55:00Z",
+		// 								"close": "1470000000000",
+		// 								"high": "1470000000000",
+		// 								"low": "1470000000000",
+		// 								"open": "1470000000000",
+		// 								"volume": "1470000000000"
+		// 							}
+		// 						}
+		// 					]
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		const json: any = (await response.json()) as {
+			data: {
+				node: {
+					candles: {
+						edges: Array<{
+							node: {
+								bin: string,
+								close: string,
+								high: string,
+								low: string,
+								open: string,
+								volume: string;
+							};
+						}>;
+					};
+				};
+			};
+			errors: Array<{ message: string }>;
+		};
 		const { data, errors } = json;
 
 		if (errors) {
@@ -2058,10 +2119,11 @@ export class Fin {
 
 		const candles = MList<Candle>(limitedCandles).map((entry: any) => ({
 			timestamp: new Date(entry.bin).getTime(),
-			open: Decimal(entry.open || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
-			high: Decimal(entry.high || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
-			low: Decimal(entry.low || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
-			close: Decimal(entry.close || 0).div(DECIMAL_10.pow(12)), // TODO: check if 12 is correct!!!
+			// Rujira is using 12 decimals for the price in the candles, which might differ from the market
+			open: Decimal(entry.open || 0).div(DECIMAL_10.pow(12)),
+			high: Decimal(entry.high || 0).div(DECIMAL_10.pow(12)),
+			low: Decimal(entry.low || 0).div(DECIMAL_10.pow(12)),
+			close: Decimal(entry.close || 0).div(DECIMAL_10.pow(12)),
 			volume: Decimal(entry.volume || 0),
 			raw: entry
 		}));
@@ -2694,7 +2756,7 @@ export class Fin {
 			} else {
 				throw new Error(`Unknown order price type: ${JSON.stringify(rawOrder)}`);
 			}
-			const amount = (side == OrderSide.BUY ? Decimal(rawOrder.offer).div(price) : Decimal(rawOrder.offer)).div(DECIMAL_10.pow(market.decimals));
+			const amount = (side == OrderSide.BUY ? Decimal(rawOrder.offer).div(price).div(DECIMAL_10.pow(market.tokens.base.decimals)) : Decimal(rawOrder.offer)).div(DECIMAL_10.pow(market.tokens.base.decimals));
 			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(Decimal(rawOrder.offer))));
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 			const id = this.getOrderId({

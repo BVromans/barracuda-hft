@@ -97,7 +97,7 @@ export enum OrderSide {
 export enum OrderType {
 	MARKET = 'market',
 	FIXED_PRICE = 'fixed_price',
-	TRACKING_ORDER = 'tracking_order',
+	TRACKING_ORDER = 'tracking_order', // They are also called "oracle orders"
 	// LIMIT = 'limit',
 }
 
@@ -1641,6 +1641,7 @@ export type MarketAddress = Address;
 export type MarketSymbol = Symbol;
 export type MarketDecimals = Integer;
 export type MarketPrice = Price;
+export type MarketTick = Integer;
 
 export type OrderBookOrderPrice = Price;
 export type OrderBookOrderAmount = Amount;
@@ -1776,6 +1777,14 @@ export interface Market {
 	 * Status of the market
 	 */
 	status: MarketStatus;
+
+	/**
+	 * Tick size of the market
+	 *
+	 * The tick of a market, is not a tick size, but the number of significative digits it might contain, ignoring the leading zeros.
+	 * For example, if the tick is 4, this is 0.00000001234 ok, but 0.12345, or, 12.345 is not ok.
+	 */
+	tick: MarketTick;
 
 	/**
 	 * Raw data
