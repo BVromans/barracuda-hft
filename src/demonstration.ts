@@ -891,7 +891,7 @@ import { dump, get } from "./utils";
 			// marketAddress: defaultMarketAddress,
 			marketSymbol: defaultMarketSymbol,
 			// market: defaultMarket,
-			orderTypes: [OrderType.FIXED_PRICE],
+			orderTypes: [OrderType.FIXED_PRICE, OrderType.TRACKING_ORDER],
 			orderSides: [OrderSide.BUY, OrderSide.SELL],
 			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED],
 			// orderPrices: orderTemplates.place.multiple.map(order => get<OrderPrice>(order.price)),
