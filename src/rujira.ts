@@ -3480,7 +3480,7 @@ export class Fin {
 					if (requestOrder.deviation === undefined) {
 						throw new Error("Deviation is required for placing tracking orders");
 					}
-					deviation = requestOrder.deviation;
+					deviation = requestOrder.deviation.mul(DECIMAL_100); // Convert from percentage to 100 basis points (bps)
 
 					if (requestOrder.side === OrderSide.BUY) {
 						payingToken = market.tokens.quote;
@@ -3567,8 +3567,8 @@ export class Fin {
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
 
 				if (existingOrder.type === OrderType.TRACKING_ORDER) {
-					// For tracking orders, use the stored deviation
-					const deviation = existingOrder.deviation || DECIMAL_0;
+					// For tracking orders, use the stored deviation (already in 100 basis points (bps))
+					const deviation = existingOrder.deviation?.mul(DECIMAL_100) || DECIMAL_0;
 					ordersMessages.push([side, { oracle: deviation.toNumber() }, "0"]);
 				} else {
 					// For fixed price orders
@@ -3607,8 +3607,8 @@ export class Fin {
 				const side = existingOrder.side === OrderSide.BUY ? 'quote' : 'base';
 
 				if (existingOrder.type === OrderType.TRACKING_ORDER) {
-					// For tracking orders, use the stored deviation
-					const deviation = existingOrder.deviation || DECIMAL_0;
+					// For tracking orders, use the stored deviation (already in 100 basis points (bps))
+					const deviation = existingOrder.deviation?.mul(DECIMAL_100) || DECIMAL_0;
 					ordersMessages.push([side, { oracle: deviation.toNumber() }, null]);
 				} else {
 					// For fixed price orders
