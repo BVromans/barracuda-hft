@@ -52,20 +52,84 @@ tests:
     timeout: 10_000 # 10 seconds
   integration:
     timeout: 60_000 # 60 seconds
-    transaction_hash: "EDF881BCB440DA84C6197C563BB7313FD04AED6D0E477676661B901EEFC87E3E" # Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
-    first_market_symbol: "THOR-NAMI/ETH-USDC"
-    first_market_address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
-    first_market_base_token_address: "QXNzZXQ6VEhPUi5OQU1J"
-    first_market_quote_token_address: "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4"
-    first_market_base_token_symbol: "THOR-NAMI"
-    first_market_quote_token_symbol: "ETH-USDC"
-    first_market_base_token_amount: "0.000001"
-    first_market_quote_token_amount: "0.000001"
-    second_market_symbol: "THOR-NAMI/ETH-USDC"
-    second_market_address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
-    second_market_base_token_address: "QXNzZXQ6VEhPUi5OQU1J"
-    second_market_quote_token_address: "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4"
-    second_market_base_token_symbol: "THOR-NAMI"
-    second_market_quote_token_symbol: "ETH-USDC"
-    second_market_base_token_amount: "0.000001"
-    second_market_quote_token_amount: "0.000001"
+    transaction:
+      hash: "EDF881BCB440DA84C6197C563BB7313FD04AED6D0E477676661B901EEFC87E3E" # Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
+    markets:
+      first:
+        symbol: "THOR-NAMI/ETH-USDC"
+        address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
+        tokens:
+          base:
+            address: "QXNzZXQ6VEhPUi5OQU1J"
+            symbol: "THOR-NAMI"
+          quote:
+            address: "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4"
+            symbol: "ETH-USDC"
+      second:
+        symbol: "THOR-NAMI/ETH-USDC"
+        address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
+        tokens:
+          base:
+            address: "QXNzZXQ6VEhPUi5OQU1J"
+            symbol: "THOR-NAMI"
+          quote:
+            address: "QXNzZXQ6RVRILVVTREMtMFhBMEI4Njk5MUM2MjE4QjM2QzFEMTlENEEyRTlFQjBDRTM2MDZFQjQ4"
+            symbol: "ETH-USDC"
+    orders:
+      place:
+        fixed_price:
+          single:
+            buy:
+              price: "0.001234"
+              amount: "0.01234567"
+            sell:
+              price: "98.76"
+              amount: "0.01234567"
+          multiple: null
+        market:
+          single:
+            buy:
+              amount: "0.01234567"
+            sell:
+              amount: "0.01234567"
+          multiple: null
+        tracking:
+          single:
+            buy:
+              deviation: "5000" # 1 means 1bps or 0.01%
+              amount: "0.01234567"
+            sell:
+              deviation: "5000" # 1 means 1bps or 0.01%
+              amount: "0.01234567"
+          multiple: null
+        limit:
+          single:
+            buy:
+              price: "0.001234"
+              amount: "0.01234567"
+            sell:
+              price: "98.76"
+              amount: "0.01234567"
+          multiple: null
+      replace:
+        fixed_price:
+          single:
+            buy:
+              amount: "0.07654321"
+            sell:
+              amount: "0.07654321"
+          multiple: null
+        tracking:
+          single:
+            buy:
+              amount: "0.07654321"
+            sell:
+              amount: "0.07654321"
+          multiple: null
+        limit:
+          single:
+            buy:
+              amount: "0.07654321"
+            sell:
+              amount: "0.07654321"
+          multiple: null
