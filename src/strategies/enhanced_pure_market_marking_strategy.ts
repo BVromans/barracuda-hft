@@ -1,12 +1,12 @@
 import Decimal from "decimal.js";
 import { List, Map } from "immutable";
+import { loggedClass } from "../annotations";
+import { logger } from "../logger";
+import { properties } from "../properties";
 import { Amount, Balances, DECIMAL_0, DECIMAL_1, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
+import { get } from "../utils";
 import { BasePureMarketMakingStrategy } from "./base_pure_market_marking_strategy";
 import { Proposal } from "./base_strategy";
-import { get } from "../utils";
-import { properties } from "../properties";
-import { logger } from "../logger";
-import { loggedClass } from "../annotations";
 
 /**
  * Pure market marking strategy
@@ -168,10 +168,10 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			minimumTokenAmountPerOrder,
 			Decimal.min(
 				maximumTokenAmountPerOrder,
-				sellOrderBudget.mul(sizePercentageMultipler.div(DECIMAL_100))
+				sellOrderBudget.mul(sizePercentageMultipler.div(DECIMAL_100)),
+				baseTokenFreeBalance,
+				quoteTokenFreeBalance.mul(middlePrice),
 			),
-			baseTokenFreeBalance,
-			quoteTokenFreeBalance.mul(middlePrice)
 		);
 
 		// Populate orders only if valid, with final prices and amounts
@@ -180,18 +180,18 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			sellOrder.amount = amount;
 		}
 
-		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0)) {
+		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0) && buyPrice.lt(get(orderBook.book.bestAsk?.price, DECIMAL_NaN))) {
 			buyOrder.price = buyPrice;
 		}
-		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0)) {
+		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0) && sellPrice.gt(get(orderBook.book.bestBid?.price, DECIMAL_NaN))) {
 			sellOrder.price = sellPrice;
 		}
 
-		const buyOrderId = this.rujira.fin.getOrderId(buyOrder);
-		const sellOrderId = this.rujira.fin.getOrderId(sellOrder);
+		const buyOrderId = this.rujira.fin.getOrderId({ order: buyOrder });
+		const sellOrderId = this.rujira.fin.getOrderId({ order: sellOrder });
 
 		currentOrders.valueSeq().forEach((order: Order) => {
-			const orderId = this.rujira.fin.getOrderId(order);
+			const orderId = this.rujira.fin.getOrderId({ order: order });
 
 			// Cancel current open/partial orders to re-quote fresh
 			if (

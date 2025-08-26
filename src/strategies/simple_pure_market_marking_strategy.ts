@@ -6,12 +6,13 @@ import { BasePureMarketMakingStrategy } from "./base_pure_market_marking_strateg
 import { Proposal } from "./base_strategy";
 import { logger } from "../logger";
 import { loggedClass } from "../annotations";
+import { get } from "../utils";
 
 /**
  * Pure market marking strategy
  */
 @loggedClass({
-	enabled: true,
+	enabled: false,
 	logger: logger,
 	allowedMethods: [],
 	disallowedMethods: [],
@@ -88,11 +89,11 @@ export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrateg
 				maximumTokenAmountPerOrder,
 				Decimal.max(
 					minimumTokenAmountPerOrder,
-					desiredTokenFreeBalanceAmountPerOrder
+					desiredTokenFreeBalanceAmountPerOrder,
+					baseTokenFreeBalanceAmount,
+					quoteTokenFreeBalanceAmount.mul(middlePrice)
 				)
-			),
-			baseTokenFreeBalanceAmount,
-			quoteTokenFreeBalanceAmount.mul(middlePrice)
+			)
 		);
 
 		// Populate orders only if within constraints
@@ -102,10 +103,10 @@ export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrateg
 			sellOrder.amount = amount;
 		}
 
-		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0)) {
+		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0) && buyPrice.lt(get(orderBook.book.bestAsk?.price, DECIMAL_NaN))) {
 			buyOrder.price = buyPrice;
 		}
-		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0)) {
+		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0) && sellPrice.gt(get(orderBook.book.bestBid?.price, DECIMAL_NaN))) {
 			sellOrder.price = sellPrice;
 		}
 
