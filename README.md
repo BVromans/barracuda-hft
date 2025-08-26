@@ -1,4 +1,4 @@
-# Rujira High-Frequency Trading Bot
+# Barracuda HFT, a Rujira High-Frequency Trading Bot
 
 A High-Frequency Trading (HFT) bot, codname Barracuda, for Rujira FIN.
 
