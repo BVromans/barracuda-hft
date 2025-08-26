@@ -3354,11 +3354,11 @@ export class Fin {
 
 		// IMPORTANT: Only place and replace orders need funds. Cancel and withdraw operations send NO funds.
 		const fundsMap: Map<TokenAddress, Amount> = MMap<TokenAddress, Amount>();
-		fundsMap.set(market.tokens.quote.address, DECIMAL_0);
-		fundsMap.set(market.tokens.base.address, DECIMAL_0);
-		fundsMap.set(this.nativeToken.address, DECIMAL_0);
-		fundsMap.set(this.usdToken.address, DECIMAL_0);
-		fundsMap.set(this.feePaymentToken.address, DECIMAL_0);
+		fundsMap.set(market.tokens.quote.address, DECIMAL_0, true);
+		fundsMap.set(market.tokens.base.address, DECIMAL_0, true);
+		fundsMap.set(this.nativeToken.address, DECIMAL_0, true);
+		fundsMap.set(this.usdToken.address, DECIMAL_0, true);
+		fundsMap.set(this.feePaymentToken.address, DECIMAL_0, true);
 
 		// Process place and replace orders
 		if (placeAndReplaceOrders && !placeAndReplaceOrders.isEmpty()) {
@@ -3407,7 +3407,7 @@ export class Fin {
 							to: ownerAddress
 						});
 
-						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address)).plus(inputTokenAmountWithoutDecimals));
+						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address)).plus(inputTokenAmountWithoutDecimals), true);
 					} else if (requestOrder.side === OrderSide.SELL) {
 						inputToken = market.tokens.base;
 						outputToken = market.tokens.quote;
@@ -3424,7 +3424,7 @@ export class Fin {
 							to: ownerAddress
 						});
 
-						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address)).plus(inputTokenAmountWithoutDecimals));
+						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address)).plus(inputTokenAmountWithoutDecimals), true);
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3449,7 +3449,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals));
+						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals), true);
 					} else if (requestOrder.side === OrderSide.SELL) {
 						payingToken = market.tokens.base;
 						receivingToken = market.tokens.quote;
@@ -3465,7 +3465,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals));
+						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals), true);
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3496,7 +3496,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals));
+						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals), true);
 					} else if (requestOrder.side === OrderSide.SELL) {
 						payingToken = market.tokens.base;
 						receivingToken = market.tokens.quote;
@@ -3511,7 +3511,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals));
+						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals), true);
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
