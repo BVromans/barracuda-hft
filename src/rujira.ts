@@ -1895,10 +1895,10 @@ export class Fin {
 			price: Decimal(entry.price),
 			amount: Decimal(entry.total).div(DECIMAL_10.pow(market.decimals)),
 			raw: entry
-		});
+		} as OrderBookOrder);
 
-		let asks: List<OrderBookOrder> = MList<OrderBookOrder>(rawOrderBook.base || []).map(parseOrder);
-		let bids: List<OrderBookOrder> = MList<OrderBookOrder>(rawOrderBook.quote || []).map(parseOrder);
+		let asks: List<OrderBookOrder> = MList<{ price: string, total: string }>(rawOrderBook.base || []).map(parseOrder);
+		let bids: List<OrderBookOrder> = MList<{ price: string, total: string }>(rawOrderBook.quote || []).map(parseOrder);
 
 		asks = maximumNumberOfOrders ? asks.slice(0, maximumNumberOfOrders) : asks;
 		bids = maximumNumberOfOrders ? bids.slice(0, maximumNumberOfOrders) : bids;
