@@ -81,55 +81,55 @@ tests:
           single:
             buy:
               price: "0.001234"
-              amount: "0.01234567"
+              amount: "0.00000001"
             sell:
               price: "98.76"
-              amount: "0.01234567"
+              amount: "0.00000001"
           multiple: null
         market:
           single:
             buy:
-              amount: "0.01234567"
+              amount: "0.00000001"
             sell:
-              amount: "0.01234567"
+              amount: "0.00000001"
           multiple: null
         tracking:
           single:
             buy:
               deviation: "5000" # 1 means 1bps or 0.01%
-              amount: "0.01234567"
+              amount: "0.00000001"
             sell:
               deviation: "5000" # 1 means 1bps or 0.01%
-              amount: "0.01234567"
+              amount: "0.00000001"
           multiple: null
         limit:
           single:
             buy:
               price: "0.001234"
-              amount: "0.01234567"
+              amount: "0.00000001"
             sell:
               price: "98.76"
-              amount: "0.01234567"
+              amount: "0.00000001"
           multiple: null
       replace:
         fixed_price:
           single:
             buy:
-              amount: "0.07654321"
+              amount: "0.00000002"
             sell:
-              amount: "0.07654321"
+              amount: "0.00000002"
           multiple: null
         tracking:
           single:
             buy:
-              amount: "0.07654321"
+              amount: "0.00000002"
             sell:
-              amount: "0.07654321"
+              amount: "0.00000002"
           multiple: null
         limit:
           single:
             buy:
-              amount: "0.07654321"
+              amount: "0.00000002"
             sell:
-              amount: "0.07654321"
+              amount: "0.00000002"
           multiple: null
