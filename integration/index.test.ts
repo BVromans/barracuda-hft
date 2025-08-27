@@ -1319,7 +1319,7 @@ describe("Rujira", async() => {
 				await cleanOrders();
 			});
 
-			describe.skip("get", async () => {
+			describe("get", async () => {
 				it("get a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
@@ -1439,7 +1439,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe.skip("place", async () => {
+			describe("place", async () => {
 				it("create a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
