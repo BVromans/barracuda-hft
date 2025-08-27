@@ -3,13 +3,10 @@
     "version": "0.0.1",
     "private": true,
     "scripts": {
-        "dev": "NODE_ENV=development bun run --inspect=9222 --enable-source-maps --async-stack-traces src/index.ts",
         "build": "bun build src/index.ts --outdir dist",
         "start": "NODE_ENV=development bun run --inspect=9222 --enable-source-maps --async-stack-traces src/index.ts",
 				"demonstration": "NODE_ENV=development bun run --inspect=9222 --enable-source-maps --async-stack-traces src/demonstration.ts",
-        "test:unit": "NODE_ENV=development bun test --serial --inspect=9222 --enable-source-maps --async-stack-traces tests/index.test.ts",
         "test:integration": "NODE_ENV=development bun test --serial --inspect=9222 --enable-source-maps --async-stack-traces integration/index.test.ts",
-        "playground": "NODE_ENV=development bun run --inspect=9222 --enable-source-maps --async-stack-traces temporary/playground/getOrThrow.ts"
     },
     "dependencies": {
         "@cosmjs/cosmwasm-stargate": "^0.33.1",
