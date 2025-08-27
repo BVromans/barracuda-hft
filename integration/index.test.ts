@@ -1439,7 +1439,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe.skip("place", async () => {
+			describe("place", async () => {
 				it("create a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
@@ -1500,7 +1500,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe.skip("replace", async () => {
+			describe("replace", async () => {
 				it("replace a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
@@ -1586,7 +1586,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe.skip("cancel", async () => {
+			describe("cancel", async () => {
 				it("cancel a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
@@ -1660,7 +1660,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe.skip("withdraw", async () => {
+			describe("withdraw", async () => {
 				it("withdraw all filled orders from the market", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
