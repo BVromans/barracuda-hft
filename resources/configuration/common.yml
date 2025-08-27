@@ -37,7 +37,7 @@ rujira:
       delayBetweenRetries: 1_000
       timeout: 30_000
     markets:
-      loadFromFile: false
+      loadFromFile: true
       filePath: "resources/graphql/responses/markets.json"
     orderBook:
       maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
