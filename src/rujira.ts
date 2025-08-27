@@ -2946,8 +2946,10 @@ export class Fin {
 			}
 		});
 
+		const placedOrder = get<Order>(persistedOrders.placedOrders?.first() || persistedOrders.replacedOrders?.first());
+
 		const result = {
-			order: get<Order>(persistedOrders.placedOrders?.first()),
+			order: placedOrder,
 			transaction: get<Transaction>(persistedOrders.transactions.first())
 		}
 
@@ -2982,8 +2984,10 @@ export class Fin {
 			}
 		});
 
+		const placedOrders = get<Map<OrderId, Order>>((persistedOrders.placedOrders || MMap<OrderId, Order>()).merge(persistedOrders.replacedOrders || MMap<OrderId, Order>()));
+
 		const result = {
-			orders: get<Map<OrderId, Order>>(persistedOrders.placedOrders),
+			orders: placedOrders,
 			transactions: persistedOrders.transactions
 		};
 
@@ -3019,8 +3023,10 @@ export class Fin {
 			}
 		});
 
+		const replacedOrder = get<Order>(persistedOrders.replacedOrders?.first() || persistedOrders.placedOrders?.first());
+
 		const result = {
-			order: get<Order>(persistedOrders.replacedOrders?.first()),
+			order: replacedOrder,
 			transaction: get<Transaction>(persistedOrders.transactions.first())
 		}
 
@@ -3054,8 +3060,10 @@ export class Fin {
 			}
 		});
 
+		const replacedOrders = get<Map<OrderId, Order>>((persistedOrders.replacedOrders || MMap<OrderId, Order>()).merge(persistedOrders.placedOrders || MMap<OrderId, Order>()));
+
 		const result = {
-			orders: get<Map<OrderId, Order>>(persistedOrders.replacedOrders),
+			orders: replacedOrders,
 			transactions: persistedOrders.transactions
 		};
 
