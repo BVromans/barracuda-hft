@@ -152,10 +152,10 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 				volumeWeightedAveragePricePullRatio =
 					(middlePrice - volumeWeightedAveragePrice) / middlePrice
 
-				volumeWeightedAveragePricePercentageMultipler =
+				volumeWeightedAveragePricePercentageMultiplier =
 					100 * volumeWeightedAveragePriceSkewMultiplier * volumeWeightedAveragePricePullRatio
 
-				skewPercentageMultiplier = max(-maximumSkewPercentage, min(maximumSkewPercentage, volumeWeightedAveragePricePercentageMultipler))
+				skewPercentageMultiplier = max(-maximumSkewPercentage, min(maximumSkewPercentage, volumeWeightedAveragePricePercentageMultiplier))
 
 				fairPrice = middlePrice * (100 + skewPercentageMultiplier) / 100
 
@@ -164,12 +164,12 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 				- If middlePrice < VWAP → negative skew → fairPrice < middlePrice (downward bias).
 		*/
 		const volumeWeightedAveragePricePullRatio = middlePrice.minus(volumeWeightedAveragePrice).div(middlePrice);
-		const volumeWeightedAveragePricePercentageMultipler = volumeWeightedAveragePriceSkewMultiplier.mul(volumeWeightedAveragePricePullRatio).mul(DECIMAL_100);
+		const volumeWeightedAveragePricePercentageMultiplier = volumeWeightedAveragePriceSkewMultiplier.mul(volumeWeightedAveragePricePullRatio).mul(DECIMAL_100);
 		const skewPercentageMultiplier = Decimal.max(
 			maximumSkewPercentage.neg(),
-			Decimal.min(maximumSkewPercentage, volumeWeightedAveragePricePercentageMultipler)
+			Decimal.min(maximumSkewPercentage, volumeWeightedAveragePricePercentageMultiplier)
 		);
-		const fairPrice = middlePrice.mul(DECIMAL_100.plus(skewPercentageMultiplier.div(DECIMAL_100)));
+		const fairPrice = middlePrice.mul(DECIMAL_100.plus(skewPercentageMultiplier).div(DECIMAL_100));
 
 
 		let buyPrice = fairPrice.minus(spreadAmount.div(2));
