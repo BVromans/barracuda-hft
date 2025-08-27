@@ -2444,7 +2444,7 @@ export class Fin {
 					const amount = Decimal(rawBalance.amount.toString().trim()).div(DECIMAL_10.pow(token.decimals));
 					freeBalances.set(token.symbol, amount, true);
 				} else {
-					logger.ignoreException(new Error(`Balance for token ${token.symbol} not found, ignoring this token balance.`));
+					// logger.ignoreException(new Error(`Balance for token ${token.symbol} not found, ignoring this token balance.`));
 				}
 			}
 		}
