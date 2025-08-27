@@ -3381,7 +3381,7 @@ export class Fin {
 
 				const type = existingOrder?.type || requestOrder.type;
 
-				const side = existingOrder?.side || requestOrder.side === OrderSide.BUY ? 'quote' : 'base';
+				const side = (existingOrder?.side || requestOrder.side) === OrderSide.BUY ? 'quote' : 'base';
 
 				const price = existingOrder?.price?.toFixed(18) || requestOrder.price?.toFixed(18) || '0.000000000000000000';
 
