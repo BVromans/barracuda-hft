@@ -37,7 +37,7 @@ rujira:
       delayBetweenRetries: 1_000
       timeout: 30_000
     markets:
-      loadFromFile: false
+      loadFromFile: true
       filePath: "resources/graphql/responses/markets.json"
     orderBook:
       maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
@@ -56,16 +56,6 @@ tests:
       hash: "73B63952539063431298020873CD37F37992AB5DCBC15BE4D58D4531DDCB2DC3" # Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
     markets:
       first:
-        symbol: "THOR-NAMI/ETH-USDC"
-        address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
-        tokens:
-          base:
-            address: "thor.nami"
-            symbol: "THOR-NAMI"
-          quote:
-            address: "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-            symbol: "ETH-USDC"
-      second:
         symbol: "THOR-RUJI/ETH-USDC"
         address: "thor17cawwg2lsnvcne69fek6nsqkf8snma6gc5ccceshul86rl0u3q4s5l5d0a"
         tokens:
@@ -75,61 +65,71 @@ tests:
           quote:
             address: "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
             symbol: "ETH-USDC"
+      second:
+        symbol: "THOR-NAMI/ETH-USDC"
+        address: "thor1txmrchsrzycmzvlwsjl20q9zkdsp0nywctefuceepf02phpudvxsxtzmty"
+        tokens:
+          base:
+            address: "thor.nami"
+            symbol: "THOR-NAMI"
+          quote:
+            address: "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+            symbol: "ETH-USDC"
     orders:
       place:
         fixed_price:
           single:
             buy:
               price: "0.001234"
-              amount: "0.00000001"
+              amount: "0.01234567"
             sell:
               price: "98.76"
-              amount: "0.00000001"
+              amount: "0.01234567"
           multiple: null
         market:
           single:
             buy:
-              amount: "0.00000001"
+              amount: "0.01234567"
             sell:
-              amount: "0.00000001"
+              amount: "0.01234567"
           multiple: null
         tracking:
           single:
             buy:
-              deviation: "5000" # 1 means 1bps or 0.01%
-              amount: "0.00000001"
+              deviation: "50" # 1 means 1%
+              amount: "0.01234567"
             sell:
-              deviation: "5000" # 1 means 1bps or 0.01%
-              amount: "0.00000001"
+              deviation: "50" # 1 means 1%
+              amount: "0.01234567"
           multiple: null
         limit:
           single:
             buy:
-              price: "0.001234"
-              amount: "0.00000001"
+              price: "0.1234"
+              amount: "0.01234567"
             sell:
               price: "98.76"
-              amount: "0.00000001"
+              amount: "0.01234567"
           multiple: null
       replace:
         fixed_price:
           single:
             buy:
-              amount: "0.00000002"
+              amount: "0.07654321"
             sell:
-              amount: "0.00000002"
+              amount: "0.07654321"
           multiple: null
         tracking:
           single:
             buy:
-              amount: "0.00000002"
+              amount: "0.07654321"
             sell:
-              amount: "0.00000002"
+              amount: "0.07654321"
           multiple: null
         limit:
           single:
             buy:
-              amount: "0.00000002"
+              amount: "0.07654321"
             sell:
-              amount: "0.00000002"
+              amount: "0.07654321"
           multiple: null

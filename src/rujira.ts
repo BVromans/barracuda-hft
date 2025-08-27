@@ -2444,7 +2444,7 @@ export class Fin {
 					const amount = Decimal(rawBalance.amount.toString().trim()).div(DECIMAL_10.pow(token.decimals));
 					freeBalances.set(token.symbol, amount, true);
 				} else {
-					logger.ignoreException(new Error(`Balance for token ${token.symbol} not found, ignoring this token balance.`));
+					// logger.ignoreException(new Error(`Balance for token ${token.symbol} not found, ignoring this token balance.`));
 				}
 			}
 		}
@@ -2830,7 +2830,11 @@ export class Fin {
 			} else {
 				throw new Error(`Unknown order price type: ${JSON.stringify(rawOrder)}`);
 			}
-			const amount = (side == OrderSide.BUY ? Decimal(rawOrder.offer).div(price).div(DECIMAL_10.pow(market.tokens.base.decimals)) : Decimal(rawOrder.offer)).div(DECIMAL_10.pow(market.tokens.base.decimals));
+			const amount = (
+				side == OrderSide.BUY
+					? Decimal(rawOrder.offer).div(price).div(DECIMAL_10.pow(market.tokens.base.decimals))
+					: Decimal(rawOrder.offer).div(DECIMAL_10.pow(market.tokens.base.decimals))
+			);
 			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(Decimal(rawOrder.offer))));
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 			const id = this.getOrderId({
@@ -3354,11 +3358,11 @@ export class Fin {
 
 		// IMPORTANT: Only place and replace orders need funds. Cancel and withdraw operations send NO funds.
 		const fundsMap: Map<TokenAddress, Amount> = MMap<TokenAddress, Amount>();
-		fundsMap.set(market.tokens.quote.address, DECIMAL_0);
-		fundsMap.set(market.tokens.base.address, DECIMAL_0);
-		fundsMap.set(this.nativeToken.address, DECIMAL_0);
-		fundsMap.set(this.usdToken.address, DECIMAL_0);
-		fundsMap.set(this.feePaymentToken.address, DECIMAL_0);
+		fundsMap.set(market.tokens.quote.address, DECIMAL_0, true);
+		fundsMap.set(market.tokens.base.address, DECIMAL_0, true);
+		fundsMap.set(this.nativeToken.address, DECIMAL_0, true);
+		fundsMap.set(this.usdToken.address, DECIMAL_0, true);
+		fundsMap.set(this.feePaymentToken.address, DECIMAL_0, true);
 
 		// Process place and replace orders
 		if (placeAndReplaceOrders && !placeAndReplaceOrders.isEmpty()) {
@@ -3377,7 +3381,7 @@ export class Fin {
 
 				const type = existingOrder?.type || requestOrder.type;
 
-				const side = existingOrder?.side || requestOrder.side === OrderSide.BUY ? 'quote' : 'base';
+				const side = (existingOrder?.side || requestOrder.side) === OrderSide.BUY ? 'quote' : 'base';
 
 				const price = existingOrder?.price?.toFixed(18) || requestOrder.price?.toFixed(18) || '0.000000000000000000';
 
@@ -3407,7 +3411,7 @@ export class Fin {
 							to: ownerAddress
 						});
 
-						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address)).plus(inputTokenAmountWithoutDecimals));
+						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address)).plus(inputTokenAmountWithoutDecimals), true);
 					} else if (requestOrder.side === OrderSide.SELL) {
 						inputToken = market.tokens.base;
 						outputToken = market.tokens.quote;
@@ -3424,7 +3428,7 @@ export class Fin {
 							to: ownerAddress
 						});
 
-						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address)).plus(inputTokenAmountWithoutDecimals));
+						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address)).plus(inputTokenAmountWithoutDecimals), true);
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3449,7 +3453,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals));
+						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals), true);
 					} else if (requestOrder.side === OrderSide.SELL) {
 						payingToken = market.tokens.base;
 						receivingToken = market.tokens.quote;
@@ -3465,7 +3469,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals));
+						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals), true);
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3496,7 +3500,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals));
+						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals), true);
 					} else if (requestOrder.side === OrderSide.SELL) {
 						payingToken = market.tokens.base;
 						receivingToken = market.tokens.quote;
@@ -3511,7 +3515,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals));
+						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals), true);
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3720,9 +3724,10 @@ export class Fin {
 		order?: Order | FinPlaceOrderRequest | FinReplaceOrderRequest;
 		orderType?: OrderType;
 		orderSide?: OrderSide;
-		orderPrice?: Decimal;
+		orderPrice?: OrderPrice;
+		orderDeviationPercentage?: OrderDeviationPercentage;
 	}): OrderId {
-		let { ownerAddress, marketSymbol, market, order, orderType, orderSide, orderPrice } = options;
+		let { ownerAddress, marketSymbol, market, order, orderType, orderSide, orderPrice, orderDeviationPercentage } = options;
 
 		ownerAddress = ownerAddress || get<Order>(order).ownerAddress;
 
@@ -3732,19 +3737,10 @@ export class Fin {
 
 		orderSide = orderSide || get<Order>(order).side;
 
-		orderPrice = orderPrice || get<Order>(order).price;
+		orderPrice = orderPrice || order?.price;
 
-		// Include both base amount and calculated quote amount for better tracking
-		let baseAmount = '0';
-		let quoteAmount = '0';
+		orderDeviationPercentage = orderDeviationPercentage || order?.deviation || undefined;
 
-		if (order) {
-			baseAmount = get<Order>(order).amount.toFixed();
-			if (orderPrice && orderPrice.gt(0)) {
-				quoteAmount = get<Order>(order).amount.mul(orderPrice).toFixed();
-			}
-		}
-
-		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|base:${baseAmount}|quote:${quoteAmount}|price:${orderPrice?.toFixed()}`;
+		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed()}|deviation:${orderDeviationPercentage?.toNumber()}`;
 	}
 }

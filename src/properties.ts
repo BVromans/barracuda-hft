@@ -126,18 +126,18 @@ export class Properties {
 	 * Define extra properties
 	 */
 	private defineExtraProperties(): void {
-		this.map.set('retry.default.maximumNumberOfRetries', 3);
-		this.map.set('retry.default.delayBetweenRetries', 1000);
-		this.map.set('retry.default.timeout', 30000);
-		this.map.set('retry.default.timeoutErrorMessage', 'Timeout exceeded.');
-
-		this.map.set('cache.default.ttlSeconds', 6 * 60 * 60);
-		this.map.set('cache.default.cacheKey', (request: any) => request.toString());
-
-		this.map.set('cache.rujira.fin.getAllTokens', 6 * 60 * 60);
-		this.map.set('cache.rujira.fin.getAllMarkets', 6 * 60 * 60);
-
-		this.map.set('constant.rujira.markets.active', 'LIVE');
+		if (!this.map.get('rujira.wallet.mnemonic')) {
+			this.map.set('rujira.wallet.mnemonic', process.env.RUJIRA_WALLET_MNEMONIC);
+		}
+		if (!this.map.get('rujira.wallet.privateKey')) {
+			this.map.set('rujira.wallet.privateKey', process.env.RUJIRA_WALLET_PRIVATE_KEY);
+		}
+		if (!this.map.get('rujira.wallet.publicKeys.thor')) {
+			this.map.set('rujira.wallet.publicKeys.thor', process.env.RUJIRA_WALLET_PUBLIC_KEY_THOR);
+		}
+		if (!this.map.get('rujira.wallet.publicKeys.ethereum')) {
+			this.map.set('rujira.wallet.publicKeys.ethereum', process.env.RUJIRA_WALLET_PUBLIC_KEY_ETHEREUM);
+		}
 	}
 
 	/**

@@ -121,21 +121,56 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 		const baseTokenFreeBalance = get<Amount>(balances.tokens.get(baseTokenSymbol)?.balances.token.free);
 		const quoteTokenFreeBalance = get<Amount>(balances.tokens.get(quoteTokenSymbol)?.balances.token.free);
 
-		// Compute spread using Bollinger Bands width
-		// spreadAmount = max(minimumPriceSpreadAmount, bollingerBandsWidthSpreadWidthMultiplier * middlePrice * bollingerBandsWidth)
-		const minimumPriceSpreadAmount = middlePrice.mul(minimumSpreadPercentage.div(DECIMAL_100));
-		const bollingerBandsWidthSpreadAmount = bollingerBandsWidthSpreadWidthMultiplier.mul(middlePrice).mul(bollingerBandsWidth);
-		const spreadAmount = Decimal.max(minimumPriceSpreadAmount, bollingerBandsWidthSpreadAmount);
+		/*
+			SPREAD:
+			=======
 
-		// Compute skew using the volume weighted average price, clamping/restricting it to an interval
-		// skewRatioPercentage = max(-maximumSkewRatio, min(volumeWeightedAveragePriceSkewMultiplier * (middlePrice − volumeWeightedAveragePrice) / middlePrice, +maximumSkewRatio)) * 100
+			Compute spread using Bollinger Bands width (BBW), but as a safeguard, we also include a minimum spread percentage.
+			Here 10%, for example, is inputted as 10 instead of 0.1.
+
+			Formula:
+			spreadPercentageMultiplier = max(minimumSpreadPercentage, bollingerBandsWidthSpreadWidthMultiplier * bollingerBandsWidth)
+			spreadAmount = middlePrice * spreadPercentageMultiplier / 100
+
+			Intuition: Bollinger Bands width is a measure of volatility, when the width is high (expansion), the price is more volatile and the spread should be larger.
+				On the other hand, when the width is low (contraction), the price is more stable and the spread should be smaller.
+		*/
+		const bollingerBandsWidthSpreadPercentage = bollingerBandsWidthSpreadWidthMultiplier.mul(bollingerBandsWidth);
+		const spreadPercentageMultiplier = Decimal.max(minimumSpreadPercentage, bollingerBandsWidthSpreadPercentage);
+		const spreadAmount = middlePrice.mul(spreadPercentageMultiplier.div(DECIMAL_100));
+
+		/*
+			SKEW / FAIR PRICE
+			=================
+
+			We compute a fair price from the current middle price, skewed based on how far
+			the middle price is from the VWAP (volume-weighted average price over a chosen
+			window). A cap prevents excessive skew.
+			Here 10%, for example, is inputted as 10 instead of 0.1.
+
+			Definitions:
+				volumeWeightedAveragePricePullRatio =
+					(middlePrice - volumeWeightedAveragePrice) / middlePrice
+
+				volumeWeightedAveragePricePercentageMultiplier =
+					100 * volumeWeightedAveragePriceSkewMultiplier * volumeWeightedAveragePricePullRatio
+
+				skewPercentageMultiplier = max(-maximumSkewPercentage, min(maximumSkewPercentage, volumeWeightedAveragePricePercentageMultiplier))
+
+				fairPrice = middlePrice * (100 + skewPercentageMultiplier) / 100
+
+			Intuition:
+				- If middlePrice > VWAP → positive skew → fairPrice > middlePrice (upward bias).
+				- If middlePrice < VWAP → negative skew → fairPrice < middlePrice (downward bias).
+		*/
 		const volumeWeightedAveragePricePullRatio = middlePrice.minus(volumeWeightedAveragePrice).div(middlePrice);
-		const maximumSkewRatio = maximumSkewPercentage.div(DECIMAL_100);
-		const unclampedSkewRatio = volumeWeightedAveragePriceSkewMultiplier.mul(volumeWeightedAveragePricePullRatio);
-		const skewRatioPercentage = Decimal.max(maximumSkewRatio.neg(), Decimal.min(maximumSkewRatio, unclampedSkewRatio)).mul(DECIMAL_100);
+		const volumeWeightedAveragePricePercentageMultiplier = volumeWeightedAveragePriceSkewMultiplier.mul(volumeWeightedAveragePricePullRatio).mul(DECIMAL_100);
+		const skewPercentageMultiplier = Decimal.max(
+			maximumSkewPercentage.neg(),
+			Decimal.min(maximumSkewPercentage, volumeWeightedAveragePricePercentageMultiplier)
+		);
+		const fairPrice = middlePrice.mul(DECIMAL_100.plus(skewPercentageMultiplier).div(DECIMAL_100));
 
-		// Compute order prices by shifting around a skewed fair price
-		const fairPrice = middlePrice.mul(DECIMAL_100.plus(skewRatioPercentage).div(DECIMAL_100));
 
 		let buyPrice = fairPrice.minus(spreadAmount.div(2));
 		let sellPrice = fairPrice.plus(spreadAmount.div(2));
@@ -147,59 +182,77 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			sellPrice = Decimal.max(sellPrice, middlePrice.plus(minimalSeparationAmount.div(2)));
 		}
 
-		// Compute order size scaling factor using the average true range
-		// size = baseNotional / (1 + volatilitySizeShrinkageMultiplier * averageTrueRange / middlePrice)
-		const averageTrueRangeTerm = volatilitySizeShrinkageMultiplier.mul(averageTrueRange.div(middlePrice));
-		const sizePercentageMultipler = DECIMAL_100.div(DECIMAL_1.plus(averageTrueRangeTerm));
+		/*
+			SIZE:
+			======
 
-		// Determine budgets and convert to final order amounts
-		const buyOrderBudget = Decimal.max(
-			DECIMAL_0,
-			quoteTokenFreeBalance.mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100)).mul(middlePrice),
-			desiredTokenFreeBalanceAmountPerOrder.mul(middlePrice)
-		);
-		const sellOrderBudget = Decimal.max(
-			DECIMAL_0,
-			baseTokenFreeBalance.mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100)),
-			desiredTokenFreeBalanceAmountPerOrder
-		);
+			Compute order size using the average true range (ATR), but as a safeguard, we also include a minimum and maximum token amount per order.
+			Here 10%, for example, is inputted as 10 instead of 0.1.
 
-		const amount = Decimal.max(
+			Formula:
+			averageTrueRangePercentageMultiplier = 100 * volatilitySizeShrinkageMultiplier * averageTrueRange / middlePrice
+			sizePercentageMultiplier = 100 / (100 + averageTrueRangePercentageMultiplier)
+
+			Intuition: Average True Range (ATR) is a measure of the average price range of the last trades.
+				When the ATR is high, the price is more volatile and the order size should be smaller.
+				On the other hand, when the ATR is low, the price is more stable and the order size should be larger.
+		*/
+		const averageTrueRangePercentageMultiplier = DECIMAL_100.mul(volatilitySizeShrinkageMultiplier.mul(averageTrueRange.div(middlePrice)));
+		const sizePercentageMultiplier = DECIMAL_100.div(DECIMAL_100.plus(averageTrueRangePercentageMultiplier));
+
+		// Determine desired base-token amount before funds constraints
+		const desiredPercentageRatio = desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100);
+		const desiredBaseAmountFromBaseBalance = baseTokenFreeBalance.mul(desiredPercentageRatio);
+		const desiredBaseAmountFromQuoteBalance = quoteTokenFreeBalance.div(middlePrice).mul(desiredPercentageRatio);
+		const desiredBaseAmountUncapped = Decimal.max(
+			desiredTokenFreeBalanceAmountPerOrder,
+			desiredBaseAmountFromBaseBalance,
+			desiredBaseAmountFromQuoteBalance,
+		);
+		const desiredBaseAmountCapped = Decimal.max(
 			minimumTokenAmountPerOrder,
-			Decimal.min(
-				maximumTokenAmountPerOrder,
-				sellOrderBudget.mul(sizePercentageMultipler.div(DECIMAL_100)),
-				baseTokenFreeBalance,
-				quoteTokenFreeBalance.mul(middlePrice),
-			),
+			Decimal.min(maximumTokenAmountPerOrder, desiredBaseAmountUncapped),
 		);
+		const desiredBaseAmountAfterVolatility = desiredBaseAmountCapped.mul(sizePercentageMultiplier).div(DECIMAL_100);
+
+		// Enforce funds constraints (convert quote to base using middle price)
+		const maximumAffordableBaseByFunds = Decimal.min(
+			baseTokenFreeBalance,
+			quoteTokenFreeBalance.div(middlePrice),
+		);
+		const amount = Decimal.min(desiredBaseAmountAfterVolatility, maximumAffordableBaseByFunds);
 
 		// Populate orders only if valid, with final prices and amounts
-		if (amount.gt(DECIMAL_0)) {
+		if (amount.gte(minimumTokenAmountPerOrder)) {
 			buyOrder.amount = amount;
 			sellOrder.amount = amount;
 		}
 
-		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0) && buyPrice.lt(get(orderBook.book.bestAsk?.price, DECIMAL_NaN))) {
+		const bestAskPrice = get(orderBook.book.bestAsk?.price, DECIMAL_NaN);
+		const bestBidPrice = get(orderBook.book.bestBid?.price, DECIMAL_NaN);
+		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0) && (!bestAskPrice.isFinite() || buyPrice.lt(bestAskPrice))) {
 			buyOrder.price = buyPrice;
 		}
-		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0) && sellPrice.gt(get(orderBook.book.bestBid?.price, DECIMAL_NaN))) {
+		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0) && (!bestBidPrice.isFinite() || sellPrice.gt(bestBidPrice))) {
 			sellOrder.price = sellPrice;
 		}
 
-		const buyOrderId = this.rujira.fin.getOrderId({ order: buyOrder });
-		const sellOrderId = this.rujira.fin.getOrderId({ order: sellOrder });
+		const isBuyPlaceable = Boolean(buyOrder.amount && buyOrder.price && buyOrder.amount.gt(DECIMAL_0) && buyOrder.price.gt(DECIMAL_0));
+		const isSellPlaceable = Boolean(sellOrder.amount && sellOrder.price && sellOrder.amount.gt(DECIMAL_0) && sellOrder.price.gt(DECIMAL_0));
+		const buyOrderId = isBuyPlaceable ? this.rujira.fin.getOrderId({ order: buyOrder }) : undefined;
+		const sellOrderId = isSellPlaceable ? this.rujira.fin.getOrderId({ order: sellOrder }) : undefined;
 
 		currentOrders.valueSeq().forEach((order: Order) => {
 			const orderId = this.rujira.fin.getOrderId({ order: order });
 
-			// Cancel current open/partial orders to re-quote fresh
-			if (
-				(order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED)
-				&& orderId !== buyOrderId
-				&& orderId !== sellOrderId
-			) {
-				proposal.cancel?.push(order as any);
+			// Cancel current open/partial orders to re-quote fresh, only per-side when a replacement exists
+			if (order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED) {
+				if (order.side === OrderSide.BUY && isBuyPlaceable && orderId !== buyOrderId) {
+					proposal.cancel?.push(order as any);
+				}
+				if (order.side === OrderSide.SELL && isSellPlaceable && orderId !== sellOrderId) {
+					proposal.cancel?.push(order as any);
+				}
 			}
 
 			// Withdraw current filled orders to withdraw funds
@@ -208,10 +261,10 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			}
 		});
 
-		if (buyOrder.amount && buyOrder.price && buyOrder.amount.gt(DECIMAL_0) && buyOrder.price.gt(DECIMAL_0)) {
+		if (isBuyPlaceable) {
 			proposal.place?.push(buyOrder);
 		}
-		if (sellOrder.amount && sellOrder.price && sellOrder.amount.gt(DECIMAL_0) && sellOrder.price.gt(DECIMAL_0)) {
+		if (isSellPlaceable) {
 			proposal.place?.push(sellOrder);
 		}
 
