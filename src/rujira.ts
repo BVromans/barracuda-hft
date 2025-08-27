@@ -2939,7 +2939,7 @@ export class Fin {
 							marketAddress,
 							marketSymbol,
 							market,
-							side, type, amount, price
+							side, type, amount, price, deviation: request.deviation
 						}
 					]
 				)
@@ -3018,7 +3018,8 @@ export class Fin {
 					side,
 					type,
 					amount,
-					price
+					price,
+					deviation: request.deviation
 				}])
 			}
 		});
@@ -3295,7 +3296,7 @@ export class Fin {
 		// Validate place and replace orders
 		let hasMarketOrder = false;
 		let hasNonMarketOrder = false;
-		if (placeAndReplaceOrders) {
+				if (placeAndReplaceOrders) {
 			placeAndReplaceOrders.forEach((order: FinPlaceOrderRequest | FinReplaceOrderRequest) => {
 				if (order.marketAddress !== market.address) {
 					throw new Error(`All orders must use the same market. Expected: ${market.address}, Got: ${order.marketAddress}`);
@@ -3497,8 +3498,16 @@ export class Fin {
 					if (requestOrder.side === OrderSide.BUY) {
 						payingToken = market.tokens.quote;
 						receivingToken = market.tokens.base;
-						payingTokenAmount = requestOrder.amount;
-						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
+						// For BUY orders, amount is in base token (BTC), but we pay with quote token (USDC)
+						// We need to calculate the USDC amount based on the BTC amount and current price
+						const baseTokenAmount = requestOrder.amount;
+						const currentPrice = get<Price>(marketTicker.middlePrice.baseToQuote);
+						payingTokenAmount = baseTokenAmount.mul(currentPrice);
+
+						// Use standard USDC decimals (6) instead of market data decimals (8)
+						// This ensures proper amount calculation for USDC payments
+						const correctUsdcDecimals = 6;
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** correctUsdcDecimals).toDecimalPlaces(0);
 
 						ordersMessages.push([
 							side,
