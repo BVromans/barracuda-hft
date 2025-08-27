@@ -121,23 +121,46 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 		const baseTokenFreeBalance = get<Amount>(balances.tokens.get(baseTokenSymbol)?.balances.token.free);
 		const quoteTokenFreeBalance = get<Amount>(balances.tokens.get(quoteTokenSymbol)?.balances.token.free);
 
-		// Compute spread using Bollinger Bands width
-		// spreadAmount = max(minimumPriceSpreadAmount, bollingerBandsWidthSpreadWidthMultiplier * middlePrice * bollingerBandsWidth)
-		const minimumPriceSpreadAmount = middlePrice.mul(minimumSpreadPercentage.div(DECIMAL_100));
-		const bollingerBandsWidthSpreadAmount = bollingerBandsWidthSpreadWidthMultiplier.mul(middlePrice).mul(bollingerBandsWidth);
-		const spreadAmount = Decimal.max(minimumPriceSpreadAmount, bollingerBandsWidthSpreadAmount);
+		/*
+			SPREAD:
+			=======
 
-		// Compute skew using the volume weighted average price, clamping/restricting it to an interval
-		// Pull ratio is signed so that a VWAP below middle shifts fair price down (toward VWAP),
-		// and a VWAP above middle shifts fair price up.
-		// skewRatioPercentage = clamp(volumeWeightedAveragePriceSkewMultiplier * (volumeWeightedAveragePrice − middlePrice) / middlePrice, -maximumSkewRatio, +maximumSkewRatio) * 100
-		const volumeWeightedAveragePricePullRatio = volumeWeightedAveragePrice.minus(middlePrice).div(middlePrice);
-		const maximumSkewRatio = maximumSkewPercentage.div(DECIMAL_100);
-		const unclampedSkewRatio = volumeWeightedAveragePriceSkewMultiplier.mul(volumeWeightedAveragePricePullRatio);
-		const skewRatioPercentage = Decimal.max(maximumSkewRatio.neg(), Decimal.min(maximumSkewRatio, unclampedSkewRatio)).mul(DECIMAL_100);
+			Compute spread using Bollinger Bands width (BBW), but as a safeguard, we also include a minimum spread percentage.
 
-		// Compute order prices by shifting around a skewed fair price
-		const fairPrice = middlePrice.mul(DECIMAL_100.plus(skewRatioPercentage).div(DECIMAL_100));
+			Formula:
+			spreadPercentageMultiplier = max(minimumSpreadPercentage, bollingerBandsWidthSpreadWidthMultiplier * bollingerBandsWidth)
+
+			Intuition: Bollinger Bands width is a measure of volatility, when the width is high (expansion), the price is more volatile and the spread should be larger.
+				On the other hand, when the width is low (contraction), the price is more stable and the spread should be smaller.
+		*/
+		const bollingerBandsWidthSpreadPercentage = bollingerBandsWidthSpreadWidthMultiplier.mul(bollingerBandsWidth);
+		const spreadPercentageMultiplier = Decimal.max(minimumSpreadPercentage, bollingerBandsWidthSpreadPercentage);
+		const spreadAmount = middlePrice.mul(spreadPercentageMultiplier.div(DECIMAL_100));
+
+		/*
+			SKEW / FAIR PRICE:
+			==================
+
+			Compute fair price using the Volume Weighted Average Price (VWAP), but as a safeguard, we also include a maximum skew percentage.
+
+			Formula:
+			skewPercentageMultiplier = max(
+				-maximumSkewPercentage,
+				min(
+					maximumSkewPercentage,
+					100 * volumeWeightedAveragePriceSkewMultiplier * (middlePrice - volumeWeightedAveragePrice) / middlePrice
+				)
+			)
+			fairPrice = middlePrice * (100 + skewPercentageMultiplier / 100)
+
+			Intuition: Volume Weighted Average Price (VWAP) is a measure of the average price of the last trades.
+				When the middle price is above the VWAP, the price is rising, then the fair price should be higher.
+				On the other hand, when the middle price is below the VWAP, the price is falling, then the fair price should be lower.
+		*/
+		const volumeWeightedAveragePricePullRatio = middlePrice.minus(volumeWeightedAveragePrice).div(middlePrice);
+		const volumeWeightedAveragePriceSkewPercentage = volumeWeightedAveragePriceSkewMultiplier.mul(volumeWeightedAveragePricePullRatio).mul(DECIMAL_100);
+		const skewPercentageMultiplier = Decimal.max(maximumSkewPercentage.neg(), Decimal.min(maximumSkewPercentage, volumeWeightedAveragePriceSkewPercentage));
+		const fairPrice = middlePrice.mul(DECIMAL_100.plus(skewPercentageMultiplier).div(DECIMAL_100));
 
 		let buyPrice = fairPrice.minus(spreadAmount.div(2));
 		let sellPrice = fairPrice.plus(spreadAmount.div(2));
@@ -149,8 +172,19 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			sellPrice = Decimal.max(sellPrice, middlePrice.plus(minimalSeparationAmount.div(2)));
 		}
 
-		// Compute order size scaling factor using the average true range
-		// size = baseNotional / (1 + volatilitySizeShrinkageMultiplier * averageTrueRange / middlePrice)
+		/*
+			SIZE:
+			======
+
+			Compute order size using the average true range (ATR), but as a safeguard, we also include a minimum and maximum token amount per order.
+
+			Formula:
+			sizePercentageMultiplier = 100 / (1 + volatilitySizeShrinkageMultiplier * averageTrueRange / middlePrice)
+
+			Intuition: Average True Range (ATR) is a measure of the average price range of the last trades.
+				When the ATR is high, the price is more volatile and the order size should be smaller.
+				On the other hand, when the ATR is low, the price is more stable and the order size should be larger.
+		*/
 		const averageTrueRangeTerm = volatilitySizeShrinkageMultiplier.mul(averageTrueRange.div(middlePrice));
 		const sizePercentageMultiplier = DECIMAL_100.div(DECIMAL_1.plus(averageTrueRangeTerm));
 
