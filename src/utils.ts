@@ -7,7 +7,6 @@ import Decimal from "decimal.js";
 /**
  * Get a value or a default value if the value is undefined or null.
  * @template R - The type of the value.
- * @template NSV - The type of the default value.
  * @param value - The value to get.
  * @param defaultValue - The default value to return if the value is undefined or null.
  * @returns The value or the default value.
@@ -25,6 +24,17 @@ export const get = <R>(value: any, defaultValue?: R, errorMessage?: string): R =
 	return value as R;
 };
 
+/**
+ * Get a value from a nested object.
+ * @template K - The type of the key.
+ * @template V - The type of the value.
+ * @param target - The target object.
+ * @param key - The key to get.
+ * @param defaultValue - The default value to return if the value is undefined or null.
+ * @param getAsRawKey - Whether to get the key as a raw key.
+ * @returns The value or the default value.
+ * @throws An error if the value is undefined or null and no default value is provided.
+ */
 export const getIn = <K, V>(target: List<V> | Map<K, V>, key: K | string | Array<K | string>, defaultValue?: V, getAsRawKey?: boolean): V => {
 	if (key === undefined || key === null) {
 		if (defaultValue === undefined || defaultValue === null) {
@@ -123,6 +133,13 @@ export const promiseAllInBatches = async <I, O>(
 	return results;
 };
 
+/**
+ * Split an array into chunks.
+ * @template T - The type of the items.
+ * @param target - The target array.
+ * @param quantity - The quantity of items per chunk.
+ * @returns A generator of chunks.
+ */
 export function* splitInChunks<T>(
 	target: T[],
 	quantity: number,
@@ -217,6 +234,10 @@ export function runWithRetryAndTimeout(options?: {
 	};
 }
 
+/**
+ * Dump a value to the console.
+ * @param value - The value to dump.
+ */
 export const dump = globalThis.dump;
 
 /**

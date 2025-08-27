@@ -32,6 +32,7 @@ declare module 'immutable' {
      * Like get(), but throws if the key isn’t present.
      * @param key The key to look up
      * @param notSetValue The value to return if the key is not set
+		 * @param getAsRawKey - Whether to treat the key as a raw key
      */
     getOrThrow(key: K, notSetValue?: V, getAsRawKey?: boolean): V;
 
