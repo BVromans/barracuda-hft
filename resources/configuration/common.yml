@@ -81,55 +81,55 @@ tests:
           single:
             buy:
               price: "0.001234"
-              amount: "0.00000001"
+              amount: "0.01234567"
             sell:
               price: "98.76"
-              amount: "0.00000001"
+              amount: "0.01234567"
           multiple: null
         market:
           single:
             buy:
-              amount: "0.00000001"
+              amount: "0.01234567"
             sell:
-              amount: "0.00000001"
+              amount: "0.01234567"
           multiple: null
         tracking:
           single:
             buy:
-              deviation: "5000" # 1 means 1bps or 0.01%
-              amount: "0.00000001"
+              deviation: "50" # 1 means 1%
+              amount: "0.01234567"
             sell:
-              deviation: "5000" # 1 means 1bps or 0.01%
-              amount: "0.00000001"
+              deviation: "50" # 1 means 1%
+              amount: "0.01234567"
           multiple: null
         limit:
           single:
             buy:
-              price: "0.001234"
-              amount: "0.00000001"
+              price: "0.1234"
+              amount: "0.01234567"
             sell:
               price: "98.76"
-              amount: "0.00000001"
+              amount: "0.01234567"
           multiple: null
       replace:
         fixed_price:
           single:
             buy:
-              amount: "0.00000002"
+              amount: "0.07654321"
             sell:
-              amount: "0.00000002"
+              amount: "0.07654321"
           multiple: null
         tracking:
           single:
             buy:
-              amount: "0.00000002"
+              amount: "0.07654321"
             sell:
-              amount: "0.00000002"
+              amount: "0.07654321"
           multiple: null
         limit:
           single:
             buy:
-              amount: "0.00000002"
+              amount: "0.07654321"
             sell:
-              amount: "0.00000002"
+              amount: "0.07654321"
           multiple: null
