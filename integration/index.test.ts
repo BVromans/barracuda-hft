@@ -29,7 +29,7 @@ import {
 	WalletAddress,
 	WalletMnemonic
 } from "../src/types";
-import { get } from "../src/utils";
+import { get, sleep } from "../src/utils";
 
 let rujira: Rujira;
 
@@ -1332,8 +1332,11 @@ describe("Rujira", async() => {
 						amount: fixedPricePlaceSingleBuyOrderAmount,
 						price: fixedPricePlaceSingleBuyOrderPrice,
 					});
+
 					expect(placed).toBeDefined();
 					expect(placed.order).toBeDefined();
+
+					await sleep(1000);
 
 					const found = await rujira.fin.getOrder({
 						ownerAddress: walletPublicKeyThor,
@@ -1379,8 +1382,11 @@ describe("Rujira", async() => {
 						amount: fixedPricePlaceSingleSellOrderAmount,
 						price: fixedPricePlaceSingleSellOrderPrice,
 					});
+
 					expect(placed).toBeDefined();
 					expect(placed.order).toBeDefined();
+
+					await sleep(1000);
 
 					const found = await rujira.fin.getOrder({
 						ownerAddress: walletPublicKeyThor,
@@ -1425,6 +1431,8 @@ describe("Rujira", async() => {
 						],
 					});
 
+					await sleep(1000);
+
 					const many = await rujira.fin.getOrders({
 						ownerAddress: walletPublicKeyThor,
 						market,
@@ -1456,6 +1464,8 @@ describe("Rujira", async() => {
 					expect(result.order).toBeDefined();
 					expect(result.transaction).toBeDefined();
 
+					await sleep(1000);
+
 					// cleanup
 					await rujira.fin.cancelOrder({ ownerAddress: walletPublicKeyThor, market, order: result.order });
 				});
@@ -1476,6 +1486,8 @@ describe("Rujira", async() => {
 					expect(result.order).toBeDefined();
 					expect(result.transaction).toBeDefined();
 
+					await sleep(1000);
+
 					// cleanup
 					await rujira.fin.cancelOrder({ ownerAddress: walletPublicKeyThor, market, order: result.order });
 				});
@@ -1494,6 +1506,8 @@ describe("Rujira", async() => {
 					expect(result).toBeDefined();
 					expect(result.orders.size).toBe(2);
 					expect(result.transactions.size).toBeGreaterThan(0);
+
+					await sleep(1000);
 
 					// cleanup
 					await rujira.fin.cancelAllOrders({ ownerAddress: walletPublicKeyThor, market });
@@ -1515,6 +1529,8 @@ describe("Rujira", async() => {
 
 					expect(original.order).toBeDefined();
 
+					await sleep(1000);
+
 					const replaced = await rujira.fin.replaceOrder({
 						ownerAddress: walletPublicKeyThor,
 						market,
@@ -1525,6 +1541,8 @@ describe("Rujira", async() => {
 					});
 
 					expect(replaced.order).toBeDefined();
+
+					await sleep(1000);
 
 					// cleanup
 					await rujira.fin.cancelOrder({ ownerAddress: walletPublicKeyThor, market, order: replaced.order });
@@ -1544,6 +1562,8 @@ describe("Rujira", async() => {
 
 					expect(original.order).toBeDefined();
 
+					await sleep(1000);
+
 					const replaced = await rujira.fin.replaceOrder({
 						ownerAddress: walletPublicKeyThor,
 						market,
@@ -1554,6 +1574,8 @@ describe("Rujira", async() => {
 					});
 
 					expect(replaced.order).toBeDefined();
+
+					await sleep(1000);
 
 					// cleanup
 					await rujira.fin.cancelOrder({ ownerAddress: walletPublicKeyThor, market, order: replaced.order });
@@ -1570,6 +1592,8 @@ describe("Rujira", async() => {
 						],
 					});
 
+					await sleep(1000);
+
 					const result = await rujira.fin.replaceOrders({
 						ownerAddress: walletPublicKeyThor,
 						orders: [
@@ -1580,6 +1604,8 @@ describe("Rujira", async() => {
 
 					expect(result).toBeDefined();
 					expect(result.orders.size).toBe(2);
+
+					await sleep(1000);
 
 					// cleanup
 					await rujira.fin.cancelAllOrders({ ownerAddress: walletPublicKeyThor, market });
@@ -1601,6 +1627,8 @@ describe("Rujira", async() => {
 
 					expect(placed.order).toBeDefined();
 
+					await sleep(1000);
+
 					const cancelled = await rujira.fin.cancelOrder({ ownerAddress: walletPublicKeyThor, market, order: placed.order });
 
 					expect(cancelled.order).toBeDefined();
@@ -1620,6 +1648,8 @@ describe("Rujira", async() => {
 
 					expect(placed.order).toBeDefined();
 
+					await sleep(1000);
+
 					const cancelled = await rujira.fin.cancelOrder({ ownerAddress: walletPublicKeyThor, market, order: placed.order });
 
 					expect(cancelled.order).toBeDefined();
@@ -1637,6 +1667,9 @@ describe("Rujira", async() => {
 					});
 
 					const ordersToCancel = placed.orders.valueSeq().toList();
+
+					await sleep(1000);
+
 					const cancelled = await rujira.fin.cancelOrders({ ownerAddress: walletPublicKeyThor, market, orders: ordersToCancel });
 
 					expect(cancelled.orders.size).toBe(2);
@@ -1653,6 +1686,8 @@ describe("Rujira", async() => {
 							{ ownerAddress: walletPublicKeyThor, market, side: OrderSide.SELL, type: OrderType.FIXED_PRICE, amount: fixedPricePlaceSingleSellOrderAmount, price: fixedPricePlaceSingleSellOrderPrice },
 						],
 					});
+
+					await sleep(1000);
 
 					const result = await rujira.fin.cancelAllOrders({ ownerAddress: walletPublicKeyThor, market });
 
