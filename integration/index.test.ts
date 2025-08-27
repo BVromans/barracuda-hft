@@ -204,7 +204,7 @@ const cleanUp = async () => {
 
 describe("Rujira", async() => {
 	describe("Fin", async () => {
-		describe.skip("status", async () => {
+		describe("status", async () => {
 			it("should be up", async () => {
 				const result = await rujira.fin.getStatus({});
 
@@ -214,7 +214,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("transactions", () => {
+		describe("transactions", () => {
 			it("should be able to get a transaction without waiting confirmation", async () => {
 				const result = await rujira.fin.getTransaction({
 					hash: transactionHash,
@@ -267,7 +267,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("tokens", () => {
+		describe("tokens", () => {
 			it("should be able to get a token by address", async () => {
 				const result = await rujira.fin.getToken({
 					address: firstMarketBaseTokenAddress,
@@ -427,7 +427,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("markets", () => {
+		describe("markets", () => {
 			it("should be able to get a market by address", async () => {
 				const result = await rujira.fin.getMarket({
 					address: firstMarketAddress,
@@ -659,7 +659,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("orderbook", () => {
+		describe("orderbook", () => {
 			it("should be able to get the order book for a market", async () => {
 				const maximumNumberOfOrders = 10;
 
@@ -782,7 +782,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("ticker", () => {
+		describe("ticker", () => {
 			it("should be able to get a ticker by market address", async () => {
 				const result = await rujira.fin.getTicker({ marketAddress: firstMarketAddress });
 
@@ -856,7 +856,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("candles", () => {
+		describe("candles", () => {
 			it("should be able to get candles by market address", async () => {
 				const result = await rujira.fin.getCandles({ marketAddress: firstMarketAddress });
 
@@ -961,7 +961,7 @@ describe("Rujira", async() => {
 
 		});
 
-		describe.skip("indicators", () => {
+		describe("indicators", () => {
 
 			it("should be able to get indicators", async () => {
 
@@ -1124,7 +1124,7 @@ describe("Rujira", async() => {
 
 		});
 
-		describe.skip("balances", () => {
+		describe("balances", () => {
 			it("should be able to get balances for a wallet", async () => {
 				const result = await rujira.fin.getBalances({ walletAddress: walletPublicKeyThor });
 
