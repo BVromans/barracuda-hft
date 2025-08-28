@@ -386,7 +386,7 @@ import { dump, get } from "./utils";
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
-					amount: defaultBuyOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
+					amount: defaultBuyOrderMininumAmount.plus(Decimal(1).mul(defaultBuyOrderMininumAmount)),
 					price: defaultBuyOrderMininumPrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100))
 				} as FinReplaceOrderRequest,
 				{
@@ -397,7 +397,7 @@ import { dump, get } from "./utils";
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
-					amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
+					amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultBuyOrderMiddleAmount)),
 					price: defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100))
 				} as FinReplaceOrderRequest,
 				{
@@ -408,7 +408,7 @@ import { dump, get } from "./utils";
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
-					amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
+					amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultSellOrderMiddleAmount)),
 					price: defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100))
 				} as FinReplaceOrderRequest,
 				{
@@ -419,7 +419,7 @@ import { dump, get } from "./utils";
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
-					amount: defaultSellOrderMaximumAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
+					amount: defaultSellOrderMaximumAmount.plus(Decimal(1).mul(defaultSellOrderMaximumAmount)),
 					price: defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100))
 				} as FinReplaceOrderRequest,
 			]
@@ -666,7 +666,7 @@ import { dump, get } from "./utils";
 	if (active.getTransaction) {
 		const getTransaction = await rujira.fin.getTransaction({
 			// Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
-			hash: '0BD692147F4D28106113FA28963E2D47FB861FFE13D33ECDD1AAF33845B090E2'
+			hash: '6A2B2D1821B1E248410BA3CF273D65215C357DE559E0ED4117AEA3AA7967C05B'
 		});
 		console.log('getTransaction:\n', dump(getTransaction));
 		console.log('\n--------------------------------------------------------------------------------\n');
