@@ -211,7 +211,7 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 		);
 		const desiredBaseAmountCapped = Decimal.max(
 			minimumTokenAmountPerOrder,
-			Decimal.min(maximumTokenAmountPerOrder, desiredBaseAmountUncapped),
+			Decimal.min(desiredBaseAmountUncapped, maximumTokenAmountPerOrder),
 		);
 		const desiredBaseAmountAfterVolatility = desiredBaseAmountCapped.mul(sizePercentageMultiplier).div(DECIMAL_100);
 
@@ -220,7 +220,8 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			baseTokenFreeBalance,
 			quoteTokenFreeBalance.div(middlePrice),
 		);
-		const amount = Decimal.min(desiredBaseAmountAfterVolatility, maximumAffordableBaseByFunds);
+		let amount = Decimal.min(desiredBaseAmountAfterVolatility, maximumAffordableBaseByFunds);
+		amount = Decimal.max(minimumTokenAmountPerOrder, Decimal.min(amount, maximumTokenAmountPerOrder));
 
 		// Populate orders only if valid, with final prices and amounts
 		if (amount.gte(minimumTokenAmountPerOrder)) {
