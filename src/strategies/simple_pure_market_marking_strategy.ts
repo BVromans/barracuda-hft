@@ -86,13 +86,13 @@ export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrateg
 		// Determine final order sizes using configured per-order targets clamped by min/max and free balances
 		const amount = Decimal.min(
 			Decimal.min(
-				maximumTokenAmountPerOrder,
+				baseTokenFreeBalanceAmount,
+				quoteTokenFreeBalanceAmount.mul(middlePrice),
 				Decimal.max(
 					minimumTokenAmountPerOrder,
 					desiredTokenFreeBalanceAmountPerOrder,
-					baseTokenFreeBalanceAmount,
-					quoteTokenFreeBalanceAmount.mul(middlePrice)
-				)
+				),
+				maximumTokenAmountPerOrder
 			)
 		);
 
