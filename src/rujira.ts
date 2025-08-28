@@ -1694,7 +1694,6 @@ export class Fin {
 							feeAddress
 							deploymentStatus
 
-							# Asset Base
 							assetBase {
 								id
 								asset
@@ -1707,12 +1706,6 @@ export class Fin {
 									description
 									display
 								}
-								# price {
-								# 	current
-								# 	changeDay
-								# 	mcap
-								# 	timestamp
-								# }
 								variants {
 									layer1 { asset }
 									secured { asset }
@@ -1720,7 +1713,6 @@ export class Fin {
 								}
 							}
 
-							# Asset Quote
 							assetQuote {
 								id
 								asset
@@ -1733,44 +1725,25 @@ export class Fin {
 									description
 									display
 								}
-								# price {
-								# 	current
-								# 	changeDay
-								# 	mcap
-								# 	timestamp
-								# }
 								variants {
 									layer1 { asset }
 									secured { asset }
 									native { denom }
 								}
 							}
-
-							# # Oracles
-							# oracleBase {
-							# 	id
-							# 	asset {
-							# 		asset
-							# 		metadata { symbol name decimals }
-							# 	}
-							# 	price
-							# }
-							# oracleQuote {
-							# 	id
-							# 	asset {
-							# 		asset
-							# 		metadata { symbol name decimals }
-							# 	}
-							# 	price
-							# }
 						}
 					}
 				}
 			`;
 
+			const headers = {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer: ${properties.getAs<string>('rujira.tokens.graphql')}`,
+			};
+
 			const response = await this.parent.fetch(graphQLEndPoint, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers,
 				body: JSON.stringify({ query })
 			});
 
@@ -2216,13 +2189,16 @@ export class Fin {
 		// Use interval directly as resolution (already in seconds format)
 		const resolution = interval.replace('m', '');
 
-		// Time range (last 7 days)
+		// Time range (last 12 hours)
 		const before = new Date().toISOString();
-		const after = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+		const after = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
 
 		const response = await this.parent.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer: ${properties.getAs<string>('rujira.tokens.graphql')}`,
+			},
 			body: JSON.stringify({
 				query: `
 					query($marketAddress: ID!, $after: String!, $before: String!, $resolution: String!, $last: Int) {

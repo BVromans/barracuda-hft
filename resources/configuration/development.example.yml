@@ -1,4 +1,6 @@
 rujira:
+  tokens:
+    graphql: "<graphql token>"
   wallet:
     mnemonic: "<wallet mnemonic>" # Optional, but required if privateKey is not provided
     privateKey: "<wallet private key>" # Optional, but required if mnemonic is not provided
