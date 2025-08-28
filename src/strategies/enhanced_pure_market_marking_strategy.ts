@@ -88,9 +88,9 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 		const averageTrueRangeSeries = List<number>(get<number[]>(indicators.get(Indicator.average_true_range.id)?.value));
 
 		// Extract the most recent values for spread components
-		const bollingerBandsLower = Decimal(bollingerBandsLowerSeries.last() || DECIMAL_NaN);
 		const bollingerBandsMiddle = Decimal(bollingerBandsMiddleSeries.last() || DECIMAL_NaN);
-		const bollingerBandsUpper = Decimal(bollingerBandsUpperSeries.last() || DECIMAL_NaN);
+		const bollingerBandsLower = Decimal(bollingerBandsLowerSeries.last() || bollingerBandsMiddle);
+		const bollingerBandsUpper = Decimal(bollingerBandsUpperSeries.last() || bollingerBandsMiddle);
 		const bollingerBandsWidth = bollingerBandsUpper.minus(bollingerBandsLower).div(bollingerBandsMiddle); // Unitless bandwidth
 
 		// Extract the most recent values for skew components
@@ -104,15 +104,15 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			throw new Error('Middle price is not valid');
 		}
 
-		if (!bollingerBandsWidth.isFinite() || bollingerBandsWidth.lte(0)) {
+		if (!bollingerBandsWidth.isFinite() || bollingerBandsWidth.lessThan(0)) {
 			throw new Error('Bollinger bands width is not valid');
 		}
 
-		if (!volumeWeightedAveragePrice.isFinite() || volumeWeightedAveragePrice.lte(0)) {
+		if (!volumeWeightedAveragePrice.isFinite() || volumeWeightedAveragePrice.lessThan(0)) {
 			throw new Error('Volume weighted average price is not valid');
 		}
 
-		if (!averageTrueRange.isFinite() || averageTrueRange.lte(0)) {
+		if (!averageTrueRange.isFinite() || averageTrueRange.lessThan(0)) {
 			throw new Error('Average true range is not valid');
 		}
 
