@@ -20,6 +20,7 @@ import {
 	BaseTokenBalance,
 	Candle,
 	CandleInterval,
+	CandleTimestamp,
 	DECIMAL_0,
 	DECIMAL_1,
 	DECIMAL_10,
@@ -2171,12 +2172,14 @@ export class Fin {
 	 * @returns The candles response
 	 */
 	async getCandles(request: FinGetCandlesRequest): Promise<FinGetCandlesResponse> {
-		let { marketAddress, marketSymbol, market, interval, maximumNumberOfCandles } = request;
+		let { marketAddress, marketSymbol, market, after, before, interval, maximumNumberOfCandles } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
 		marketSymbol = marketSymbol?.trim();
-		maximumNumberOfCandles = maximumNumberOfCandles || properties.getAs<number>('rujira.default.candles.maximumNumberOfCandles') || DECIMAL_INFINITY.toNumber();
-		interval = interval || properties.getAs<CandleInterval>('rujira.default.candles.interval') || '1m';
+		after = after || new Date(Date.now() - Number(properties.getAs<number>('rujira.default.candles.lookbackInterval')));
+		before = before || new Date(); // It not informed, so we use the current date
+		maximumNumberOfCandles = maximumNumberOfCandles || DECIMAL_INFINITY.toNumber();
+		interval = interval || properties.getAs<CandleInterval>('rujira.default.candles.interval') || CandleInterval.ONE_MINUTE;
 
 		if (!marketAddress && !marketSymbol && !market) {
 			throw new Error("Either market address or market name or market must be provided");
@@ -2188,10 +2191,6 @@ export class Fin {
 
 		// Use interval directly as resolution (already in seconds format)
 		const resolution = interval.replace('m', '');
-
-		// Time range (last 2 hours)
-		const before = new Date().toISOString();
-		const after = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
 
 		const response = await this.parent.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
@@ -2223,8 +2222,8 @@ export class Fin {
 				`,
 				variables: {
 					marketAddress: Buffer.from(`FinPair:${market.address}`).toString('base64'),
-					after,
-					before,
+					after: after.toISOString(),
+					before: before.toISOString(),
 					resolution,
 					last: maximumNumberOfCandles // This field is not respected by the API, but we handle it client-side
 				}
@@ -2291,16 +2290,22 @@ export class Fin {
 				.slice(0, maximumNumberOfCandles);
 		}
 
-		const candles = MList<Candle>(limitedCandles).map((entry: any) => ({
-			timestamp: new Date(entry.bin).getTime(),
-			// Rujira is using 12 decimals for the price in the candles, which might differ from the market
-			open: Decimal(entry.open || 0).div(DECIMAL_10.pow(12)),
-			high: Decimal(entry.high || 0).div(DECIMAL_10.pow(12)),
-			low: Decimal(entry.low || 0).div(DECIMAL_10.pow(12)),
-			close: Decimal(entry.close || 0).div(DECIMAL_10.pow(12)),
-			volume: Decimal(entry.volume || 0),
-			raw: entry
-		}));
+		const candles = MMap<CandleTimestamp, Candle>();
+
+		MList<Candle>(limitedCandles).map((entry: any) => {
+			const candle = {
+				timestamp: new Date(entry.bin).getTime(),
+				// Rujira is using 12 decimals for the price in the candles, which might differ from the market
+				open: Decimal(entry.open || 0).div(DECIMAL_10.pow(12)),
+				high: Decimal(entry.high || 0).div(DECIMAL_10.pow(12)),
+				low: Decimal(entry.low || 0).div(DECIMAL_10.pow(12)),
+				close: Decimal(entry.close || 0).div(DECIMAL_10.pow(12)),
+				volume: Decimal(entry.volume || 0),
+				raw: entry
+			}
+
+			candles.set(candle.timestamp, candle);
+		});
 
 		return candles;
 	}
@@ -2318,6 +2323,7 @@ export class Fin {
 		}
 
 		candles = candles.asImmutable();
+		const candlesList = candles.valueSeq().toList();
 
 		if (!indicatorsIds) {
 			indicatorsIds = Indicator.all.keySeq().toList();
@@ -2330,7 +2336,7 @@ export class Fin {
 		for (const indicatorId of indicatorsIds) {
 			const indicator = Indicator.all.getOrThrow(indicatorId);
 
-			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(candles), ...indicator.parameters);
+			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(candlesList), ...indicator.parameters);
 
 			output.set(indicator.id, {
 				indicator,

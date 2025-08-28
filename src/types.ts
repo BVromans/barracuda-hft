@@ -145,6 +145,1509 @@ export enum StrategyStatus {
 	STOPPED = 'stopped'
 }
 
+export type Boolean = boolean;
+export type Raw = any;
+export type Id = string;
+export type Address = string;
+export type Symbol = string;
+export type Name = string;
+export type Mnemonic = string;
+export type PrivateKey = string;
+export type Integer = number;
+export type Price = Decimal;
+export type Amount = Decimal;
+export type Percentage = Decimal;
+export type Hash = string;
+export type Timestamp = number;
+export type URL = string;
+export type ErrorMessage = string;
+
+export type WalletAddress = Address;
+export type WalletMnemonic = Mnemonic;
+export type WalletPrivateKey = PrivateKey;
+
+export type TokenAddress = Address;
+export type TokenSymbol = Symbol;
+export type TokenName = Name;
+export type TokenDecimals = Integer;
+export type TokenPrice = Price;
+
+export type FeeAmount = Amount;
+export type FeeToken = Token;
+
+export type TransactionHash = Hash;
+
+export type MarketAddress = Address;
+export type MarketSymbol = Symbol;
+export type MarketDecimals = Integer;
+export type MarketPrice = Price;
+export type MarketTick = Integer;
+
+export type OrderBookOrderPrice = Price;
+export type OrderBookOrderAmount = Amount;
+export type OrderBookPrice = Price;
+
+export type TickerPrice = Price;
+export type TickerTimestamp = Timestamp;
+
+export type CandleTimestamp = Timestamp;
+export type CandleDate = Date;
+export type CandleMaximumNumberOfCandles = Integer;
+export type CandlePrice = Price;
+export type CandleVolume = Amount;
+
+export type IndicatorId = Id;
+export type IndicatorName = Name;
+export type IndicatorParameters = any[];
+export type IndicatorValue = any;
+
+export type OrderId = Id;
+export type OrderPrice = Price;
+export type OrderDeviationPercentage = Percentage;
+export type OrderAmount = Amount;
+export type OrderFilledAmount = Amount;
+export type OrderFilledPercentage = Percentage;
+export type OrderCreationTimestamp = Timestamp;
+export type OrderUpdateTimestamp = Timestamp;
+export type OrderMaximumSlippagePercentage = Percentage;
+
+export type Wallet = {
+	cosmWallet: DirectSecp256k1Wallet;
+	firstAccount: AccountData;
+};
+
+/**
+ * Represents a token
+ */
+export interface Token {
+	/**
+	 * Address of the token
+	 */
+	address: TokenAddress;
+
+	/**
+	 * Symbol of the token
+	 */
+	symbol: TokenSymbol;
+
+	/**
+	 * Name of the token
+	 */
+	name: TokenName;
+
+	/**
+	 * Number of decimal places
+	 */
+	decimals: TokenDecimals;
+
+	/**
+	 * Raw data
+	 */
+	raw: Raw;
+}
+
+/**
+ * Represents a transaction
+ */
+export interface Transaction {
+	/**
+	 * Hash of the transaction
+	 */
+	hash: TransactionHash;
+
+	/**
+	 * Status of the transaction
+	 */
+	status: TransactionStatus;
+
+	/**
+	 * Fee of the transaction
+	 */
+	fee: {
+		/**
+		 * Amount of the fee
+		 */
+		amount: FeeAmount;
+
+		/**
+		 * Token of the fee
+		 */
+		token: FeeToken;
+	};
+
+	/**
+	 * Raw data
+	 */
+	raw: Raw;
+}
+
+/**
+ * Represents a market
+ */
+export interface Market {
+	/**
+	 * Address of the market
+	 */
+	address: MarketAddress;
+
+	/**
+	 * Symbol of the market
+	 */
+	symbol: MarketSymbol;
+
+	/**
+	 * Tokens of the market
+	 */
+	tokens: {
+		/**
+		 * Base token of the market
+		 */
+		base: Token;
+
+		/**
+		 * Quote token of the market
+		 */
+		quote: Token;
+	};
+
+	/**
+	 * Number of decimal places
+	 */
+	decimals: MarketDecimals;
+
+	/**
+	 * Status of the market
+	 */
+	status: MarketStatus;
+
+	/**
+	 * Tick size of the market
+	 *
+	 * The tick of a market, is not a tick size, but the number of significative digits it might contain, ignoring the leading zeros.
+	 * For example, if the tick is 4, this is 0.00000001234 ok, but 0.12345, or, 12.345 is not ok.
+	 */
+	tick: MarketTick;
+
+	/**
+	 * Raw data
+	 */
+	raw: Raw;
+}
+
+/**
+ * Represents an order book order
+ */
+export interface OrderBookOrder {
+	/**
+	 * Price of the order
+	 */
+	price: OrderBookOrderPrice;
+
+	/**
+	 * Amount of the order
+	 */
+	amount: OrderBookOrderAmount;
+
+	/**
+	 * Raw data
+	 */
+	raw: Raw;
+}
+
+/**
+ * Represents an order book
+ */
+export interface OrderBook {
+	/**
+	 * Market of the order book
+	 */
+	market: Market;
+
+	/**
+	 * Book of the order book
+	 */
+	book: {
+		/**
+		 * Bids of the order book
+		 */
+		bids: List<OrderBookOrder>;
+
+		/**
+		 * Asks of the order book
+		 */
+		asks: List<OrderBookOrder>;
+
+		/**
+		 * Best bid of the order book
+		 */
+		bestBid?: OrderBookOrder;
+
+		/**
+		 * Best ask of the order book
+		 */
+		bestAsk?: OrderBookOrder;
+	}
+
+	/**
+	 * Prices of the order book
+	 */
+	statistics: {
+		/**
+		 * Middle price of the order book
+		 */
+		middlePrice: {
+			/**
+			 * Price of the base token to the quote token
+			 */
+			baseToQuote?: OrderBookPrice;
+
+			/**
+			 * Price of the quote token to the base token
+			 */
+			quoteToBase?: OrderBookPrice;
+		},
+
+		/**
+		 * Volume weighted average price (VWAP) of the order book
+		 */
+		volumeWeightedAveragePrice: {
+			/**
+			 * Price of the base token to the quote token
+			 */
+			baseToQuote?: OrderBookPrice;
+
+			/**
+			 * Price of the quote token to the base token
+			 */
+			quoteToBase?: OrderBookPrice;
+		}
+	}
+
+	/**
+	 * Raw data
+	 */
+	raw: Raw;
+}
+
+/**
+ * Represents a ticker
+ */
+export interface Ticker {
+	/**
+	 * Market of the ticker
+	 */
+	market: Market;
+
+	/**
+	 * Price of the ticker
+	 */
+	middlePrice: {
+		/**
+		 * Price of the base token to the quote token
+		 */
+		baseToQuote?: TickerPrice;
+
+		/**
+		 * Price of the quote token to the base token
+		 */
+		quoteToBase?: TickerPrice;
+	};
+
+	/**
+	 * Volume weighted average price (VWAP) of the ticker
+	 */
+	volumeWeightedAveragePrice: {
+		/**
+		 * Price of the base token to the quote token
+		 */
+		baseToQuote?: TickerPrice;
+
+		/**
+		 * Price of the quote token to the base token
+		 */
+		quoteToBase?: TickerPrice;
+	};
+
+	/**
+	 * Timestamp of the ticker
+	 */
+	timestamp: TickerTimestamp;
+
+	/**
+	 * Raw data
+	 */
+	raw: Raw;
+}
+
+/**
+ * Represents a candle
+ */
+export interface Candle {
+	/**
+	 * Timestamp of the candle
+	 */
+	timestamp: CandleTimestamp;
+
+	/**
+	 * Open price of the candle
+	 */
+	open: CandlePrice;
+
+	/**
+	 * High price of the candle
+	 */
+	high: CandlePrice;
+
+	/**
+	 * Low price of the candle
+	 */
+	low: CandlePrice;
+
+	/**
+	 * Close price of the candle
+	 */
+	close: CandlePrice;
+
+	/**
+	 * Volume of the candle
+	 */
+	volume: CandleVolume;
+
+	/**
+	 * Raw data
+	 */
+	raw: Raw;
+}
+
+/**
+ * Represents an indicator
+ */
+export interface IndicatorData {
+	/**
+	 * ID of the indicator
+	 */
+	indicator: Indicator;
+
+	/**
+	 * Value of the indicator
+	 */
+	value: IndicatorValue;
+}
+
+
+/**
+ * Represents a balance of a token
+ */
+export interface BaseBalance {
+	/**
+	 * Free balance of the token
+	 */
+	free: Amount;
+
+	/**
+	 * Locked in orders balance of the token
+	 */
+	lockedInOrders: Amount;
+
+	/**
+	 * Locked in pools balance of the token
+	 */
+	lockedInPools: Amount;
+
+	/**
+	 * Withdrawable balance of the token
+	 */
+	withdrawable: Amount;
+
+	/**
+	 * Total balance of the token
+	 */
+	total: Amount;
+}
+
+/**
+ * Represents a balance of a token with a quotation
+ */
+export interface BaseBalanceWithQuotation extends BaseBalance {
+	/**
+	 * Quotation of the token
+	 */
+	quotation: {
+		/**
+		 * Token of the quotation
+		 */
+		token: Token;
+
+		/**
+		 * Conversion rate of the token
+		 */
+		tokenToQuote: Amount;
+
+		/**
+		 * Conversion rate of the quote
+		 */
+		quoteToToken: Amount;
+	};
+}
+
+/**
+ * Represents a balance of a token
+ */
+export interface BaseTokenBalance {
+	/**
+	 * Balance of the token
+	 */
+	token: BaseBalance;
+
+	/**
+	 * Balance of the native token
+	 */
+	nativeToken: BaseBalanceWithQuotation;
+
+	/**
+	 * Balance of the usd token
+	 */
+	usdToken: BaseBalanceWithQuotation;
+}
+
+/**
+ * Represents a balance of a token
+ */
+export interface TokenBalance {
+	/**
+	 * Token of the balance
+	 */
+	token: Token;
+
+	/**
+	 * Balances of the token
+	 */
+	balances: BaseTokenBalance;
+}
+
+/**
+ * Represents a total balance of a token
+ */
+export interface TotalBalances {
+	/**
+	 * Balance of the native token
+	 */
+	nativeToken: BaseBalance;
+
+	/**
+	 * Balance of the usd token
+	 */
+	usdToken: BaseBalance;
+}
+
+/**
+ * Represents a balance of a token
+ */
+export interface Balances {
+	/**
+	 * Balances of the tokens
+	 */
+	tokens: Map<TokenSymbol, TokenBalance>;
+
+	/**
+	 * Total balances of the wallet
+	 */
+	total: TotalBalances;
+}
+
+/**
+ * Represents an order
+ */
+export interface Order {
+	/**
+	 * ID of the order
+	 */
+	id?: OrderId;
+
+	/**
+	 * Market of the order
+	 */
+	market: Market;
+
+	/**
+	 * The account which placed the order
+	 */
+	ownerAddress: WalletAddress;
+
+	/**
+	 * Type of the order
+	 */
+	type: OrderType;
+
+	/**
+	 * The side of the order
+	 */
+	side: OrderSide;
+
+	/**
+	 * Price of the order
+	 */
+	price?: OrderPrice;
+
+	/**
+	 * Oracle deviation in basis points (for tracking orders)
+	 */
+	deviation?: OrderDeviationPercentage;
+
+	/**
+	 * Amount of the order
+	 */
+	amount: OrderAmount;
+
+	/**
+	 * Filled percentage of the order
+	 */
+	filledPercentage: OrderFilledPercentage;
+
+	/**
+	 * Status of the order
+	 */
+	status: OrderStatus;
+
+	/**
+	 * Timestamp of the order
+	 */
+	creationTimestamp?: OrderCreationTimestamp;
+
+	/**
+	 * Update timestamp of the order
+	 */
+	updateTimestamp?: OrderUpdateTimestamp;
+
+	/**
+	 * Raw data
+	 */
+	raw: Raw;
+}
+
+/**
+ * Rujira constructor options
+ */
+export interface RujiraConstructorOptions {
+	/**
+	 * Wallet mnemonic
+	 */
+	walletMnemonic?: WalletMnemonic;
+
+	/**
+	 * Wallet private key
+	 */
+	walletPrivateKey?: WalletPrivateKey;
+}
+
+/**
+ * Rujira initialize options
+ */
+export interface RujiraInitializeOptions {
+}
+
+/**
+ * Fin constructor options
+ */
+export interface FinConstructorOptions {
+}
+
+/**
+ * Fin initialize options
+ */
+export interface FinInitializeOptions {
+	/**
+	 * Parent
+	 */
+	parent: any;
+
+	/**
+	 * Wallet
+	 */
+	wallet: Wallet;
+
+	/**
+	 * Cosm client
+	 */
+	cosmClient: SigningCosmWasmClient;
+}
+
+/**
+ * Get status request
+ */
+export interface FinGetStatusRequest {
+}
+
+/**
+ * Get status response
+ */
+export interface FinGetStatusResponse {
+	/**
+	 * System status
+	 */
+	status: SystemStatus;
+
+	/**
+	 * Error message (only present when status is DOWN)
+	 */
+	error?: ErrorMessage;
+}
+
+/**
+ * Get token request
+ */
+export interface FinGetTokenRequest {
+	/**
+	 * Token address
+	 */
+	address?: TokenAddress;
+
+	/**
+	 * Token symbol
+	 */
+	symbol?: TokenSymbol;
+}
+
+/**
+ * Get token response
+ */
+export interface FinGetTokenResponse extends Token {
+}
+
+/**
+ * Get tokens request (if no addresses or symbols are provided, all tokens will be returned)
+ */
+export interface FinGetTokensRequest {
+	/**
+	 * Token addresses
+	 */
+	addresses?: List<TokenAddress> | TokenAddress[];
+
+	/**
+	 * Token symbols
+	 */
+	symbols?: List<TokenSymbol> | TokenSymbol[];
+}
+
+/**
+ * Get tokens response
+ */
+export interface FinGetTokensResponse extends Map<TokenSymbol, Token> {
+}
+
+/**
+ * Get all tokens request
+ */
+export interface FinGetAllTokensRequest {
+}
+
+/**
+ * Get all tokens response
+ */
+export interface FinGetAllTokensResponse extends Map<TokenSymbol, Token> {
+}
+
+/**
+ * Get market request
+ */
+export interface FinGetMarketRequest {
+	/**
+	 * Market address
+	 */
+	address?: MarketAddress;
+
+	/**
+	 * Market name
+	 */
+	symbol?: MarketSymbol;
+}
+
+/**
+ * Get market response
+ */
+export interface FinGetMarketResponse extends Market {
+}
+
+/**
+ * Get markets request
+ */
+export interface FinGetMarketsRequest {
+	/**
+	 * Market address
+	 */
+	addresses?: List<MarketAddress> | MarketAddress[];
+
+	/**
+	 * Market name
+	 */
+	symbols?: List<MarketSymbol> | MarketSymbol[];
+}
+
+/**
+ * Get markets response
+ */
+export interface FinGetMarketsResponse extends Map<MarketSymbol, Market> {
+}
+
+/**
+ * Get all markets request
+ */
+export interface FinGetAllMarketsRequest {
+}
+
+/**
+ * Get all markets response
+ */
+export interface FinGetAllMarketsResponse extends Map<MarketSymbol, Market> {
+}
+
+/**
+ * Get order book request
+ */
+export interface FinGetOrderBookRequest {
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
+	 * Maximum number of orders to return
+	 */
+	maximumNumberOfOrders?: Integer;
+}
+
+/**
+ * Get order book response
+ */
+export interface FinGetOrderBookResponse extends OrderBook {
+}
+
+/**
+ * Get ticker request
+ */
+export interface FinGetTickerRequest {
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+}
+
+/**
+ * Get ticker response
+ */
+export interface FinGetTickerResponse extends Ticker {
+}
+
+/**
+ * Get tickers request (if no addresses or symbols are provided, all tickers will be returned)
+ */
+export interface FinGetTickersRequest {
+	/**
+	 * Market addresses
+	 */
+	tokenAddresses?: List<TokenAddress> | TokenAddress[];
+
+	/**
+	 * Market symbols
+	 */
+	tokenSymbols?: List<TokenSymbol> | TokenSymbol[];
+
+	/**
+	 * Tokens
+	 */
+	tokens?: List<Token> | Token[];
+}
+
+/**
+ * Get tickers response
+ */
+export interface FinGetTickersResponse extends Map<TickerType, Map<TickerQuotationToken, Map<TokenSymbol, TokenPrice>>> {
+}
+
+/**
+ * Get candles request
+ */
+export interface FinGetCandlesRequest {
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+		/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
+	 * Would return candles after this date (needs to be in ISO format)
+	 */
+	after?: CandleDate;
+
+	/**
+	 * Would return candles before this date (needs to be in ISO format)
+	 */
+	before?: CandleDate;
+
+	/**
+	 * Candle interval
+	 */
+	interval?: CandleInterval;
+
+	/**
+	 * Maximum number of candles to return
+	 */
+	maximumNumberOfCandles?: CandleMaximumNumberOfCandles;
+}
+
+/**
+ * Get candles response
+ */
+export interface FinGetCandlesResponse extends Map<CandleTimestamp, Candle> {
+}
+
+/**
+ * Get indicators request
+ */
+export interface FinGetIndicatorsRequest {
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+		/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
+	 * After timestamp
+	 */
+	after?: CandleTimestamp;
+
+	/**
+	 * Before timestamp
+	 */
+	before?: CandleTimestamp;
+
+	/**
+	 * Candle interval
+	 */
+	interval?: CandleInterval;
+
+	/**
+	 * Maximum number of candles to return
+	 */
+	maximumNumberOfCandles?: CandleMaximumNumberOfCandles;
+
+	/**
+	 * Candles
+	 */
+	candles?: Map<CandleTimestamp, Candle>;
+
+	/**
+	 * Indicators
+	 */
+	indicatorsIds?: List<IndicatorId> | IndicatorId[];
+}
+
+/**
+ * Get indicators response
+ */
+export interface FinGetIndicatorsResponse extends Map<IndicatorId, IndicatorData> {
+}
+
+/**
+ * Get balances request
+ */
+export interface FinGetBalancesRequest {
+	/**
+	 * Address
+	 */
+	walletAddress?: WalletAddress;
+
+	/**
+	 * Wallet
+	 */
+	wallet?: Wallet;
+
+	/**
+	 * Token addresses to filter balances (optional)
+	 */
+	tokenAddresses?: List<TokenAddress> | TokenAddress[];
+
+	/**
+	 * Token symbols to filter balances
+	 */
+	tokenSymbols?: List<TokenSymbol> | TokenSymbol[];
+}
+
+/**
+ * Get balances response
+ */
+export interface FinGetBalancesResponse extends Balances {
+}
+
+/**
+ * Get transaction request
+ */
+export interface FinGetTransactionRequest {
+	/**
+	 * Transaction hash
+	 */
+	hash: TransactionHash;
+
+	/**
+	 * Wait for confirmation
+	 */
+	waitForConfirmation?: Boolean;
+}
+
+/**
+ * Get transaction response
+ */
+export interface FinGetTransactionResponse extends Transaction {
+}
+
+/**
+ * Get order request
+ */
+export interface FinGetOrderRequest {
+	/**
+	 * Owner address (wallet that owns the order)
+	 */
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
+
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
+	 * Order price
+	 */
+	orderPrice: OrderPrice;
+
+	/**
+	 * Order type
+	 */
+	orderType?: OrderType;
+
+	/**
+	 * Order side
+	 */
+	orderSide?: OrderSide;
+
+	/**
+	 * Order status
+	 */
+	orderStatus?: OrderStatus;
+}
+
+export interface FinGetOrderResponse extends Order {
+}
+
+/**
+ * Get orders request
+ */
+export interface FinGetOrdersRequest {
+	/**
+	 * Owner address (wallet that owns the order)
+	 */
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
+
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
+	 * Order IDs
+	 */
+	orderIds?: List<OrderId> | OrderId[];
+
+	/**
+	 * Orders
+	 */
+	orders?: List<Order> | Order[];
+
+	/**
+	 * Order price
+	 */
+	orderPrices?: List<OrderPrice> | OrderPrice[];
+
+	/**
+	 * Order type
+	 */
+	orderTypes?: List<OrderType> | OrderType[];
+
+	/**
+	 * Order side
+	 */
+	orderSides?: List<OrderSide> | OrderSide[];
+
+	/**
+	 * Order status
+	 */
+	orderStatuses?: List<OrderStatus> | OrderStatus[];
+
+	/**
+	 * Maximum number of orders to return
+	 */
+	maximumNumberOfOrders?: Integer;
+}
+
+/**
+ * Get orders response
+ */
+export interface FinGetOrdersResponse extends Map<OrderId, Order> {
+}
+
+/**
+ * Create order request
+ */
+export interface FinPlaceOrderRequest {
+	/**
+	 * Owner address (wallet that will create the order)
+	 */
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
+
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+
+	/**
+	 * Order side (buy/sell)
+	 */
+	side: OrderSide;
+
+	/**
+	 * Order type (market/limit)
+	 */
+	type: OrderType;
+
+	/**
+	 * Order amount
+	 */
+	amount: OrderAmount;
+
+	/**
+	 * Order price (required for limit orders)
+	 */
+	price?: OrderPrice;
+
+	/**
+	 * Oracle deviation in percentage (for tracking orders) or in 100 basis points (bps)
+	 */
+	deviation?: OrderDeviationPercentage;
+
+	/**
+	 * Maximum slippage percentage
+	 */
+	maximumSlippagePercentage?: OrderMaximumSlippagePercentage;
+}
+
+/**
+ * Create order response
+ */
+export interface FinPlaceOrderResponse {
+	/**
+	 * Order that was created
+	 */
+	order: Order;
+
+	/**
+	 * Transaction details
+	 */
+	transaction: Transaction;
+}
+
+/**
+ * Create orders request
+ */
+export interface FinPlaceOrdersRequest {
+	/**
+	 * Owner address (wallet that will create the orders)
+	 */
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
+
+	/**
+	 * List of orders to create
+	 */
+	orders: List<FinPlaceOrderRequest> | FinPlaceOrderRequest[];
+}
+
+/**
+ * Create orders response
+ */
+export interface FinPlaceOrdersResponse {
+	/**
+	 * List of created orders
+	 */
+	orders: Map<OrderId, Order>;
+
+	/**
+	 * Transaction details
+	 */
+	transactions: Map<TransactionHash, Transaction>;
+}
+
+/**
+ * Replace order request
+ */
+export interface FinReplaceOrderRequest extends FinPlaceOrderRequest {
+}
+
+/**
+ * Replace order response
+ */
+export interface FinReplaceOrderResponse extends FinPlaceOrderResponse {
+}
+
+/**
+ * Replace orders request
+ */
+export interface FinReplaceOrdersRequest extends FinPlaceOrdersRequest {
+}
+
+/**
+ * Replace orders response
+ */
+export interface FinReplaceOrdersResponse extends FinPlaceOrdersResponse {
+}
+
+/**
+ * Cancel order request
+ */
+export interface FinCancelOrderRequest {
+	/**
+	 * Order ID
+	 */
+	orderId?: OrderId;
+
+	/**
+	 * Order
+	 */
+	order?: Order;
+
+	/**
+	 * Owner address (wallet that will cancel the order)
+	 */
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
+
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+}
+
+/**
+ * Cancel order response
+ */
+export interface FinCancelOrderResponse {
+	/**
+	 * Order that was cancelled
+	 */
+	order: Order;
+
+	/**
+	 * Transaction details
+	 */
+	transaction: Transaction;
+}
+
+/**
+ * Cancel orders request
+ */
+export interface FinCancelOrdersRequest {
+	/**
+	 * Order IDs
+	 */
+	orderIds?: List<OrderId> | OrderId[];
+
+	/**
+	 * Orders
+	 */
+	orders?: List<Order> | Order[];
+
+	/**
+	 * Owner address (wallet that will cancel the orders)
+	 */
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
+
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+}
+
+/**
+ * Cancel orders response
+ */
+export interface FinCancelOrdersResponse {
+	/**
+	 * List of cancelled orders
+	 */
+	orders: Map<OrderId, Order>;
+
+	/**
+	 * Transaction details
+	 */
+	transactions: Map<TransactionHash, Transaction>;
+}
+
+/**
+ * Cancel all orders request
+ */
+export interface FinCancelAllOrdersRequest extends FinCancelOrdersRequest {
+}
+
+/**
+ * Cancel all orders response
+ */
+export interface FinCancelAllOrdersResponse extends FinCancelOrdersResponse {
+}
+
+/**
+ * Withdraw from market request
+ */
+export interface FinWithdrawAllFilledOrdersRequest {
+	/**
+	 * Owner address (wallet that will withdraw)
+	 */
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner
+	 */
+	owner?: Wallet;
+
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market name
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market
+	 */
+	market?: Market;
+}
+
+/**
+ * Withdraw from market response
+ */
+export interface FinWithdrawAllFilledOrdersResponse {
+	/**
+	 * List of withdrawn orders
+	 */
+	orders: Map<OrderId, Order>;
+
+	/**
+	 * Transaction details
+	 */
+	transactions: Map<TransactionHash, Transaction>;
+}
+
+/**
+ * Unified order execution request that can handle place, replace, cancel, and withdraw operations
+ */
+export interface FinPersistOrdersRequest {
+	/**
+	 * Owner address (wallet that will execute the orders)
+	 */
+	ownerAddress?: WalletAddress;
+
+	/**
+	 * Owner wallet
+	 */
+	owner?: Wallet;
+
+	/**
+	 * Market address
+	 */
+	marketAddress?: MarketAddress;
+
+	/**
+	 * Market symbol
+	 */
+	marketSymbol?: MarketSymbol;
+
+	/**
+	 * Market object
+	 */
+	market?: Market;
+
+	/**
+	 * Order operations to execute
+	 */
+	orders: {
+		/**
+		 * Place new orders
+		 */
+		place?: List<FinPlaceOrderRequest> | FinPlaceOrderRequest[];
+
+		/**
+		 * Replace existing orders
+		 */
+		replace?: List<FinReplaceOrderRequest> | FinReplaceOrderRequest[];
+
+		/**
+		 * Cancel orders by IDs or order objects
+		 */
+		cancel?: List<OrderId> | List<Order> | OrderId[] | Order[];
+
+		/**
+		 * Withdraw filled orders by IDs or order objects
+		 */
+		withdraw?: List<OrderId> | List<Order> | OrderId[] | Order[];
+	};
+}
+
+/**
+ * Unified order execution response
+ */
+export interface FinPersistOrdersResponse {
+	/**
+	 * Placed orders (if any)
+	 */
+	placedOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Replaced orders (if any)
+	 */
+	replacedOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Cancelled orders (if any)
+	 */
+	cancelledOrders?: Map<OrderId, Order>;
+
+	/**
+	 * Withdrawn orders (if any)
+	 */
+	withdrawnOrders?: Map<OrderId, Order>;
+
+	/**
+	 * All transactions from the execution
+	 */
+	transactions: Map<TransactionHash, Transaction>;
+}
+
 /**
  * Represents an indicator
  */
@@ -1622,1485 +3125,4 @@ export class Indicator {
 
 		return indicators;
 	}
-}
-
-export type Boolean = boolean;
-export type Raw = any;
-export type Id = string;
-export type Address = string;
-export type Symbol = string;
-export type Name = string;
-export type Mnemonic = string;
-export type PrivateKey = string;
-export type Integer = number;
-export type Price = Decimal;
-export type Amount = Decimal;
-export type Percentage = Decimal;
-export type Hash = string;
-export type Timestamp = number;
-export type URL = string;
-export type ErrorMessage = string;
-
-export type WalletAddress = Address;
-export type WalletMnemonic = Mnemonic;
-export type WalletPrivateKey = PrivateKey;
-
-export type TokenAddress = Address;
-export type TokenSymbol = Symbol;
-export type TokenName = Name;
-export type TokenDecimals = Integer;
-export type TokenPrice = Price;
-
-export type FeeAmount = Amount;
-export type FeeToken = Token;
-
-export type TransactionHash = Hash;
-
-export type MarketAddress = Address;
-export type MarketSymbol = Symbol;
-export type MarketDecimals = Integer;
-export type MarketPrice = Price;
-export type MarketTick = Integer;
-
-export type OrderBookOrderPrice = Price;
-export type OrderBookOrderAmount = Amount;
-export type OrderBookPrice = Price;
-
-export type TickerPrice = Price;
-export type TickerTimestamp = Timestamp;
-
-export type CandleTimestamp = Timestamp;
-export type CandlePrice = Price;
-export type CandleVolume = Amount;
-
-export type IndicatorId = Id;
-export type IndicatorName = Name;
-export type IndicatorParameters = any[];
-export type IndicatorValue = any;
-
-export type OrderId = Id;
-export type OrderPrice = Price;
-export type OrderDeviationPercentage = Percentage;
-export type OrderAmount = Amount;
-export type OrderFilledAmount = Amount;
-export type OrderFilledPercentage = Percentage;
-export type OrderCreationTimestamp = Timestamp;
-export type OrderUpdateTimestamp = Timestamp;
-export type OrderMaximumSlippagePercentage = Percentage;
-
-export type Wallet = {
-	cosmWallet: DirectSecp256k1Wallet;
-	firstAccount: AccountData;
-};
-
-/**
- * Represents a token
- */
-export interface Token {
-	/**
-	 * Address of the token
-	 */
-	address: TokenAddress;
-
-	/**
-	 * Symbol of the token
-	 */
-	symbol: TokenSymbol;
-
-	/**
-	 * Name of the token
-	 */
-	name: TokenName;
-
-	/**
-	 * Number of decimal places
-	 */
-	decimals: TokenDecimals;
-
-	/**
-	 * Raw data
-	 */
-	raw: Raw;
-}
-
-/**
- * Represents a transaction
- */
-export interface Transaction {
-	/**
-	 * Hash of the transaction
-	 */
-	hash: TransactionHash;
-
-	/**
-	 * Status of the transaction
-	 */
-	status: TransactionStatus;
-
-	/**
-	 * Fee of the transaction
-	 */
-	fee: {
-		/**
-		 * Amount of the fee
-		 */
-		amount: FeeAmount;
-
-		/**
-		 * Token of the fee
-		 */
-		token: FeeToken;
-	};
-
-	/**
-	 * Raw data
-	 */
-	raw: Raw;
-}
-
-/**
- * Represents a market
- */
-export interface Market {
-	/**
-	 * Address of the market
-	 */
-	address: MarketAddress;
-
-	/**
-	 * Symbol of the market
-	 */
-	symbol: MarketSymbol;
-
-	/**
-	 * Tokens of the market
-	 */
-	tokens: {
-		/**
-		 * Base token of the market
-		 */
-		base: Token;
-
-		/**
-		 * Quote token of the market
-		 */
-		quote: Token;
-	};
-
-	/**
-	 * Number of decimal places
-	 */
-	decimals: MarketDecimals;
-
-	/**
-	 * Status of the market
-	 */
-	status: MarketStatus;
-
-	/**
-	 * Tick size of the market
-	 *
-	 * The tick of a market, is not a tick size, but the number of significative digits it might contain, ignoring the leading zeros.
-	 * For example, if the tick is 4, this is 0.00000001234 ok, but 0.12345, or, 12.345 is not ok.
-	 */
-	tick: MarketTick;
-
-	/**
-	 * Raw data
-	 */
-	raw: Raw;
-}
-
-/**
- * Represents an order book order
- */
-export interface OrderBookOrder {
-	/**
-	 * Price of the order
-	 */
-	price: OrderBookOrderPrice;
-
-	/**
-	 * Amount of the order
-	 */
-	amount: OrderBookOrderAmount;
-
-	/**
-	 * Raw data
-	 */
-	raw: Raw;
-}
-
-/**
- * Represents an order book
- */
-export interface OrderBook {
-	/**
-	 * Market of the order book
-	 */
-	market: Market;
-
-	/**
-	 * Book of the order book
-	 */
-	book: {
-		/**
-		 * Bids of the order book
-		 */
-		bids: List<OrderBookOrder>;
-
-		/**
-		 * Asks of the order book
-		 */
-		asks: List<OrderBookOrder>;
-
-		/**
-		 * Best bid of the order book
-		 */
-		bestBid?: OrderBookOrder;
-
-		/**
-		 * Best ask of the order book
-		 */
-		bestAsk?: OrderBookOrder;
-	}
-
-	/**
-	 * Prices of the order book
-	 */
-	statistics: {
-		/**
-		 * Middle price of the order book
-		 */
-		middlePrice: {
-			/**
-			 * Price of the base token to the quote token
-			 */
-			baseToQuote?: OrderBookPrice;
-
-			/**
-			 * Price of the quote token to the base token
-			 */
-			quoteToBase?: OrderBookPrice;
-		},
-
-		/**
-		 * Volume weighted average price (VWAP) of the order book
-		 */
-		volumeWeightedAveragePrice: {
-			/**
-			 * Price of the base token to the quote token
-			 */
-			baseToQuote?: OrderBookPrice;
-
-			/**
-			 * Price of the quote token to the base token
-			 */
-			quoteToBase?: OrderBookPrice;
-		}
-	}
-
-	/**
-	 * Raw data
-	 */
-	raw: Raw;
-}
-
-/**
- * Represents a ticker
- */
-export interface Ticker {
-	/**
-	 * Market of the ticker
-	 */
-	market: Market;
-
-	/**
-	 * Price of the ticker
-	 */
-	middlePrice: {
-		/**
-		 * Price of the base token to the quote token
-		 */
-		baseToQuote?: TickerPrice;
-
-		/**
-		 * Price of the quote token to the base token
-		 */
-		quoteToBase?: TickerPrice;
-	};
-
-	/**
-	 * Volume weighted average price (VWAP) of the ticker
-	 */
-	volumeWeightedAveragePrice: {
-		/**
-		 * Price of the base token to the quote token
-		 */
-		baseToQuote?: TickerPrice;
-
-		/**
-		 * Price of the quote token to the base token
-		 */
-		quoteToBase?: TickerPrice;
-	};
-
-	/**
-	 * Timestamp of the ticker
-	 */
-	timestamp: TickerTimestamp;
-
-	/**
-	 * Raw data
-	 */
-	raw: Raw;
-}
-
-/**
- * Represents a candle
- */
-export interface Candle {
-	/**
-	 * Timestamp of the candle
-	 */
-	timestamp: CandleTimestamp;
-
-	/**
-	 * Open price of the candle
-	 */
-	open: CandlePrice;
-
-	/**
-	 * High price of the candle
-	 */
-	high: CandlePrice;
-
-	/**
-	 * Low price of the candle
-	 */
-	low: CandlePrice;
-
-	/**
-	 * Close price of the candle
-	 */
-	close: CandlePrice;
-
-	/**
-	 * Volume of the candle
-	 */
-	volume: CandleVolume;
-
-	/**
-	 * Raw data
-	 */
-	raw: Raw;
-}
-
-/**
- * Represents an indicator
- */
-export interface IndicatorData {
-	/**
-	 * ID of the indicator
-	 */
-	indicator: Indicator;
-
-	/**
-	 * Value of the indicator
-	 */
-	value: IndicatorValue;
-}
-
-
-/**
- * Represents a balance of a token
- */
-export interface BaseBalance {
-	/**
-	 * Free balance of the token
-	 */
-	free: Amount;
-
-	/**
-	 * Locked in orders balance of the token
-	 */
-	lockedInOrders: Amount;
-
-	/**
-	 * Locked in pools balance of the token
-	 */
-	lockedInPools: Amount;
-
-	/**
-	 * Withdrawable balance of the token
-	 */
-	withdrawable: Amount;
-
-	/**
-	 * Total balance of the token
-	 */
-	total: Amount;
-}
-
-/**
- * Represents a balance of a token with a quotation
- */
-export interface BaseBalanceWithQuotation extends BaseBalance {
-	/**
-	 * Quotation of the token
-	 */
-	quotation: {
-		/**
-		 * Token of the quotation
-		 */
-		token: Token;
-
-		/**
-		 * Conversion rate of the token
-		 */
-		tokenToQuote: Amount;
-
-		/**
-		 * Conversion rate of the quote
-		 */
-		quoteToToken: Amount;
-	};
-}
-
-/**
- * Represents a balance of a token
- */
-export interface BaseTokenBalance {
-	/**
-	 * Balance of the token
-	 */
-	token: BaseBalance;
-
-	/**
-	 * Balance of the native token
-	 */
-	nativeToken: BaseBalanceWithQuotation;
-
-	/**
-	 * Balance of the usd token
-	 */
-	usdToken: BaseBalanceWithQuotation;
-}
-
-/**
- * Represents a balance of a token
- */
-export interface TokenBalance {
-	/**
-	 * Token of the balance
-	 */
-	token: Token;
-
-	/**
-	 * Balances of the token
-	 */
-	balances: BaseTokenBalance;
-}
-
-/**
- * Represents a total balance of a token
- */
-export interface TotalBalances {
-	/**
-	 * Balance of the native token
-	 */
-	nativeToken: BaseBalance;
-
-	/**
-	 * Balance of the usd token
-	 */
-	usdToken: BaseBalance;
-}
-
-/**
- * Represents a balance of a token
- */
-export interface Balances {
-	/**
-	 * Balances of the tokens
-	 */
-	tokens: Map<TokenSymbol, TokenBalance>;
-
-	/**
-	 * Total balances of the wallet
-	 */
-	total: TotalBalances;
-}
-
-/**
- * Represents an order
- */
-export interface Order {
-	/**
-	 * ID of the order
-	 */
-	id?: OrderId;
-
-	/**
-	 * Market of the order
-	 */
-	market: Market;
-
-	/**
-	 * The account which placed the order
-	 */
-	ownerAddress: WalletAddress;
-
-	/**
-	 * Type of the order
-	 */
-	type: OrderType;
-
-	/**
-	 * The side of the order
-	 */
-	side: OrderSide;
-
-	/**
-	 * Price of the order
-	 */
-	price?: OrderPrice;
-
-	/**
-	 * Oracle deviation in basis points (for tracking orders)
-	 */
-	deviation?: OrderDeviationPercentage;
-
-	/**
-	 * Amount of the order
-	 */
-	amount: OrderAmount;
-
-	/**
-	 * Filled percentage of the order
-	 */
-	filledPercentage: OrderFilledPercentage;
-
-	/**
-	 * Status of the order
-	 */
-	status: OrderStatus;
-
-	/**
-	 * Timestamp of the order
-	 */
-	creationTimestamp?: OrderCreationTimestamp;
-
-	/**
-	 * Update timestamp of the order
-	 */
-	updateTimestamp?: OrderUpdateTimestamp;
-
-	/**
-	 * Raw data
-	 */
-	raw: Raw;
-}
-
-/**
- * Rujira constructor options
- */
-export interface RujiraConstructorOptions {
-	/**
-	 * Wallet mnemonic
-	 */
-	walletMnemonic?: WalletMnemonic;
-
-	/**
-	 * Wallet private key
-	 */
-	walletPrivateKey?: WalletPrivateKey;
-}
-
-/**
- * Rujira initialize options
- */
-export interface RujiraInitializeOptions {
-}
-
-/**
- * Fin constructor options
- */
-export interface FinConstructorOptions {
-}
-
-/**
- * Fin initialize options
- */
-export interface FinInitializeOptions {
-	/**
-	 * Parent
-	 */
-	parent: any;
-
-	/**
-	 * Wallet
-	 */
-	wallet: Wallet;
-
-	/**
-	 * Cosm client
-	 */
-	cosmClient: SigningCosmWasmClient;
-}
-
-/**
- * Get status request
- */
-export interface FinGetStatusRequest {
-}
-
-/**
- * Get status response
- */
-export interface FinGetStatusResponse {
-	/**
-	 * System status
-	 */
-	status: SystemStatus;
-
-	/**
-	 * Error message (only present when status is DOWN)
-	 */
-	error?: ErrorMessage;
-}
-
-/**
- * Get token request
- */
-export interface FinGetTokenRequest {
-	/**
-	 * Token address
-	 */
-	address?: TokenAddress;
-
-	/**
-	 * Token symbol
-	 */
-	symbol?: TokenSymbol;
-}
-
-/**
- * Get token response
- */
-export interface FinGetTokenResponse extends Token {
-}
-
-/**
- * Get tokens request (if no addresses or symbols are provided, all tokens will be returned)
- */
-export interface FinGetTokensRequest {
-	/**
-	 * Token addresses
-	 */
-	addresses?: List<TokenAddress> | TokenAddress[];
-
-	/**
-	 * Token symbols
-	 */
-	symbols?: List<TokenSymbol> | TokenSymbol[];
-}
-
-/**
- * Get tokens response
- */
-export interface FinGetTokensResponse extends Map<TokenSymbol, Token> {
-}
-
-/**
- * Get all tokens request
- */
-export interface FinGetAllTokensRequest {
-}
-
-/**
- * Get all tokens response
- */
-export interface FinGetAllTokensResponse extends Map<TokenSymbol, Token> {
-}
-
-/**
- * Get market request
- */
-export interface FinGetMarketRequest {
-	/**
-	 * Market address
-	 */
-	address?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	symbol?: MarketSymbol;
-}
-
-/**
- * Get market response
- */
-export interface FinGetMarketResponse extends Market {
-}
-
-/**
- * Get markets request
- */
-export interface FinGetMarketsRequest {
-	/**
-	 * Market address
-	 */
-	addresses?: List<MarketAddress> | MarketAddress[];
-
-	/**
-	 * Market name
-	 */
-	symbols?: List<MarketSymbol> | MarketSymbol[];
-}
-
-/**
- * Get markets response
- */
-export interface FinGetMarketsResponse extends Map<MarketSymbol, Market> {
-}
-
-/**
- * Get all markets request
- */
-export interface FinGetAllMarketsRequest {
-}
-
-/**
- * Get all markets response
- */
-export interface FinGetAllMarketsResponse extends Map<MarketSymbol, Market> {
-}
-
-/**
- * Get order book request
- */
-export interface FinGetOrderBookRequest {
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Market
-	 */
-	market?: Market;
-
-	/**
-	 * Maximum number of orders to return
-	 */
-	maximumNumberOfOrders?: Integer;
-}
-
-/**
- * Get order book response
- */
-export interface FinGetOrderBookResponse extends OrderBook {
-}
-
-/**
- * Get ticker request
- */
-export interface FinGetTickerRequest {
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Market
-	 */
-	market?: Market;
-}
-
-/**
- * Get ticker response
- */
-export interface FinGetTickerResponse extends Ticker {
-}
-
-/**
- * Get tickers request (if no addresses or symbols are provided, all tickers will be returned)
- */
-export interface FinGetTickersRequest {
-	/**
-	 * Market addresses
-	 */
-	tokenAddresses?: List<TokenAddress> | TokenAddress[];
-
-	/**
-	 * Market symbols
-	 */
-	tokenSymbols?: List<TokenSymbol> | TokenSymbol[];
-
-	/**
-	 * Tokens
-	 */
-	tokens?: List<Token> | Token[];
-}
-
-/**
- * Get tickers response
- */
-export interface FinGetTickersResponse extends Map<TickerType, Map<TickerQuotationToken, Map<TokenSymbol, TokenPrice>>> {
-}
-
-/**
- * Get candles request
- */
-export interface FinGetCandlesRequest {
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-		/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Market
-	 */
-	market?: Market;
-
-	/**
-	 * Candle interval
-	 */
-	interval?: CandleInterval;
-
-	/**
-	 * Maximum number of candles to return
-	 */
-	maximumNumberOfCandles?: Integer;
-}
-
-/**
- * Get candles response
- */
-export interface FinGetCandlesResponse extends List<Candle> {
-}
-
-/**
- * Get indicators request
- */
-export interface FinGetIndicatorsRequest {
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-		/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Market
-	 */
-	market?: Market;
-
-	/**
-	 * Candle interval
-	 */
-	interval?: CandleInterval;
-
-	/**
-	 * Maximum number of candles to return
-	 */
-	maximumNumberOfCandles?: Integer;
-
-	/**
-	 * Candles
-	 */
-	candles?: List<Candle>;
-
-	/**
-	 * Indicators
-	 */
-	indicatorsIds?: List<IndicatorId> | IndicatorId[];
-}
-
-/**
- * Get indicators response
- */
-export interface FinGetIndicatorsResponse extends Map<IndicatorId, IndicatorData> {
-}
-
-/**
- * Get balances request
- */
-export interface FinGetBalancesRequest {
-	/**
-	 * Address
-	 */
-	walletAddress?: WalletAddress;
-
-	/**
-	 * Wallet
-	 */
-	wallet?: Wallet;
-
-	/**
-	 * Token addresses to filter balances (optional)
-	 */
-	tokenAddresses?: List<TokenAddress> | TokenAddress[];
-
-	/**
-	 * Token symbols to filter balances
-	 */
-	tokenSymbols?: List<TokenSymbol> | TokenSymbol[];
-}
-
-/**
- * Get balances response
- */
-export interface FinGetBalancesResponse extends Balances {
-}
-
-/**
- * Get transaction request
- */
-export interface FinGetTransactionRequest {
-	/**
-	 * Transaction hash
-	 */
-	hash: TransactionHash;
-
-	/**
-	 * Wait for confirmation
-	 */
-	waitForConfirmation?: Boolean;
-}
-
-/**
- * Get transaction response
- */
-export interface FinGetTransactionResponse extends Transaction {
-}
-
-/**
- * Get order request
- */
-export interface FinGetOrderRequest {
-	/**
-	 * Owner address (wallet that owns the order)
-	 */
-	ownerAddress?: WalletAddress;
-
-	/**
-	 * Owner
-	 */
-	owner?: Wallet;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Market
-	 */
-	market?: Market;
-
-	/**
-	 * Order price
-	 */
-	orderPrice: OrderPrice;
-
-	/**
-	 * Order type
-	 */
-	orderType?: OrderType;
-
-	/**
-	 * Order side
-	 */
-	orderSide?: OrderSide;
-
-	/**
-	 * Order status
-	 */
-	orderStatus?: OrderStatus;
-}
-
-export interface FinGetOrderResponse extends Order {
-}
-
-/**
- * Get orders request
- */
-export interface FinGetOrdersRequest {
-	/**
-	 * Owner address (wallet that owns the order)
-	 */
-	ownerAddress?: WalletAddress;
-
-	/**
-	 * Owner
-	 */
-	owner?: Wallet;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Market
-	 */
-	market?: Market;
-
-	/**
-	 * Order IDs
-	 */
-	orderIds?: List<OrderId> | OrderId[];
-
-	/**
-	 * Orders
-	 */
-	orders?: List<Order> | Order[];
-
-	/**
-	 * Order price
-	 */
-	orderPrices?: List<OrderPrice> | OrderPrice[];
-
-	/**
-	 * Order type
-	 */
-	orderTypes?: List<OrderType> | OrderType[];
-
-	/**
-	 * Order side
-	 */
-	orderSides?: List<OrderSide> | OrderSide[];
-
-	/**
-	 * Order status
-	 */
-	orderStatuses?: List<OrderStatus> | OrderStatus[];
-
-	/**
-	 * Maximum number of orders to return
-	 */
-	maximumNumberOfOrders?: Integer;
-}
-
-/**
- * Get orders response
- */
-export interface FinGetOrdersResponse extends Map<OrderId, Order> {
-}
-
-/**
- * Create order request
- */
-export interface FinPlaceOrderRequest {
-	/**
-	 * Owner address (wallet that will create the order)
-	 */
-	ownerAddress?: WalletAddress;
-
-	/**
-	 * Owner
-	 */
-	owner?: Wallet;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Market
-	 */
-	market?: Market;
-
-	/**
-	 * Order side (buy/sell)
-	 */
-	side: OrderSide;
-
-	/**
-	 * Order type (market/limit)
-	 */
-	type: OrderType;
-
-	/**
-	 * Order amount
-	 */
-	amount: OrderAmount;
-
-	/**
-	 * Order price (required for limit orders)
-	 */
-	price?: OrderPrice;
-
-	/**
-	 * Oracle deviation in percentage (for tracking orders) or in 100 basis points (bps)
-	 */
-	deviation?: OrderDeviationPercentage;
-
-	/**
-	 * Maximum slippage percentage
-	 */
-	maximumSlippagePercentage?: OrderMaximumSlippagePercentage;
-}
-
-/**
- * Create order response
- */
-export interface FinPlaceOrderResponse {
-	/**
-	 * Order that was created
-	 */
-	order: Order;
-
-	/**
-	 * Transaction details
-	 */
-	transaction: Transaction;
-}
-
-/**
- * Create orders request
- */
-export interface FinPlaceOrdersRequest {
-	/**
-	 * Owner address (wallet that will create the orders)
-	 */
-	ownerAddress?: WalletAddress;
-
-	/**
-	 * Owner
-	 */
-	owner?: Wallet;
-
-	/**
-	 * List of orders to create
-	 */
-	orders: List<FinPlaceOrderRequest> | FinPlaceOrderRequest[];
-}
-
-/**
- * Create orders response
- */
-export interface FinPlaceOrdersResponse {
-	/**
-	 * List of created orders
-	 */
-	orders: Map<OrderId, Order>;
-
-	/**
-	 * Transaction details
-	 */
-	transactions: Map<TransactionHash, Transaction>;
-}
-
-/**
- * Replace order request
- */
-export interface FinReplaceOrderRequest extends FinPlaceOrderRequest {
-}
-
-/**
- * Replace order response
- */
-export interface FinReplaceOrderResponse extends FinPlaceOrderResponse {
-}
-
-/**
- * Replace orders request
- */
-export interface FinReplaceOrdersRequest extends FinPlaceOrdersRequest {
-}
-
-/**
- * Replace orders response
- */
-export interface FinReplaceOrdersResponse extends FinPlaceOrdersResponse {
-}
-
-/**
- * Cancel order request
- */
-export interface FinCancelOrderRequest {
-	/**
-	 * Order ID
-	 */
-	orderId?: OrderId;
-
-	/**
-	 * Order
-	 */
-	order?: Order;
-
-	/**
-	 * Owner address (wallet that will cancel the order)
-	 */
-	ownerAddress?: WalletAddress;
-
-	/**
-	 * Owner
-	 */
-	owner?: Wallet;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Market
-	 */
-	market?: Market;
-}
-
-/**
- * Cancel order response
- */
-export interface FinCancelOrderResponse {
-	/**
-	 * Order that was cancelled
-	 */
-	order: Order;
-
-	/**
-	 * Transaction details
-	 */
-	transaction: Transaction;
-}
-
-/**
- * Cancel orders request
- */
-export interface FinCancelOrdersRequest {
-	/**
-	 * Order IDs
-	 */
-	orderIds?: List<OrderId> | OrderId[];
-
-	/**
-	 * Orders
-	 */
-	orders?: List<Order> | Order[];
-
-	/**
-	 * Owner address (wallet that will cancel the orders)
-	 */
-	ownerAddress?: WalletAddress;
-
-	/**
-	 * Owner
-	 */
-	owner?: Wallet;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Market
-	 */
-	market?: Market;
-}
-
-/**
- * Cancel orders response
- */
-export interface FinCancelOrdersResponse {
-	/**
-	 * List of cancelled orders
-	 */
-	orders: Map<OrderId, Order>;
-
-	/**
-	 * Transaction details
-	 */
-	transactions: Map<TransactionHash, Transaction>;
-}
-
-/**
- * Cancel all orders request
- */
-export interface FinCancelAllOrdersRequest extends FinCancelOrdersRequest {
-}
-
-/**
- * Cancel all orders response
- */
-export interface FinCancelAllOrdersResponse extends FinCancelOrdersResponse {
-}
-
-/**
- * Withdraw from market request
- */
-export interface FinWithdrawAllFilledOrdersRequest {
-	/**
-	 * Owner address (wallet that will withdraw)
-	 */
-	ownerAddress?: WalletAddress;
-
-	/**
-	 * Owner
-	 */
-	owner?: Wallet;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market name
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Market
-	 */
-	market?: Market;
-}
-
-/**
- * Withdraw from market response
- */
-export interface FinWithdrawAllFilledOrdersResponse {
-	/**
-	 * List of withdrawn orders
-	 */
-	orders: Map<OrderId, Order>;
-
-	/**
-	 * Transaction details
-	 */
-	transactions: Map<TransactionHash, Transaction>;
-}
-
-/**
- * Unified order execution request that can handle place, replace, cancel, and withdraw operations
- */
-export interface FinPersistOrdersRequest {
-	/**
-	 * Owner address (wallet that will execute the orders)
-	 */
-	ownerAddress?: WalletAddress;
-
-	/**
-	 * Owner wallet
-	 */
-	owner?: Wallet;
-
-	/**
-	 * Market address
-	 */
-	marketAddress?: MarketAddress;
-
-	/**
-	 * Market symbol
-	 */
-	marketSymbol?: MarketSymbol;
-
-	/**
-	 * Market object
-	 */
-	market?: Market;
-
-	/**
-	 * Order operations to execute
-	 */
-	orders: {
-		/**
-		 * Place new orders
-		 */
-		place?: List<FinPlaceOrderRequest> | FinPlaceOrderRequest[];
-
-		/**
-		 * Replace existing orders
-		 */
-		replace?: List<FinReplaceOrderRequest> | FinReplaceOrderRequest[];
-
-		/**
-		 * Cancel orders by IDs or order objects
-		 */
-		cancel?: List<OrderId> | List<Order> | OrderId[] | Order[];
-
-		/**
-		 * Withdraw filled orders by IDs or order objects
-		 */
-		withdraw?: List<OrderId> | List<Order> | OrderId[] | Order[];
-	};
-}
-
-/**
- * Unified order execution response
- */
-export interface FinPersistOrdersResponse {
-	/**
-	 * Placed orders (if any)
-	 */
-	placedOrders?: Map<OrderId, Order>;
-
-	/**
-	 * Replaced orders (if any)
-	 */
-	replacedOrders?: Map<OrderId, Order>;
-
-	/**
-	 * Cancelled orders (if any)
-	 */
-	cancelledOrders?: Map<OrderId, Order>;
-
-	/**
-	 * Withdrawn orders (if any)
-	 */
-	withdrawnOrders?: Map<OrderId, Order>;
-
-	/**
-	 * All transactions from the execution
-	 */
-	transactions: Map<TransactionHash, Transaction>;
 }
