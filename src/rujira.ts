@@ -2189,9 +2189,9 @@ export class Fin {
 		// Use interval directly as resolution (already in seconds format)
 		const resolution = interval.replace('m', '');
 
-		// Time range (last 12 hours)
+		// Time range (last 4 hours)
 		const before = new Date().toISOString();
-		const after = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+		const after = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
 
 		const response = await this.parent.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
