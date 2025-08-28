@@ -33,7 +33,9 @@ const jsonReplacer = (key: string, value: any) => {
 		const prototype = Object.getPrototypeOf(value);
 		if (prototype && prototype !== Object.prototype) {
 			// For class instances, include class name
-			const object: any = { __class__: prototype.constructor.name };
+			const object: any = {
+				// __class__: prototype.constructor.name
+			};
 			for (const property in value) {
 				if (Object.prototype.hasOwnProperty.call(value, property)) {
 					object[property] = value[property];
