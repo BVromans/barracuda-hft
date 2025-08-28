@@ -53,7 +53,7 @@ tests:
   integration:
     timeout: 60_000 # 60 seconds
     transaction:
-      hash: "73B63952539063431298020873CD37F37992AB5DCBC15BE4D58D4531DDCB2DC3" # Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
+      hash: "6A2B2D1821B1E248410BA3CF273D65215C357DE559E0ED4117AEA3AA7967C05B" # Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
     markets:
       first:
         symbol: "THOR-RUJI/ETH-USDC"

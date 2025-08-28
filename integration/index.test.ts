@@ -856,7 +856,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("candles", () => {
+		describe("candles", () => {
 			it("should be able to get candles by market address", async () => {
 				const result = await rujira.fin.getCandles({ marketAddress: firstMarketAddress });
 
@@ -961,7 +961,7 @@ describe("Rujira", async() => {
 
 		});
 
-		describe.skip("indicators", () => {
+		describe("indicators", () => {
 
 			it("should be able to get indicators", async () => {
 
