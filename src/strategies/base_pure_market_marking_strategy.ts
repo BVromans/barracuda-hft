@@ -4,7 +4,7 @@ import { loggedClass } from "../annotations";
 import { logger } from "../logger";
 import { properties } from "../properties";
 import { Rujira } from "../rujira";
-import { Balances, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MarketSymbol, MList, MMap, Order, OrderId, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
+import { Balances, Candle, CandleInterval, CandleTimestamp, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MarketSymbol, MList, MMap, Order, OrderId, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
 import { runAndRepeat, sleep } from "../utils";
 import { BaseStrategy, Proposal } from "./base_strategy";
 
@@ -120,6 +120,14 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			this.state.set('summary.profitAndLoss.currentToPrevious.absolute', DECIMAL_NaN);
 			this.state.set('summary.profitAndLoss.currentToInitial.percentage', DECIMAL_NaN);
 			this.state.set('summary.profitAndLoss.currentToPrevious.percentage', DECIMAL_NaN);
+
+			const candles = await this.rujira.fin.getCandles({
+				market: market,
+				after: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+				before: new Date(), // Now
+				interval: CandleInterval.ONE_MINUTE
+			});
+			this.state.set('candles', candles);
 
 			await this.cancelAllOrdersIfConfigured({});
 			await this.withdrawAllFilledOrdersIfConfigured({});
@@ -385,6 +393,24 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	private async updateIndicators(_options: {}) {
 		try {
 			const market = this.state.getOrThrow('market');
+			let candles: Map<CandleTimestamp, Candle> = this.state.getOrThrow('candles');
+
+			const after = new Date(Date.now() - Number(properties.getAs<number>('strategy.pure_market_making.common.candles.updateLookbackInterval')));
+			const before = new Date();
+
+			const newCandles = await this.rujira.fin.getCandles({
+				market: market,
+				interval: CandleInterval.ONE_MINUTE,
+				after,
+				before
+			});
+
+			newCandles.forEach((candle: Candle) => {
+				candles.set(candle.timestamp, candle);
+			});
+
+			candles = candles.slice(-Number(properties.getAs<number>('strategy.pure_market_making.common.candles.maximumNumberOfCandlesKept')));
+			this.state.set('candles', candles);
 
 			const indicators = await this.rujira.fin.getIndicators({
 				market: market

@@ -15,6 +15,7 @@ strategy:
       candles:
         initialLookbackInterval: 21600000 # 6 hours in milliseconds
         updateLookbackInterval: 300000 # 5 minutes in milliseconds
+        maximumNumberOfCandlesKept: 500 # Maximum number of candles that is kept in memory
       orders:
         minimumTokenAmountPerOrder: 0 # Minimum token amount per order
         desiredTokenFreeBalancePercentagePerOrder: 10 # Desired token percentage of the free balance per order (0-100)
