@@ -64,8 +64,8 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * @param options - Options for the strategy
 	 */
 	constructor(options: {
-		walletMnemonic: WalletMnemonic | undefined;
-		walletPrivateKey: WalletPrivateKey | undefined;
+		walletMnemonic?: WalletMnemonic | undefined;
+		walletPrivateKey?: WalletPrivateKey | undefined;
 	}) {
 		this.rujira = new Rujira({
 			walletMnemonic: options.walletMnemonic ?? properties.getAs<WalletMnemonic | undefined>('rujira.wallet.mnemonic'),
