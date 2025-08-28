@@ -268,6 +268,11 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			proposal.place?.push(sellOrder);
 		}
 
+		logger.info(
+			`Proposal`,
+			this.convertProposalToJson(proposal)
+		);
+
 		this.state.set('proposal', proposal);
 	}
 }

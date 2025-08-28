@@ -4,7 +4,7 @@ import { loggedClass } from "../annotations";
 import { logger } from "../logger";
 import { properties } from "../properties";
 import { Rujira } from "../rujira";
-import { Balances, DECIMAL_100, DECIMAL_NaN, Market, MarketSymbol, MList, MMap, Order, OrderId, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
+import { Balances, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MarketSymbol, MList, MMap, Order, OrderId, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
 import { runAndRepeat, sleep } from "../utils";
 import { BaseStrategy, Proposal } from "./base_strategy";
 
@@ -574,4 +574,35 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			});
 		}
 	}
+
+	/**
+	 * Convert a proposal to a JSON object
+	 * @param proposal - Proposal to convert
+	 * @returns JSON object
+	 */
+	protected convertProposalToJson(proposal: Proposal) {
+		return {
+			place: (proposal.place as List<FinPlaceOrderRequest>)?.asImmutable().map((order: FinPlaceOrderRequest) => {
+				return {
+					market: order.market?.symbol,
+					side: order.side,
+					type: order.type,
+					amount: order.amount?.toString(),
+					price: order.price?.toString(),
+				}
+			}).toJS(),
+			replace: (proposal.replace as List<FinReplaceOrderRequest>)?.asImmutable().map((order: FinReplaceOrderRequest) => {
+				return {
+					market: order.market?.symbol,
+					side: order.side,
+					type: order.type,
+					amount: order.amount?.toString(),
+					price: order.price?.toString(),
+				}
+			}).toJS(),
+			cancel: (MList<OrderId | Order>(proposal.cancel as List<OrderId | Order>))?.asImmutable().map((order: OrderId | Order) => (order as Order).id || (order as OrderId)).toJS(),
+			withdraw: (MList<OrderId | Order>(proposal.withdraw as List<OrderId | Order>))?.asImmutable().map((order: OrderId | Order) => (order as Order).id || (order as OrderId)).toJS(),
+		}
+	}
+
 }
