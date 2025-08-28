@@ -791,7 +791,7 @@ export class Fin {
 	}
 
 	/**
-	 * Get transaction details by hash
+	 * Get transaction details by hash. This method will fail if the transaction is too old.
 	 * @param request - The request object
 	 * @returns The transaction response
 	 */
