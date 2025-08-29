@@ -2967,6 +2967,12 @@ export class Fin {
 		const marketSymbol = orders.first()?.marketSymbol;
 		const market = orders.first()?.market;
 
+		const ordersWithDeviation = orders.map(order => ({
+			...order,
+			deviationInPercentage: order.deviationInPercentage,
+			deviationInBasisPoints: order.deviationInBasisPoints
+		}));
+
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
@@ -2974,7 +2980,7 @@ export class Fin {
 			marketSymbol,
 			market,
 			orders: {
-				place: MList<FinPlaceOrderRequest>(orders)
+				place: MList<FinPlaceOrderRequest>(ordersWithDeviation)
 			}
 		});
 
@@ -3678,7 +3684,8 @@ export class Fin {
 					});
 				}
 			});
-			funds = rawFunds;
+			// Sort funds by denomination (required by Cosmos)
+			funds = rawFunds.sort((a, b) => a.denom.localeCompare(b.denom));
 		}
 
 		// Execute the transaction
