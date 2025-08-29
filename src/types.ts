@@ -157,6 +157,7 @@ export type Integer = number;
 export type Price = Decimal;
 export type Amount = Decimal;
 export type Percentage = Decimal;
+export type BasisPoints = Decimal;
 export type Hash = string;
 export type Timestamp = number;
 export type URL = string;
@@ -205,7 +206,8 @@ export type IndicatorValue = any;
 
 export type OrderId = Id;
 export type OrderPrice = Price;
-export type OrderDeviationPercentage = Percentage;
+export type OrderDeviationInPercentage = Percentage;
+export type OrderDeviationInBasisPoints = BasisPoints;
 export type OrderAmount = Amount;
 export type OrderFilledAmount = Amount;
 export type OrderFilledPercentage = Percentage;
@@ -705,9 +707,14 @@ export interface Order {
 	price?: OrderPrice;
 
 	/**
-	 * Oracle deviation in basis points (for tracking orders)
+	 * Oracle deviation in percentage for tracking (oracle) orders. 1 means 1%. 1% = 0.01 bps or 1bps = 0.01%.
 	 */
-	deviation?: OrderDeviationPercentage;
+	deviationInPercentage?: OrderDeviationInPercentage;
+
+	/**
+	 * Oracle deviation in basis points (bps) for tracking (oracle) orders. 1 means 1bps. 1% = 0.01 bps or 1bps = 0.01%.
+	 */
+	deviationInBasisPoints?: OrderDeviationInBasisPoints;
 
 	/**
 	 * Amount of the order
@@ -1327,9 +1334,14 @@ export interface FinPlaceOrderRequest {
 	price?: OrderPrice;
 
 	/**
-	 * Oracle deviation in percentage (for tracking orders) or in 100 basis points (bps)
+	 * Oracle deviation in percentage for tracking (oracle) orders. 1 means 1%. 1% = 0.01 bps or 1bps = 0.01%.
 	 */
-	deviation?: OrderDeviationPercentage;
+	deviationInPercentage?: OrderDeviationInPercentage;
+
+	/**
+	 * Oracle deviation in basis points (bps) for tracking (oracle) orders. 1 means 1bps. 1% = 0.01 bps or 1bps = 0.01%.
+	 */
+	deviationInBasisPoints?: OrderDeviationInBasisPoints;
 
 	/**
 	 * Maximum slippage percentage

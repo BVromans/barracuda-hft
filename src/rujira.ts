@@ -93,7 +93,8 @@ import {
 	OrderBook,
 	OrderBookOrder,
 	OrderBookPrice,
-	OrderDeviationPercentage,
+	OrderDeviationInBasisPoints,
+	OrderDeviationInPercentage,
 	OrderId,
 	OrderMaximumSlippagePercentage,
 	OrderPrice,
@@ -2464,7 +2465,7 @@ export class Fin {
 							lockedAmount = order.amount.mul(get<OrderPrice>(order.price));
 						} else if (order.type === OrderType.TRACKING_ORDER) {
 							// For tracking orders, use current market price + deviation
-							const deviationMultiplier = DECIMAL_100.minus(get<OrderDeviationPercentage>(order.deviation)).div(DECIMAL_100);
+							const deviationMultiplier = DECIMAL_100.minus(get<OrderDeviationInPercentage>(order.deviationInBasisPoints?.div(DECIMAL_100) ?? order.deviationInPercentage)).div(DECIMAL_100);
 							const currentPrice = tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).getOrThrow(lockedTokenSymbol);
 							const adjustedPrice = currentPrice.mul(deviationMultiplier);
 							lockedAmount = order.amount.mul(adjustedPrice);
@@ -2502,7 +2503,7 @@ export class Fin {
 							withdrawAmount = order.amount.mul(get<OrderPrice>(order.price));
 						} else if (order.type === OrderType.TRACKING_ORDER) {
 							// For tracking orders, we need to estimate the quote amount received
-							const deviationMultiplier = DECIMAL_100.plus(get<OrderDeviationPercentage>(order.deviation)).div(DECIMAL_100);
+							const deviationMultiplier = DECIMAL_100.plus(get<OrderDeviationInPercentage>(order.deviationInBasisPoints?.div(DECIMAL_100) ?? order.deviationInPercentage)).div(DECIMAL_100);
 							const currentPrice = tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).getOrThrow(withdrawTokenSymbol);
 							const adjustedPrice = currentPrice.mul(deviationMultiplier);
 							withdrawAmount = order.amount.mul(adjustedPrice);
@@ -2800,16 +2801,19 @@ export class Fin {
 		for (const rawOrder of rawOrders) {
 			let type: OrderType;
 			let price: OrderPrice;
-			let deviation: OrderDeviationPercentage;
+			let deviationInPercentage: OrderDeviationInPercentage;
+			let deviationInBasisPoints: OrderDeviationInBasisPoints;
 			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
 
 			if (rawOrder.price.fixed) {
 				type = OrderType.FIXED_PRICE;
 				price = Decimal(rawOrder.price.fixed);
-				deviation = DECIMAL_0;
+				deviationInPercentage = DECIMAL_0;
+				deviationInBasisPoints = DECIMAL_0;
 			} else if (rawOrder.price.oracle) {
 				type = OrderType.TRACKING_ORDER;
-				deviation = Decimal(rawOrder.price.oracle).div(DECIMAL_100); // Convert from bps (basis points) to percentage
+				deviationInPercentage = Decimal(rawOrder.price.oracle).div(DECIMAL_100); // Convert from bps (basis points) to percentage
+				deviationInBasisPoints = Decimal(rawOrder.price.oracle);
 				price = Decimal(rawOrder.rate || '0');
 			} else {
 				throw new Error(`Unknown order price type: ${JSON.stringify(rawOrder)}`);
@@ -2836,7 +2840,8 @@ export class Fin {
 				type,
 				side,
 				price,
-				deviation,
+				deviationInPercentage,
+				deviationInBasisPoints,
 				amount,
 				filledPercentage,
 				status,
@@ -2906,7 +2911,7 @@ export class Fin {
 	 * @returns The response for the created order
 	 */
 	async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
-		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price, deviationInPercentage, deviationInBasisPoints } = request;
 
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
@@ -2923,7 +2928,12 @@ export class Fin {
 							marketAddress,
 							marketSymbol,
 							market,
-							side, type, amount, price, deviation: request.deviation
+							side,
+							type,
+							amount,
+							price,
+							deviationInPercentage,
+							deviationInBasisPoints
 						}
 					]
 				)
@@ -2984,7 +2994,7 @@ export class Fin {
 	 * @returns The response for the replaced order
 	 */
 	async replaceOrder(request: FinReplaceOrderRequest): Promise<FinReplaceOrderResponse> {
-		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price, deviationInPercentage, deviationInBasisPoints } = request;
 
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
@@ -3003,7 +3013,8 @@ export class Fin {
 					type,
 					amount,
 					price,
-					deviation: request.deviation
+					deviationInPercentage,
+					deviationInBasisPoints
 				}])
 			}
 		});
@@ -3293,7 +3304,7 @@ export class Fin {
 					throw new Error("A valid order price is required for placing fixed price orders");
 				}
 
-				if ([OrderType.TRACKING_ORDER].includes(order.type) && (order.deviation === undefined)) {
+				if ([OrderType.TRACKING_ORDER].includes(order.type) && (order.deviationInPercentage === undefined && order.deviationInBasisPoints === undefined)) {
 					throw new Error("Deviation is required for placing tracking orders");
 				}
 
@@ -3471,13 +3482,17 @@ export class Fin {
 					let receivingToken: Token;
 					let payingTokenAmount: Amount;
 					let payingTokenAmountWithoutDecimals: Amount;
-					let deviation: OrderDeviationPercentage;
+					let deviationInBasisPoints: OrderDeviationInBasisPoints;
 
 					// Validate deviation parameter
-					if (requestOrder.deviation === undefined) {
+					if (requestOrder.deviationInPercentage === undefined && requestOrder.deviationInBasisPoints === undefined) {
 						throw new Error("Deviation is required for placing tracking orders");
 					}
-					deviation = requestOrder.deviation.mul(DECIMAL_100); // Convert from percentage to 100 basis points (bps)
+					deviationInBasisPoints = get<OrderDeviationInBasisPoints>(
+						requestOrder.deviationInBasisPoints
+						// Convert from percentage to 100 basis points (bps)
+						?? requestOrder.deviationInPercentage?.mul(DECIMAL_100)
+					);
 
 					if (requestOrder.side === OrderSide.BUY) {
 						payingToken = market.tokens.quote;
@@ -3496,7 +3511,7 @@ export class Fin {
 						ordersMessages.push([
 							side,
 							{
-								oracle: deviation.toNumber()
+								oracle: deviationInBasisPoints.toNumber()
 							},
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
@@ -3511,7 +3526,7 @@ export class Fin {
 						ordersMessages.push([
 							side,
 							{
-								oracle: deviation.toNumber()
+								oracle: deviationInBasisPoints.toNumber()
 							},
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
@@ -3532,7 +3547,8 @@ export class Fin {
 					type: existingOrder?.type || requestOrder.type,
 					side: existingOrder?.side || requestOrder.side,
 					price: existingOrder?.price || requestOrder.price,
-					deviation: existingOrder?.deviation || requestOrder.deviation,
+					deviationInPercentage: existingOrder?.deviationInBasisPoints?.div(DECIMAL_100) || existingOrder?.deviationInPercentage || requestOrder?.deviationInBasisPoints?.div(DECIMAL_100) || requestOrder?.deviationInPercentage,
+					deviationInBasisPoints: existingOrder?.deviationInBasisPoints || existingOrder?.deviationInPercentage?.mul(DECIMAL_100) || requestOrder?.deviationInBasisPoints || requestOrder?.deviationInPercentage?.mul(DECIMAL_100),
 					amount: existingOrder?.amount || requestOrder.amount,
 					filledPercentage: [OrderType.MARKET].includes(type) ? DECIMAL_100 : DECIMAL_0,
 					status: [OrderType.MARKET].includes(type) ? OrderStatus.FILLED : OrderStatus.OPEN,
@@ -3573,8 +3589,8 @@ export class Fin {
 
 				if (existingOrder.type === OrderType.TRACKING_ORDER) {
 					// For tracking orders, use the stored deviation (already in 100 basis points (bps))
-					const deviation = existingOrder.deviation?.mul(DECIMAL_100) || DECIMAL_0;
-					ordersMessages.push([side, { oracle: deviation.toNumber() }, "0"]);
+					const deviationInBasisPoints = get<OrderDeviationInBasisPoints>(existingOrder.deviationInBasisPoints || existingOrder.deviationInPercentage?.mul(DECIMAL_100));
+					ordersMessages.push([side, { oracle: deviationInBasisPoints.toNumber() }, "0"]);
 				} else {
 					// For fixed price orders
 					const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
@@ -3613,8 +3629,8 @@ export class Fin {
 
 				if (existingOrder.type === OrderType.TRACKING_ORDER) {
 					// For tracking orders, use the stored deviation (already in 100 basis points (bps))
-					const deviation = existingOrder.deviation?.mul(DECIMAL_100) || DECIMAL_0;
-					ordersMessages.push([side, { oracle: deviation.toNumber() }, null]);
+					const deviationInBasisPoints = get<OrderDeviationInBasisPoints>(existingOrder.deviationInBasisPoints || existingOrder.deviationInPercentage?.mul(DECIMAL_100));
+					ordersMessages.push([side, { oracle: deviationInBasisPoints.toNumber() }, null]);
 				} else {
 					// For fixed price orders
 					const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
@@ -3726,9 +3742,10 @@ export class Fin {
 		orderType?: OrderType;
 		orderSide?: OrderSide;
 		orderPrice?: OrderPrice;
-		orderDeviationPercentage?: OrderDeviationPercentage;
+		orderDeviationInPercentage?: OrderDeviationInPercentage;
+		orderDeviationInBasisPoints?: OrderDeviationInBasisPoints;
 	}): OrderId {
-		let { ownerAddress, marketSymbol, market, order, orderType, orderSide, orderPrice, orderDeviationPercentage } = options;
+		let { ownerAddress, marketSymbol, market, order, orderType, orderSide, orderPrice, orderDeviationInPercentage, orderDeviationInBasisPoints } = options;
 
 		ownerAddress = ownerAddress || get<Order>(order).ownerAddress;
 
@@ -3740,8 +3757,8 @@ export class Fin {
 
 		orderPrice = orderPrice || order?.price;
 
-		orderDeviationPercentage = orderDeviationPercentage || order?.deviation || undefined;
+		orderDeviationInBasisPoints = orderDeviationInBasisPoints || orderDeviationInPercentage?.mul(DECIMAL_100) || order?.deviationInBasisPoints || order?.deviationInPercentage?.mul(DECIMAL_100) || undefined;
 
-		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed()}|deviation:${orderDeviationPercentage?.toNumber()}`;
+		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed()}|deviation:${orderDeviationInBasisPoints?.toNumber()}`;
 	}
 }
