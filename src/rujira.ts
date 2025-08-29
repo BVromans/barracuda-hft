@@ -3307,6 +3307,14 @@ export class Fin {
 					throw new Error("Deviation is required for placing tracking orders");
 				}
 
+				// Validate tracking order deviation range (-2.5% to +2.5%)
+				if ([OrderType.TRACKING_ORDER].includes(order.type)) {
+					const deviationInBasisPoints = order.deviationInBasisPoints ?? order.deviationInPercentage?.mul(DECIMAL_100);
+					if (deviationInBasisPoints && deviationInBasisPoints.abs().gt(250)) {
+						throw new Error(`Tracking order deviation of ${deviationInBasisPoints.toFixed(0)} basis points (${deviationInBasisPoints.div(DECIMAL_100).toFixed(2)}%) is not allowed. Deviations must be between -250 and +250 basis points (-2.5% to +2.5%).`);
+					}
+				}
+
 				if (!order.amount.gt(DECIMAL_0)) {
 					throw new Error("Order amount must be greater than zero");
 				}
