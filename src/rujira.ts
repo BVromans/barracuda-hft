@@ -1646,7 +1646,7 @@ export class Fin {
 		addresses = cast<List<MarketAddress>>(addresses);
 		symbols = cast<List<MarketSymbol>>(symbols);
 
-		const markets = MMap<MarketAddress, Market>();
+		const markets = MMap<MarketSymbol, Market>();
 
 		addresses.forEach((address: MarketAddress) => {
 			const market = this.marketsByAddress.getOrThrow(address, undefined);
@@ -1762,7 +1762,7 @@ export class Fin {
 		}
 
 		const rawPairs = data?.rujira?.fin || [];
-		const markets = MMap<MarketAddress, Market>();
+		const markets = MMap<MarketSymbol, Market>();
 
 		for (const pair of rawPairs) {
 			// Only include LIVE markets
