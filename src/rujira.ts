@@ -123,7 +123,7 @@ import {
 	WalletMnemonic,
 	WalletPrivateKey
 } from './types';
-import { get, runWithRetryAndTimeout, sanitizeOrderPrice, validateOrderPrice } from "./utils";
+import { cast, runWithRetryAndTimeout, sanitizeOrderPrice, validateOrderPrice } from "./utils";
 
 /**
  * LRU cache
@@ -309,7 +309,7 @@ export class Rujira {
 			properties.getAs<string>('wallet.prefix')
 		);
 
-		const firstAccount = get<Array<AccountData>>(await this.directSecp256k1WalletGetAccounts(cosmWallet))[0];
+		const firstAccount = cast<Array<AccountData>>(await this.directSecp256k1WalletGetAccounts(cosmWallet))[0];
 
 		const wallet = {
 			cosmWallet: cosmWallet,
@@ -1516,10 +1516,10 @@ export class Fin {
 		}
 
 		if (addresses?.size) {
-			addresses = get<List<TokenAddress>>(addresses);
+			addresses = cast<List<TokenAddress>>(addresses);
 		}
 		if (symbols?.size) {
-			symbols = get<List<TokenSymbol>>(symbols);
+			symbols = cast<List<TokenSymbol>>(symbols);
 		}
 
 		const tokens = MMap<TokenSymbol, Token>();
@@ -1644,8 +1644,8 @@ export class Fin {
 			throw new Error("You must provide at least one non-empty address or symbol");
 		}
 
-		addresses = get<List<MarketAddress>>(addresses);
-		symbols = get<List<MarketSymbol>>(symbols);
+		addresses = cast<List<MarketAddress>>(addresses);
+		symbols = cast<List<MarketSymbol>>(symbols);
 
 		const markets = MMap<MarketAddress, Market>();
 
@@ -2021,8 +2021,8 @@ export class Fin {
 		tickers.getOrThrow(TickerType.LAYER_POOL).set(TickerQuotationToken.USD, MMap<TokenSymbol, TokenPrice>());
 
 		const nativeToUSDTicker = (await this.getTicker({ marketSymbol: `${this.nativeToken.symbol}/${this.usdToken.symbol}` }));
-		const nativeToUSDPrice = get<TickerPrice>(nativeToUSDTicker.middlePrice.baseToQuote);
-		const USDToNativePrice = get<TickerPrice>(nativeToUSDTicker.middlePrice.quoteToBase);
+		const nativeToUSDPrice = cast<TickerPrice>(nativeToUSDTicker.middlePrice.baseToQuote);
+		const USDToNativePrice = cast<TickerPrice>(nativeToUSDTicker.middlePrice.quoteToBase);
 
 		// Fetch THORChain oracle prices as fallback
 		let oracleRawBalances: { prices: Array<{ symbol: string; price: string }> } | undefined;
@@ -2134,7 +2134,7 @@ export class Fin {
 			try {
 				const tokenToUsdMarket = await this.getMarket({ symbol: `${token.symbol}/${this.usdToken.symbol}` });
 				const ticker = await this.getTicker({ marketAddress: tokenToUsdMarket.address });
-				const price = get<TickerPrice>(ticker.middlePrice.baseToQuote);
+				const price = cast<TickerPrice>(ticker.middlePrice.baseToQuote);
 
 				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price, true);
 				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice), true);
@@ -2142,7 +2142,7 @@ export class Fin {
 				try {
 					const tokenToNativeMarket = await this.getMarket({ symbol: `${token.symbol}/${this.nativeToken.symbol}` });
 					const ticker = await this.getTicker({ marketAddress: tokenToNativeMarket.address });
-					const price = get<TickerPrice>(ticker.middlePrice.baseToQuote);
+					const price = cast<TickerPrice>(ticker.middlePrice.baseToQuote);
 					tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price, true);
 					tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price.mul(nativeToUSDPrice), true);
 				} catch (exception) {
@@ -2462,10 +2462,10 @@ export class Fin {
 						lockedTokenSymbol = quoteTokenSymbol;
 						if (order.type === OrderType.FIXED_PRICE) {
 							// For fixed price orders, use order price directly
-							lockedAmount = order.amount.mul(get<OrderPrice>(order.price));
+							lockedAmount = order.amount.mul(cast<OrderPrice>(order.price));
 						} else if (order.type === OrderType.TRACKING_ORDER) {
 							// For tracking orders, use current market price + deviation
-							const deviationMultiplier = DECIMAL_100.minus(get<OrderDeviationInPercentage>(order.deviationInBasisPoints?.div(DECIMAL_100) ?? order.deviationInPercentage)).div(DECIMAL_100);
+							const deviationMultiplier = DECIMAL_100.minus(cast<OrderDeviationInPercentage>(order.deviationInBasisPoints?.div(DECIMAL_100) ?? order.deviationInPercentage)).div(DECIMAL_100);
 							const currentPrice = tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).getOrThrow(lockedTokenSymbol);
 							const adjustedPrice = currentPrice.mul(deviationMultiplier);
 							lockedAmount = order.amount.mul(adjustedPrice);
@@ -2500,10 +2500,10 @@ export class Fin {
 						withdrawTokenSymbol = quoteTokenSymbol;
 						if (order.type === OrderType.FIXED_PRICE) {
 							// For fixed price orders, use order price directly
-							withdrawAmount = order.amount.mul(get<OrderPrice>(order.price));
+							withdrawAmount = order.amount.mul(cast<OrderPrice>(order.price));
 						} else if (order.type === OrderType.TRACKING_ORDER) {
 							// For tracking orders, we need to estimate the quote amount received
-							const deviationMultiplier = DECIMAL_100.plus(get<OrderDeviationInPercentage>(order.deviationInBasisPoints?.div(DECIMAL_100) ?? order.deviationInPercentage)).div(DECIMAL_100);
+							const deviationMultiplier = DECIMAL_100.plus(cast<OrderDeviationInPercentage>(order.deviationInBasisPoints?.div(DECIMAL_100) ?? order.deviationInPercentage)).div(DECIMAL_100);
 							const currentPrice = tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).getOrThrow(withdrawTokenSymbol);
 							const adjustedPrice = currentPrice.mul(deviationMultiplier);
 							withdrawAmount = order.amount.mul(adjustedPrice);
@@ -2848,7 +2848,7 @@ export class Fin {
 				raw: rawOrder
 			} as Order;
 
-			filteredOrders.set(get<OrderId>(order.id), order, true);
+			filteredOrders.set(cast<OrderId>(order.id), order, true);
 		}
 
 		filteredOrders = filteredOrders.filter((order: Order) => {
@@ -2890,7 +2890,7 @@ export class Fin {
 			}
 
 			// Filter by order prices
-			if (orderPrices && (!order.price || !orderPrices.includes(get<OrderPrice>(order.price)))) {
+			if (orderPrices && (!order.price || !orderPrices.includes(cast<OrderPrice>(order.price)))) {
 				return false;
 			}
 
@@ -2940,11 +2940,11 @@ export class Fin {
 			}
 		});
 
-		const placedOrder = get<Order>(persistedOrders.placedOrders?.first() || persistedOrders.replacedOrders?.first());
+		const placedOrder = cast<Order>(persistedOrders.placedOrders?.first() || persistedOrders.replacedOrders?.first());
 
 		const result = {
 			order: placedOrder,
-			transaction: get<Transaction>(persistedOrders.transactions.first())
+			transaction: cast<Transaction>(persistedOrders.transactions.first())
 		}
 
 		return result;
@@ -2978,7 +2978,7 @@ export class Fin {
 			}
 		});
 
-		const placedOrders = get<Map<OrderId, Order>>((persistedOrders.placedOrders || MMap<OrderId, Order>()).merge(persistedOrders.replacedOrders || MMap<OrderId, Order>()));
+		const placedOrders = cast<Map<OrderId, Order>>((persistedOrders.placedOrders || MMap<OrderId, Order>()).merge(persistedOrders.replacedOrders || MMap<OrderId, Order>()));
 
 		const result = {
 			orders: placedOrders,
@@ -3019,11 +3019,11 @@ export class Fin {
 			}
 		});
 
-		const replacedOrder = get<Order>(persistedOrders.replacedOrders?.first() || persistedOrders.placedOrders?.first());
+		const replacedOrder = cast<Order>(persistedOrders.replacedOrders?.first() || persistedOrders.placedOrders?.first());
 
 		const result = {
 			order: replacedOrder,
-			transaction: get<Transaction>(persistedOrders.transactions.first())
+			transaction: cast<Transaction>(persistedOrders.transactions.first())
 		}
 
 		return result;
@@ -3056,7 +3056,7 @@ export class Fin {
 			}
 		});
 
-		const replacedOrders = get<Map<OrderId, Order>>((persistedOrders.replacedOrders || MMap<OrderId, Order>()).merge(persistedOrders.placedOrders || MMap<OrderId, Order>()));
+		const replacedOrders = cast<Map<OrderId, Order>>((persistedOrders.replacedOrders || MMap<OrderId, Order>()).merge(persistedOrders.placedOrders || MMap<OrderId, Order>()));
 
 		const result = {
 			orders: replacedOrders,
@@ -3081,13 +3081,13 @@ export class Fin {
 			marketSymbol,
 			market,
 			orders: {
-				cancel: orderId ? MList<OrderId>([orderId]) : MList<Order>([get<Order>(order)])
+				cancel: orderId ? MList<OrderId>([orderId]) : MList<Order>([cast<Order>(order)])
 			}
 		});
 
 		const result = {
-			order: get<Order>(persistedOrders.cancelledOrders?.first()),
-			transaction: get<Transaction>(persistedOrders.transactions.first())
+			order: cast<Order>(persistedOrders.cancelledOrders?.first()),
+			transaction: cast<Transaction>(persistedOrders.transactions.first())
 		}
 
 		return result;
@@ -3123,7 +3123,7 @@ export class Fin {
 		})
 
 		const result = {
-			orders: get<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
+			orders: cast<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
 			transactions: persistedOrders.transactions
 		};
 
@@ -3166,7 +3166,7 @@ export class Fin {
 		})
 
 		const result = {
-			orders: get<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
+			orders: cast<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
 			transactions: persistedOrders.transactions
 		};
 
@@ -3209,7 +3209,7 @@ export class Fin {
 		});
 
 		const result = {
-			orders: get<Map<OrderId, Order>>(persistedOrders.withdrawnOrders),
+			orders: cast<Map<OrderId, Order>>(persistedOrders.withdrawnOrders),
 			transactions: persistedOrders.transactions
 		};
 
@@ -3397,13 +3397,13 @@ export class Fin {
 					let outputTokenAmount: Amount;
 					let inputTokenAmountWithoutDecimals: Amount;
 					let outputTokenAmountWithoutDecimals: Amount;
-					let slippagePercentage: OrderMaximumSlippagePercentage = get<OrderMaximumSlippagePercentage>(requestOrder.maximumSlippagePercentage);
+					let slippagePercentage: OrderMaximumSlippagePercentage = cast<OrderMaximumSlippagePercentage>(requestOrder.maximumSlippagePercentage);
 
 					if (requestOrder.side === OrderSide.BUY) {
 						inputToken = market.tokens.quote;
 						outputToken = market.tokens.base;
 
-						outputToInputPrice = get<Price>(marketTicker.middlePrice.baseToQuote);
+						outputToInputPrice = cast<Price>(marketTicker.middlePrice.baseToQuote);
 
 						outputTokenAmount = requestOrder.amount;
 						inputTokenAmount = outputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.plus(slippagePercentage).div(DECIMAL_100));
@@ -3415,12 +3415,12 @@ export class Fin {
 							to: ownerAddress
 						});
 
-						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address, undefined, true)).plus(inputTokenAmountWithoutDecimals), true);
+						fundsMap.set(inputToken.address, cast<Amount>(fundsMap.get(inputToken.address, undefined, true)).plus(inputTokenAmountWithoutDecimals), true);
 					} else if (requestOrder.side === OrderSide.SELL) {
 						inputToken = market.tokens.base;
 						outputToken = market.tokens.quote;
 
-						outputToInputPrice = get<Price>(marketTicker.middlePrice.baseToQuote);
+						outputToInputPrice = cast<Price>(marketTicker.middlePrice.baseToQuote);
 
 						inputTokenAmount = requestOrder.amount;
 						outputTokenAmount = inputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
@@ -3432,7 +3432,7 @@ export class Fin {
 							to: ownerAddress
 						});
 
-						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address, undefined, true)).plus(inputTokenAmountWithoutDecimals), true);
+						fundsMap.set(inputToken.address, cast<Amount>(fundsMap.get(inputToken.address, undefined, true)).plus(inputTokenAmountWithoutDecimals), true);
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3445,7 +3445,7 @@ export class Fin {
 					if (requestOrder.side === OrderSide.BUY) {
 						payingToken = market.tokens.quote;
 						receivingToken = market.tokens.base;
-						price = get<OrderPrice>(requestOrder.price);
+						price = cast<OrderPrice>(requestOrder.price);
 						payingTokenAmount = requestOrder.amount.mul(price);
 						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
 
@@ -3457,11 +3457,11 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address, undefined, true)).plus(payingTokenAmountWithoutDecimals), true);
+						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined, true)).plus(payingTokenAmountWithoutDecimals), true);
 					} else if (requestOrder.side === OrderSide.SELL) {
 						payingToken = market.tokens.base;
 						receivingToken = market.tokens.quote;
-						price = get<OrderPrice>(requestOrder.price);
+						price = cast<OrderPrice>(requestOrder.price);
 						payingTokenAmount = requestOrder.amount;
 						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
 
@@ -3473,7 +3473,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address, undefined, true)).plus(payingTokenAmountWithoutDecimals), true);
+						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined, true)).plus(payingTokenAmountWithoutDecimals), true);
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3488,7 +3488,7 @@ export class Fin {
 					if (requestOrder.deviationInPercentage === undefined && requestOrder.deviationInBasisPoints === undefined) {
 						throw new Error("Deviation is required for placing tracking orders");
 					}
-					deviationInBasisPoints = get<OrderDeviationInBasisPoints>(
+					deviationInBasisPoints = cast<OrderDeviationInBasisPoints>(
 						requestOrder.deviationInBasisPoints
 						// Convert from percentage to 100 basis points (bps)
 						?? requestOrder.deviationInPercentage?.mul(DECIMAL_100)
@@ -3500,7 +3500,7 @@ export class Fin {
 						// For BUY orders, amount is in base token (BTC), but we pay with quote token (USDC)
 						// We need to calculate the USDC amount based on the BTC amount and current price
 						const baseTokenAmount = requestOrder.amount;
-						const currentPrice = get<Price>(marketTicker.middlePrice.baseToQuote);
+						const currentPrice = cast<Price>(marketTicker.middlePrice.baseToQuote);
 						payingTokenAmount = baseTokenAmount.mul(currentPrice);
 
 						// Use standard USDC decimals (6) instead of market data decimals (8)
@@ -3516,7 +3516,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address, undefined, true)).plus(payingTokenAmountWithoutDecimals), true);
+						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined, true)).plus(payingTokenAmountWithoutDecimals), true);
 					} else if (requestOrder.side === OrderSide.SELL) {
 						payingToken = market.tokens.base;
 						receivingToken = market.tokens.quote;
@@ -3531,7 +3531,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address, undefined, true)).plus(payingTokenAmountWithoutDecimals), true);
+						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined, true)).plus(payingTokenAmountWithoutDecimals), true);
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3589,7 +3589,7 @@ export class Fin {
 
 				if (existingOrder.type === OrderType.TRACKING_ORDER) {
 					// For tracking orders, use the stored deviation (already in 100 basis points (bps))
-					const deviationInBasisPoints = get<OrderDeviationInBasisPoints>(existingOrder.deviationInBasisPoints || existingOrder.deviationInPercentage?.mul(DECIMAL_100));
+					const deviationInBasisPoints = cast<OrderDeviationInBasisPoints>(existingOrder.deviationInBasisPoints || existingOrder.deviationInPercentage?.mul(DECIMAL_100));
 					ordersMessages.push([side, { oracle: deviationInBasisPoints.toNumber() }, "0"]);
 				} else {
 					// For fixed price orders
@@ -3629,7 +3629,7 @@ export class Fin {
 
 				if (existingOrder.type === OrderType.TRACKING_ORDER) {
 					// For tracking orders, use the stored deviation (already in 100 basis points (bps))
-					const deviationInBasisPoints = get<OrderDeviationInBasisPoints>(existingOrder.deviationInBasisPoints || existingOrder.deviationInPercentage?.mul(DECIMAL_100));
+					const deviationInBasisPoints = cast<OrderDeviationInBasisPoints>(existingOrder.deviationInBasisPoints || existingOrder.deviationInPercentage?.mul(DECIMAL_100));
 					ordersMessages.push([side, { oracle: deviationInBasisPoints.toNumber() }, null]);
 				} else {
 					// For fixed price orders
@@ -3747,13 +3747,13 @@ export class Fin {
 	}): OrderId {
 		let { ownerAddress, marketSymbol, market, order, orderType, orderSide, orderPrice, orderDeviationInPercentage, orderDeviationInBasisPoints } = options;
 
-		ownerAddress = ownerAddress || get<Order>(order).ownerAddress;
+		ownerAddress = ownerAddress || cast<Order>(order).ownerAddress;
 
-		marketSymbol = marketSymbol || order?.market?.symbol || get<Market>(market).symbol;
+		marketSymbol = marketSymbol || order?.market?.symbol || cast<Market>(market).symbol;
 
-		orderType = orderType || get<Order>(order).type;
+		orderType = orderType || cast<Order>(order).type;
 
-		orderSide = orderSide || get<Order>(order).side;
+		orderSide = orderSide || cast<Order>(order).side;
 
 		orderPrice = orderPrice || order?.price;
 

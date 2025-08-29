@@ -5,14 +5,14 @@ import { properties } from "./properties";
 import Decimal from "decimal.js";
 
 /**
- * Get a value or a default value if the value is undefined or null.
+ * Cast a value to a specific type or return a default value if the value is undefined or null.
  * @template R - The type of the value.
- * @param value - The value to get.
+ * @param value - The value to cast.
  * @param defaultValue - The default value to return if the value is undefined or null.
- * @returns The value or the default value.
+ * @returns The casted value or the default value.
  * @throws An error if the value is undefined or null and no default value is provided.
  */
-export const get = <R>(value: any, defaultValue?: R, errorMessage?: string): R => {
+export const cast = <R>(value: any, defaultValue?: R, errorMessage?: string): R => {
 	if (value === undefined || value === null) {
 		if (defaultValue === undefined || defaultValue === null) {
 			throw new Error(errorMessage || 'Value is null or undefined and no default value provided');

@@ -29,7 +29,7 @@ import {
 	WalletAddress,
 	WalletMnemonic
 } from "../src/types";
-import { get, sleep } from "../src/utils";
+import { cast, sleep } from "../src/utils";
 
 let rujira: Rujira;
 
@@ -709,7 +709,7 @@ describe("Rujira", async() => {
 					expect(firstBidOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(firstBidOrder.raw).toBeDefined();
 
-					const bestBid = get<OrderBookOrder>(
+					const bestBid = cast<OrderBookOrder>(
 						result.book.bestBid,
 						undefined,
 						`Best bid order not found`
@@ -729,7 +729,7 @@ describe("Rujira", async() => {
 					expect(firstAskOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(firstAskOrder.raw).toBeDefined();
 
-					const bestAsk = get<OrderBookOrder>(
+					const bestAsk = cast<OrderBookOrder>(
 						result.book.bestAsk,
 						undefined,
 						`Best ask order not found`
@@ -743,23 +743,23 @@ describe("Rujira", async() => {
 				}
 
 				if (asks.size > 0 && bids.size > 0) {
-					const bestAsk = get<OrderBookOrder>(
+					const bestAsk = cast<OrderBookOrder>(
 						result.book.bestAsk,
 						undefined,
 						`Best ask order not found`
 					);
-					const bestBid = get<OrderBookOrder>(
+					const bestBid = cast<OrderBookOrder>(
 						result.book.bestBid,
 						undefined,
 						`Best bid order not found`
 					);
-					const baseToQuoteMiddlePrice = get<Amount>(result.statistics.middlePrice.baseToQuote);
+					const baseToQuoteMiddlePrice = cast<Amount>(result.statistics.middlePrice.baseToQuote);
 					expect(baseToQuoteMiddlePrice).toBeDefined();
 					expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(baseToQuoteMiddlePrice.toNumber()).toBeLessThanOrEqual(bestAsk.price.toNumber());
 					expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThanOrEqual(bestBid.price.toNumber());
 
-					const quoteToBaseMiddlePrice = get<Amount>(result.statistics.middlePrice.quoteToBase);
+					const quoteToBaseMiddlePrice = cast<Amount>(result.statistics.middlePrice.quoteToBase);
 					expect(quoteToBaseMiddlePrice).toBeDefined();
 					expect(quoteToBaseMiddlePrice.toNumber()).toBe(DECIMAL_1.div(baseToQuoteMiddlePrice).toNumber());
 				} else if (asks.size > 0 && bids.size === 0) {

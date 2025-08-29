@@ -4,7 +4,7 @@ import { loggedClass } from "../annotations";
 import { logger } from "../logger";
 import { properties } from "../properties";
 import { Amount, Balances, DECIMAL_0, DECIMAL_1, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
-import { get } from "../utils";
+import { cast } from "../utils";
 import { BasePureMarketMakingStrategy } from "./base_pure_market_marking_strategy";
 import { Proposal } from "./base_strategy";
 
@@ -46,11 +46,11 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 		// Size parameters
 		const volatilitySizeShrinkageMultiplier = Decimal(properties.getAs<number>('strategy.pure_market_making.enhanced.orders.volatilitySizeShrinkageMultiplier')); // Multiplier for size shrinkage based on average true range (≈3–6)
 
-		const market: Market = get<Market>(this.state.get('market'));
-		const balances: Balances = get<Balances>(this.state.get('balances'));
-		const orderBook: OrderBook = get<OrderBook>(this.state.get('orderBook'));
-		const indicators: Map<IndicatorId, IndicatorData> = get<Map<IndicatorId, IndicatorData>>(this.state.get('indicators'));
-		const currentOrders: Map<OrderId, Order> = get<Map<OrderId, Order>>(this.state.get('orders'));
+		const market: Market = cast<Market>(this.state.get('market'));
+		const balances: Balances = cast<Balances>(this.state.get('balances'));
+		const orderBook: OrderBook = cast<OrderBook>(this.state.get('orderBook'));
+		const indicators: Map<IndicatorId, IndicatorData> = cast<Map<IndicatorId, IndicatorData>>(this.state.get('indicators'));
+		const currentOrders: Map<OrderId, Order> = cast<Map<OrderId, Order>>(this.state.get('orders'));
 
 		const middlePrice = orderBook.statistics.middlePrice?.baseToQuote;
 
@@ -80,12 +80,12 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 		};
 
 		// Retrieve indicator time series used by the strategy
-		const bollingerBandsSeries = get<[number[], number[], number[]]>(indicators.get(Indicator.bollinger_bands.id)?.value);
+		const bollingerBandsSeries = cast<[number[], number[], number[]]>(indicators.get(Indicator.bollinger_bands.id)?.value);
 		const bollingerBandsLowerSeries = List<number>(bollingerBandsSeries[0]);
 		const bollingerBandsMiddleSeries = List<number>(bollingerBandsSeries[1]);
 		const bollingerBandsUpperSeries = List<number>(bollingerBandsSeries[2]);
-		const volumeWeightedAveragePriceSeries = List<number>(get<number[]>(indicators.get(Indicator.volume_weighted_average_price.id)?.value));
-		const averageTrueRangeSeries = List<number>(get<number[]>(indicators.get(Indicator.average_true_range.id)?.value));
+		const volumeWeightedAveragePriceSeries = List<number>(cast<number[]>(indicators.get(Indicator.volume_weighted_average_price.id)?.value));
+		const averageTrueRangeSeries = List<number>(cast<number[]>(indicators.get(Indicator.average_true_range.id)?.value));
 
 		// Extract the most recent values for spread components
 		const bollingerBandsMiddle = Decimal(bollingerBandsMiddleSeries.last() || DECIMAL_NaN);
@@ -118,8 +118,8 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 
 		const baseTokenSymbol = market.tokens.base.symbol;
 		const quoteTokenSymbol = market.tokens.quote.symbol;
-		const baseTokenFreeBalance = get<Amount>(balances.tokens.get(baseTokenSymbol)?.balances.token.free);
-		const quoteTokenFreeBalance = get<Amount>(balances.tokens.get(quoteTokenSymbol)?.balances.token.free);
+		const baseTokenFreeBalance = cast<Amount>(balances.tokens.get(baseTokenSymbol)?.balances.token.free);
+		const quoteTokenFreeBalance = cast<Amount>(balances.tokens.get(quoteTokenSymbol)?.balances.token.free);
 
 		/*
 			SPREAD:
@@ -229,8 +229,8 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 			sellOrder.amount = amount;
 		}
 
-		const bestAskPrice = get(orderBook.book.bestAsk?.price, DECIMAL_NaN);
-		const bestBidPrice = get(orderBook.book.bestBid?.price, DECIMAL_NaN);
+		const bestAskPrice = cast(orderBook.book.bestAsk?.price, DECIMAL_NaN);
+		const bestBidPrice = cast(orderBook.book.bestBid?.price, DECIMAL_NaN);
 		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0) && (!bestAskPrice.isFinite() || buyPrice.lt(bestAskPrice))) {
 			buyOrder.price = buyPrice;
 		}

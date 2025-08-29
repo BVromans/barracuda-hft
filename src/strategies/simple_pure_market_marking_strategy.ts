@@ -6,7 +6,7 @@ import { BasePureMarketMakingStrategy } from "./base_pure_market_marking_strateg
 import { Proposal } from "./base_strategy";
 import { logger } from "../logger";
 import { loggedClass } from "../annotations";
-import { get } from "../utils";
+import { cast } from "../utils";
 
 /**
  * Pure market marking strategy
@@ -103,10 +103,10 @@ export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrateg
 			sellOrder.amount = amount;
 		}
 
-		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0) && buyPrice.lt(get(orderBook.book.bestAsk?.price, DECIMAL_NaN))) {
+		if (buyPrice.isFinite() && buyPrice.gt(DECIMAL_0) && buyPrice.lt(cast(orderBook.book.bestAsk?.price, DECIMAL_NaN))) {
 			buyOrder.price = buyPrice;
 		}
-		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0) && sellPrice.gt(get(orderBook.book.bestBid?.price, DECIMAL_NaN))) {
+		if (sellPrice.isFinite() && sellPrice.gt(DECIMAL_0) && sellPrice.gt(cast(orderBook.book.bestBid?.price, DECIMAL_NaN))) {
 			sellOrder.price = sellPrice;
 		}
 
