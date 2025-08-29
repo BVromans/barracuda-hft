@@ -9,20 +9,20 @@ import { WalletMnemonic, WalletPrivateKey } from "./types";
 
 	// You need to provide either the wallet mnemonic or the wallet private key
 	const walletMnemonic = properties.getAs<WalletMnemonic | undefined>('rujira.wallet.mnemonic');
-	const walletPrivateKey = properties.getAs<WalletPrivateKey | undefined>('rujira.wallet.privateKey');
+	// const walletPrivateKey = properties.getAs<WalletPrivateKey | undefined>('rujira.wallet.privateKey');
 
 	const simplePureMarketMarkingStrategy = new SimplePureMarketMarkingStrategy({
 		walletMnemonic: walletMnemonic,
-		walletPrivateKey: walletPrivateKey,
+		// walletPrivateKey: walletPrivateKey,
 	});
 
 	const enhancedPureMarketMarkingStrategy = new EnhancedPureMarketMarkingStrategy({
 		walletMnemonic: walletMnemonic,
-		walletPrivateKey: walletPrivateKey,
+		// walletPrivateKey: walletPrivateKey,
 	});
 
-	const strategy = simplePureMarketMarkingStrategy;
-	// const strategy = enhancedPureMarketMarkingStrategy;
+	// const strategy = simplePureMarketMarkingStrategy;
+	const strategy = enhancedPureMarketMarkingStrategy;
 
 	await strategy.initialize({});
 
