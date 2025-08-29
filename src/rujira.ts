@@ -1419,7 +1419,7 @@ export class Fin {
 		} else if (rawTransaction.tx_response.code === 1) {
 			status = TransactionStatus.FAILED;
 		} else {
-			status = TransactionStatus.PENDING;
+			status = TransactionStatus.UNKNOWN;
 		}
 
 		if (waitForConfirmation && status === TransactionStatus.PENDING) {

@@ -55,7 +55,8 @@ export enum Network {
 export enum TransactionStatus {
 	PENDING = 'pending',
 	SUCCESS = 'success',
-	FAILED = 'failed'
+	FAILED = 'failed',
+	UNKNOWN = 'unknown'
 }
 
 /**
