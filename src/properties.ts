@@ -22,7 +22,7 @@ export class Properties {
 	 * Constructor
 	 */
 	private constructor() {
-		this.map = MMap<string, any>();
+		this.map = MMap<string, any>({}, '.');
 	}
 
 	/**

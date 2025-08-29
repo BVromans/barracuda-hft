@@ -1473,9 +1473,9 @@ export class Fin {
 		}
 
 		if (address) {
-			return this.tokensByAddress.getOrThrow(address, undefined, true);
+			return this.tokensByAddress.getOrThrow(address, undefined);
 		} else if (symbol) {
-			return this.tokensBySymbol.getOrThrow(symbol, undefined, true);
+			return this.tokensBySymbol.getOrThrow(symbol, undefined);
 		}
 
 		throw new Error(`Token not found: ${address || symbol}`);
@@ -1526,17 +1526,17 @@ export class Fin {
 
 		if (addresses?.size) {
 			addresses.forEach((address: TokenAddress) => {
-				const token = this.tokensByAddress.getOrThrow(address, undefined, true);
+				const token = this.tokensByAddress.getOrThrow(address, undefined);
 				if (!token) throw new Error(`Token not found: ${address}`);
-				tokens.set(token.symbol, token, true);
+				tokens.set(token.symbol, token);
 			});
 		}
 
 		if (symbols?.size) {
 			symbols.forEach((symbol: TokenSymbol, index: number) => {
-				const token = this.tokensBySymbol.getOrThrow(symbol, undefined, true);
+				const token = this.tokensBySymbol.getOrThrow(symbol, undefined);
 				if (!token) throw new Error(`Token not found: ${symbol}`);
-				tokens.set(token.symbol, token, true);
+				tokens.set(token.symbol, token);
 			});
 		}
 
@@ -1561,20 +1561,20 @@ export class Fin {
 		// Extract all unique tokens from the markets
 		for (const market of markets.values()) {
 			// Add base token if not already added
-			if (!tokens.has(market.tokens.base.symbol, true)) {
-				tokens.set(market.tokens.base.symbol, market.tokens.base, true);
+			if (!tokens.has(market.tokens.base.symbol)) {
+				tokens.set(market.tokens.base.symbol, market.tokens.base);
 			}
 
 			// Add quote token if not already added
-			if (!tokens.has(market.tokens.quote.symbol, true)) {
-				tokens.set(market.tokens.quote.symbol, market.tokens.quote, true);
+			if (!tokens.has(market.tokens.quote.symbol)) {
+				tokens.set(market.tokens.quote.symbol, market.tokens.quote);
 			}
 		}
 
 		// Update internal maps
 		for (const token of tokens.values()) {
-			this.tokensByAddress.set(token.address.toLowerCase(), token, true);
-			this.tokensBySymbol.set(token.symbol.toUpperCase(), token, true);
+			this.tokensByAddress.set(token.address.toLowerCase(), token);
+			this.tokensBySymbol.set(token.symbol.toUpperCase(), token);
 		}
 
 		return tokens;
@@ -1598,9 +1598,9 @@ export class Fin {
 		}
 
 		if (address) {
-			return this.marketsByAddress.getOrThrow(address, undefined, true);
+			return this.marketsByAddress.getOrThrow(address, undefined);
 		} else if (symbol) {
-			return this.marketsBySymbol.getOrThrow(symbol, undefined, true);
+			return this.marketsBySymbol.getOrThrow(symbol, undefined);
 		}
 
 		throw new Error(`Market not found: ${address || symbol}`);
@@ -1650,15 +1650,15 @@ export class Fin {
 		const markets = MMap<MarketAddress, Market>();
 
 		addresses.forEach((address: MarketAddress) => {
-			const market = this.marketsByAddress.getOrThrow(address, undefined, true);
+			const market = this.marketsByAddress.getOrThrow(address, undefined);
 			if (!market) throw new Error(`Market not found: ${address}`);
-			markets.set(market.symbol, market, true);
+			markets.set(market.symbol, market);
 		});
 
 		symbols.forEach((symbol: MarketSymbol) => {
-			const market = this.marketsBySymbol.getOrThrow(symbol, undefined, true);
+			const market = this.marketsBySymbol.getOrThrow(symbol, undefined);
 			if (!market) throw new Error(`Market not found: ${symbol}`);
-			markets.set(market.symbol, market, true);
+			markets.set(market.symbol, market);
 		});
 
 		return markets;
@@ -1813,8 +1813,8 @@ export class Fin {
 
 		// Update internal maps
 		for (const market of markets.values()) {
-			this.marketsByAddress.set(market.address, market, true);
-			this.marketsBySymbol.set(market.symbol, market, true);
+			this.marketsByAddress.set(market.address, market);
+			this.marketsBySymbol.set(market.symbol, market);
 		}
 
 		return markets;
@@ -2112,8 +2112,8 @@ export class Fin {
 
 			if (rawOracleBalance) {
 				const price = new Decimal(rawOracleBalance.price.toString().trim());
-				tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price, true);
-				tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice), true);
+				tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price);
+				tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice));
 			} else {
 				// logger.ignoreException(new Error(`Token not found`), `Oracle price token ${token.symbol} not found, ignoring this price.`);
 			}
@@ -2125,8 +2125,8 @@ export class Fin {
 			if (rawPoolBalance) {
 				const price = new Decimal(rawPoolBalance.asset_tor_price.toString().trim()).div(DECIMAL_10.pow(8));
 
-				tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price, true);
-				tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice), true);
+				tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price);
+				tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice));
 			} else {
 				// logger.ignoreException(new Error(`Token not found`), `Pool price token ${token.symbol} not found, ignoring this price.`);
 			}
@@ -2136,15 +2136,15 @@ export class Fin {
 				const ticker = await this.getTicker({ marketAddress: tokenToUsdMarket.address });
 				const price = cast<TickerPrice>(ticker.middlePrice.baseToQuote);
 
-				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price, true);
-				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice), true);
+				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price);
+				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice));
 			} catch (exception) {
 				try {
 					const tokenToNativeMarket = await this.getMarket({ symbol: `${token.symbol}/${this.nativeToken.symbol}` });
 					const ticker = await this.getTicker({ marketAddress: tokenToNativeMarket.address });
 					const price = cast<TickerPrice>(ticker.middlePrice.baseToQuote);
-					tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price, true);
-					tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price.mul(nativeToUSDPrice), true);
+					tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price);
+					tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price.mul(nativeToUSDPrice));
 				} catch (exception) {
 					// logger.ignoreException(exception, `Failed to get price for token ${token.symbol} using ${token.symbol}/${this.usdToken.symbol} or ${token.symbol}/${this.nativeToken.symbol} markets.`);
 				}
@@ -2152,16 +2152,16 @@ export class Fin {
 
 			tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).set(
 				token.symbol,
-				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).get(token.symbol, undefined, true)
-				|| tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.USD).get(token.symbol, undefined, true)
-				|| tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.USD).getOrThrow(token.symbol, DECIMAL_0, true),
+				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).get(token.symbol, undefined)
+				|| tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.USD).get(token.symbol, undefined)
+				|| tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.USD).getOrThrow(token.symbol, DECIMAL_0),
 				true
 			);
 			tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.NATIVE).set(
 				token.symbol,
-				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).get(token.symbol, undefined, true)
-				|| tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.NATIVE).get(token.symbol, undefined, true)
-				|| tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.NATIVE).getOrThrow(token.symbol, DECIMAL_0, true),
+				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).get(token.symbol, undefined)
+				|| tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.NATIVE).get(token.symbol, undefined)
+				|| tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.NATIVE).getOrThrow(token.symbol, DECIMAL_0),
 				true
 			);
 		}
@@ -2427,7 +2427,7 @@ export class Fin {
 
 				if (rawBalance) {
 					const amount = Decimal(rawBalance.amount.toString().trim()).div(DECIMAL_10.pow(token.decimals));
-					freeBalances.set(token.symbol, amount, true);
+					freeBalances.set(token.symbol, amount);
 				} else {
 					// logger.ignoreException(new Error(`Balance for token ${token.symbol} not found, ignoring this token balance.`));
 				}
@@ -2482,7 +2482,7 @@ export class Fin {
 
 					if (lockedAmount.gt(0)) {
 						const currentLocked = lockedInOrdersMap.getOrThrow(lockedTokenSymbol, DECIMAL_0);
-						lockedInOrdersMap.set(lockedTokenSymbol, currentLocked.plus(lockedAmount), true);
+						lockedInOrdersMap.set(lockedTokenSymbol, currentLocked.plus(lockedAmount));
 					}
 				}
 
@@ -2516,7 +2516,7 @@ export class Fin {
 
 					if (withdrawAmount.gt(0)) {
 						const currentWithdrawable = withdrawableMap.getOrThrow(withdrawTokenSymbol, DECIMAL_0);
-						withdrawableMap.set(withdrawTokenSymbol, currentWithdrawable.plus(withdrawAmount), true);
+						withdrawableMap.set(withdrawTokenSymbol, currentWithdrawable.plus(withdrawAmount));
 					}
 				}
 			}
@@ -2539,9 +2539,9 @@ export class Fin {
 		};
 
 		for (const token of tokens.values()) {
-			const free = freeBalances.getOrThrow(token.symbol, DECIMAL_0, true);
-			const lockedInOrders = lockedInOrdersMap.getOrThrow(token.symbol, DECIMAL_0, true);
-			const withdrawable = withdrawableMap.getOrThrow(token.symbol, DECIMAL_0, true);
+			const free = freeBalances.getOrThrow(token.symbol, DECIMAL_0);
+			const lockedInOrders = lockedInOrdersMap.getOrThrow(token.symbol, DECIMAL_0);
+			const withdrawable = withdrawableMap.getOrThrow(token.symbol, DECIMAL_0);
 			const lockedInPools = DECIMAL_0; // Not implemented
 			const total = free.plus(lockedInOrders).plus(lockedInPools).plus(withdrawable);
 
@@ -2553,8 +2553,8 @@ export class Fin {
 				total
 			};
 
-			const conversionRateUSD: TickerPrice = token.address == this.usdToken.address ? DECIMAL_1 : tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).getOrThrow(token.symbol, DECIMAL_0, true);
-			const conversionRateNative: TickerPrice = token.address == this.nativeToken.address ? DECIMAL_1 : tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.NATIVE).getOrThrow(token.symbol, DECIMAL_0, true);
+			const conversionRateUSD: TickerPrice = token.address == this.usdToken.address ? DECIMAL_1 : tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).getOrThrow(token.symbol, DECIMAL_0);
+			const conversionRateNative: TickerPrice = token.address == this.nativeToken.address ? DECIMAL_1 : tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.NATIVE).getOrThrow(token.symbol, DECIMAL_0);
 
 			// Convert balances to native token (RUJI) amounts
 			const nativeTokenBalance: BaseBalance = {
@@ -2848,7 +2848,7 @@ export class Fin {
 				raw: rawOrder
 			} as Order;
 
-			filteredOrders.set(cast<OrderId>(order.id), order, true);
+			filteredOrders.set(cast<OrderId>(order.id), order);
 		}
 
 		filteredOrders = filteredOrders.filter((order: Order) => {
@@ -3362,11 +3362,11 @@ export class Fin {
 
 		// IMPORTANT: Only place and replace orders need funds. Cancel and withdraw operations send NO funds.
 		const fundsMap: Map<TokenAddress, Amount> = MMap<TokenAddress, Amount>();
-		fundsMap.set(market.tokens.quote.address, DECIMAL_0, true);
-		fundsMap.set(market.tokens.base.address, DECIMAL_0, true);
-		fundsMap.set(this.nativeToken.address, DECIMAL_0, true);
-		fundsMap.set(this.usdToken.address, DECIMAL_0, true);
-		fundsMap.set(this.feePaymentToken.address, DECIMAL_0, true);
+		fundsMap.set(market.tokens.quote.address, DECIMAL_0);
+		fundsMap.set(market.tokens.base.address, DECIMAL_0);
+		fundsMap.set(this.nativeToken.address, DECIMAL_0);
+		fundsMap.set(this.usdToken.address, DECIMAL_0);
+		fundsMap.set(this.feePaymentToken.address, DECIMAL_0);
 
 		// Process place and replace orders
 		if (placeAndReplaceOrders && !placeAndReplaceOrders.isEmpty()) {
@@ -3415,7 +3415,7 @@ export class Fin {
 							to: ownerAddress
 						});
 
-						fundsMap.set(inputToken.address, cast<Amount>(fundsMap.get(inputToken.address, undefined, true)).plus(inputTokenAmountWithoutDecimals), true);
+						fundsMap.set(inputToken.address, cast<Amount>(fundsMap.get(inputToken.address, undefined)).plus(inputTokenAmountWithoutDecimals));
 					} else if (requestOrder.side === OrderSide.SELL) {
 						inputToken = market.tokens.base;
 						outputToken = market.tokens.quote;
@@ -3432,7 +3432,7 @@ export class Fin {
 							to: ownerAddress
 						});
 
-						fundsMap.set(inputToken.address, cast<Amount>(fundsMap.get(inputToken.address, undefined, true)).plus(inputTokenAmountWithoutDecimals), true);
+						fundsMap.set(inputToken.address, cast<Amount>(fundsMap.get(inputToken.address, undefined)).plus(inputTokenAmountWithoutDecimals));
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3457,7 +3457,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined, true)).plus(payingTokenAmountWithoutDecimals), true);
+						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined)).plus(payingTokenAmountWithoutDecimals));
 					} else if (requestOrder.side === OrderSide.SELL) {
 						payingToken = market.tokens.base;
 						receivingToken = market.tokens.quote;
@@ -3473,7 +3473,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined, true)).plus(payingTokenAmountWithoutDecimals), true);
+						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined)).plus(payingTokenAmountWithoutDecimals));
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3516,7 +3516,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined, true)).plus(payingTokenAmountWithoutDecimals), true);
+						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined)).plus(payingTokenAmountWithoutDecimals));
 					} else if (requestOrder.side === OrderSide.SELL) {
 						payingToken = market.tokens.base;
 						receivingToken = market.tokens.quote;
@@ -3531,7 +3531,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined, true)).plus(payingTokenAmountWithoutDecimals), true);
+						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined)).plus(payingTokenAmountWithoutDecimals));
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3556,11 +3556,11 @@ export class Fin {
 					updateTimestamp: Date.now(),
 					raw: requestOrder
 				};
-				placeAndReplaceOrdersMap.set(orderId, order, true);
+				placeAndReplaceOrdersMap.set(orderId, order);
 				if (existingOrder) {
-					replaceOrdersMap.set(orderId, order, true);
+					replaceOrdersMap.set(orderId, order);
 				} else {
-					placeOrdersMap.set(orderId, order, true);
+					placeOrdersMap.set(orderId, order);
 				}
 			});
 			ordersMap.set('placeAndReplace', placeAndReplaceOrdersMap);
@@ -3603,7 +3603,7 @@ export class Fin {
 					status: OrderStatus.CANCELLED,
 					updateTimestamp: Date.now()
 				};
-				cancelOrdersMap.set(orderId, cancelledOrder, true);
+				cancelOrdersMap.set(orderId, cancelledOrder);
 			});
 			ordersMap.set('cancel', cancelOrdersMap);
 		}
@@ -3642,7 +3642,7 @@ export class Fin {
 					...existingOrder,
 					updateTimestamp: Date.now()
 				};
-				withdrawOrdersMap.set(orderId, withdrawnOrder, true);
+				withdrawOrdersMap.set(orderId, withdrawnOrder);
 			});
 			ordersMap.set('withdraw', withdrawOrdersMap);
 		}
@@ -3693,7 +3693,7 @@ export class Fin {
 
 		// Get the transaction details
 		const transaction = await this.getTransaction({ hash: response.transactionHash });
-		transactions.set(transaction.hash, transaction, true);
+		transactions.set(transaction.hash, transaction);
 
 		// Build the response
 		const result: FinPersistOrdersResponse = {
