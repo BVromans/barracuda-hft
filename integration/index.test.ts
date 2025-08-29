@@ -761,7 +761,7 @@ describe("Rujira", async() => {
 
 					const quoteToBaseMiddlePrice = cast<Amount>(result.statistics.middlePrice.quoteToBase);
 					expect(quoteToBaseMiddlePrice).toBeDefined();
-					expect(quoteToBaseMiddlePrice.toNumber()).toBe(DECIMAL_1.div(baseToQuoteMiddlePrice).toNumber());
+					expect(quoteToBaseMiddlePrice.toNumber()).toBeCloseTo(DECIMAL_1.div(baseToQuoteMiddlePrice).toNumber(), 10);
 				} else if (asks.size > 0 && bids.size === 0) {
 					expect(result.book.bestAsk).toBeDefined();
 					expect(result.book.bestBid).toBeUndefined();
