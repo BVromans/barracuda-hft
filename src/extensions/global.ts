@@ -126,7 +126,7 @@ const jsonReplacer = (key: string, value: any) => {
  * Dump the target to the console.
  * @param target - The target to dump.
  */
-globalThis.dump = (target: any) => {
+globalThis.dump = (target: any): string | any => {
 	try {
 		return JSON.stringify(target, jsonReplacer, 2);
 	} catch (exception) {

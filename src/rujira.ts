@@ -1548,7 +1548,7 @@ export class Fin {
 	 * @returns The tokens response
 	 */
 	@Cacheable({
-		cacheKey: (_request: FinGetAllTokensRequest) => `getAllTokens(${JSON.stringify(_request.toString())})`,
+		cacheKey: (_request: FinGetAllTokensRequest) => `getAllTokens(${JSON.stringify(_request)})`,
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllTokens'),
 	})
 	async getAllTokens(_request: FinGetAllTokensRequest): Promise<FinGetAllTokensResponse> {
@@ -1669,7 +1669,7 @@ export class Fin {
 	 * @returns The markets response
 	 */
 	@Cacheable({
-		cacheKey: (request: FinGetAllMarketsRequest) => `getAllMarkets(${JSON.stringify(request.toString())})`,
+		cacheKey: (request: FinGetAllMarketsRequest) => `getAllMarkets(${JSON.stringify(request)})`,
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllMarkets'),
 	})
 	async getAllMarkets(_request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
@@ -1881,6 +1881,7 @@ export class Fin {
 		let asks: List<OrderBookOrder> = MList<{ price: string, total: string }>(rawOrderBook.base || []).map(parseOrder);
 		let bids: List<OrderBookOrder> = MList<{ price: string, total: string }>(rawOrderBook.quote || []).map(parseOrder);
 
+		// TODO: check if the slice is correct!!!
 		asks = maximumNumberOfOrders ? asks.slice(0, maximumNumberOfOrders) : asks;
 		bids = maximumNumberOfOrders ? bids.slice(0, maximumNumberOfOrders) : bids;
 
@@ -2826,7 +2827,7 @@ export class Fin {
 			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(Decimal(rawOrder.offer))));
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 			const id = this.getOrderId({
-				ownerAddress,
+				ownerAddress: rawOrder.owner.trim().toLowerCase(),
 				market,
 				orderType: type,
 				orderSide: side,
