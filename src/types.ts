@@ -21,7 +21,6 @@ export const BIG_NUMBER_0 = new BN(0);
 export const BIG_NUMBER_1 = new BN(1);
 export const BIG_NUMBER_10 = new BN(10);
 export const BIG_NUMBER_100 = new BN(100);
-export const BIG_NUMBER_NaN = new BN(NaN);
 
 properties.set('wallet.prefix', 'thor');
 

@@ -278,7 +278,7 @@ export const sanitizeOrderPrice = (price: Decimal, tick: number, maximumPrecisio
  */
 export const validateOrderPrice = (price?: Decimal, tick?: number | string): boolean => {
 	if (!price || !tick?.toString().trim()) {
-		return false;
+		throw new Error('Order price and tick are required');
 	}
 
 	if (!price.gt(Decimal(0))) {

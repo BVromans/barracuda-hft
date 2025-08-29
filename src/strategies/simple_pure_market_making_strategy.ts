@@ -2,7 +2,7 @@ import Decimal from "decimal.js";
 import { Map } from "immutable";
 import { properties } from "../properties";
 import { Balances, DECIMAL_0, DECIMAL_1, DECIMAL_100, DECIMAL_INFINITY, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
-import { BasePureMarketMakingStrategy } from "./base_pure_market_marking_strategy";
+import { BasePureMarketMakingStrategy } from "./base_pure_market_making_strategy";
 import { Proposal } from "./base_strategy";
 import { logger } from "../logger";
 import { loggedClass } from "../annotations";

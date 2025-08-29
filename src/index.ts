@@ -1,7 +1,7 @@
 import "./bootstrap";
 import { properties } from "./properties";
-import { SimplePureMarketMarkingStrategy } from "./strategies/simple_pure_market_marking_strategy";
-import { EnhancedPureMarketMarkingStrategy } from "./strategies/enhanced_pure_market_marking_strategy";
+import { SimplePureMarketMarkingStrategy } from "./strategies/simple_pure_market_making_strategy";
+import { EnhancedPureMarketMarkingStrategy } from "./strategies/enhanced_pure_market_making_strategy";
 import { WalletMnemonic, WalletPrivateKey } from "./types";
 
 (async function run() {

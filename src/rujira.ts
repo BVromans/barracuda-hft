@@ -304,7 +304,7 @@ export class Rujira {
 	 * @returns The wallet
 	 */
 	private async createWalletFromPrivateKey(privateKey: WalletPrivateKey): Promise<Wallet> {
-		const cosmWallet = await this.directSecp256k1WalletFromKeyfromKey(
+		const cosmWallet = await this.directSecp256k1WalletFromKey(
 			fromBase64(privateKey),
 			properties.getAs<string>('wallet.prefix')
 		);
@@ -598,7 +598,7 @@ export class Rujira {
 	 * @returns The wallet
 	 */
 	@runWithRetryAndTimeout()
-	private async directSecp256k1WalletFromKeyfromKey(privkey: Uint8Array, prefix?: string): Promise<DirectSecp256k1Wallet> {
+	private async directSecp256k1WalletFromKey(privkey: Uint8Array, prefix?: string): Promise<DirectSecp256k1Wallet> {
 		return DirectSecp256k1Wallet.fromKey(privkey, prefix);
 	}
 
@@ -809,7 +809,6 @@ export class Fin {
 
 		let rawTransaction: any;
 
-		// TOOD: verify how to retrieve the transaction directly calling the RPC endpoint!!!
 		// rawTransaction = await this.cosmClientGetTx(hash);
 
 		const url = `${properties.getAs<URL>('rujira.endpoints.rest')}/cosmos/tx/v1beta1/txs/${hash}`;
@@ -1549,7 +1548,7 @@ export class Fin {
 	 * @returns The tokens response
 	 */
 	@Cacheable({
-		cacheKey: (_request: FinGetAllTokensRequest) => `getAllTokens(${_request.toString()})`,
+		cacheKey: (_request: FinGetAllTokensRequest) => `getAllTokens(${JSON.stringify(_request.toString())})`,
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllTokens'),
 	})
 	async getAllTokens(_request: FinGetAllTokensRequest): Promise<FinGetAllTokensResponse> {
@@ -1670,7 +1669,7 @@ export class Fin {
 	 * @returns The markets response
 	 */
 	@Cacheable({
-		cacheKey: (request: FinGetAllMarketsRequest) => `getAllMarkets(${request.toString()})`,
+		cacheKey: (request: FinGetAllMarketsRequest) => `getAllMarkets(${JSON.stringify(request.toString())})`,
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllMarkets'),
 	})
 	async getAllMarkets(_request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
@@ -3693,7 +3692,7 @@ export class Fin {
 		);
 
 		// Wait for a delay so we guarantee the transaction is already available in NineRealms
-		sleep(properties.getAs<number>("rujira.default.orders.delayBetweenTransactions"));
+		await sleep(properties.getAs<number>("rujira.default.orders.delayBetweenTransactions"));
 
 		// Get the transaction details
 		const transaction = await this.getTransaction({ hash: response.transactionHash });
