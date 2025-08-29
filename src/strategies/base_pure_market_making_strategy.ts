@@ -57,7 +57,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	/**
 	 * State of the strategy
 	 */
-	protected readonly state: Map<string, any> = MMap<string, any>();
+	protected readonly state: Map<string, any> = MMap<string, any>({}, '.');
 
 	/**
 	 * Constructor
