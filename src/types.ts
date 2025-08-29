@@ -1074,12 +1074,12 @@ export interface FinGetIndicatorsRequest {
 	/**
 	 * After timestamp
 	 */
-	after?: CandleTimestamp;
+	after?: CandleDate;
 
 	/**
 	 * Before timestamp
 	 */
-	before?: CandleTimestamp;
+	before?: CandleDate;
 
 	/**
 	 * Candle interval

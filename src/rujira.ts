@@ -2319,10 +2319,10 @@ export class Fin {
 	 * @returns The indicators response
 	 */
 	async getIndicators(request: FinGetIndicatorsRequest): Promise<FinGetIndicatorsResponse> {
-		let { marketAddress, marketSymbol, market, interval, maximumNumberOfCandles, candles, indicatorsIds } = request;
+		let { marketAddress, marketSymbol, market, after, before, interval, maximumNumberOfCandles, candles, indicatorsIds } = request;
 
 		if (!candles || candles.size === 0) {
-			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
+			candles = await this.getCandles({ marketAddress, marketSymbol, market, after, before, interval, maximumNumberOfCandles });
 		}
 
 		candles = candles.asImmutable();
