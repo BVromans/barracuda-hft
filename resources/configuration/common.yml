@@ -47,6 +47,7 @@ rujira:
     orders:
       maximumSlippagePercentage: 2.5 # 1 means 1%
       maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
+      delayBetweenTransactions: 1000 # 1 second in milliseconds
 tests:
   unit:
     timeout: 10000 # 10 seconds

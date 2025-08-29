@@ -123,7 +123,7 @@ import {
 	WalletMnemonic,
 	WalletPrivateKey
 } from './types';
-import { cast, runWithRetryAndTimeout, sanitizeOrderPrice, validateOrderPrice } from "./utils";
+import { cast, runWithRetryAndTimeout, sanitizeOrderPrice, sleep, validateOrderPrice } from "./utils";
 
 /**
  * LRU cache
@@ -3697,6 +3697,9 @@ export class Fin {
 			undefined,
 			funds
 		);
+
+		// Wait for a delay so we guarantee the transaction is already available in NineRealms
+		sleep(properties.getAs<number>("rujira.default.orders.delayBetweenTransactions"));
 
 		// Get the transaction details
 		const transaction = await this.getTransaction({ hash: response.transactionHash });
