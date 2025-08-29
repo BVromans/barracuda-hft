@@ -1801,6 +1801,8 @@ export class Fin {
 				},
 				decimals: 8, // It seems Rujira fixed the decimals to 8 places for all markets
 				tick: Number(pair.tick),
+				makerFee: Decimal(pair.feeMaker).div(DECIMAL_100.pow(12)).mul(DECIMAL_100), // 12 decimals for the fee, 2 decimals for the percentage
+				takerFee: Decimal(pair.feeTaker).div(DECIMAL_100.pow(12)).mul(DECIMAL_100), // 12 decimals for the fee, 2 decimals for the percentage
 				status: MarketStatus.ACTIVE, // LIVE markets are active
 				raw: pair
 			};

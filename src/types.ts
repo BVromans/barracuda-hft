@@ -182,6 +182,8 @@ export type MarketSymbol = Symbol;
 export type MarketDecimals = Integer;
 export type MarketPrice = Price;
 export type MarketTick = Integer;
+export type MarketMakerFee = Percentage;
+export type MarketTakerFee = Percentage;
 
 export type OrderBookOrderPrice = Price;
 export type OrderBookOrderAmount = Amount;
@@ -328,6 +330,19 @@ export interface Market {
 	 */
 	tick: MarketTick;
 
+	/**
+	 * Maker fee of the market
+	 */
+	makerFee: MarketMakerFee;
+
+	/**
+	 * Taker fee of the market
+	 */
+	takerFee: MarketTakerFee;
+
+	/**
+	 * Taker fee of the market
+	 */
 	/**
 	 * Raw data
 	 */
