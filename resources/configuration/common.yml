@@ -34,8 +34,8 @@ rujira:
       delayBetweenBatches: 100
     retry:
       maximumNumberOfRetries: 3
-      delayBetweenRetries: 1000
-      timeout: 30000
+      delayBetweenRetries: 1000 # 1 second in milliseconds
+      timeout: 30000 # 30 seconds in milliseconds
     markets:
       loadFromFile: false
       filePath: "resources/graphql/responses/markets.json"

@@ -203,7 +203,7 @@ export function runWithRetryAndTimeout(options?: {
 
 						// Wait before retrying if there are remaining attempts.
 						if (attempt < maximumNumberOfRetries - 1 && delayBetweenRetries > 0) {
-							await sleep(delayBetweenRetries * 1000);
+							await sleep(delayBetweenRetries);
 						}
 					}
 				}
@@ -221,7 +221,7 @@ export function runWithRetryAndTimeout(options?: {
 					new Promise((_, reject) =>
 						setTimeout(
 							() => reject(new Error(timeoutErrorMessage)),
-							Math.floor(timeout * 1000),
+							Math.floor(timeout),
 						),
 					),
 				]);
