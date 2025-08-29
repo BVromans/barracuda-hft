@@ -42,7 +42,7 @@ rujira:
     orderBook:
       maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
     candles:
-      interval: "1m" # 1 minute candles
+      interval: "1" # 1 means 1 minute candles
       lookbackInterval: 21600000 # 6 hours in milliseconds
     orders:
       maximumSlippagePercentage: 2.5 # 1 means 1%
