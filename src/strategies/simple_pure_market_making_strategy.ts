@@ -9,7 +9,7 @@ import { loggedClass } from "../annotations";
 import { cast } from "../utils";
 
 /**
- * Pure market marking strategy
+ * Pure market making strategy
  */
 @loggedClass({
 	enabled: false,
@@ -23,7 +23,7 @@ import { cast } from "../utils";
 	logOutput: false,
 	logExecutionTime: true,
 })
-export class SimplePureMarketMarkingStrategy extends BasePureMarketMakingStrategy {
+export class SimplePureMarketMakingStrategy extends BasePureMarketMakingStrategy {
 	/**
 	 * Create a proposal for the strategy
 	 * @param _options - Options for the strategy

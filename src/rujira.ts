@@ -1739,7 +1739,7 @@ export class Fin {
 
 			const headers = {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer: ${properties.getAs<string>('rujira.tokens.graphql')}`,
+				'Authorization': `Bearer ${properties.getAs<string>('rujira.tokens.graphql')}`,
 			};
 
 			const response = await this.parent.fetch(graphQLEndPoint, {
@@ -1801,8 +1801,8 @@ export class Fin {
 				},
 				decimals: 8, // It seems Rujira fixed the decimals to 8 places for all markets
 				tick: Number(pair.tick),
-				makerFee: Decimal(pair.feeMaker).div(DECIMAL_100.pow(12)).mul(DECIMAL_100), // 12 decimals for the fee, 2 decimals for the percentage
-				takerFee: Decimal(pair.feeTaker).div(DECIMAL_100.pow(12)).mul(DECIMAL_100), // 12 decimals for the fee, 2 decimals for the percentage
+				makerFee: Decimal(pair.feeMaker).div(DECIMAL_10.pow(12)).mul(DECIMAL_100), // 12 decimals for the fee, 2 decimals for the percentage
+				takerFee: Decimal(pair.feeTaker).div(DECIMAL_10.pow(12)).mul(DECIMAL_100), // 12 decimals for the fee, 2 decimals for the percentage
 				status: MarketStatus.ACTIVE, // LIVE markets are active
 				raw: pair
 			};
@@ -2193,13 +2193,13 @@ export class Fin {
 		}
 
 		// Use interval directly as resolution (already in seconds format)
-		const resolution = interval.replace('m', '');
+		const resolution = interval;
 
 		const response = await this.parent.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer: ${properties.getAs<string>('rujira.tokens.graphql')}`,
+				'Authorization': `Bearer ${properties.getAs<string>('rujira.tokens.graphql')}`,
 			},
 			body: JSON.stringify({
 				query: `
@@ -2757,7 +2757,7 @@ export class Fin {
 		const query = {
 			orders: {
 				owner: ownerAddress,
-				limit: Number(properties.getAs<string>('rujira.orders.maximumNumberOfOrders')),
+				limit: Number(properties.getAs<string>('rujira.default.orders.maximumNumberOfOrders')),
 				offset: 0
 			}
 		} as {
@@ -3511,10 +3511,7 @@ export class Fin {
 						const currentPrice = cast<Price>(marketTicker.middlePrice.baseToQuote);
 						payingTokenAmount = baseTokenAmount.mul(currentPrice);
 
-						// Use standard USDC decimals (6) instead of market data decimals (8)
-						// This ensures proper amount calculation for USDC payments
-						const correctUsdcDecimals = 6;
-						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(correctUsdcDecimals)).toDecimalPlaces(0);
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(payingToken.decimals)).toDecimalPlaces(0);
 
 						ordersMessages.push([
 							side,
@@ -3771,6 +3768,6 @@ export class Fin {
 
 		orderDeviationInBasisPoints = orderDeviationInBasisPoints || orderDeviationInPercentage?.mul(DECIMAL_100) || order?.deviationInBasisPoints || order?.deviationInPercentage?.mul(DECIMAL_100) || undefined;
 
-		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed()}|deviation:${orderDeviationInBasisPoints?.toNumber()}`;
+		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed(18)}|deviation:${orderDeviationInBasisPoints?.toFixed(18)}`;
 	}
 }

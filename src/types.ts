@@ -89,16 +89,11 @@ export enum MarketStatus {
  * Candle interval
  */
 export enum CandleInterval {
-	// ONE_SECOND = '1s',
-	ONE_MINUTE = '1m',
-	FIVE_MINUTES = '5m',
-	FIFTEEN_MINUTES = '15m',
-	ONE_HOUR = '1h',
-	FOUR_HOURS = '4h',
-	// ONE_DAY = '1d',
-	// ONE_WEEK = '1w',
-	// ONE_MONTH = '1M',
-	// ONE_YEAR = '1y'
+	ONE_MINUTE = '1', // 1 minute
+	FIVE_MINUTES = '5', // 5 minutes
+	FIFTEEN_MINUTES = '15', // 15 minutes
+	ONE_HOUR = '60', // 1 hour
+	FOUR_HOURS = '240', // 4 hours
 }
 
 /**

@@ -2,7 +2,7 @@ rujira:
   endpoints:
     rpc: "https://thornode-mainnet-rpc.bryanlabs.net"
     rest: "https://thornode.ninerealms.com"
-    graphql: "https://api.rujira.network/api/graphiql"
+    graphql: "https://api.rujira.network/api/graphql"
   cache:
     rujira:
       getThorChainConfiguration: 21600 # 6 * 60 * 60 = 6 hours

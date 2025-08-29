@@ -1,7 +1,7 @@
 import "./bootstrap";
 import { properties } from "./properties";
-import { SimplePureMarketMarkingStrategy } from "./strategies/simple_pure_market_making_strategy";
-import { EnhancedPureMarketMarkingStrategy } from "./strategies/enhanced_pure_market_making_strategy";
+import { SimplePureMarketMakingStrategy } from "./strategies/simple_pure_market_making_strategy";
+import { EnhancedPureMarketMakingStrategy } from "./strategies/enhanced_pure_market_making_strategy";
 import { WalletMnemonic, WalletPrivateKey } from "./types";
 
 (async function run() {
@@ -11,18 +11,18 @@ import { WalletMnemonic, WalletPrivateKey } from "./types";
 	const walletMnemonic = properties.getAs<WalletMnemonic | undefined>('rujira.wallet.mnemonic');
 	// const walletPrivateKey = properties.getAs<WalletPrivateKey | undefined>('rujira.wallet.privateKey');
 
-	const simplePureMarketMarkingStrategy = new SimplePureMarketMarkingStrategy({
+	const simplePureMarketMakingStrategy = new SimplePureMarketMakingStrategy({
 		walletMnemonic: walletMnemonic,
 		// walletPrivateKey: walletPrivateKey,
 	});
 
-	const enhancedPureMarketMarkingStrategy = new EnhancedPureMarketMarkingStrategy({
+	const enhancedPureMarketMakingStrategy = new EnhancedPureMarketMakingStrategy({
 		walletMnemonic: walletMnemonic,
 		// walletPrivateKey: walletPrivateKey,
 	});
 
-	// const strategy = simplePureMarketMarkingStrategy;
-	const strategy = enhancedPureMarketMarkingStrategy;
+	// const strategy = simplePureMarketMakingStrategy;
+	const strategy = enhancedPureMarketMakingStrategy;
 
 	await strategy.initialize({});
 

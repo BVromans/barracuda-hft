@@ -9,7 +9,7 @@ import { runAndRepeat, sleep } from "../utils";
 import { BaseStrategy, Proposal } from "./base_strategy";
 
 /**
- * Pure market marking strategy
+ * Pure market making strategy
  */
 @loggedClass({
 	enabled: false,

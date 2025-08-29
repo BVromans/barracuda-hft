@@ -9,7 +9,7 @@ import { BasePureMarketMakingStrategy } from "./base_pure_market_making_strategy
 import { Proposal } from "./base_strategy";
 
 /**
- * Pure market marking strategy
+ * Pure market making strategy
  */
 @loggedClass({
 	enabled: true,
@@ -23,7 +23,7 @@ import { Proposal } from "./base_strategy";
 	logOutput: false,
 	logExecutionTime: true,
 })
-export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrategy {
+export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrategy {
 	/**
 	 * Create a proposal for the strategy
 	 * @param _options - Options for the strategy

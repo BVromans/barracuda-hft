@@ -153,8 +153,8 @@ export function* splitInChunks<T>(
  * Decorator that wraps a method with retry and timeout logic.
  *
  * @param options.maxRetries         Maximum number of retries (default: 3)
- * @param options.delayBetweenRetries Delay (in seconds) between retries (default: 1)
- * @param options.timeout            Total allowed time (in seconds) for the operation (default: 60)
+ * @param options.delayBetweenRetries Delay (in milliseconds) between retries (default: 1000)
+ * @param options.timeout            Total allowed time (in milliseconds) for the operation (default: 30000)
  * @param options.timeoutMessage     Error message in case of timeout (default: 'Timeout exceeded.')
  */
 export function runWithRetryAndTimeout(options?: {
