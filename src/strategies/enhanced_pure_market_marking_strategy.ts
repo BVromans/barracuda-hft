@@ -94,7 +94,7 @@ export class EnhancedPureMarketMarkingStrategy extends BasePureMarketMakingStrat
 		const bollingerBandsWidth = bollingerBandsUpper.minus(bollingerBandsLower).div(bollingerBandsMiddle); // Unitless bandwidth
 
 		// Extract the most recent values for skew components
-		const volumeWeightedAveragePrice = Decimal(volumeWeightedAveragePriceSeries.last() || DECIMAL_NaN);
+		const volumeWeightedAveragePrice = Decimal(volumeWeightedAveragePriceSeries.last() || DECIMAL_0);
 
 		// Extract the most recent values for size components
 		const averageTrueRange = Decimal(averageTrueRangeSeries.last() || DECIMAL_NaN);
