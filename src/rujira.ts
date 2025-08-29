@@ -3414,8 +3414,8 @@ export class Fin {
 
 						outputTokenAmount = requestOrder.amount;
 						inputTokenAmount = outputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.plus(slippagePercentage).div(DECIMAL_100));
-						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(10 ** inputToken.decimals).toDecimalPlaces(0);
-						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(10 ** outputToken.decimals).toDecimalPlaces(0);
+						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(DECIMAL_10.pow(inputToken.decimals)).toDecimalPlaces(0);
+						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(DECIMAL_10.pow(outputToken.decimals)).toDecimalPlaces(0);
 
 						swapMessages.push({
 							min_return: outputTokenAmountWithoutDecimals.toFixed(),
@@ -3431,8 +3431,8 @@ export class Fin {
 
 						inputTokenAmount = requestOrder.amount;
 						outputTokenAmount = inputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
-						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(10 ** inputToken.decimals).toDecimalPlaces(0);
-						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(10 ** outputToken.decimals).toDecimalPlaces(0);
+						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(DECIMAL_10.pow(inputToken.decimals)).toDecimalPlaces(0);
+						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(DECIMAL_10.pow(outputToken.decimals)).toDecimalPlaces(0);
 
 						swapMessages.push({
 							min_return: outputTokenAmountWithoutDecimals.toFixed(),
@@ -3454,7 +3454,7 @@ export class Fin {
 						receivingToken = market.tokens.base;
 						price = cast<OrderPrice>(requestOrder.price);
 						payingTokenAmount = requestOrder.amount.mul(price);
-						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(payingToken.decimals)).toDecimalPlaces(0);
 
 						ordersMessages.push([
 							side,
@@ -3470,7 +3470,7 @@ export class Fin {
 						receivingToken = market.tokens.quote;
 						price = cast<OrderPrice>(requestOrder.price);
 						payingTokenAmount = requestOrder.amount;
-						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(payingToken.decimals)).toDecimalPlaces(0);
 
 						ordersMessages.push([
 							side,
@@ -3513,7 +3513,7 @@ export class Fin {
 						// Use standard USDC decimals (6) instead of market data decimals (8)
 						// This ensures proper amount calculation for USDC payments
 						const correctUsdcDecimals = 6;
-						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** correctUsdcDecimals).toDecimalPlaces(0);
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(correctUsdcDecimals)).toDecimalPlaces(0);
 
 						ordersMessages.push([
 							side,
@@ -3528,7 +3528,7 @@ export class Fin {
 						payingToken = market.tokens.base;
 						receivingToken = market.tokens.quote;
 						payingTokenAmount = requestOrder.amount;
-						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(payingToken.decimals)).toDecimalPlaces(0);
 
 						ordersMessages.push([
 							side,
