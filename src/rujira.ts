@@ -2967,12 +2967,6 @@ export class Fin {
 		const marketSymbol = orders.first()?.marketSymbol;
 		const market = orders.first()?.market;
 
-		const ordersWithDeviation = orders.map(order => ({
-			...order,
-			deviationInPercentage: order.deviationInPercentage,
-			deviationInBasisPoints: order.deviationInBasisPoints
-		}));
-
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
 			owner,
@@ -2980,7 +2974,7 @@ export class Fin {
 			marketSymbol,
 			market,
 			orders: {
-				place: MList<FinPlaceOrderRequest>(ordersWithDeviation)
+				place: MList<FinPlaceOrderRequest>(orders)
 			}
 		});
 
