@@ -2025,6 +2025,7 @@ export class Fin {
 
 		// Fetch THORChain oracle prices as fallback
 		let oracleRawBalances: { prices: Array<{ symbol: string; price: string }> } | undefined;
+		// TODO: change to mainnet when it becomes available.
 		const oracleResponse = await this.parent.fetch('https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices')
 			.catch((exception) => logger.ignoreException(exception, 'Failed to fetch THORChain oracle prices.'));
 		if (oracleResponse?.ok) {
