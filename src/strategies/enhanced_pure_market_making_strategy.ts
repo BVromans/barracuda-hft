@@ -94,25 +94,25 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 		const bollingerBandsWidth = bollingerBandsUpper.minus(bollingerBandsLower).div(bollingerBandsMiddle); // Unitless bandwidth
 
 		// Extract the most recent values for skew components
-		const volumeWeightedAveragePrice = Decimal(volumeWeightedAveragePriceSeries.last() || DECIMAL_0);
+		const volumeWeightedAveragePrice = volumeWeightedAveragePriceSeries.last() ? Decimal(volumeWeightedAveragePriceSeries.last()!) : middlePrice;
 
 		// Extract the most recent values for size components
 		const averageTrueRange = Decimal(averageTrueRangeSeries.last() || DECIMAL_NaN);
 
 		// Validation
-		if (!middlePrice || !middlePrice.isFinite() || middlePrice.lte(0)) {
+		if (!middlePrice || !middlePrice.isFinite() || middlePrice.lessThanOrEqualTo(0)) {
 			throw new Error('Middle price is not valid');
 		}
 
-		if (!bollingerBandsWidth.isFinite() || bollingerBandsWidth.lessThan(0)) {
+		if (!bollingerBandsWidth || !bollingerBandsWidth.isFinite() || bollingerBandsWidth.lessThan(0)) {
 			throw new Error('Bollinger bands width is not valid');
 		}
 
-		if (!volumeWeightedAveragePrice.isFinite() || volumeWeightedAveragePrice.lessThan(0)) {
+		if (!volumeWeightedAveragePrice || !volumeWeightedAveragePrice.isFinite() || volumeWeightedAveragePrice.lessThanOrEqualTo(0)) {
 			throw new Error('Volume weighted average price is not valid');
 		}
 
-		if (!averageTrueRange.isFinite() || averageTrueRange.lessThan(0)) {
+		if (!averageTrueRange || !averageTrueRange.isFinite() || averageTrueRange.lessThan(0)) {
 			throw new Error('Average true range is not valid');
 		}
 
@@ -191,19 +191,18 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 
 			Formula:
 			averageTrueRangePercentageMultiplier = 100 * volatilitySizeShrinkageMultiplier * averageTrueRange / middlePrice
-			sizePercentageMultiplier = 100 / (100 + averageTrueRangePercentageMultiplier)
+			sizePercentageMultiplier = 100 * (100 / (100 + averageTrueRangePercentageMultiplier))
 
 			Intuition: Average True Range (ATR) is a measure of the average price range of the last trades.
 				When the ATR is high, the price is more volatile and the order size should be smaller.
 				On the other hand, when the ATR is low, the price is more stable and the order size should be larger.
 		*/
 		const averageTrueRangePercentageMultiplier = DECIMAL_100.mul(volatilitySizeShrinkageMultiplier.mul(averageTrueRange.div(middlePrice)));
-		const sizePercentageMultiplier = DECIMAL_100.div(DECIMAL_100.plus(averageTrueRangePercentageMultiplier));
+		const sizePercentageMultiplier = DECIMAL_100.mul(DECIMAL_100.div(DECIMAL_100.plus(averageTrueRangePercentageMultiplier)));
 
 		// Determine desired base-token amount before funds constraints
-		const desiredPercentageRatio = desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100);
-		const desiredBaseAmountFromBaseBalance = baseTokenFreeBalance.mul(desiredPercentageRatio);
-		const desiredBaseAmountFromQuoteBalance = quoteTokenFreeBalance.div(middlePrice).mul(desiredPercentageRatio);
+		const desiredBaseAmountFromBaseBalance = baseTokenFreeBalance.mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100));
+		const desiredBaseAmountFromQuoteBalance = quoteTokenFreeBalance.div(middlePrice).mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100));
 		const desiredBaseAmountUncapped = Decimal.max(
 			desiredTokenFreeBalanceAmountPerOrder,
 			desiredBaseAmountFromBaseBalance,
@@ -213,7 +212,7 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 			minimumTokenAmountPerOrder,
 			Decimal.min(desiredBaseAmountUncapped, maximumTokenAmountPerOrder),
 		);
-		const desiredBaseAmountAfterVolatility = desiredBaseAmountCapped.mul(sizePercentageMultiplier).div(DECIMAL_100);
+		const desiredBaseAmountAfterVolatility = desiredBaseAmountCapped.mul(sizePercentageMultiplier.div(DECIMAL_100));
 
 		// Enforce funds constraints (convert quote to base using middle price)
 		const maximumAffordableBaseByFunds = Decimal.min(
