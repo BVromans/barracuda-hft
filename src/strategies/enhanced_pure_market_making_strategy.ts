@@ -94,7 +94,7 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 		const bollingerBandsWidth = bollingerBandsUpper.minus(bollingerBandsLower).div(bollingerBandsMiddle); // Unitless bandwidth
 
 		// Extract the most recent values for skew components
-		const volumeWeightedAveragePrice = volumeWeightedAveragePriceSeries.last() ? Decimal(volumeWeightedAveragePriceSeries.last()!) : middlePrice;
+		const volumeWeightedAveragePrice = volumeWeightedAveragePriceSeries.last() && Decimal(volumeWeightedAveragePriceSeries.last()!).isFinite() ? Decimal(volumeWeightedAveragePriceSeries.last()!) : middlePrice;
 
 		// Extract the most recent values for size components
 		const averageTrueRange = Decimal(averageTrueRangeSeries.last() || DECIMAL_NaN);
@@ -268,10 +268,7 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 			proposal.place?.push(sellOrder);
 		}
 
-		logger.info(
-			`Proposal`,
-			this.convertProposalToJson(proposal)
-		);
+		logger.info(`Proposal:\n${dump(this.convertProposalToJson(proposal))}`);
 
 		this.state.set('proposal', proposal);
 	}
