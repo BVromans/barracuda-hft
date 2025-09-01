@@ -12,7 +12,7 @@ import { BaseStrategy, Proposal } from "./base_strategy";
  * Pure market making strategy
  */
 @loggedClass({
-	enabled: false,
+	enabled: true,
 	logger: logger,
 	allowedMethods: [
 		'initialize',
@@ -22,18 +22,23 @@ import { BaseStrategy, Proposal } from "./base_strategy";
 		'applyProposal',
 		'startRepeatingTasks',
 		'stopRepeatingTasks',
+		'updateBalances',
+		'updateOrders',
+		'updateSummary',
+		'cancelAllOrdersIfConfigured',
+		'withdrawAllFilledOrdersIfConfigured',
+		'updateTokens',
+		'updateMarkets',
+		'updateOrderBook',
+		'updateIndicators',
+		'monitorProfitAndLoss',
+	],
+	disallowedMethods: [
 		// 'updateTokens',
 		// 'updateMarkets',
 		// 'updateOrderBook',
 		// 'updateIndicators',
-		'updateBalances',
-		'updateOrders',
-		'updateSummary',
 		// 'monitorProfitAndLoss',
-		'cancelAllOrdersIfConfigured',
-		'withdrawAllFilledOrdersIfConfigured',
-	],
-	disallowedMethods: [
 	],
 	includeStaticMethods: true,
 	logStart: true,

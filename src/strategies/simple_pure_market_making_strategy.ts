@@ -12,7 +12,7 @@ import { cast } from "../utils";
  * Pure market making strategy
  */
 @loggedClass({
-	enabled: false,
+	enabled: true,
 	logger: logger,
 	allowedMethods: [],
 	disallowedMethods: [],
