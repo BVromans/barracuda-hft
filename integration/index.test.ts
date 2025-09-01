@@ -997,9 +997,8 @@ describe("Rujira", () => {
 					expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
 
 					expect(indicatorData.value).toBeDefined();
-
-					await sleep(1000); // Wait for 1 second to avoid rate limiting
 				}
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should verify that a indicator has the same quantity as maximumNumberOfCandles", async () => {
