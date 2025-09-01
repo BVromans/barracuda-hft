@@ -5,8 +5,8 @@ rujira:
     mnemonic: "<wallet mnemonic>" # Optional, but required if privateKey is not provided. It is also possible to use the RUJIRA_WALLET_MNEMONIC environment variable, in this case set this field to null.
     privateKey: "<wallet private key>" # Optional, but required if mnemonic is not provided. It is also possible to use the RUJIRA_WALLET_PRIVATE_KEY environment variable, in this case set this field to null.
     publicKeys:
-      thor: "<wallet thor public key>" # Optional. It is also possible to use the RUJIRA_WALLET_THOR_PUBLIC_KEY environment variable, in this case set this field to null.
-      ethereum: "<wallet ethereum public key>" # Optional. It is also possible to use the RUJIRA_WALLET_ETHEREUM_PUBLIC_KEY environment variable, in this case set this field to null.
+      thor: "<wallet thor public key>" # Optional. It is also possible to use the RUJIRA_WALLET_PUBLIC_KEY_THOR environment variable, in this case set this field to null.
+      ethereum: "<wallet ethereum public key>" # Optional. It is also possible to use the RUJIRA_WALLET_PUBLIC_KEY_ETHEREUM environment variable, in this case set this field to null.
 strategy:
   pure_market_making:
     common:

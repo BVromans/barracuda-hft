@@ -268,7 +268,7 @@ export class Rujira {
 		}
 
 		if (!gasPriceString) {
-			// Fallback to working gas price value if configuration is not found
+			// Fallback to working gas price value if configuration is not found, the current fallback value is 0
 			gasPriceString = '0';
 		}
 
@@ -2072,7 +2072,7 @@ export class Fin {
 			derived_depth_bps: string;
 			trading_halted: boolean;
 		}> | undefined;
-		const poolResponse = await this.parent.fetch('https://thornode.ninerealms.com/thorchain/pools')
+		const poolResponse = await this.parent.fetch(`${properties.getAs<URL>('rujira.endpoints.rest')}/thorchain/pools`)
 			.catch((exception) => logger.ignoreException(exception, 'Failed to fetch THORChain pool prices.'));
 		if (poolResponse?.ok) {
 			/*
