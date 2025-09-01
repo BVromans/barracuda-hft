@@ -87,7 +87,7 @@ export class SimplePureMarketMakingStrategy extends BasePureMarketMakingStrategy
 		const amount = Decimal.min(
 			Decimal.min(
 				baseTokenFreeBalanceAmount,
-				quoteTokenFreeBalanceAmount.mul(middlePrice),
+				quoteTokenFreeBalanceAmount.div(middlePrice),
 				Decimal.max(
 					minimumTokenAmountPerOrder,
 					desiredTokenFreeBalanceAmountPerOrder,
