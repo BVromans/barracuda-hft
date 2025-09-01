@@ -1422,8 +1422,8 @@ export class Fin {
 			status = TransactionStatus.UNKNOWN;
 		}
 
-		if (waitForConfirmation && status === TransactionStatus.PENDING) {
-			throw new Error(`Transaction is still pending: ${hash}`);
+		if (waitForConfirmation && [TransactionStatus.PENDING, TransactionStatus.UNKNOWN].includes(status)) {
+			throw new Error(`Transaction is still pending or its status is unknown: ${hash}`);
 		}
 
 		let feeAmount;
@@ -1884,7 +1884,7 @@ export class Fin {
 		let asks: List<OrderBookOrder> = MList<{ price: string, total: string }>(rawOrderBook.base || []).map(parseOrder);
 		let bids: List<OrderBookOrder> = MList<{ price: string, total: string }>(rawOrderBook.quote || []).map(parseOrder);
 
-		// TODO: check if the slice is correct!!!
+		// The first orders are the best ones (best asks (sellers close to the middle price) and best bids (buyers close to the middle price))
 		asks = maximumNumberOfOrders ? asks.slice(0, maximumNumberOfOrders) : asks;
 		bids = maximumNumberOfOrders ? bids.slice(0, maximumNumberOfOrders) : bids;
 
@@ -2029,8 +2029,7 @@ export class Fin {
 
 		// Fetch THORChain oracle prices as fallback
 		let oracleRawBalances: { prices: Array<{ symbol: string; price: string }> } | undefined;
-		// TODO: Currently not available on mainnet, change to it when it becomes available.
-		const oracleResponse = await this.parent.fetch('https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices')
+		const oracleResponse = await this.parent.fetch(properties.getAs<string>('rujira.endpoints.oracle'))
 			.catch((exception) => logger.ignoreException(exception, 'Failed to fetch THORChain oracle prices.'));
 		if (oracleResponse?.ok) {
 			/*

@@ -9,16 +9,20 @@ import { WalletMnemonic, WalletPrivateKey } from "./types";
 
 	// You need to provide either the wallet mnemonic or the wallet private key
 	const walletMnemonic = properties.getAs<WalletMnemonic | undefined>('rujira.wallet.mnemonic');
-	// const walletPrivateKey = properties.getAs<WalletPrivateKey | undefined>('rujira.wallet.privateKey');
+	const walletPrivateKey = properties.getAs<WalletPrivateKey | undefined>('rujira.wallet.privateKey');
+
+	if (!walletMnemonic && !walletPrivateKey) {
+		throw new Error('Missing wallet mnemonic/privateKey. Configure resources/configuration/<env>.yml or environment variables.');
+	}
 
 	const simplePureMarketMakingStrategy = new SimplePureMarketMakingStrategy({
 		walletMnemonic: walletMnemonic,
-		// walletPrivateKey: walletPrivateKey,
+		walletPrivateKey: walletPrivateKey,
 	});
 
 	const enhancedPureMarketMakingStrategy = new EnhancedPureMarketMakingStrategy({
 		walletMnemonic: walletMnemonic,
-		// walletPrivateKey: walletPrivateKey,
+		walletPrivateKey: walletPrivateKey,
 	});
 
 	// const strategy = simplePureMarketMakingStrategy;

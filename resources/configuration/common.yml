@@ -3,6 +3,7 @@ rujira:
     rpc: "https://thornode-mainnet-rpc.bryanlabs.net"
     rest: "https://thornode.ninerealms.com"
     graphql: "https://api.rujira.network/api/graphql"
+    oracle: "https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices" # Currently not available on mainnet, change to it when it becomes available.
   cache:
     rujira:
       getThorChainConfiguration: 21600 # 6 * 60 * 60 = 6 hours
