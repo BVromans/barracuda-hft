@@ -67,6 +67,12 @@ const dump = (target: any) => {
 	}
 };
 
+/**
+ * Prepare the stack trace.
+ * Important, this changes the default stack trace for the entire system.
+ * @param err - The error.
+ * @param stack - The stack.
+ */
 Error.prepareStackTrace = (err, stack) => {
 	return stack.map(callSite => {
 		// getThis	this value of the function call

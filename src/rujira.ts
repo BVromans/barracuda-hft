@@ -2029,7 +2029,7 @@ export class Fin {
 
 		// Fetch THORChain oracle prices as fallback
 		let oracleRawBalances: { prices: Array<{ symbol: string; price: string }> } | undefined;
-		// TODO: change to mainnet when it becomes available.
+		// TODO: Currently not available on mainnet, change to it when it becomes available.
 		const oracleResponse = await this.parent.fetch('https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices')
 			.catch((exception) => logger.ignoreException(exception, 'Failed to fetch THORChain oracle prices.'));
 		if (oracleResponse?.ok) {
@@ -2298,8 +2298,9 @@ export class Fin {
 		// Apply client-side limiting since GraphQL API ignores 'last' parameter
 		let limitedCandles = rawCandles;
 		if (maximumNumberOfCandles && maximumNumberOfCandles > 0 && maximumNumberOfCandles < DECIMAL_INFINITY.toNumber()) {
+			// The last candles are the most recent ones
 			limitedCandles = rawCandles
-				.slice(0, maximumNumberOfCandles);
+				.slice(-maximumNumberOfCandles);
 		}
 
 		const candles = MMap<CandleTimestamp, Candle>();
