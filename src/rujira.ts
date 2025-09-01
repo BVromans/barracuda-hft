@@ -1669,7 +1669,7 @@ export class Fin {
 	 * @returns The markets response
 	 */
 	@Cacheable({
-		cacheKey: (request: FinGetAllMarketsRequest) => `getAllMarkets(${JSON.stringify(request)})`,
+		cacheKey: (_request: FinGetAllMarketsRequest) => `getAllMarkets(${JSON.stringify(_request)})`,
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllMarkets'),
 	})
 	async getAllMarkets(_request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
@@ -1737,10 +1737,13 @@ export class Fin {
 				}
 			`;
 
-			const headers = {
+			const headers: any = {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${properties.getAs<string>('rujira.tokens.graphql')}`,
 			};
+
+			if (properties.getAs<string>('rujira.tokens.graphql')) {
+				headers['Authorization'] = `Bearer ${properties.getAs<string>('rujira.tokens.graphql')}`;
+			}
 
 			const response = await this.parent.fetch(graphQLEndPoint, {
 				method: 'POST',
@@ -2196,12 +2199,17 @@ export class Fin {
 		// Use interval directly as resolution (already in seconds format)
 		const resolution = interval;
 
+		const headers: any = {
+			'Content-Type': 'application/json',
+		};
+
+		if (properties.getAs<string>('rujira.tokens.graphql')) {
+			headers['Authorization'] = `Bearer ${properties.getAs<string>('rujira.tokens.graphql')}`;
+		}
+
 		const response = await this.parent.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${properties.getAs<string>('rujira.tokens.graphql')}`,
-			},
+			headers,
 			body: JSON.stringify({
 				query: `
 					query($marketAddress: ID!, $after: String!, $before: String!, $resolution: String!, $last: Int) {
