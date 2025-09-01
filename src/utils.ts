@@ -181,8 +181,8 @@ export function runWithRetryAndTimeout(options?: {
 
 		// Replace the original method with one that incorporates retry and timeout logic.
 		descriptor.value = async function (...args: any[]): Promise<any> {
-			const sleep = (ms: number): Promise<void> =>
-				new Promise<void>((resolve) => setTimeout(resolve, Math.floor(ms)));
+			const sleep = (miliseconds: number): Promise<void> =>
+				new Promise<void>((resolve) => setTimeout(resolve, Math.floor(miliseconds)));
 
 			// Function that performs the retries.
 			const callWithRetries = async (): Promise<any> => {

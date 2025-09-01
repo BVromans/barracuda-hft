@@ -2753,9 +2753,9 @@ export class Fin {
 			const ordersList = List.isList(orders) ? orders : MList<Order>(orders);
 
 			// Extract and sanitize order IDs from order objects
-			ordersList.forEach((orderObj: Order) => {
-				if (orderObj && orderObj.id && typeof orderObj.id === 'string') {
-					const sanitizedId = orderObj.id.trim().toLowerCase();
+			ordersList.forEach((order: Order) => {
+				if (order && order.id && typeof order.id === 'string') {
+					const sanitizedId = order.id.trim().toLowerCase();
 					if (sanitizedId && !sanitizedOrderIds.includes(sanitizedId)) {
 						sanitizedOrderIds.push(sanitizedId);
 					}

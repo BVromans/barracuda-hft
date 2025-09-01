@@ -90,9 +90,9 @@ MList.isList = List.isList;
  * @returns A mutable map
  */
 function MMap<K, V>(collection?: Iterable<readonly [K, V]>, separator?: string): Map<K, V>;
-function MMap<R extends { [key in PropertyKey]: unknown }>(obj: R, separator?: string): MapOf<R>;
-function MMap<V>(obj: { [key: string]: V }, separator?: string): Map<string, V>;
-function MMap<K extends string | symbol, V>(obj: { [P in K]?: V }, separator?: string): Map<K, V>;
+function MMap<R extends { [key in PropertyKey]: unknown }>(object: R, separator?: string): MapOf<R>;
+function MMap<V>(object: { [key: string]: V }, separator?: string): Map<string, V>;
+function MMap<K extends string | symbol, V>(object: { [P in K]?: V }, separator?: string): Map<K, V>;
 function MMap(entries?: any, separator?: string): Map<any, any> {
 	let map = Map(entries);
 
