@@ -878,7 +878,7 @@ describe("Rujira", async() => {
 					expect(candle.raw).toBeDefined();
 				});
 
-				sleep(1000); // Wait for 1 second to avoid rate limiting
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get candles by market symbol", async () => {
@@ -902,7 +902,7 @@ describe("Rujira", async() => {
 					expect(candle.raw).toBeDefined();
 				});
 
-				sleep(1000); // Wait for 1 second to avoid rate limiting
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get candles with specific interval", async () => {
@@ -928,7 +928,7 @@ describe("Rujira", async() => {
 					expect(candle.raw).toBeDefined();
 				});
 
-				sleep(1000); // Wait for 1 second to avoid rate limiting
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should verify that candles are exactly 1 minute apart", async () => {
@@ -971,7 +971,7 @@ describe("Rujira", async() => {
 				expect(secondCandle?.close.toNumber()).toBeGreaterThan(0);
 				expect(secondCandle?.volume.toNumber()).toBeGreaterThanOrEqual(0);
 
-				sleep(1000); // Wait for 1 second to avoid rate limiting
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 		});
 
@@ -998,7 +998,7 @@ describe("Rujira", async() => {
 
 					expect(indicatorData.value).toBeDefined();
 
-					sleep(1000); // Wait for 1 second to avoid rate limiting
+					await sleep(1000); // Wait for 1 second to avoid rate limiting
 				}
 			});
 
@@ -1024,7 +1024,7 @@ describe("Rujira", async() => {
 				expect(indicatorData.value).toBeDefined();
 				expect(indicatorData.value.length).toBeLessThanOrEqual(maximumNumberOfCandles);
 
-				sleep(1000); // Wait for 1 second to avoid rate limiting
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get indicators by market address", async () => {
@@ -1050,7 +1050,7 @@ describe("Rujira", async() => {
 					expect(indicatorData.value).toBeDefined();
 				}
 
-				sleep(1000); // Wait for 1 second to avoid rate limiting
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get all indicators by market address", async () => {
@@ -1076,7 +1076,7 @@ describe("Rujira", async() => {
 					expect(indicatorData.value).toBeDefined();
 				}
 
-				sleep(1000); // Wait for 1 second to avoid rate limiting
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get all indicators by market symbol", async () => {
@@ -1102,7 +1102,7 @@ describe("Rujira", async() => {
 					expect(indicatorData.value).toBeDefined();
 				}
 
-				sleep(1000); // Wait for 1 second to avoid rate limiting
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get specific indicators by market address", async () => {
@@ -1129,7 +1129,7 @@ describe("Rujira", async() => {
 					expect(indicatorData.value).toBeDefined();
 				}
 
-				sleep(1000); // Wait for 1 second to avoid rate limiting
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get specific indicators by market symbol", async () => {
@@ -1158,7 +1158,7 @@ describe("Rujira", async() => {
 					expect(indicatorsIds).toContain(indicatorId);
 				}
 
-				sleep(1000); // Wait for 1 second to avoid rate limiting
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 		});
 

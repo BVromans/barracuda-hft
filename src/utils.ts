@@ -287,7 +287,7 @@ export const validateOrderPrice = (price?: Decimal, tick?: number | string): boo
 
 	tick = Number(tick?.toString().trim());
 
-	const significantPriceDigitsString = price.toFixed().replace(/^0+\.?0*/g, '').replace(/0+$/g, '').replace('.', '');
+	const significantPriceDigitsString = price.toFixed(18).replace(/^0+\.?0*/g, '').replace(/0+$/g, '').replace('.', '');
 	if (significantPriceDigitsString.length > tick) {
 		throw new Error(`Order price must have at most ${tick} non-zero leading digits because of the market tick. Got: ${price.toFixed()}`);
 	}
