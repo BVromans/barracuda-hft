@@ -5,7 +5,7 @@ import { logger } from "../logger";
 import { properties } from "../properties";
 import { Rujira } from "../rujira";
 import { Balances, Candle, CandleInterval, CandleTimestamp, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MarketSymbol, MList, MMap, Order, OrderId, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
-import { runAndRepeat, sleep } from "../utils";
+import { runAndRepeat, sleep, dump } from "../utils";
 import { BaseStrategy, Proposal } from "./base_strategy";
 
 /**

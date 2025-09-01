@@ -6,7 +6,7 @@ import { BasePureMarketMakingStrategy } from "./base_pure_market_making_strategy
 import { Proposal } from "./base_strategy";
 import { logger } from "../logger";
 import { loggedClass } from "../annotations";
-import { cast } from "../utils";
+import { cast, dump } from "../utils";
 
 /**
  * Pure market making strategy
@@ -150,10 +150,7 @@ export class SimplePureMarketMakingStrategy extends BasePureMarketMakingStrategy
 			proposal.place?.push(sellOrder);
 		}
 
-		logger.info(
-			`Proposal`,
-			this.convertProposalToJson(proposal)
-		);
+		logger.info(`Proposal:\n${dump(this.convertProposalToJson(proposal))}`);
 
 		this.state.set('proposal', proposal);
 	}
