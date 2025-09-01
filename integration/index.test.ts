@@ -202,9 +202,9 @@ afterAll(async () => {
 const cleanUp = async () => {
 };
 
-describe("Rujira", async() => {
-	describe("Fin", async () => {
-		describe("status", async () => {
+describe("Rujira", () => {
+	describe("Fin", () => {
+		describe("status", () => {
 			it("should be up", async () => {
 				const result = await rujira.fin.getStatus({});
 
@@ -1342,7 +1342,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("orders", async () => {
+		describe("orders", () => {
 			const cleanOrders = async () => {
 				const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 				await rujira.fin.cancelAllOrders({ ownerAddress: walletPublicKeyThor, market });
@@ -1357,7 +1357,7 @@ describe("Rujira", async() => {
 				await cleanOrders();
 			});
 
-			describe("get", async () => {
+			describe("get", () => {
 				it("get a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
@@ -1485,7 +1485,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe("place", async () => {
+			describe("place", () => {
 				it("create a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
@@ -1552,7 +1552,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe("replace", async () => {
+			describe("replace", () => {
 				it("replace a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
@@ -1650,7 +1650,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe("cancel", async () => {
+			describe("cancel", () => {
 				it("cancel a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
@@ -1733,7 +1733,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe("withdraw", async () => {
+			describe("withdraw", () => {
 				it("withdraw all filled orders from the market", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
