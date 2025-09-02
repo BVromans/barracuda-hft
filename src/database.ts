@@ -55,8 +55,6 @@ export class Database {
 		this.databaseFilePath = path.join(this.databaseDirectory, "database.sqlite");
 
 		this.ensureLogDatabaseFileExists();
-
-		this.connect();
 	}
 
 	/**
@@ -65,22 +63,11 @@ export class Database {
 	public static getInstance(): Database {
 		if (!Database.instance) {
 			Database.instance = new Database();
+
+			Database.instance.initialize();
 		}
 
 		return Database.instance;
-	}
-
-	/**
-	 * Ensure the database directory and file exist, creating them if necessary.
-	 */
-	private ensureLogDatabaseFileExists(): void {
-		if (!fs.existsSync(this.databaseDirectory)) {
-			fs.mkdirSync(this.databaseDirectory, { recursive: true });
-		}
-
-		if (!fs.existsSync(this.databaseFilePath)) {
-			fs.writeFileSync(this.databaseFilePath, "");
-		}
 	}
 
 	/**
@@ -102,11 +89,27 @@ export class Database {
 	}
 
 	/**
-	 * Convert plain row objects returned by SQLite into an immutable `List` of immutable `Map`.
-	 * @param rows Array of plain row objects
+	 * Initialize the database
 	 */
-	private convertRowsToImmutableList(rows: Array<Record<string, unknown>>): List<Map<string, unknown>> {
-		return MList<Map<string, unknown>>(rows.map((row) => MMap<string, unknown>(row as Record<string, unknown>)));
+	private initialize(): Promise<void> {
+		this.connect();
+
+		this.mutate(`
+			CREATE TABLE IF NOT EXISTS orders (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				owner_address TEXT,
+				market_address TEXT,
+				side TEXT,
+				type TEXT,
+				amount TEXT,
+				price TEXT,
+				deviation_in_percentage TEXT,
+				filled_percentage TEXT,
+				status TEXT,
+				creation_timestamp TEXT,
+				update_timestamp TEXT
+			)
+		`);
 	}
 
 	/**
@@ -261,6 +264,27 @@ export class Database {
 		if (!this.readWriteConnection) return;
 
 		this.readWriteConnection.exec("ROLLBACK");
+	}
+
+	/**
+	 * Ensure the database directory and file exist, creating them if necessary.
+	 */
+	private ensureLogDatabaseFileExists(): void {
+		if (!fs.existsSync(this.databaseDirectory)) {
+			fs.mkdirSync(this.databaseDirectory, { recursive: true });
+		}
+
+		if (!fs.existsSync(this.databaseFilePath)) {
+			fs.writeFileSync(this.databaseFilePath, "");
+		}
+	}
+
+	/**
+	 * Convert plain row objects returned by SQLite into an immutable `List` of immutable `Map`.
+	 * @param rows Array of plain row objects
+	 */
+	private convertRowsToImmutableList(rows: Array<Record<string, unknown>>): List<Map<string, unknown>> {
+		return MList<Map<string, unknown>>(rows.map((row) => MMap<string, unknown>(row as Record<string, unknown>)));
 	}
 }
 
