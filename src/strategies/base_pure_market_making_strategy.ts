@@ -111,56 +111,6 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			this.state.set('summary.market.tokens.feePayment', this.rujira.fin.feePaymentToken.symbol);
 			this.state.set('summary.market.tokens.usd', this.rujira.fin.usdToken.symbol);
 
-			this.state.set('summary.tokens.balances.initial.base', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.initial.quote', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.initial.native', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.initial.feePayment', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.initial.usd', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.initial.total', DECIMAL_NaN);
-
-			this.state.set('summary.tokens.balances.previous.base', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.previous.quote', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.previous.native', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.previous.feePayment', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.previous.usd', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.previous.total', DECIMAL_NaN);
-
-			this.state.set('summary.tokens.balances.current.base', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.current.quote', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.current.native', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.current.feePayment', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.current.usd', DECIMAL_NaN);
-			this.state.set('summary.tokens.balances.current.total', DECIMAL_NaN);
-
-			this.state.set('summary.tokens.prices.initial.base', DECIMAL_NaN);
-			this.state.set('summary.tokens.prices.initial.quote', DECIMAL_NaN);
-			this.state.set('summary.tokens.prices.initial.native', DECIMAL_NaN);
-			this.state.set('summary.tokens.prices.initial.feePayment', DECIMAL_NaN);
-			this.state.set('summary.tokens.prices.initial.usd', DECIMAL_NaN);
-
-			this.state.set('summary.tokens.prices.previous.base', DECIMAL_NaN);
-			this.state.set('summary.tokens.prices.previous.quote', DECIMAL_NaN);
-			this.state.set('summary.tokens.prices.previous.native', DECIMAL_NaN);
-			this.state.set('summary.tokens.prices.previous.feePayment', DECIMAL_NaN);
-			this.state.set('summary.tokens.prices.previous.usd', DECIMAL_NaN);
-
-			this.state.set('summary.tokens.prices.current.base', DECIMAL_NaN);
-			this.state.set('summary.tokens.prices.current.quote', DECIMAL_NaN);
-			this.state.set('summary.tokens.prices.current.native', DECIMAL_NaN);
-			this.state.set('summary.tokens.prices.current.feePayment', DECIMAL_NaN);
-			this.state.set('summary.tokens.prices.current.usd', DECIMAL_NaN);
-
-			this.state.set('summary.profitAndLoss.variation.currentToInitial.totalBalance.absolute', DECIMAL_NaN);
-			this.state.set('summary.profitAndLoss.variation.currentToInitial.totalBalance.percentage', DECIMAL_NaN);
-			this.state.set('summary.profitAndLoss.variation.currentToPrevious.totalBalance.absolute', DECIMAL_NaN);
-			this.state.set('summary.profitAndLoss.variation.currentToPrevious.totalBalance.percentage', DECIMAL_NaN);
-
-			this.state.set('summary.profitAndLoss.variation.currentToInitial.tokens.base.percentage', DECIMAL_NaN);
-			this.state.set('summary.profitAndLoss.variation.currentToInitial.tokens.quote.percentage', DECIMAL_NaN);
-
-			this.state.set('summary.profitAndLoss.variation.currentToPrevious.tokens.base.percentage', DECIMAL_NaN);
-			this.state.set('summary.profitAndLoss.variation.currentToPrevious.tokens.quote.percentage', DECIMAL_NaN);
-
 			const candles = await this.rujira.fin.getCandles({
 				market: market,
 				after: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
@@ -573,38 +523,70 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			this.state.set('summary.tokens.prices.current.feePayment', balances.tokens.getOrThrow(this.rujira.fin.feePaymentToken.symbol).balances.usdToken.quotation.tokenToQuote);
 			this.state.set('summary.tokens.prices.current.usd', balances.tokens.getOrThrow(this.rujira.fin.usdToken.symbol).balances.usdToken.quotation.tokenToQuote);
 
+			// 1) Total balance change using current vs initial/previous totals
 			this.state.set(
-				'summary.profitAndLoss.variation.currentToInitial.totalBalance.absolute',
+				'summary.profitAndLoss.currentToInitial.totalBalanceChange.absolute',
 				this.state.getOrThrow('summary.tokens.balances.current.total').minus(this.state.getOrThrow('summary.tokens.balances.initial.total'))
 			);
 			this.state.set(
-				'summary.profitAndLoss.variation.currentToPrevious.totalBalance.absolute',
+				'summary.profitAndLoss.currentToInitial.totalBalanceChange.percentage',
+				this.state.getOrThrow('summary.profitAndLoss.currentToInitial.totalBalanceChange.absolute').div(this.state.getOrThrow('summary.tokens.balances.initial.total')).mul(DECIMAL_100)
+			);
+			this.state.set(
+				'summary.profitAndLoss.currentToPrevious.totalBalanceChange.absolute',
 				this.state.getOrThrow('summary.tokens.balances.current.total').minus(this.state.getOrThrow('summary.tokens.balances.previous.total'))
 			);
 			this.state.set(
-				'summary.profitAndLoss.variation.currentToInitial.totalBalance.percentage',
-				this.state.getOrThrow('summary.profitAndLoss.variation.currentToInitial.totalBalance.absolute').div(this.state.getOrThrow('summary.tokens.balances.initial.total')).mul(DECIMAL_100)
-			);
-			this.state.set(
-				'summary.profitAndLoss.variation.currentToPrevious.totalBalance.percentage',
-				this.state.getOrThrow('summary.profitAndLoss.variation.currentToPrevious.totalBalance.absolute').div(this.state.getOrThrow('summary.tokens.balances.previous.total')).mul(DECIMAL_100)
+				'summary.profitAndLoss.currentToPrevious.totalBalanceChange.percentage',
+				this.state.getOrThrow('summary.profitAndLoss.currentToPrevious.totalBalanceChange.absolute').div(this.state.getOrThrow('summary.tokens.balances.previous.total')).mul(DECIMAL_100)
 			);
 
+			// 2) Total balance change against not trading
+			// Build a unique token symbol set to avoid double counting when roles share a symbol (e.g., native == base, usd == quote)
+			const tokenRoleToSymbol: Record<string, string> = {
+				base: this.state.getOrThrow('summary.market.tokens.base'),
+				quote: this.state.getOrThrow('summary.market.tokens.quote'),
+				native: this.state.getOrThrow('summary.market.tokens.native'),
+				feePayment: this.state.getOrThrow('summary.market.tokens.feePayment'),
+				usd: this.state.getOrThrow('summary.market.tokens.usd'),
+			};
+			const orderedRoles: Array<keyof typeof tokenRoleToSymbol> = ['base', 'quote', 'native', 'feePayment', 'usd'];
+			const uniqueSymbolToRole = MMap<string, keyof typeof tokenRoleToSymbol>();
+			for (const role of orderedRoles) {
+				const symbol = tokenRoleToSymbol[role];
+				if (!uniqueSymbolToRole.has(symbol)) {
+					uniqueSymbolToRole.set(symbol, role);
+				}
+			}
+
+			const computeScenarioTotalValuedAtCurrentPrices = (scenario: 'initial' | 'previous' | 'current'): Decimal => {
+				let totalValuedAtCurrentPrices = new Decimal(0);
+				for (const [, representativeRole] of uniqueSymbolToRole) {
+					const amount = this.state.getOrThrow(`summary.tokens.balances.${scenario}.${representativeRole}`) as Decimal;
+					const currentPrice = this.state.getOrThrow(`summary.tokens.prices.current.${representativeRole}`) as Decimal;
+					totalValuedAtCurrentPrices = totalValuedAtCurrentPrices.plus(amount.mul(currentPrice));
+				}
+				return totalValuedAtCurrentPrices;
+			};
+
+			const currentTotalValuedAtCurrentPrices = computeScenarioTotalValuedAtCurrentPrices('current');
+			const initialTotalValuedAtCurrentPrices = computeScenarioTotalValuedAtCurrentPrices('initial');
+			const previousTotalValuedAtCurrentPrices = computeScenarioTotalValuedAtCurrentPrices('previous');
+
+			// Against initial (no-trading baseline uses initial balances valued at current prices)
+			const absoluteAgainstInitial = currentTotalValuedAtCurrentPrices.minus(initialTotalValuedAtCurrentPrices);
+			this.state.set('summary.profitAndLoss.currentToInitial.totalBalanceChangeAgainstIfNotTrading.absolute', absoluteAgainstInitial);
 			this.state.set(
-				'summary.profitAndLoss.variation.currentToInitial.tokens.base.percentage',
-				this.state.getOrThrow('summary.tokens.prices.current.base').minus(this.state.getOrThrow('summary.tokens.prices.initial.base')).div(this.state.getOrThrow('summary.tokens.prices.initial.base')).mul(DECIMAL_100)
+				'summary.profitAndLoss.currentToInitial.totalBalanceChangeAgainstIfNotTrading.percentage',
+				absoluteAgainstInitial.div(initialTotalValuedAtCurrentPrices).mul(DECIMAL_100)
 			);
+
+			// Against previous (no-trading baseline uses previous balances valued at current prices)
+			const absoluteAgainstPrevious = currentTotalValuedAtCurrentPrices.minus(previousTotalValuedAtCurrentPrices);
+			this.state.set('summary.profitAndLoss.currentToPrevious.totalBalanceChangeAgainstIfNotTrading.absolute', absoluteAgainstPrevious);
 			this.state.set(
-				'summary.profitAndLoss.variation.currentToPrevious.tokens.base.percentage',
-				this.state.getOrThrow('summary.tokens.prices.current.base').minus(this.state.getOrThrow('summary.tokens.prices.previous.base')).div(this.state.getOrThrow('summary.tokens.prices.previous.base')).mul(DECIMAL_100)
-			);
-			this.state.set(
-				'summary.profitAndLoss.variation.currentToInitial.tokens.quote.percentage',
-				this.state.getOrThrow('summary.tokens.prices.current.quote').minus(this.state.getOrThrow('summary.tokens.prices.initial.quote')).div(this.state.getOrThrow('summary.tokens.prices.initial.quote')).mul(DECIMAL_100)
-			);
-			this.state.set(
-				'summary.profitAndLoss.variation.currentToPrevious.tokens.quote.percentage',
-				this.state.getOrThrow('summary.tokens.prices.current.quote').minus(this.state.getOrThrow('summary.tokens.prices.previous.quote')).div(this.state.getOrThrow('summary.tokens.prices.previous.quote')).mul(DECIMAL_100)
+				'summary.profitAndLoss.currentToPrevious.totalBalanceChangeAgainstIfNotTrading.percentage',
+				absoluteAgainstPrevious.div(previousTotalValuedAtCurrentPrices).mul(DECIMAL_100)
 			);
 		}
 
