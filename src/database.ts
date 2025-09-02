@@ -91,7 +91,7 @@ export class Database {
 	/**
 	 * Initialize the database
 	 */
-	private initialize(): Promise<void> {
+	private initialize(): void {
 		this.connect();
 
 		this.mutate(`
