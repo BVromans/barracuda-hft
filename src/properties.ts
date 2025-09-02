@@ -56,6 +56,7 @@ export class Properties {
 		this.map.set('paths.root.path', process.cwd());
 		this.map.set('paths.resources.path', path.join(this.map.get('paths.root.path'), 'resources'));
 		this.map.set('paths.resources.configuration.path', path.join(this.map.get('paths.resources.path'), 'configuration'));
+		this.map.set('paths.resources.database.path', path.join(this.map.get('paths.resources.path'), 'database'));
 	}
 
 	/**
