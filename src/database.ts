@@ -134,9 +134,19 @@ export class Database {
 	 *
 	 * @param connectionType Choose read/write or read-only connection
 	 * @param query SQL query text
-	 * @param parameters Optional parameters; supports single object, array of objects, or positional array
+	 * @param parameters Optional parameters (named or positional). Accepts `Map`, `List`, arrays, or plain objects.
 	 */
-	public execute(connectionType: ConnectionType, query: string, parameters?: Record<string, unknown> | Array<Record<string, unknown>> | unknown[]): List<Map<string, unknown>> {
+	public execute(
+		connectionType: ConnectionType,
+		query: string,
+		parameters?:
+			Record<string, unknown>
+			| Map<string, unknown>
+			| List<Record<string, unknown>>
+			| Array<Record<string, unknown>>
+			| List<unknown>
+			| unknown[]
+	): List<Map<string, unknown>> {
 		const connection = connectionType === ConnectionType.READ_WRITE ? this.readWriteConnection : this.readOnlyConnection;
 		if (!connection) {
 			throw new Error("Database connections are not initialized");
@@ -157,7 +167,48 @@ export class Database {
 			return MList<Map<string, unknown>>();
 		}
 
-		if (Array.isArray(parameters) && parameters.length > 0 && typeof parameters[0] === "object" && parameters[0] !== null) {
+		// Immutable List of parameters
+		if (List.isList(parameters)) {
+			const parameterList = parameters as List<any>;
+			if (parameterList.size === 0) {
+				if (isSelect) {
+					const rows = statement.all() as Array<Record<string, unknown>>;
+					return this.convertRowsToImmutableList(rows);
+				}
+				(statement as any).run([]);
+				return MList<Map<string, unknown>>();
+			}
+
+			const firstValue = parameterList.get(0);
+			if (firstValue !== null && typeof firstValue === 'object' && !Array.isArray(firstValue)) {
+				// List of named parameter maps
+				if (isSelect) {
+					let aggregated: Array<Record<string, unknown>> = [];
+					for (const params of parameterList.toArray() as Array<Record<string, unknown>>) {
+						const rows = (statement as any).all(params) as Array<Record<string, unknown>>;
+						aggregated = aggregated.concat(rows);
+					}
+					return this.convertRowsToImmutableList(aggregated);
+				} else {
+					for (const params of parameterList.toArray() as Array<Record<string, unknown>>) {
+						(statement as any).run(params);
+					}
+					return MList<Map<string, unknown>>();
+				}
+			}
+
+			// Positional parameters as a List
+			const positional = parameterList.toArray();
+			if (isSelect) {
+				const rows = (statement as any).all(positional as any) as Array<Record<string, unknown>>;
+				return this.convertRowsToImmutableList(rows);
+			}
+			(statement as any).run(positional as any);
+			return MList<Map<string, unknown>>();
+		}
+
+		// Array of named parameter objects
+		if (Array.isArray(parameters) && parameters.length > 0 && typeof parameters[0] === "object" && parameters[0] !== null && !Array.isArray(parameters[0])) {
 			if (isSelect) {
 				let aggregated: Array<Record<string, unknown>> = [];
 				for (const params of parameters as Array<Record<string, unknown>>) {
@@ -175,6 +226,17 @@ export class Database {
 			}
 		}
 
+		// Immutable Map of named parameters
+		if (Map.isMap(parameters)) {
+			const named = (parameters as Map<string, unknown>).toObject();
+			if (isSelect) {
+				const rows = (statement as any).all(named as any) as Array<Record<string, unknown>>;
+				return this.convertRowsToImmutableList(rows);
+			}
+			(statement as any).run(named as any);
+			return MList<Map<string, unknown>>();
+		}
+
 		if (isSelect) {
 			const rows = (statement as any).all(parameters as any) as Array<Record<string, unknown>>;
 
@@ -189,10 +251,19 @@ export class Database {
 	/**
 	 * Select a single row from the database.
 	 * @param query SQL query text
-	 * @param parameters Optional parameters
+	 * @param parameters Optional parameters (named or positional). Accepts `Map`, `List`, arrays, or plain objects.
 	 * @returns First row as `Map` or `undefined` if none
 	 */
-	public select_single(query: string, parameters?: Record<string, unknown> | Array<Record<string, unknown>> | unknown[]): Map<string, unknown> | undefined {
+	public select_single(
+		query: string,
+		parameters?:
+			Record<string, unknown>
+			| Map<string, unknown>
+			| List<Record<string, unknown>>
+			| Array<Record<string, unknown>>
+			| List<unknown>
+			| unknown[]
+	): Map<string, unknown> | undefined {
 		const rows = this.execute(ConnectionType.READ_ONLY, query, parameters);
 
 		return MMap(rows.get(0));
@@ -201,50 +272,95 @@ export class Database {
 	/**
 	 * Select multiple rows from the database.
 	 * @param query SQL query text
-	 * @param parameters Optional parameters
+	 * @param parameters Optional parameters (named or positional). Accepts `Map`, `List`, arrays, or plain objects.
 	 * @returns Rows as a `List` of `Map`
 	 */
-	public select(query: string, parameters?: Record<string, unknown> | Array<Record<string, unknown>> | unknown[]): List<Map<string, unknown>> {
+	public select(
+		query: string,
+		parameters?:
+			Record<string, unknown>
+			| Map<string, unknown>
+			| List<Record<string, unknown>>
+			| Array<Record<string, unknown>>
+			| List<unknown>
+			| unknown[]
+	): List<Map<string, unknown>> {
 		return this.execute(ConnectionType.READ_ONLY, query, parameters);
 	}
 
 	/**
 	 * Insert rows into the database.
 	 * @param query SQL insert statement
-	 * @param parameters Optional parameters
+	 * @param parameters Optional parameters (named or positional). Accepts `Map`, `List`, arrays, or plain objects.
 	 * @returns Empty `List` (SQLite run result not mapped)
 	 */
-	public insert(query: string, parameters?: Record<string, unknown> | Array<Record<string, unknown>> | unknown[]): List<Map<string, unknown>> {
+	public insert(
+		query: string,
+		parameters?:
+			Record<string, unknown>
+			| Map<string, unknown>
+			| List<Record<string, unknown>>
+			| Array<Record<string, unknown>>
+			| List<unknown>
+			| unknown[]
+	): List<Map<string, unknown>> {
 		return this.execute(ConnectionType.READ_WRITE, query, parameters);
 	}
 
 	/**
 	 * Update existing rows in the database.
 	 * @param query SQL update statement
-	 * @param parameters Optional parameters
+	 * @param parameters Optional parameters (named or positional). Accepts `Map`, `List`, arrays, or plain objects.
 	 * @returns Empty `List` (SQLite run result not mapped)
 	 */
-	public update(query: string, parameters?: Record<string, unknown> | Array<Record<string, unknown>> | unknown[]): List<Map<string, unknown>> {
+	public update(
+		query: string,
+		parameters?:
+			Record<string, unknown>
+			| Map<string, unknown>
+			| List<Record<string, unknown>>
+			| Array<Record<string, unknown>>
+			| List<unknown>
+			| unknown[]
+	): List<Map<string, unknown>> {
 		return this.execute(ConnectionType.READ_WRITE, query, parameters);
 	}
 
 	/**
 	 * Delete rows from the database.
 	 * @param query SQL delete statement
-	 * @param parameters Optional parameters
+	 * @param parameters Optional parameters (named or positional). Accepts `Map`, `List`, arrays, or plain objects.
 	 * @returns Empty `List` (SQLite run result not mapped)
 	 */
-	public delete(query: string, parameters?: Record<string, unknown> | Array<Record<string, unknown>> | unknown[]): List<Map<string, unknown>> {
+	public delete(
+		query: string,
+		parameters?:
+			Record<string, unknown>
+			| Map<string, unknown>
+			| List<Record<string, unknown>>
+			| Array<Record<string, unknown>>
+			| List<unknown>
+			| unknown[]
+	): List<Map<string, unknown>> {
 		return this.execute(ConnectionType.READ_WRITE, query, parameters);
 	}
 
 	/**
 	 * Execute any mutating statement (insert/update/delete/etc.).
 	 * @param query SQL statement
-	 * @param parameters Optional parameters
+	 * @param parameters Optional parameters (named or positional). Accepts `Map`, `List`, arrays, or plain objects.
 	 * @returns Empty `List` (SQLite run result not mapped)
 	 */
-	public mutate(query: string, parameters?: Record<string, unknown> | Array<Record<string, unknown>> | unknown[]): List<Map<string, unknown>> {
+	public mutate(
+		query: string,
+		parameters?:
+			Record<string, unknown>
+			| Map<string, unknown>
+			| List<Record<string, unknown>>
+			| Array<Record<string, unknown>>
+			| List<unknown>
+			| unknown[]
+	): List<Map<string, unknown>> {
 		return this.execute(ConnectionType.READ_WRITE, query, parameters);
 	}
 
