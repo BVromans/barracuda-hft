@@ -5,6 +5,7 @@ import { logger } from "../logger";
 import { properties } from "../properties";
 import { Rujira } from "../rujira";
 import { Balances, Candle, CandleInterval, CandleTimestamp, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MarketSymbol, MList, MMap, Order, OrderId, OrderStatus, OrderType, RujiraConstructorOptions, StrategyStatus, TokenSymbol, WalletMnemonic, WalletPrivateKey } from "../types";
+import { database } from "../database";
 import { runAndRepeat, sleep, dump } from "../utils";
 import { BaseStrategy, Proposal } from "./base_strategy";
 
@@ -20,6 +21,7 @@ import { BaseStrategy, Proposal } from "./base_strategy";
 		'stop',
 		'createProposal',
 		'applyProposal',
+		'updateOrdersDatabaseFromProposal',
 		'startRepeatingTasks',
 		'stopRepeatingTasks',
 		'updateBalances',
@@ -301,6 +303,8 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			market: market,
 			orders: proposal,
 		});
+
+		await this.updateOrdersDatabaseFromProposal({});
 
 		logger.debug(`Proposal applied successfully. Transactions:\n${result.transactions.keySeq().toJS().join('\n')}`);
 	}
@@ -708,5 +712,103 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			cancel: (MList<OrderId | Order>(proposal.cancel as List<OrderId | Order>))?.asImmutable().map((order: OrderId | Order) => (order as Order).id || (order as OrderId)).toJS(),
 			withdraw: (MList<OrderId | Order>(proposal.withdraw as List<OrderId | Order>))?.asImmutable().map((order: OrderId | Order) => (order as Order).id || (order as OrderId)).toJS(),
 		}
+	}
+
+	/**
+ * Persist affected orders from the last proposal into the local database
+ * using current state orders and the proposal details.
+ */
+	private async updateOrdersDatabaseFromProposal(_options: {}) {
+		const market: Market = this.state.getOrThrow('market');
+		const currentOrders = this.state.getOrThrow('orders') as Map<OrderId, Order>;
+		const proposal: Proposal = this.state.getOrThrow('proposal');
+
+		const nowIso = new Date().toISOString();
+
+		const rows: Array<Record<string, unknown>> = [];
+
+		const mapOrderToRow = (order: Order, statusOverride?: OrderStatus): Record<string, unknown> => ({
+			owner_address: order.ownerAddress,
+			market_address: order.market.address,
+			side: order.side,
+			type: order.type,
+			amount: order.amount?.toString?.() ?? String(order.amount),
+			price: order.price?.toString?.() ?? null,
+			deviation_in_percentage: order.deviationInPercentage?.toString?.() ?? null,
+			filled_percentage: order.filledPercentage?.toString?.() ?? '0',
+			status: (statusOverride ?? order.status),
+			creation_timestamp: (order.creationTimestamp ? String(order.creationTimestamp) : nowIso),
+			update_timestamp: (order.updateTimestamp ? String(order.updateTimestamp) : nowIso),
+		});
+
+		const mapPlaceRequestToRow = (request: FinPlaceOrderRequest, status: OrderStatus): Record<string, unknown> => ({
+			owner_address: this.rujira.walletAddress,
+			market_address: market.address,
+			side: request.side,
+			type: request.type,
+			amount: request.amount?.toString?.() ?? String(request.amount),
+			price: request.price?.toString?.() ?? null,
+			deviation_in_percentage: request.deviationInPercentage?.toString?.() ?? null,
+			filled_percentage: '0',
+			status,
+			creation_timestamp: nowIso,
+			update_timestamp: nowIso,
+		});
+
+		const findMatchingOrder = (candidate: OrderId | Order): Order | undefined => {
+			if (typeof candidate === 'string') {
+				return currentOrders.get(candidate as OrderId);
+			} else {
+				const id = (candidate as Order)?.id ?? this.rujira.fin.getOrderId({ order: candidate as Order });
+
+				return currentOrders.get(id);
+			}
+		};
+
+		// PLACE
+		if (proposal.place) {
+			const placeArray = (MList<FinPlaceOrderRequest>(proposal.place as any)).toArray();
+			for (const request of placeArray) {
+				rows.push(mapPlaceRequestToRow(request, OrderStatus.CREATION_PENDING));
+			}
+		}
+
+		// REPLACE
+		if (proposal.replace) {
+			const replaceArray = (MList<FinReplaceOrderRequest>(proposal.replace as any)).toArray();
+			for (const request of replaceArray) {
+				rows.push(mapPlaceRequestToRow(request, OrderStatus.CREATION_PENDING));
+			}
+		}
+
+		// CANCEL
+		if (proposal.cancel) {
+			const cancelArray = (MList<OrderId | Order>(proposal.cancel as any)).toArray();
+			for (const candidate of cancelArray) {
+				const order = findMatchingOrder(candidate);
+				if (order) {
+					rows.push(mapOrderToRow(order, OrderStatus.CANCELLATION_PENDING));
+				}
+			}
+		}
+
+		// WITHDRAW
+		if (proposal.withdraw) {
+			const withdrawArray = (MList<OrderId | Order>(proposal.withdraw as any)).toArray();
+			for (const candidate of withdrawArray) {
+				const order = findMatchingOrder(candidate);
+				if (order) {
+					rows.push(mapOrderToRow(order));
+				}
+			}
+		}
+
+		if (rows.length === 0) return;
+
+		database.insert(
+			`INSERT INTO orders (owner_address, market_address, side, type, amount, price, deviation_in_percentage, filled_percentage, status, creation_timestamp, update_timestamp)
+				VALUES (:owner_address, :market_address, :side, :type, :amount, :price, :deviation_in_percentage, :filled_percentage, :status, :creation_timestamp, :update_timestamp)`,
+			rows
+		);
 	}
 }
