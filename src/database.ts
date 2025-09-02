@@ -127,6 +127,48 @@ export class Database {
 	}
 
 	/**
+	 * Determine if a query uses named parameters.
+	 */
+	private isNamedParameterQuery(query: string): boolean {
+		return /[:@$][A-Za-z_][A-Za-z0-9_]*/.test(query);
+	}
+
+	/**
+	 * Extract named parameter tokens from a query (e.g. ":name", "$count", "@id").
+	 */
+	private extractNamedParameterTokens(query: string): string[] {
+		const tokens = new Set<string>();
+		const regex = /([:@$][A-Za-z_][A-Za-z0-9_]*)/g;
+		let match: RegExpExecArray | null;
+		while ((match = regex.exec(query)) !== null) {
+			tokens.add(match[1]);
+		}
+		return Array.from(tokens);
+	}
+
+	/**
+	 * Normalize a single named-parameter object to keys that exactly match the placeholders used in the query.
+	 */
+	private normalizeNamedParameters(query: string, input: Record<string, unknown> | Map<string, unknown>): Record<string, unknown> {
+		const tokens = this.extractNamedParameterTokens(query);
+		if (tokens.length === 0) {
+			return Map.isMap(input) ? (input as Map<string, unknown>).toObject() : input;
+		}
+
+		const source = Map.isMap(input) ? (input as Map<string, unknown>).toObject() : input;
+		const normalized: Record<string, unknown> = {};
+		for (const token of tokens) {
+			const name = token.slice(1);
+			if (Object.prototype.hasOwnProperty.call(source, token)) {
+				normalized[token] = (source as any)[token];
+			} else if (Object.prototype.hasOwnProperty.call(source, name)) {
+				normalized[token] = (source as any)[name];
+			}
+		}
+		return normalized;
+	}
+
+	/**
 	 * Execute a database query.
 	 *
 	 * - For SELECT/PRAGMA queries, returns a `List` of `Map` (rows).
@@ -154,6 +196,7 @@ export class Database {
 
 		const statement = connection.prepare(query);
 		const isSelect = /^\s*(select|pragma)\b/i.test(query);
+		const isNamed = this.isNamedParameterQuery(query);
 
 		if (parameters === undefined) {
 			if (isSelect) {
@@ -185,13 +228,15 @@ export class Database {
 				if (isSelect) {
 					let aggregated: Array<Record<string, unknown>> = [];
 					for (const params of parameterList.toArray() as Array<Record<string, unknown>>) {
-						const rows = (statement as any).all(params) as Array<Record<string, unknown>>;
+						const bound = isNamed ? this.normalizeNamedParameters(query, params) : params;
+						const rows = (statement as any).all(bound) as Array<Record<string, unknown>>;
 						aggregated = aggregated.concat(rows);
 					}
 					return this.convertRowsToImmutableList(aggregated);
 				} else {
 					for (const params of parameterList.toArray() as Array<Record<string, unknown>>) {
-						(statement as any).run(params);
+						const bound = isNamed ? this.normalizeNamedParameters(query, params) : params;
+						(statement as any).run(bound);
 					}
 					return MList<Map<string, unknown>>();
 				}
@@ -212,14 +257,16 @@ export class Database {
 			if (isSelect) {
 				let aggregated: Array<Record<string, unknown>> = [];
 				for (const params of parameters as Array<Record<string, unknown>>) {
-					const rows = (statement as any).all(params) as Array<Record<string, unknown>>;
+					const bound = isNamed ? this.normalizeNamedParameters(query, params) : params;
+					const rows = (statement as any).all(bound) as Array<Record<string, unknown>>;
 					aggregated = aggregated.concat(rows);
 				}
 
 				return this.convertRowsToImmutableList(aggregated);
 			} else {
 				for (const params of parameters as Array<Record<string, unknown>>) {
-					(statement as any).run(params);
+					const bound = isNamed ? this.normalizeNamedParameters(query, params) : params;
+					(statement as any).run(bound);
 				}
 
 				return MList<Map<string, unknown>>();
@@ -228,7 +275,18 @@ export class Database {
 
 		// Immutable Map of named parameters
 		if (Map.isMap(parameters)) {
-			const named = (parameters as Map<string, unknown>).toObject();
+			const named = isNamed ? this.normalizeNamedParameters(query, parameters as Map<string, unknown>) : (parameters as Map<string, unknown>).toObject();
+			if (isSelect) {
+				const rows = (statement as any).all(named as any) as Array<Record<string, unknown>>;
+				return this.convertRowsToImmutableList(rows);
+			}
+			(statement as any).run(named as any);
+			return MList<Map<string, unknown>>();
+		}
+
+		// Plain object of named parameters
+		if (parameters !== null && typeof parameters === 'object' && !Array.isArray(parameters)) {
+			const named = isNamed ? this.normalizeNamedParameters(query, parameters as Record<string, unknown>) : (parameters as Record<string, unknown>);
 			if (isSelect) {
 				const rows = (statement as any).all(named as any) as Array<Record<string, unknown>>;
 				return this.convertRowsToImmutableList(rows);
@@ -266,7 +324,9 @@ export class Database {
 	): Map<string, unknown> | undefined {
 		const rows = this.execute(ConnectionType.READ_ONLY, query, parameters);
 
-		return MMap(rows.get(0));
+		const first = rows.get(0);
+		if (!first) return undefined;
+		return first;
 	}
 
 	/**
@@ -333,6 +393,25 @@ export class Database {
 	 * @returns Empty `List` (SQLite run result not mapped)
 	 */
 	public delete(
+		query: string,
+		parameters?:
+			Record<string, unknown>
+			| Map<string, unknown>
+			| List<Record<string, unknown>>
+			| Array<Record<string, unknown>>
+			| List<unknown>
+			| unknown[]
+	): List<Map<string, unknown>> {
+		return this.execute(ConnectionType.READ_WRITE, query, parameters);
+	}
+
+	/**
+	 * Execute DDL statements like CREATE/DROP/ALTER.
+	 * @param query SQL DDL statement
+	 * @param parameters Optional parameters (named or positional). Accepts `Map`, `List`, arrays, or plain objects.
+	 * @returns Empty `List`
+	 */
+	public create(
 		query: string,
 		parameters?:
 			Record<string, unknown>

@@ -12,4 +12,6 @@ resources/configuration/development.yml
 resources/configuration/staging.yml
 resources/configuration/production.yml
 
+resources/database/database.sqlite
+
 temporary/unversioned/**
