@@ -805,10 +805,44 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 
 		if (rows.length === 0) return;
 
-		database.insert(
-			`INSERT INTO orders (owner_address, market_address, side, type, amount, price, deviation_in_percentage, filled_percentage, status, creation_timestamp, update_timestamp)
-				VALUES (:owner_address, :market_address, :side, :type, :amount, :price, :deviation_in_percentage, :filled_percentage, :status, :creation_timestamp, :update_timestamp)`,
-			rows
-		);
+		for (const row of rows) {
+			const existing = database.select_single(
+				`SELECT id FROM orders
+				 WHERE owner_address = :owner_address
+				   AND market_address = :market_address
+				   AND side = :side
+				   AND type = :type
+				   AND ((price = :price) OR (price IS NULL AND :price IS NULL))
+				   AND ((deviation_in_percentage = :deviation_in_percentage) OR (deviation_in_percentage IS NULL AND :deviation_in_percentage IS NULL))`,
+				row
+			);
+
+			if (existing) {
+				// Update existing record (do not touch creation_timestamp)
+				database.update(
+					`UPDATE orders
+					   SET amount = :amount,
+					       price = :price,
+					       deviation_in_percentage = :deviation_in_percentage,
+					       filled_percentage = :filled_percentage,
+					       status = :status,
+					       update_timestamp = :update_timestamp
+					 WHERE owner_address = :owner_address
+					   AND market_address = :market_address
+					   AND side = :side
+					   AND type = :type
+					   AND ((price = :price) OR (price IS NULL AND :price IS NULL))
+					   AND ((deviation_in_percentage = :deviation_in_percentage) OR (deviation_in_percentage IS NULL AND :deviation_in_percentage IS NULL))`,
+					row
+				);
+			} else {
+				// Insert new record
+				database.insert(
+					`INSERT INTO orders (owner_address, market_address, side, type, amount, price, deviation_in_percentage, filled_percentage, status, creation_timestamp, update_timestamp)
+					 VALUES (:owner_address, :market_address, :side, :type, :amount, :price, :deviation_in_percentage, :filled_percentage, :status, :creation_timestamp, :update_timestamp)`,
+					row
+				);
+			}
+		}
 	}
 }
