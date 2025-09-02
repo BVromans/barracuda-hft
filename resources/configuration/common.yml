@@ -2,13 +2,14 @@ rujira:
   endpoints:
     rpc: "https://thornode-mainnet-rpc.bryanlabs.net"
     rest: "https://thornode.ninerealms.com"
-    graphql: "https://api.rujira.network/api/graphiql"
+    graphql: "https://api.rujira.network/api/graphql"
+    oracle: "https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices" # Currently not available on mainnet, change to it when it becomes available.
   cache:
     rujira:
-      getThorChainConfiguration: 6 * 60 * 60 # 6 hours
+      getThorChainConfiguration: 21600 # 6 * 60 * 60 = 6 hours
     fin:
-      getAllTokens: 6 * 60 * 60 # 6 hours
-      getAllMarkets: 6 * 60 * 60 # 6 hours
+      getAllTokens: 21600 # 6 * 60 * 60 = 6 hours
+      getAllMarkets: 21600 # 6 * 60 * 60 = 6 hours
   constants:
     enum:
       markets:
@@ -34,26 +35,27 @@ rujira:
       delayBetweenBatches: 100
     retry:
       maximumNumberOfRetries: 3
-      delayBetweenRetries: 1_000
-      timeout: 30_000
+      delayBetweenRetries: 1000 # 1 second in milliseconds
+      timeout: 30000 # 30 seconds in milliseconds
     markets:
-      loadFromFile: true
+      loadFromFile: false
       filePath: "resources/graphql/responses/markets.json"
     orderBook:
       maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
     candles:
-      interval: "1m"
-      maximumNumberOfCandles: 100 # Optional, leaving empty or null will return all candles
+      interval: "1" # 1 means 1 minute candles
+      lookbackInterval: 21600000 # 6 hours in milliseconds
     orders:
       maximumSlippagePercentage: 2.5 # 1 means 1%
       maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
+      delayBetweenTransactions: 1000 # 1 second in milliseconds
 tests:
   unit:
-    timeout: 10_000 # 10 seconds
+    timeout: 10000 # 10 seconds
   integration:
-    timeout: 60_000 # 60 seconds
+    timeout: 60000 # 60 seconds
     transaction:
-      hash: "73B63952539063431298020873CD37F37992AB5DCBC15BE4D58D4531DDCB2DC3" # Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
+      hash: "6A2B2D1821B1E248410BA3CF273D65215C357DE559E0ED4117AEA3AA7967C05B" # Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
     markets:
       first:
         symbol: "THOR-RUJI/ETH-USDC"

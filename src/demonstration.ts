@@ -3,7 +3,7 @@ import "./bootstrap";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
 import { DECIMAL_100, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, Map, List, Market, MarketSymbol, Order, OrderBookOrder, OrderId, OrderPrice, OrderSide, OrderStatus, OrderType, Price, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
-import { dump, get } from "./utils";
+import { dump, cast } from "./utils";
 
 (async function run() {
 	const active = {
@@ -80,17 +80,17 @@ import { dump, get } from "./utils";
 
 	const defaultBuyOrderMininumPrice = Decimal('0.000000000001'); // Usually 1e-12
 	const defaultBuyOrderMiddlePrice = Decimal('0.001234'); // Depends on the market tick
-	const defaultBuyOrderMaximumPrice = get<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.div(DECIMAL_100)); // Depends on the market tick
-	const defaultBuyOrderFillablePrice = get<OrderBookOrder>(defaultMarketOrderBook.book.bestAsk).price.mul(defaultFillableSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100)); // Depends on the market tick
+	const defaultBuyOrderMaximumPrice = cast<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.div(DECIMAL_100)); // Depends on the market tick
+	const defaultBuyOrderFillablePrice = cast<OrderBookOrder>(defaultMarketOrderBook.book.bestAsk).price.mul(defaultFillableSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100)); // Depends on the market tick
 
 	const defaultSellOrderMininumAmount = Decimal('0.00000001'); // Depends on the market decimals
 	const defaultSellOrderMiddleAmount = Decimal('0.01234567'); // Depends on the market decimals
 	const defaultSellOrderMaximumAmount = Decimal('0.12345678'); // Depends on the market decimals
 
-	const defaultSellOrderMinimumPrice = get<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100)); // Depends on the market tick
+	const defaultSellOrderMinimumPrice = cast<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100)); // Depends on the market tick
 	const defaultSellOrderMiddlePrice = Decimal('98.76'); // Depends on the market tick
 	const defaultSellOrderMaximumPrice = Decimal('9999'); // Depends from the market "tick", which blocks the max precision
-	const defaultSellOrderFillablePrice = get<OrderBookOrder>(defaultMarketOrderBook.book.bestBid).price.mul(DECIMAL_100.minus(defaultFillableSpreadPercentage).div(DECIMAL_100)); // Depends on the market tick
+	const defaultSellOrderFillablePrice = cast<OrderBookOrder>(defaultMarketOrderBook.book.bestBid).price.mul(DECIMAL_100.minus(defaultFillableSpreadPercentage).div(DECIMAL_100)); // Depends on the market tick
 
 	const orderTemplates = {
 		place: {
@@ -386,7 +386,7 @@ import { dump, get } from "./utils";
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
-					amount: defaultBuyOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
+					amount: defaultBuyOrderMininumAmount.plus(Decimal(1).mul(defaultBuyOrderMininumAmount)),
 					price: defaultBuyOrderMininumPrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100))
 				} as FinReplaceOrderRequest,
 				{
@@ -397,7 +397,7 @@ import { dump, get } from "./utils";
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
-					amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
+					amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultBuyOrderMiddleAmount)),
 					price: defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100))
 				} as FinReplaceOrderRequest,
 				{
@@ -408,7 +408,7 @@ import { dump, get } from "./utils";
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
-					amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
+					amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultSellOrderMiddleAmount)),
 					price: defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100))
 				} as FinReplaceOrderRequest,
 				{
@@ -419,7 +419,7 @@ import { dump, get } from "./utils";
 					market: defaultMarket,
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
-					amount: defaultSellOrderMaximumAmount.plus(Decimal(1).mul(defaultOrderMininumAmountIncrement)),
+					amount: defaultSellOrderMaximumAmount.plus(Decimal(1).mul(defaultSellOrderMaximumAmount)),
 					price: defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100))
 				} as FinReplaceOrderRequest,
 			]
@@ -666,7 +666,7 @@ import { dump, get } from "./utils";
 	if (active.getTransaction) {
 		const getTransaction = await rujira.fin.getTransaction({
 			// Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
-			hash: '0BD692147F4D28106113FA28963E2D47FB861FFE13D33ECDD1AAF33845B090E2'
+			hash: '6A2B2D1821B1E248410BA3CF273D65215C357DE559E0ED4117AEA3AA7967C05B'
 		});
 		console.log('getTransaction:\n', dump(getTransaction));
 		console.log('\n--------------------------------------------------------------------------------\n');
@@ -866,7 +866,7 @@ import { dump, get } from "./utils";
 			marketSymbol: defaultMarketSymbol,
 			// market: defaultMarket,
 			orderSide: orderTemplates.place.single.fixedPrice.buy.side,
-			orderPrice: get<OrderPrice>(orderTemplates.place.single.fixedPrice.buy.price)
+			orderPrice: cast<OrderPrice>(orderTemplates.place.single.fixedPrice.buy.price)
 		});
 		const sellOrder = await rujira.fin.getOrder({
 			ownerAddress: walletAddress,
@@ -875,7 +875,7 @@ import { dump, get } from "./utils";
 			marketSymbol: defaultMarketSymbol,
 			// market: defaultMarket,
 			orderSide: orderTemplates.place.single.fixedPrice.sell.side,
-			orderPrice: get<OrderPrice>(orderTemplates.place.single.fixedPrice.sell.price)
+			orderPrice: cast<OrderPrice>(orderTemplates.place.single.fixedPrice.sell.price)
 		});
 		orders.get.single.buy = buyOrder;
 		orders.get.single.sell = sellOrder;

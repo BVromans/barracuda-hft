@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import * as path from 'path';
 import { parse } from 'yaml';
 import { Map } from 'immutable';
@@ -22,7 +22,7 @@ export class Properties {
 	 * Constructor
 	 */
 	private constructor() {
-		this.map = MMap<string, any>();
+		this.map = MMap<string, any>({}, '.');
 	}
 
 	/**
@@ -73,7 +73,13 @@ export class Properties {
 		let configuration: Map<string, any> = Map<string, any>().asMutable();
 
 		const loadYaml = (file: string): Map<string, any> => {
-			const content = readFileSync(path.join(configurationFolder, file), 'utf8');
+			const fullPath = path.join(configurationFolder, file);
+
+			if (!existsSync(fullPath)) {
+				throw new Error(`Configuration file not found: ${fullPath}`);
+			}
+
+			const content = readFileSync(fullPath, 'utf8');
 
 			return Map<string, any>(parse(content)).asMutable();
 		};

@@ -12,8 +12,8 @@ A High-Frequency Trading (HFT) bot, codname Barracuda, for Rujira FIN.
 ## Installation
 
 ```sh
-git clone https://github.com/funttastic/rujira-hft-bot.git
-cd rujira-hft-bot
+git clone https://github.com/funttastic/barracuda-hft.git
+cd barracuda-hft
 
 ./setup
 ```

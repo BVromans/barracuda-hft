@@ -1,26 +1,32 @@
 rujira:
+  tokens:
+    graphql: "<graphql token>"
   wallet:
-    mnemonic: "<wallet mnemonic>" # Optional, but required if privateKey is not provided
-    privateKey: "<wallet private key>" # Optional, but required if mnemonic is not provided
+    mnemonic: "<wallet mnemonic>" # Optional, but required if privateKey is not provided. It is also possible to use the RUJIRA_WALLET_MNEMONIC environment variable, in this case set this field to null.
+    privateKey: "<wallet private key>" # Optional, but required if mnemonic is not provided. It is also possible to use the RUJIRA_WALLET_PRIVATE_KEY environment variable, in this case set this field to null.
     publicKeys:
-      thor: "<wallet thor public key>" # Optional
-      ethereum: "<wallet ethereum public key>" # Optional
+      thor: "<wallet thor public key>" # Optional. It is also possible to use the RUJIRA_WALLET_PUBLIC_KEY_THOR environment variable, in this case set this field to null.
+      ethereum: "<wallet ethereum public key>" # Optional. It is also possible to use the RUJIRA_WALLET_PUBLIC_KEY_ETHEREUM environment variable, in this case set this field to null.
 strategy:
   pure_market_making:
     common:
       market: "THOR-RUJI/ETH-USDC"
       tickInterval: 60000 # 1 minute in milliseconds
+      candles:
+        initialLookbackInterval: 21600000 # 6 hours in milliseconds
+        updateLookbackInterval: 300000 # 5 minutes in milliseconds
+        maximumNumberOfCandlesKept: 500 # Maximum number of candles that is kept in memory
       orders:
         minimumTokenAmountPerOrder: 0 # Minimum token amount per order
         desiredTokenFreeBalancePercentagePerOrder: 10 # Desired token percentage of the free balance per order (0-100)
         desiredTokenFreeBalanceAmountPerOrder: 1 # Desired token free balance amount per order
         maximumTokenAmountPerOrder: 10 # Maximum token amount per order
       whenStart:
-        cancelAllOrders: false
-        withdrawAllFilledOrders: false
+        cancelAllOrders: true
+        withdrawAllFilledOrders: true
       whenStop:
-        cancelAllOrders: false
-        withdrawAllFilledOrders: false
+        cancelAllOrders: true
+        withdrawAllFilledOrders: true
       monitorProfitAndLoss:
         enabled: true
         maximumAllowedWalletLossFromInitialValue: 10 # 1 means 1%

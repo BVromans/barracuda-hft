@@ -5,15 +5,14 @@ import { properties } from "./properties";
 import Decimal from "decimal.js";
 
 /**
- * Get a value or a default value if the value is undefined or null.
+ * Cast a value to a specific type or return a default value if the value is undefined or null.
  * @template R - The type of the value.
- * @template NSV - The type of the default value.
- * @param value - The value to get.
+ * @param value - The value to cast.
  * @param defaultValue - The default value to return if the value is undefined or null.
- * @returns The value or the default value.
+ * @returns The casted value or the default value.
  * @throws An error if the value is undefined or null and no default value is provided.
  */
-export const get = <R>(value: any, defaultValue?: R, errorMessage?: string): R => {
+export const cast = <R>(value: any, defaultValue?: R, errorMessage?: string): R => {
 	if (value === undefined || value === null) {
 		if (defaultValue === undefined || defaultValue === null) {
 			throw new Error(errorMessage || 'Value is null or undefined and no default value provided');
@@ -25,6 +24,17 @@ export const get = <R>(value: any, defaultValue?: R, errorMessage?: string): R =
 	return value as R;
 };
 
+/**
+ * Get a value from a nested object.
+ * @template K - The type of the key.
+ * @template V - The type of the value.
+ * @param target - The target object.
+ * @param key - The key to get.
+ * @param defaultValue - The default value to return if the value is undefined or null.
+ * @param getAsRawKey - Whether to get the key as a raw key.
+ * @returns The value or the default value.
+ * @throws An error if the value is undefined or null and no default value is provided.
+ */
 export const getIn = <K, V>(target: List<V> | Map<K, V>, key: K | string | Array<K | string>, defaultValue?: V, getAsRawKey?: boolean): V => {
 	if (key === undefined || key === null) {
 		if (defaultValue === undefined || defaultValue === null) {
@@ -123,6 +133,13 @@ export const promiseAllInBatches = async <I, O>(
 	return results;
 };
 
+/**
+ * Split an array into chunks.
+ * @template T - The type of the items.
+ * @param target - The target array.
+ * @param quantity - The quantity of items per chunk.
+ * @returns A generator of chunks.
+ */
 export function* splitInChunks<T>(
 	target: T[],
 	quantity: number,
@@ -136,8 +153,8 @@ export function* splitInChunks<T>(
  * Decorator that wraps a method with retry and timeout logic.
  *
  * @param options.maxRetries         Maximum number of retries (default: 3)
- * @param options.delayBetweenRetries Delay (in seconds) between retries (default: 1)
- * @param options.timeout            Total allowed time (in seconds) for the operation (default: 60)
+ * @param options.delayBetweenRetries Delay (in milliseconds) between retries (default: 1000)
+ * @param options.timeout            Total allowed time (in milliseconds) for the operation (default: 30000)
  * @param options.timeoutMessage     Error message in case of timeout (default: 'Timeout exceeded.')
  */
 export function runWithRetryAndTimeout(options?: {
@@ -164,8 +181,8 @@ export function runWithRetryAndTimeout(options?: {
 
 		// Replace the original method with one that incorporates retry and timeout logic.
 		descriptor.value = async function (...args: any[]): Promise<any> {
-			const sleep = (ms: number): Promise<void> =>
-				new Promise<void>((resolve) => setTimeout(resolve, Math.floor(ms)));
+			const sleep = (miliseconds: number): Promise<void> =>
+				new Promise<void>((resolve) => setTimeout(resolve, Math.floor(miliseconds)));
 
 			// Function that performs the retries.
 			const callWithRetries = async (): Promise<any> => {
@@ -186,7 +203,7 @@ export function runWithRetryAndTimeout(options?: {
 
 						// Wait before retrying if there are remaining attempts.
 						if (attempt < maximumNumberOfRetries - 1 && delayBetweenRetries > 0) {
-							await sleep(delayBetweenRetries * 1000);
+							await sleep(delayBetweenRetries);
 						}
 					}
 				}
@@ -204,7 +221,7 @@ export function runWithRetryAndTimeout(options?: {
 					new Promise((_, reject) =>
 						setTimeout(
 							() => reject(new Error(timeoutErrorMessage)),
-							Math.floor(timeout * 1000),
+							Math.floor(timeout),
 						),
 					),
 				]);
@@ -217,6 +234,10 @@ export function runWithRetryAndTimeout(options?: {
 	};
 }
 
+/**
+ * Dump a value to the console.
+ * @param value - The value to dump.
+ */
 export const dump = globalThis.dump;
 
 /**
@@ -257,7 +278,7 @@ export const sanitizeOrderPrice = (price: Decimal, tick: number, maximumPrecisio
  */
 export const validateOrderPrice = (price?: Decimal, tick?: number | string): boolean => {
 	if (!price || !tick?.toString().trim()) {
-		return false;
+		throw new Error('Order price and tick are required');
 	}
 
 	if (!price.gt(Decimal(0))) {
@@ -266,7 +287,7 @@ export const validateOrderPrice = (price?: Decimal, tick?: number | string): boo
 
 	tick = Number(tick?.toString().trim());
 
-	const significantPriceDigitsString = price.toFixed().replace(/^0+\.?0*/g, '').replace(/0+$/g, '').replace('.', '');
+	const significantPriceDigitsString = price.toFixed(18).replace(/^0+\.?0*/g, '').replace(/0+$/g, '').replace('.', '');
 	if (significantPriceDigitsString.length > tick) {
 		throw new Error(`Order price must have at most ${tick} non-zero leading digits because of the market tick. Got: ${price.toFixed()}`);
 	}

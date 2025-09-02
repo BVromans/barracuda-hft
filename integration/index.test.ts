@@ -29,7 +29,7 @@ import {
 	WalletAddress,
 	WalletMnemonic
 } from "../src/types";
-import { get, sleep } from "../src/utils";
+import { cast, sleep } from "../src/utils";
 
 let rujira: Rujira;
 
@@ -202,9 +202,9 @@ afterAll(async () => {
 const cleanUp = async () => {
 };
 
-describe("Rujira", async() => {
-	describe("Fin", async () => {
-		describe("status", async () => {
+describe("Rujira", () => {
+	describe("Fin", () => {
+		describe("status", () => {
 			it("should be up", async () => {
 				const result = await rujira.fin.getStatus({});
 
@@ -709,7 +709,7 @@ describe("Rujira", async() => {
 					expect(firstBidOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(firstBidOrder.raw).toBeDefined();
 
-					const bestBid = get<OrderBookOrder>(
+					const bestBid = cast<OrderBookOrder>(
 						result.book.bestBid,
 						undefined,
 						`Best bid order not found`
@@ -729,7 +729,7 @@ describe("Rujira", async() => {
 					expect(firstAskOrder.amount.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(firstAskOrder.raw).toBeDefined();
 
-					const bestAsk = get<OrderBookOrder>(
+					const bestAsk = cast<OrderBookOrder>(
 						result.book.bestAsk,
 						undefined,
 						`Best ask order not found`
@@ -743,25 +743,25 @@ describe("Rujira", async() => {
 				}
 
 				if (asks.size > 0 && bids.size > 0) {
-					const bestAsk = get<OrderBookOrder>(
+					const bestAsk = cast<OrderBookOrder>(
 						result.book.bestAsk,
 						undefined,
 						`Best ask order not found`
 					);
-					const bestBid = get<OrderBookOrder>(
+					const bestBid = cast<OrderBookOrder>(
 						result.book.bestBid,
 						undefined,
 						`Best bid order not found`
 					);
-					const baseToQuoteMiddlePrice = get<Amount>(result.statistics.middlePrice.baseToQuote);
+					const baseToQuoteMiddlePrice = cast<Amount>(result.statistics.middlePrice.baseToQuote);
 					expect(baseToQuoteMiddlePrice).toBeDefined();
 					expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThan(BIG_NUMBER_0.toNumber());
 					expect(baseToQuoteMiddlePrice.toNumber()).toBeLessThanOrEqual(bestAsk.price.toNumber());
 					expect(baseToQuoteMiddlePrice.toNumber()).toBeGreaterThanOrEqual(bestBid.price.toNumber());
 
-					const quoteToBaseMiddlePrice = get<Amount>(result.statistics.middlePrice.quoteToBase);
+					const quoteToBaseMiddlePrice = cast<Amount>(result.statistics.middlePrice.quoteToBase);
 					expect(quoteToBaseMiddlePrice).toBeDefined();
-					expect(quoteToBaseMiddlePrice.toNumber()).toBe(DECIMAL_1.div(baseToQuoteMiddlePrice).toNumber());
+					expect(quoteToBaseMiddlePrice.toNumber()).toBeCloseTo(DECIMAL_1.div(baseToQuoteMiddlePrice).toNumber(), 10);
 				} else if (asks.size > 0 && bids.size === 0) {
 					expect(result.book.bestAsk).toBeDefined();
 					expect(result.book.bestBid).toBeUndefined();
@@ -856,9 +856,13 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe.skip("candles", () => {
+		describe("candles", () => {
 			it("should be able to get candles by market address", async () => {
-				const result = await rujira.fin.getCandles({ marketAddress: firstMarketAddress });
+				const result = await rujira.fin.getCandles({
+					marketAddress: firstMarketAddress,
+					after: new Date(Date.now() - 1000 * 60 * 5),
+					before: new Date(Date.now())
+				});
 
 				expect(result).toBeDefined();
 				expect(result.size).toBeGreaterThan(0);
@@ -873,10 +877,16 @@ describe("Rujira", async() => {
 					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(candle.raw).toBeDefined();
 				});
+
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get candles by market symbol", async () => {
-				const result = await rujira.fin.getCandles({ marketSymbol: firstMarketSymbol });
+				const result = await rujira.fin.getCandles({
+					marketSymbol: firstMarketSymbol,
+					after: new Date(Date.now() - 1000 * 60 * 5),
+					before: new Date(Date.now())
+				});
 
 				expect(result).toBeDefined();
 				expect(result.size).toBeGreaterThan(0);
@@ -891,13 +901,17 @@ describe("Rujira", async() => {
 					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(candle.raw).toBeDefined();
 				});
+
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get candles with specific interval", async () => {
 
 				const result = await rujira.fin.getCandles({
 					marketSymbol: firstMarketSymbol,
-					interval: CandleInterval.ONE_MINUTE
+					interval: CandleInterval.ONE_MINUTE,
+					after: new Date(Date.now() - 1000 * 60 * 5),
+					before: new Date(Date.now())
 				});
 
 				expect(result).toBeDefined();
@@ -913,22 +927,26 @@ describe("Rujira", async() => {
 					expect(candle.volume.toNumber()).toBeGreaterThanOrEqual(DECIMAL_0.toNumber());
 					expect(candle.raw).toBeDefined();
 				});
+
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should verify that candles are exactly 1 minute apart", async () => {
-
+				const maximumNumberOfCandles = 2;
 
 				const result = await rujira.fin.getCandles({
 					marketSymbol: firstMarketSymbol,
 					interval: CandleInterval.ONE_MINUTE,
-					maximumNumberOfCandles: 2
+					after: new Date(Date.now() - 1000 * 60 * 5),
+					before: new Date(Date.now()),
+					maximumNumberOfCandles
 				});
 
 				expect(result).toBeDefined();
-				expect(result.size).toBeGreaterThanOrEqual(2);
+				expect(result.size).toBe(maximumNumberOfCandles);
 
-				const firstCandle = result.getOrThrow(0);
-				const secondCandle = result.getOrThrow(1);
+				const firstCandle = result.first();
+				const secondCandle = result.last();
 
 				expect(firstCandle).toBeDefined();
 				expect(secondCandle).toBeDefined();
@@ -939,33 +957,32 @@ describe("Rujira", async() => {
 				const timeDifferenceMs = Math.abs(secondTimestamp.getTime() - firstTimestamp.getTime());
 				const timeDifferenceMinutes = timeDifferenceMs / (1000 * 60);
 
-				console.log(`First candle timestamp: ${firstTimestamp.toISOString()}`);
-				console.log(`Second candle timestamp: ${secondTimestamp.toISOString()}`);
-				console.log(`Time difference: ${timeDifferenceMinutes.toFixed(2)} minutes`);
-
 				expect(timeDifferenceMinutes).toBeCloseTo(1, 1);
 
-				expect(firstCandle.open.toNumber()).toBeGreaterThan(0);
-				expect(firstCandle.high.toNumber()).toBeGreaterThan(0);
-				expect(firstCandle.low.toNumber()).toBeGreaterThan(0);
-				expect(firstCandle.close.toNumber()).toBeGreaterThan(0);
-				expect(firstCandle.volume.toNumber()).toBeGreaterThanOrEqual(0);
+				expect(firstCandle?.open.toNumber()).toBeGreaterThan(0);
+				expect(firstCandle?.high.toNumber()).toBeGreaterThan(0);
+				expect(firstCandle?.low.toNumber()).toBeGreaterThan(0);
+				expect(firstCandle?.close.toNumber()).toBeGreaterThan(0);
+				expect(firstCandle?.volume.toNumber()).toBeGreaterThanOrEqual(0);
 
-				expect(secondCandle.open.toNumber()).toBeGreaterThan(0);
-				expect(secondCandle.high.toNumber()).toBeGreaterThan(0);
-				expect(secondCandle.low.toNumber()).toBeGreaterThan(0);
-				expect(secondCandle.close.toNumber()).toBeGreaterThan(0);
-				expect(secondCandle.volume.toNumber()).toBeGreaterThanOrEqual(0);
+				expect(secondCandle?.open.toNumber()).toBeGreaterThan(0);
+				expect(secondCandle?.high.toNumber()).toBeGreaterThan(0);
+				expect(secondCandle?.low.toNumber()).toBeGreaterThan(0);
+				expect(secondCandle?.close.toNumber()).toBeGreaterThan(0);
+				expect(secondCandle?.volume.toNumber()).toBeGreaterThanOrEqual(0);
+
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
-
-
 		});
 
-		describe.skip("indicators", () => {
-
+		describe("indicators", () => {
 			it("should be able to get indicators", async () => {
+				const result = await rujira.fin.getIndicators({
+					marketAddress: firstMarketAddress,
+					after: new Date(Date.now() - 1000 * 60 * 5),
+					before: new Date(Date.now()),
+				});
 
-				const result = await rujira.fin.getIndicators({ marketAddress: firstMarketAddress });
 				expect(result).toBeDefined();
 				expect(result.size).toBeGreaterThan(0);
 
@@ -981,16 +998,18 @@ describe("Rujira", async() => {
 
 					expect(indicatorData.value).toBeDefined();
 				}
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should verify that a indicator has the same quantity as maximumNumberOfCandles", async () => {
-
 				const maximumNumberOfCandles = 100;
 				const specificIndicator = Indicator.bollinger_bands.id;
 
 				const result = await rujira.fin.getIndicators({
 					marketAddress: firstMarketAddress,
 					indicatorsIds: [specificIndicator],
+					after: new Date(Date.now() - 1000 * 60 * 5),
+					before: new Date(Date.now()),
 					maximumNumberOfCandles: maximumNumberOfCandles
 				});
 
@@ -1003,12 +1022,15 @@ describe("Rujira", async() => {
 				expect(indicatorData.indicator.name).toBeDefined();
 				expect(indicatorData.value).toBeDefined();
 				expect(indicatorData.value.length).toBeLessThanOrEqual(maximumNumberOfCandles);
+
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get indicators by market address", async () => {
-
 				const result = await rujira.fin.getIndicators({
 					marketAddress: firstMarketAddress,
+					after: new Date(Date.now() - 1000 * 60 * 5),
+					before: new Date(Date.now()),
 				});
 
 				expect(result).toBeDefined();
@@ -1026,11 +1048,15 @@ describe("Rujira", async() => {
 
 					expect(indicatorData.value).toBeDefined();
 				}
+
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get all indicators by market address", async () => {
 				const result = await rujira.fin.getIndicators({
 					marketAddress: firstMarketAddress,
+					after: new Date(Date.now() - 1000 * 60 * 5),
+					before: new Date(Date.now()),
 				});
 
 				expect(result).toBeDefined();
@@ -1048,12 +1074,15 @@ describe("Rujira", async() => {
 
 					expect(indicatorData.value).toBeDefined();
 				}
+
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get all indicators by market symbol", async () => {
-
 				const result = await rujira.fin.getIndicators({
 					marketSymbol: firstMarketSymbol,
+					after: new Date(Date.now() - 1000 * 60 * 5),
+					before: new Date(Date.now()),
 				});
 
 				expect(result).toBeDefined();
@@ -1071,15 +1100,18 @@ describe("Rujira", async() => {
 
 					expect(indicatorData.value).toBeDefined();
 				}
+
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get specific indicators by market address", async () => {
-
 				const indicatorsIds = [Indicator.bollinger_bands.id];
 
 				const result = await rujira.fin.getIndicators({
 					marketAddress: firstMarketAddress,
-					indicatorsIds: indicatorsIds
+					indicatorsIds: indicatorsIds,
+					after: new Date(Date.now() - 1000 * 60 * 5),
+					before: new Date(Date.now()),
 				});
 
 				expect(result).toBeDefined();
@@ -1095,6 +1127,8 @@ describe("Rujira", async() => {
 					expect(Array.isArray(indicatorData.indicator.parameters)).toBe(true);
 					expect(indicatorData.value).toBeDefined();
 				}
+
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
 			});
 
 			it("should be able to get specific indicators by market symbol", async () => {
@@ -1103,7 +1137,9 @@ describe("Rujira", async() => {
 
 				const result = await rujira.fin.getIndicators({
 					marketSymbol: firstMarketSymbol,
-					indicatorsIds: indicatorsIds
+					indicatorsIds: indicatorsIds,
+					after: new Date(Date.now() - 1000 * 60 * 5),
+					before: new Date(Date.now()),
 				});
 
 				expect(result).toBeDefined();
@@ -1120,8 +1156,9 @@ describe("Rujira", async() => {
 				for (const [indicatorId] of result.entries()) {
 					expect(indicatorsIds).toContain(indicatorId);
 				}
-			});
 
+				await sleep(1000); // Wait for 1 second to avoid rate limiting
+			});
 		});
 
 		describe("balances", () => {
@@ -1304,7 +1341,7 @@ describe("Rujira", async() => {
 			});
 		});
 
-		describe("orders", async () => {
+		describe("orders", () => {
 			const cleanOrders = async () => {
 				const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 				await rujira.fin.cancelAllOrders({ ownerAddress: walletPublicKeyThor, market });
@@ -1319,7 +1356,7 @@ describe("Rujira", async() => {
 				await cleanOrders();
 			});
 
-			describe("get", async () => {
+			describe("get", () => {
 				it("get a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
@@ -1447,7 +1484,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe("place", async () => {
+			describe("place", () => {
 				it("create a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
@@ -1514,7 +1551,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe("replace", async () => {
+			describe("replace", () => {
 				it("replace a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
@@ -1612,7 +1649,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe("cancel", async () => {
+			describe("cancel", () => {
 				it("cancel a fixed price buy order", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 
@@ -1695,7 +1732,7 @@ describe("Rujira", async() => {
 				});
 			});
 
-			describe("withdraw", async () => {
+			describe("withdraw", () => {
 				it("withdraw all filled orders from the market", async () => {
 					const market = await rujira.fin.getMarket({ address: firstMarketAddress, symbol: firstMarketSymbol });
 

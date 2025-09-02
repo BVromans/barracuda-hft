@@ -32,6 +32,7 @@ declare module 'immutable' {
      * Like get(), but throws if the key isn’t present.
      * @param key The key to look up
      * @param notSetValue The value to return if the key is not set
+		 * @param getAsRawKey - Whether to treat the key as a raw key
      */
     getOrThrow(key: K, notSetValue?: V, getAsRawKey?: boolean): V;
 
@@ -88,14 +89,16 @@ MList.isList = List.isList;
  * @param collection - The collection to initialize the map with
  * @returns A mutable map
  */
-function MMap<K, V>(collection?: Iterable<readonly [K, V]>): Map<K, V>;
-function MMap<R extends { [key in PropertyKey]: unknown }>(obj: R): MapOf<R>;
-function MMap<V>(obj: { [key: string]: V }): Map<string, V>;
-function MMap<K extends string | symbol, V>(obj: { [P in K]?: V }): Map<K, V>;
-function MMap(entries?: any): Map<any, any> {
+function MMap<K, V>(collection?: Iterable<readonly [K, V]>, separator?: string): Map<K, V>;
+function MMap<R extends { [key in PropertyKey]: unknown }>(object: R, separator?: string): MapOf<R>;
+function MMap<V>(object: { [key: string]: V }, separator?: string): Map<string, V>;
+function MMap<K extends string | symbol, V>(object: { [P in K]?: V }, separator?: string): Map<K, V>;
+function MMap(entries?: any, separator?: string): Map<any, any> {
 	let map = Map(entries);
 
 	map = map.asMutable();
+
+	(map as any).separator = separator;
 
 	const originalHas = map.has as any;
 	const originalGet = map.get as any;
@@ -113,7 +116,7 @@ function MMap(entries?: any): Map<any, any> {
 		}
 
 		if (typeof key === 'string' && !hasAsRawKey) {
-			const path = key.trim().split('.');
+			const path = separator ? key.trim().split(separator) : [key];
 			if (path.length === 1) {
 				return originalHas.call(this, path[0]) as boolean;
 			}
@@ -137,7 +140,7 @@ function MMap(entries?: any): Map<any, any> {
 		}
 
 		if (typeof key === 'string' && !getAsRawKey) {
-			const path = key.trim().split('.');
+			const path = separator ? key.trim().split(separator) : [key];
 			if (path.length === 1) {
 				return originalGet.call(this, path[0], notSetValue) as V | NSV;
 			}
@@ -189,7 +192,7 @@ function MMap(entries?: any): Map<any, any> {
 		}
 
 		if (typeof key === 'string' && !putAsRawKey) {
-			const path = key.trim().split('.');
+			const path = separator ? key.trim().split(separator) : [key];
 			if (path.length === 1) {
 				return originalSet.call(this, path[0], value) as Map<K, V>;
 			}

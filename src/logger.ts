@@ -33,7 +33,9 @@ const jsonReplacer = (key: string, value: any) => {
 		const prototype = Object.getPrototypeOf(value);
 		if (prototype && prototype !== Object.prototype) {
 			// For class instances, include class name
-			const object: any = { __class__: prototype.constructor.name };
+			const object: any = {
+				// __class__: prototype.constructor.name
+			};
 			for (const property in value) {
 				if (Object.prototype.hasOwnProperty.call(value, property)) {
 					object[property] = value[property];
@@ -65,6 +67,12 @@ const dump = (target: any) => {
 	}
 };
 
+/**
+ * Prepare the stack trace.
+ * Important, this changes the default stack trace for the entire system.
+ * @param err - The error.
+ * @param stack - The stack.
+ */
 Error.prepareStackTrace = (err, stack) => {
 	return stack.map(callSite => {
 		// getThis	this value of the function call
@@ -86,24 +94,24 @@ Error.prepareStackTrace = (err, stack) => {
 		// getPromiseIndex	Not implemented yet.
 		// toString
 		const result = {
-			this: callSite.getThis(),
-			typeName: callSite.getTypeName(),
-			function: callSite.getFunction(),
-			functionName: callSite.getFunctionName(),
-			methodName: callSite.getMethodName(),
-			fileName: callSite.getFileName(),
-			lineNumber: callSite.getLineNumber(),
-			columnNumber: callSite.getColumnNumber(),
-			evalOrigin: callSite.getEvalOrigin(),
-			scriptNameOrSourceURL: callSite.getScriptNameOrSourceURL(),
-			isToplevel: callSite.isToplevel(),
-			isEval: callSite.isEval(),
-			isNative: callSite.isNative(),
-			isConstructor: callSite.isConstructor(),
-			isAsync: callSite.isAsync(),
-			isPromiseAll: callSite.isPromiseAll(),
-			promiseIndex: callSite.getPromiseIndex(),
-			string: callSite.toString(),
+			this: typeof (callSite as any).getThis === 'function' ? (callSite as any).getThis() : undefined,
+			typeName: typeof (callSite as any).getTypeName === 'function' ? (callSite as any).getTypeName() : undefined,
+			function: typeof (callSite as any).getFunction === 'function' ? (callSite as any).getFunction() : undefined,
+			functionName: typeof (callSite as any).getFunctionName === 'function' ? (callSite as any).getFunctionName() : undefined,
+			methodName: typeof (callSite as any).getMethodName === 'function' ? (callSite as any).getMethodName() : undefined,
+			fileName: typeof (callSite as any).getFileName === 'function' ? (callSite as any).getFileName() : undefined,
+			lineNumber: typeof (callSite as any).getLineNumber === 'function' ? (callSite as any).getLineNumber() : undefined,
+			columnNumber: typeof (callSite as any).getColumnNumber === 'function' ? (callSite as any).getColumnNumber() : undefined,
+			evalOrigin: typeof (callSite as any).getEvalOrigin === 'function' ? (callSite as any).getEvalOrigin() : undefined,
+			scriptNameOrSourceURL: typeof (callSite as any).getScriptNameOrSourceURL === 'function' ? (callSite as any).getScriptNameOrSourceURL() : undefined,
+			isToplevel: typeof (callSite as any).isToplevel === 'function' ? (callSite as any).isToplevel() : undefined,
+			isEval: typeof (callSite as any).isEval === 'function' ? (callSite as any).isEval() : undefined,
+			isNative: typeof (callSite as any).isNative === 'function' ? (callSite as any).isNative() : undefined,
+			isConstructor: typeof (callSite as any).isConstructor === 'function' ? (callSite as any).isConstructor() : undefined,
+			isAsync: typeof (callSite as any).isAsync === 'function' ? (callSite as any).isAsync() : undefined,
+			isPromiseAll: typeof (callSite as any).isPromiseAll === 'function' ? (callSite as any).isPromiseAll() : undefined,
+			promiseIndex: typeof (callSite as any).getPromiseIndex === 'function' ? (callSite as any).getPromiseIndex() : undefined,
+			string: typeof (callSite as any).toString === 'function' ? (callSite as any).toString() : undefined,
 		}
 
 		return result;

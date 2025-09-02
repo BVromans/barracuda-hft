@@ -20,6 +20,7 @@ import {
 	BaseTokenBalance,
 	Candle,
 	CandleInterval,
+	CandleTimestamp,
 	DECIMAL_0,
 	DECIMAL_1,
 	DECIMAL_10,
@@ -92,7 +93,8 @@ import {
 	OrderBook,
 	OrderBookOrder,
 	OrderBookPrice,
-	OrderDeviationPercentage,
+	OrderDeviationInBasisPoints,
+	OrderDeviationInPercentage,
 	OrderId,
 	OrderMaximumSlippagePercentage,
 	OrderPrice,
@@ -121,7 +123,7 @@ import {
 	WalletMnemonic,
 	WalletPrivateKey
 } from './types';
-import { get, runWithRetryAndTimeout, sanitizeOrderPrice, validateOrderPrice } from "./utils";
+import { cast, runWithRetryAndTimeout, sanitizeOrderPrice, sleep, validateOrderPrice } from "./utils";
 
 /**
  * LRU cache
@@ -266,7 +268,7 @@ export class Rujira {
 		}
 
 		if (!gasPriceString) {
-			// Fallback to working gas price value if configuration is not found
+			// Fallback to working gas price value if configuration is not found, the current fallback value is 0
 			gasPriceString = '0';
 		}
 
@@ -302,12 +304,12 @@ export class Rujira {
 	 * @returns The wallet
 	 */
 	private async createWalletFromPrivateKey(privateKey: WalletPrivateKey): Promise<Wallet> {
-		const cosmWallet = await this.directSecp256k1WalletFromKeyfromKey(
+		const cosmWallet = await this.directSecp256k1WalletFromKey(
 			fromBase64(privateKey),
 			properties.getAs<string>('wallet.prefix')
 		);
 
-		const firstAccount = get<Array<AccountData>>(await this.directSecp256k1WalletGetAccounts(cosmWallet))[0];
+		const firstAccount = cast<Array<AccountData>>(await this.directSecp256k1WalletGetAccounts(cosmWallet))[0];
 
 		const wallet = {
 			cosmWallet: cosmWallet,
@@ -596,7 +598,7 @@ export class Rujira {
 	 * @returns The wallet
 	 */
 	@runWithRetryAndTimeout()
-	private async directSecp256k1WalletFromKeyfromKey(privkey: Uint8Array, prefix?: string): Promise<DirectSecp256k1Wallet> {
+	private async directSecp256k1WalletFromKey(privkey: Uint8Array, prefix?: string): Promise<DirectSecp256k1Wallet> {
 		return DirectSecp256k1Wallet.fromKey(privkey, prefix);
 	}
 
@@ -791,7 +793,7 @@ export class Fin {
 	}
 
 	/**
-	 * Get transaction details by hash
+	 * Get transaction details by hash. This method will fail if the transaction is too old.
 	 * @param request - The request object
 	 * @returns The transaction response
 	 */
@@ -807,7 +809,6 @@ export class Fin {
 
 		let rawTransaction: any;
 
-		// TOOD: verify how to retrieve the transaction directly calling the RPC endpoint!!!
 		// rawTransaction = await this.cosmClientGetTx(hash);
 
 		const url = `${properties.getAs<URL>('rujira.endpoints.rest')}/cosmos/tx/v1beta1/txs/${hash}`;
@@ -1418,11 +1419,11 @@ export class Fin {
 		} else if (rawTransaction.tx_response.code === 1) {
 			status = TransactionStatus.FAILED;
 		} else {
-			status = TransactionStatus.PENDING;
+			status = TransactionStatus.UNKNOWN;
 		}
 
-		if (waitForConfirmation && status === TransactionStatus.PENDING) {
-			throw new Error(`Transaction is still pending: ${hash}`);
+		if (waitForConfirmation && [TransactionStatus.PENDING, TransactionStatus.UNKNOWN].includes(status)) {
+			throw new Error(`Transaction is still pending or its status is unknown: ${hash}`);
 		}
 
 		let feeAmount;
@@ -1471,9 +1472,9 @@ export class Fin {
 		}
 
 		if (address) {
-			return this.tokensByAddress.getOrThrow(address, undefined, true);
+			return this.tokensByAddress.getOrThrow(address, undefined);
 		} else if (symbol) {
-			return this.tokensBySymbol.getOrThrow(symbol, undefined, true);
+			return this.tokensBySymbol.getOrThrow(symbol, undefined);
 		}
 
 		throw new Error(`Token not found: ${address || symbol}`);
@@ -1514,27 +1515,27 @@ export class Fin {
 		}
 
 		if (addresses?.size) {
-			addresses = get<List<TokenAddress>>(addresses);
+			addresses = cast<List<TokenAddress>>(addresses);
 		}
 		if (symbols?.size) {
-			symbols = get<List<TokenSymbol>>(symbols);
+			symbols = cast<List<TokenSymbol>>(symbols);
 		}
 
 		const tokens = MMap<TokenSymbol, Token>();
 
 		if (addresses?.size) {
 			addresses.forEach((address: TokenAddress) => {
-				const token = this.tokensByAddress.getOrThrow(address, undefined, true);
+				const token = this.tokensByAddress.getOrThrow(address, undefined);
 				if (!token) throw new Error(`Token not found: ${address}`);
-				tokens.set(token.symbol, token, true);
+				tokens.set(token.symbol, token);
 			});
 		}
 
 		if (symbols?.size) {
 			symbols.forEach((symbol: TokenSymbol, index: number) => {
-				const token = this.tokensBySymbol.getOrThrow(symbol, undefined, true);
+				const token = this.tokensBySymbol.getOrThrow(symbol, undefined);
 				if (!token) throw new Error(`Token not found: ${symbol}`);
-				tokens.set(token.symbol, token, true);
+				tokens.set(token.symbol, token);
 			});
 		}
 
@@ -1547,7 +1548,7 @@ export class Fin {
 	 * @returns The tokens response
 	 */
 	@Cacheable({
-		cacheKey: (_request: FinGetAllTokensRequest) => `getAllTokens(${_request.toString()})`,
+		cacheKey: (_request: FinGetAllTokensRequest) => `getAllTokens(${JSON.stringify(_request)})`,
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllTokens'),
 	})
 	async getAllTokens(_request: FinGetAllTokensRequest): Promise<FinGetAllTokensResponse> {
@@ -1559,20 +1560,20 @@ export class Fin {
 		// Extract all unique tokens from the markets
 		for (const market of markets.values()) {
 			// Add base token if not already added
-			if (!tokens.has(market.tokens.base.symbol, true)) {
-				tokens.set(market.tokens.base.symbol, market.tokens.base, true);
+			if (!tokens.has(market.tokens.base.symbol)) {
+				tokens.set(market.tokens.base.symbol, market.tokens.base);
 			}
 
 			// Add quote token if not already added
-			if (!tokens.has(market.tokens.quote.symbol, true)) {
-				tokens.set(market.tokens.quote.symbol, market.tokens.quote, true);
+			if (!tokens.has(market.tokens.quote.symbol)) {
+				tokens.set(market.tokens.quote.symbol, market.tokens.quote);
 			}
 		}
 
 		// Update internal maps
 		for (const token of tokens.values()) {
-			this.tokensByAddress.set(token.address.toLowerCase(), token, true);
-			this.tokensBySymbol.set(token.symbol.toUpperCase(), token, true);
+			this.tokensByAddress.set(token.address.toLowerCase(), token);
+			this.tokensBySymbol.set(token.symbol.toUpperCase(), token);
 		}
 
 		return tokens;
@@ -1596,9 +1597,9 @@ export class Fin {
 		}
 
 		if (address) {
-			return this.marketsByAddress.getOrThrow(address);
+			return this.marketsByAddress.getOrThrow(address, undefined);
 		} else if (symbol) {
-			return this.marketsBySymbol.getOrThrow(symbol);
+			return this.marketsBySymbol.getOrThrow(symbol, undefined);
 		}
 
 		throw new Error(`Market not found: ${address || symbol}`);
@@ -1642,19 +1643,19 @@ export class Fin {
 			throw new Error("You must provide at least one non-empty address or symbol");
 		}
 
-		addresses = get<List<MarketAddress>>(addresses);
-		symbols = get<List<MarketSymbol>>(symbols);
+		addresses = cast<List<MarketAddress>>(addresses);
+		symbols = cast<List<MarketSymbol>>(symbols);
 
-		const markets = MMap<MarketAddress, Market>();
+		const markets = MMap<MarketSymbol, Market>();
 
 		addresses.forEach((address: MarketAddress) => {
-			const market = this.marketsByAddress.getOrThrow(address);
+			const market = this.marketsByAddress.getOrThrow(address, undefined);
 			if (!market) throw new Error(`Market not found: ${address}`);
 			markets.set(market.symbol, market);
 		});
 
 		symbols.forEach((symbol: MarketSymbol) => {
-			const market = this.marketsBySymbol.getOrThrow(symbol);
+			const market = this.marketsBySymbol.getOrThrow(symbol, undefined);
 			if (!market) throw new Error(`Market not found: ${symbol}`);
 			markets.set(market.symbol, market);
 		});
@@ -1668,7 +1669,7 @@ export class Fin {
 	 * @returns The markets response
 	 */
 	@Cacheable({
-		cacheKey: (request: FinGetAllMarketsRequest) => `getAllMarkets(${request.toString()})`,
+		cacheKey: (_request: FinGetAllMarketsRequest) => `getAllMarkets(${JSON.stringify(_request)})`,
 		ttlSeconds: properties.getAs<number>('rujira.cache.fin.getAllMarkets'),
 	})
 	async getAllMarkets(_request: FinGetAllMarketsRequest): Promise<FinGetAllMarketsResponse> {
@@ -1694,7 +1695,6 @@ export class Fin {
 							feeAddress
 							deploymentStatus
 
-							# Asset Base
 							assetBase {
 								id
 								asset
@@ -1707,12 +1707,6 @@ export class Fin {
 									description
 									display
 								}
-								# price {
-								# 	current
-								# 	changeDay
-								# 	mcap
-								# 	timestamp
-								# }
 								variants {
 									layer1 { asset }
 									secured { asset }
@@ -1720,7 +1714,6 @@ export class Fin {
 								}
 							}
 
-							# Asset Quote
 							assetQuote {
 								id
 								asset
@@ -1733,44 +1726,28 @@ export class Fin {
 									description
 									display
 								}
-								# price {
-								# 	current
-								# 	changeDay
-								# 	mcap
-								# 	timestamp
-								# }
 								variants {
 									layer1 { asset }
 									secured { asset }
 									native { denom }
 								}
 							}
-
-							# # Oracles
-							# oracleBase {
-							# 	id
-							# 	asset {
-							# 		asset
-							# 		metadata { symbol name decimals }
-							# 	}
-							# 	price
-							# }
-							# oracleQuote {
-							# 	id
-							# 	asset {
-							# 		asset
-							# 		metadata { symbol name decimals }
-							# 	}
-							# 	price
-							# }
 						}
 					}
 				}
 			`;
 
+			const headers: any = {
+				'Content-Type': 'application/json',
+			};
+
+			if (properties.getAs<string>('rujira.tokens.graphql')) {
+				headers['Authorization'] = `Bearer ${properties.getAs<string>('rujira.tokens.graphql')}`;
+			}
+
 			const response = await this.parent.fetch(graphQLEndPoint, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers,
 				body: JSON.stringify({ query })
 			});
 
@@ -1788,7 +1765,7 @@ export class Fin {
 		}
 
 		const rawPairs = data?.rujira?.fin || [];
-		const markets = MMap<MarketAddress, Market>();
+		const markets = MMap<MarketSymbol, Market>();
 
 		for (const pair of rawPairs) {
 			// Only include LIVE markets
@@ -1827,6 +1804,8 @@ export class Fin {
 				},
 				decimals: 8, // It seems Rujira fixed the decimals to 8 places for all markets
 				tick: Number(pair.tick),
+				makerFee: Decimal(pair.feeMaker).div(DECIMAL_10.pow(12)).mul(DECIMAL_100), // 12 decimals for the fee, 2 decimals for the percentage
+				takerFee: Decimal(pair.feeTaker).div(DECIMAL_10.pow(12)).mul(DECIMAL_100), // 12 decimals for the fee, 2 decimals for the percentage
 				status: MarketStatus.ACTIVE, // LIVE markets are active
 				raw: pair
 			};
@@ -1905,6 +1884,7 @@ export class Fin {
 		let asks: List<OrderBookOrder> = MList<{ price: string, total: string }>(rawOrderBook.base || []).map(parseOrder);
 		let bids: List<OrderBookOrder> = MList<{ price: string, total: string }>(rawOrderBook.quote || []).map(parseOrder);
 
+		// The first orders are the best ones (best asks (sellers close to the middle price) and best bids (buyers close to the middle price))
 		asks = maximumNumberOfOrders ? asks.slice(0, maximumNumberOfOrders) : asks;
 		bids = maximumNumberOfOrders ? bids.slice(0, maximumNumberOfOrders) : bids;
 
@@ -2044,12 +2024,12 @@ export class Fin {
 		tickers.getOrThrow(TickerType.LAYER_POOL).set(TickerQuotationToken.USD, MMap<TokenSymbol, TokenPrice>());
 
 		const nativeToUSDTicker = (await this.getTicker({ marketSymbol: `${this.nativeToken.symbol}/${this.usdToken.symbol}` }));
-		const nativeToUSDPrice = get<TickerPrice>(nativeToUSDTicker.middlePrice.baseToQuote);
-		const USDToNativePrice = get<TickerPrice>(nativeToUSDTicker.middlePrice.quoteToBase);
+		const nativeToUSDPrice = cast<TickerPrice>(nativeToUSDTicker.middlePrice.baseToQuote);
+		const USDToNativePrice = cast<TickerPrice>(nativeToUSDTicker.middlePrice.quoteToBase);
 
 		// Fetch THORChain oracle prices as fallback
 		let oracleRawBalances: { prices: Array<{ symbol: string; price: string }> } | undefined;
-		const oracleResponse = await this.parent.fetch('https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices')
+		const oracleResponse = await this.parent.fetch(properties.getAs<string>('rujira.endpoints.oracle'))
 			.catch((exception) => logger.ignoreException(exception, 'Failed to fetch THORChain oracle prices.'));
 		if (oracleResponse?.ok) {
 			/*
@@ -2092,7 +2072,7 @@ export class Fin {
 			derived_depth_bps: string;
 			trading_halted: boolean;
 		}> | undefined;
-		const poolResponse = await this.parent.fetch('https://thornode.ninerealms.com/thorchain/pools')
+		const poolResponse = await this.parent.fetch(`${properties.getAs<URL>('rujira.endpoints.rest')}/thorchain/pools`)
 			.catch((exception) => logger.ignoreException(exception, 'Failed to fetch THORChain pool prices.'));
 		if (poolResponse?.ok) {
 			/*
@@ -2135,8 +2115,8 @@ export class Fin {
 
 			if (rawOracleBalance) {
 				const price = new Decimal(rawOracleBalance.price.toString().trim());
-				tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price, true);
-				tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice), true);
+				tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price);
+				tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice));
 			} else {
 				// logger.ignoreException(new Error(`Token not found`), `Oracle price token ${token.symbol} not found, ignoring this price.`);
 			}
@@ -2148,8 +2128,8 @@ export class Fin {
 			if (rawPoolBalance) {
 				const price = new Decimal(rawPoolBalance.asset_tor_price.toString().trim()).div(DECIMAL_10.pow(8));
 
-				tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price, true);
-				tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice), true);
+				tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price);
+				tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice));
 			} else {
 				// logger.ignoreException(new Error(`Token not found`), `Pool price token ${token.symbol} not found, ignoring this price.`);
 			}
@@ -2157,17 +2137,17 @@ export class Fin {
 			try {
 				const tokenToUsdMarket = await this.getMarket({ symbol: `${token.symbol}/${this.usdToken.symbol}` });
 				const ticker = await this.getTicker({ marketAddress: tokenToUsdMarket.address });
-				const price = get<TickerPrice>(ticker.middlePrice.baseToQuote);
+				const price = cast<TickerPrice>(ticker.middlePrice.baseToQuote);
 
-				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price, true);
-				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice), true);
+				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price);
+				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price.mul(USDToNativePrice));
 			} catch (exception) {
 				try {
 					const tokenToNativeMarket = await this.getMarket({ symbol: `${token.symbol}/${this.nativeToken.symbol}` });
 					const ticker = await this.getTicker({ marketAddress: tokenToNativeMarket.address });
-					const price = get<TickerPrice>(ticker.middlePrice.baseToQuote);
-					tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price, true);
-					tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price.mul(nativeToUSDPrice), true);
+					const price = cast<TickerPrice>(ticker.middlePrice.baseToQuote);
+					tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).set(token.symbol, price);
+					tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).set(token.symbol, price.mul(nativeToUSDPrice));
 				} catch (exception) {
 					// logger.ignoreException(exception, `Failed to get price for token ${token.symbol} using ${token.symbol}/${this.usdToken.symbol} or ${token.symbol}/${this.nativeToken.symbol} markets.`);
 				}
@@ -2175,15 +2155,15 @@ export class Fin {
 
 			tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).set(
 				token.symbol,
-				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).get(token.symbol)
-				|| tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.USD).get(token.symbol)
+				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.USD).get(token.symbol, undefined)
+				|| tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.USD).get(token.symbol, undefined)
 				|| tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.USD).getOrThrow(token.symbol, DECIMAL_0),
 				true
 			);
 			tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.NATIVE).set(
 				token.symbol,
-				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).get(token.symbol)
-				|| tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.NATIVE).get(token.symbol)
+				tickers.getOrThrow(TickerType.ORDER_BOOK).getOrThrow(TickerQuotationToken.NATIVE).get(token.symbol, undefined)
+				|| tickers.getOrThrow(TickerType.ORACLE).getOrThrow(TickerQuotationToken.NATIVE).get(token.symbol, undefined)
 				|| tickers.getOrThrow(TickerType.LAYER_POOL).getOrThrow(TickerQuotationToken.NATIVE).getOrThrow(token.symbol, DECIMAL_0),
 				true
 			);
@@ -2198,12 +2178,14 @@ export class Fin {
 	 * @returns The candles response
 	 */
 	async getCandles(request: FinGetCandlesRequest): Promise<FinGetCandlesResponse> {
-		let { marketAddress, marketSymbol, market, interval, maximumNumberOfCandles } = request;
+		let { marketAddress, marketSymbol, market, after, before, interval, maximumNumberOfCandles } = request;
 
 		marketAddress = marketAddress?.toLowerCase().trim();
 		marketSymbol = marketSymbol?.trim();
-		maximumNumberOfCandles = maximumNumberOfCandles || properties.getAs<number>('rujira.default.candles.maximumNumberOfCandles') || DECIMAL_INFINITY.toNumber();
-		interval = interval || properties.getAs<CandleInterval>('rujira.default.candles.interval') || '1m';
+		after = after || new Date(Date.now() - Number(properties.getAs<number>('rujira.default.candles.lookbackInterval')));
+		before = before || new Date(); // It not informed, so we use the current date
+		maximumNumberOfCandles = maximumNumberOfCandles || DECIMAL_INFINITY.toNumber();
+		interval = interval || properties.getAs<CandleInterval>('rujira.default.candles.interval') || CandleInterval.ONE_MINUTE;
 
 		if (!marketAddress && !marketSymbol && !market) {
 			throw new Error("Either market address or market name or market must be provided");
@@ -2214,15 +2196,19 @@ export class Fin {
 		}
 
 		// Use interval directly as resolution (already in seconds format)
-		const resolution = interval.replace('m', '');
+		const resolution = interval;
 
-		// Time range (last 7 days)
-		const before = new Date().toISOString();
-		const after = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+		const headers: any = {
+			'Content-Type': 'application/json',
+		};
+
+		if (properties.getAs<string>('rujira.tokens.graphql')) {
+			headers['Authorization'] = `Bearer ${properties.getAs<string>('rujira.tokens.graphql')}`;
+		}
 
 		const response = await this.parent.fetch(properties.getAs<string>('rujira.endpoints.graphql'), {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers,
 			body: JSON.stringify({
 				query: `
 					query($marketAddress: ID!, $after: String!, $before: String!, $resolution: String!, $last: Int) {
@@ -2247,8 +2233,8 @@ export class Fin {
 				`,
 				variables: {
 					marketAddress: Buffer.from(`FinPair:${market.address}`).toString('base64'),
-					after,
-					before,
+					after: after.toISOString(),
+					before: before.toISOString(),
 					resolution,
 					last: maximumNumberOfCandles // This field is not respected by the API, but we handle it client-side
 				}
@@ -2311,20 +2297,27 @@ export class Fin {
 		// Apply client-side limiting since GraphQL API ignores 'last' parameter
 		let limitedCandles = rawCandles;
 		if (maximumNumberOfCandles && maximumNumberOfCandles > 0 && maximumNumberOfCandles < DECIMAL_INFINITY.toNumber()) {
+			// The last candles are the most recent ones
 			limitedCandles = rawCandles
-				.slice(0, maximumNumberOfCandles);
+				.slice(-maximumNumberOfCandles);
 		}
 
-		const candles = MList<Candle>(limitedCandles).map((entry: any) => ({
-			timestamp: new Date(entry.bin).getTime(),
-			// Rujira is using 12 decimals for the price in the candles, which might differ from the market
-			open: Decimal(entry.open || 0).div(DECIMAL_10.pow(12)),
-			high: Decimal(entry.high || 0).div(DECIMAL_10.pow(12)),
-			low: Decimal(entry.low || 0).div(DECIMAL_10.pow(12)),
-			close: Decimal(entry.close || 0).div(DECIMAL_10.pow(12)),
-			volume: Decimal(entry.volume || 0),
-			raw: entry
-		}));
+		const candles = MMap<CandleTimestamp, Candle>();
+
+		MList<Candle>(limitedCandles).map((entry: any) => {
+			const candle = {
+				timestamp: new Date(entry.bin).getTime(),
+				// Rujira is using 12 decimals for the price in the candles, which might differ from the market
+				open: Decimal(entry.open || 0).div(DECIMAL_10.pow(12)),
+				high: Decimal(entry.high || 0).div(DECIMAL_10.pow(12)),
+				low: Decimal(entry.low || 0).div(DECIMAL_10.pow(12)),
+				close: Decimal(entry.close || 0).div(DECIMAL_10.pow(12)),
+				volume: Decimal(entry.volume || 0),
+				raw: entry
+			}
+
+			candles.set(candle.timestamp, candle);
+		});
 
 		return candles;
 	}
@@ -2335,13 +2328,14 @@ export class Fin {
 	 * @returns The indicators response
 	 */
 	async getIndicators(request: FinGetIndicatorsRequest): Promise<FinGetIndicatorsResponse> {
-		let { marketAddress, marketSymbol, market, interval, maximumNumberOfCandles, candles, indicatorsIds } = request;
+		let { marketAddress, marketSymbol, market, after, before, interval, maximumNumberOfCandles, candles, indicatorsIds } = request;
 
 		if (!candles || candles.size === 0) {
-			candles = await this.getCandles({ marketAddress, marketSymbol, market, maximumNumberOfCandles, interval });
+			candles = await this.getCandles({ marketAddress, marketSymbol, market, after, before, interval, maximumNumberOfCandles });
 		}
 
 		candles = candles.asImmutable();
+		const candlesList = candles.valueSeq().toList();
 
 		if (!indicatorsIds) {
 			indicatorsIds = Indicator.all.keySeq().toList();
@@ -2354,7 +2348,7 @@ export class Fin {
 		for (const indicatorId of indicatorsIds) {
 			const indicator = Indicator.all.getOrThrow(indicatorId);
 
-			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(candles), ...indicator.parameters);
+			const value = (Indicators as any)[indicator.id](...indicator.candlesTransform(candlesList), ...indicator.parameters);
 
 			output.set(indicator.id, {
 				indicator,
@@ -2442,7 +2436,7 @@ export class Fin {
 
 				if (rawBalance) {
 					const amount = Decimal(rawBalance.amount.toString().trim()).div(DECIMAL_10.pow(token.decimals));
-					freeBalances.set(token.symbol, amount, true);
+					freeBalances.set(token.symbol, amount);
 				} else {
 					// logger.ignoreException(new Error(`Balance for token ${token.symbol} not found, ignoring this token balance.`));
 				}
@@ -2477,10 +2471,10 @@ export class Fin {
 						lockedTokenSymbol = quoteTokenSymbol;
 						if (order.type === OrderType.FIXED_PRICE) {
 							// For fixed price orders, use order price directly
-							lockedAmount = order.amount.mul(get<OrderPrice>(order.price));
+							lockedAmount = order.amount.mul(cast<OrderPrice>(order.price));
 						} else if (order.type === OrderType.TRACKING_ORDER) {
 							// For tracking orders, use current market price + deviation
-							const deviationMultiplier = DECIMAL_100.minus(get<OrderDeviationPercentage>(order.deviation)).div(DECIMAL_100);
+							const deviationMultiplier = DECIMAL_100.minus(cast<OrderDeviationInPercentage>(order.deviationInBasisPoints?.div(DECIMAL_100) ?? order.deviationInPercentage)).div(DECIMAL_100);
 							const currentPrice = tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).getOrThrow(lockedTokenSymbol);
 							const adjustedPrice = currentPrice.mul(deviationMultiplier);
 							lockedAmount = order.amount.mul(adjustedPrice);
@@ -2497,7 +2491,7 @@ export class Fin {
 
 					if (lockedAmount.gt(0)) {
 						const currentLocked = lockedInOrdersMap.getOrThrow(lockedTokenSymbol, DECIMAL_0);
-						lockedInOrdersMap.set(lockedTokenSymbol, currentLocked.plus(lockedAmount), true);
+						lockedInOrdersMap.set(lockedTokenSymbol, currentLocked.plus(lockedAmount));
 					}
 				}
 
@@ -2515,10 +2509,10 @@ export class Fin {
 						withdrawTokenSymbol = quoteTokenSymbol;
 						if (order.type === OrderType.FIXED_PRICE) {
 							// For fixed price orders, use order price directly
-							withdrawAmount = order.amount.mul(get<OrderPrice>(order.price));
+							withdrawAmount = order.amount.mul(cast<OrderPrice>(order.price));
 						} else if (order.type === OrderType.TRACKING_ORDER) {
 							// For tracking orders, we need to estimate the quote amount received
-							const deviationMultiplier = DECIMAL_100.plus(get<OrderDeviationPercentage>(order.deviation)).div(DECIMAL_100);
+							const deviationMultiplier = DECIMAL_100.plus(cast<OrderDeviationInPercentage>(order.deviationInBasisPoints?.div(DECIMAL_100) ?? order.deviationInPercentage)).div(DECIMAL_100);
 							const currentPrice = tickers.getOrThrow(TickerType.UNIFIED).getOrThrow(TickerQuotationToken.USD).getOrThrow(withdrawTokenSymbol);
 							const adjustedPrice = currentPrice.mul(deviationMultiplier);
 							withdrawAmount = order.amount.mul(adjustedPrice);
@@ -2531,7 +2525,7 @@ export class Fin {
 
 					if (withdrawAmount.gt(0)) {
 						const currentWithdrawable = withdrawableMap.getOrThrow(withdrawTokenSymbol, DECIMAL_0);
-						withdrawableMap.set(withdrawTokenSymbol, currentWithdrawable.plus(withdrawAmount), true);
+						withdrawableMap.set(withdrawTokenSymbol, currentWithdrawable.plus(withdrawAmount));
 					}
 				}
 			}
@@ -2759,9 +2753,9 @@ export class Fin {
 			const ordersList = List.isList(orders) ? orders : MList<Order>(orders);
 
 			// Extract and sanitize order IDs from order objects
-			ordersList.forEach((orderObj: Order) => {
-				if (orderObj && orderObj.id && typeof orderObj.id === 'string') {
-					const sanitizedId = orderObj.id.trim().toLowerCase();
+			ordersList.forEach((order: Order) => {
+				if (order && order.id && typeof order.id === 'string') {
+					const sanitizedId = order.id.trim().toLowerCase();
 					if (sanitizedId && !sanitizedOrderIds.includes(sanitizedId)) {
 						sanitizedOrderIds.push(sanitizedId);
 					}
@@ -2772,7 +2766,7 @@ export class Fin {
 		const query = {
 			orders: {
 				owner: ownerAddress,
-				limit: Number(properties.getAs<string>('rujira.orders.maximumNumberOfOrders')),
+				limit: Number(properties.getAs<string>('rujira.default.orders.maximumNumberOfOrders')),
 				offset: 0
 			}
 		} as {
@@ -2816,16 +2810,19 @@ export class Fin {
 		for (const rawOrder of rawOrders) {
 			let type: OrderType;
 			let price: OrderPrice;
-			let deviation: OrderDeviationPercentage;
+			let deviationInPercentage: OrderDeviationInPercentage;
+			let deviationInBasisPoints: OrderDeviationInBasisPoints;
 			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
 
 			if (rawOrder.price.fixed) {
 				type = OrderType.FIXED_PRICE;
 				price = Decimal(rawOrder.price.fixed);
-				deviation = DECIMAL_0;
+				deviationInPercentage = DECIMAL_0;
+				deviationInBasisPoints = DECIMAL_0;
 			} else if (rawOrder.price.oracle) {
 				type = OrderType.TRACKING_ORDER;
-				deviation = Decimal(rawOrder.price.oracle).div(DECIMAL_100); // Convert from bps (basis points) to percentage
+				deviationInPercentage = Decimal(rawOrder.price.oracle).div(DECIMAL_100); // Convert from bps (basis points) to percentage
+				deviationInBasisPoints = Decimal(rawOrder.price.oracle);
 				price = Decimal(rawOrder.rate || '0');
 			} else {
 				throw new Error(`Unknown order price type: ${JSON.stringify(rawOrder)}`);
@@ -2838,7 +2835,7 @@ export class Fin {
 			const filledPercentage = DECIMAL_100.minus(DECIMAL_100.mul(Decimal(rawOrder.remaining).div(Decimal(rawOrder.offer))));
 			const status = filledPercentage.eq(DECIMAL_0) ? OrderStatus.OPEN : filledPercentage.eq(DECIMAL_100) ? OrderStatus.FILLED : OrderStatus.PARTIALLY_FILLED;
 			const id = this.getOrderId({
-				ownerAddress,
+				ownerAddress: rawOrder.owner.trim().toLowerCase(),
 				market,
 				orderType: type,
 				orderSide: side,
@@ -2852,14 +2849,15 @@ export class Fin {
 				type,
 				side,
 				price,
-				deviation,
+				deviationInPercentage,
+				deviationInBasisPoints,
 				amount,
 				filledPercentage,
 				status,
 				raw: rawOrder
 			} as Order;
 
-			filteredOrders.set(get<OrderId>(order.id), order, true);
+			filteredOrders.set(cast<OrderId>(order.id), order);
 		}
 
 		filteredOrders = filteredOrders.filter((order: Order) => {
@@ -2901,7 +2899,7 @@ export class Fin {
 			}
 
 			// Filter by order prices
-			if (orderPrices && (!order.price || !orderPrices.includes(get<OrderPrice>(order.price)))) {
+			if (orderPrices && (!order.price || !orderPrices.includes(cast<OrderPrice>(order.price)))) {
 				return false;
 			}
 
@@ -2922,7 +2920,7 @@ export class Fin {
 	 * @returns The response for the created order
 	 */
 	async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
-		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price, deviationInPercentage, deviationInBasisPoints } = request;
 
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
@@ -2939,16 +2937,23 @@ export class Fin {
 							marketAddress,
 							marketSymbol,
 							market,
-							side, type, amount, price
+							side,
+							type,
+							amount,
+							price,
+							deviationInPercentage,
+							deviationInBasisPoints
 						}
 					]
 				)
 			}
 		});
 
+		const placedOrder = cast<Order>(persistedOrders.placedOrders?.first() || persistedOrders.replacedOrders?.first());
+
 		const result = {
-			order: get<Order>(persistedOrders.placedOrders?.first()),
-			transaction: get<Transaction>(persistedOrders.transactions.first())
+			order: placedOrder,
+			transaction: cast<Transaction>(persistedOrders.transactions.first())
 		}
 
 		return result;
@@ -2982,8 +2987,10 @@ export class Fin {
 			}
 		});
 
+		const placedOrders = cast<Map<OrderId, Order>>((persistedOrders.placedOrders || MMap<OrderId, Order>()).merge(persistedOrders.replacedOrders || MMap<OrderId, Order>()));
+
 		const result = {
-			orders: get<Map<OrderId, Order>>(persistedOrders.placedOrders),
+			orders: placedOrders,
 			transactions: persistedOrders.transactions
 		};
 
@@ -2996,7 +3003,7 @@ export class Fin {
 	 * @returns The response for the replaced order
 	 */
 	async replaceOrder(request: FinReplaceOrderRequest): Promise<FinReplaceOrderResponse> {
-		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price, deviationInPercentage, deviationInBasisPoints } = request;
 
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
@@ -3014,14 +3021,18 @@ export class Fin {
 					side,
 					type,
 					amount,
-					price
+					price,
+					deviationInPercentage,
+					deviationInBasisPoints
 				}])
 			}
 		});
 
+		const replacedOrder = cast<Order>(persistedOrders.replacedOrders?.first() || persistedOrders.placedOrders?.first());
+
 		const result = {
-			order: get<Order>(persistedOrders.replacedOrders?.first()),
-			transaction: get<Transaction>(persistedOrders.transactions.first())
+			order: replacedOrder,
+			transaction: cast<Transaction>(persistedOrders.transactions.first())
 		}
 
 		return result;
@@ -3054,8 +3065,10 @@ export class Fin {
 			}
 		});
 
+		const replacedOrders = cast<Map<OrderId, Order>>((persistedOrders.replacedOrders || MMap<OrderId, Order>()).merge(persistedOrders.placedOrders || MMap<OrderId, Order>()));
+
 		const result = {
-			orders: get<Map<OrderId, Order>>(persistedOrders.replacedOrders),
+			orders: replacedOrders,
 			transactions: persistedOrders.transactions
 		};
 
@@ -3077,13 +3090,13 @@ export class Fin {
 			marketSymbol,
 			market,
 			orders: {
-				cancel: orderId ? MList<OrderId>([orderId]) : MList<Order>([get<Order>(order)])
+				cancel: orderId ? MList<OrderId>([orderId]) : MList<Order>([cast<Order>(order)])
 			}
 		});
 
 		const result = {
-			order: get<Order>(persistedOrders.cancelledOrders?.first()),
-			transaction: get<Transaction>(persistedOrders.transactions.first())
+			order: cast<Order>(persistedOrders.cancelledOrders?.first()),
+			transaction: cast<Transaction>(persistedOrders.transactions.first())
 		}
 
 		return result;
@@ -3119,7 +3132,7 @@ export class Fin {
 		})
 
 		const result = {
-			orders: get<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
+			orders: cast<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
 			transactions: persistedOrders.transactions
 		};
 
@@ -3162,7 +3175,7 @@ export class Fin {
 		})
 
 		const result = {
-			orders: get<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
+			orders: cast<Map<OrderId, Order>>(persistedOrders.cancelledOrders),
 			transactions: persistedOrders.transactions
 		};
 
@@ -3205,7 +3218,7 @@ export class Fin {
 		});
 
 		const result = {
-			orders: get<Map<OrderId, Order>>(persistedOrders.withdrawnOrders),
+			orders: cast<Map<OrderId, Order>>(persistedOrders.withdrawnOrders),
 			transactions: persistedOrders.transactions
 		};
 
@@ -3287,7 +3300,7 @@ export class Fin {
 		// Validate place and replace orders
 		let hasMarketOrder = false;
 		let hasNonMarketOrder = false;
-		if (placeAndReplaceOrders) {
+				if (placeAndReplaceOrders) {
 			placeAndReplaceOrders.forEach((order: FinPlaceOrderRequest | FinReplaceOrderRequest) => {
 				if (order.marketAddress !== market.address) {
 					throw new Error(`All orders must use the same market. Expected: ${market.address}, Got: ${order.marketAddress}`);
@@ -3300,8 +3313,16 @@ export class Fin {
 					throw new Error("A valid order price is required for placing fixed price orders");
 				}
 
-				if ([OrderType.TRACKING_ORDER].includes(order.type) && (order.deviation === undefined)) {
+				if ([OrderType.TRACKING_ORDER].includes(order.type) && (order.deviationInPercentage === undefined && order.deviationInBasisPoints === undefined)) {
 					throw new Error("Deviation is required for placing tracking orders");
+				}
+
+				// Validate tracking order deviation range (-2.5% to +2.5%)
+				if ([OrderType.TRACKING_ORDER].includes(order.type)) {
+					const deviationInBasisPoints = order.deviationInBasisPoints ?? order.deviationInPercentage?.mul(DECIMAL_100);
+					if (deviationInBasisPoints && deviationInBasisPoints.abs().gt(250)) {
+						throw new Error(`Tracking order deviation of ${deviationInBasisPoints.toFixed(0)} basis points (${deviationInBasisPoints.div(DECIMAL_100).toFixed(2)}%) is not allowed. Deviations must be between -250 and +250 basis points (-2.5% to +2.5%).`);
+					}
 				}
 
 				if (!order.amount.gt(DECIMAL_0)) {
@@ -3358,11 +3379,11 @@ export class Fin {
 
 		// IMPORTANT: Only place and replace orders need funds. Cancel and withdraw operations send NO funds.
 		const fundsMap: Map<TokenAddress, Amount> = MMap<TokenAddress, Amount>();
-		fundsMap.set(market.tokens.quote.address, DECIMAL_0, true);
-		fundsMap.set(market.tokens.base.address, DECIMAL_0, true);
-		fundsMap.set(this.nativeToken.address, DECIMAL_0, true);
-		fundsMap.set(this.usdToken.address, DECIMAL_0, true);
-		fundsMap.set(this.feePaymentToken.address, DECIMAL_0, true);
+		fundsMap.set(market.tokens.quote.address, DECIMAL_0);
+		fundsMap.set(market.tokens.base.address, DECIMAL_0);
+		fundsMap.set(this.nativeToken.address, DECIMAL_0);
+		fundsMap.set(this.usdToken.address, DECIMAL_0);
+		fundsMap.set(this.feePaymentToken.address, DECIMAL_0);
 
 		// Process place and replace orders
 		if (placeAndReplaceOrders && !placeAndReplaceOrders.isEmpty()) {
@@ -3393,42 +3414,42 @@ export class Fin {
 					let outputTokenAmount: Amount;
 					let inputTokenAmountWithoutDecimals: Amount;
 					let outputTokenAmountWithoutDecimals: Amount;
-					let slippagePercentage: OrderMaximumSlippagePercentage = get<OrderMaximumSlippagePercentage>(requestOrder.maximumSlippagePercentage);
+					let slippagePercentage: OrderMaximumSlippagePercentage = cast<OrderMaximumSlippagePercentage>(requestOrder.maximumSlippagePercentage);
 
 					if (requestOrder.side === OrderSide.BUY) {
 						inputToken = market.tokens.quote;
 						outputToken = market.tokens.base;
 
-						outputToInputPrice = get<Price>(marketTicker.middlePrice.baseToQuote);
+						outputToInputPrice = cast<Price>(marketTicker.middlePrice.baseToQuote);
 
 						outputTokenAmount = requestOrder.amount;
 						inputTokenAmount = outputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.plus(slippagePercentage).div(DECIMAL_100));
-						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(10 ** inputToken.decimals).toDecimalPlaces(0);
-						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(10 ** outputToken.decimals).toDecimalPlaces(0);
+						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(DECIMAL_10.pow(inputToken.decimals)).toDecimalPlaces(0);
+						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(DECIMAL_10.pow(outputToken.decimals)).toDecimalPlaces(0);
 
 						swapMessages.push({
 							min_return: outputTokenAmountWithoutDecimals.toFixed(),
 							to: ownerAddress
 						});
 
-						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address)).plus(inputTokenAmountWithoutDecimals), true);
+						fundsMap.set(inputToken.address, cast<Amount>(fundsMap.get(inputToken.address, undefined)).plus(inputTokenAmountWithoutDecimals));
 					} else if (requestOrder.side === OrderSide.SELL) {
 						inputToken = market.tokens.base;
 						outputToken = market.tokens.quote;
 
-						outputToInputPrice = get<Price>(marketTicker.middlePrice.baseToQuote);
+						outputToInputPrice = cast<Price>(marketTicker.middlePrice.baseToQuote);
 
 						inputTokenAmount = requestOrder.amount;
 						outputTokenAmount = inputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
-						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(10 ** inputToken.decimals).toDecimalPlaces(0);
-						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(10 ** outputToken.decimals).toDecimalPlaces(0);
+						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(DECIMAL_10.pow(inputToken.decimals)).toDecimalPlaces(0);
+						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(DECIMAL_10.pow(outputToken.decimals)).toDecimalPlaces(0);
 
 						swapMessages.push({
 							min_return: outputTokenAmountWithoutDecimals.toFixed(),
 							to: ownerAddress
 						});
 
-						fundsMap.set(inputToken.address, get<Amount>(fundsMap.get(inputToken.address)).plus(inputTokenAmountWithoutDecimals), true);
+						fundsMap.set(inputToken.address, cast<Amount>(fundsMap.get(inputToken.address, undefined)).plus(inputTokenAmountWithoutDecimals));
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3441,9 +3462,9 @@ export class Fin {
 					if (requestOrder.side === OrderSide.BUY) {
 						payingToken = market.tokens.quote;
 						receivingToken = market.tokens.base;
-						price = get<OrderPrice>(requestOrder.price);
+						price = cast<OrderPrice>(requestOrder.price);
 						payingTokenAmount = requestOrder.amount.mul(price);
-						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(payingToken.decimals)).toDecimalPlaces(0);
 
 						ordersMessages.push([
 							side,
@@ -3453,13 +3474,13 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals), true);
+						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined)).plus(payingTokenAmountWithoutDecimals));
 					} else if (requestOrder.side === OrderSide.SELL) {
 						payingToken = market.tokens.base;
 						receivingToken = market.tokens.quote;
-						price = get<OrderPrice>(requestOrder.price);
+						price = cast<OrderPrice>(requestOrder.price);
 						payingTokenAmount = requestOrder.amount;
-						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(payingToken.decimals)).toDecimalPlaces(0);
 
 						ordersMessages.push([
 							side,
@@ -3469,7 +3490,7 @@ export class Fin {
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals), true);
+						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined)).plus(payingTokenAmountWithoutDecimals));
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3478,44 +3499,53 @@ export class Fin {
 					let receivingToken: Token;
 					let payingTokenAmount: Amount;
 					let payingTokenAmountWithoutDecimals: Amount;
-					let deviation: OrderDeviationPercentage;
+					let deviationInBasisPoints: OrderDeviationInBasisPoints;
 
 					// Validate deviation parameter
-					if (requestOrder.deviation === undefined) {
+					if (requestOrder.deviationInPercentage === undefined && requestOrder.deviationInBasisPoints === undefined) {
 						throw new Error("Deviation is required for placing tracking orders");
 					}
-					deviation = requestOrder.deviation.mul(DECIMAL_100); // Convert from percentage to 100 basis points (bps)
+					deviationInBasisPoints = cast<OrderDeviationInBasisPoints>(
+						requestOrder.deviationInBasisPoints
+						// Convert from percentage to 100 basis points (bps)
+						?? requestOrder.deviationInPercentage?.mul(DECIMAL_100)
+					);
 
 					if (requestOrder.side === OrderSide.BUY) {
 						payingToken = market.tokens.quote;
 						receivingToken = market.tokens.base;
-						payingTokenAmount = requestOrder.amount;
-						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
+						// For BUY orders, amount is in base token (BTC), but we pay with quote token (USDC)
+						// We need to calculate the USDC amount based on the BTC amount and current price
+						const baseTokenAmount = requestOrder.amount;
+						const currentPrice = cast<Price>(marketTicker.middlePrice.baseToQuote);
+						payingTokenAmount = baseTokenAmount.mul(currentPrice);
+
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(payingToken.decimals)).toDecimalPlaces(0);
 
 						ordersMessages.push([
 							side,
 							{
-								oracle: deviation.toNumber()
+								oracle: deviationInBasisPoints.toNumber()
 							},
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals), true);
+						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined)).plus(payingTokenAmountWithoutDecimals));
 					} else if (requestOrder.side === OrderSide.SELL) {
 						payingToken = market.tokens.base;
 						receivingToken = market.tokens.quote;
 						payingTokenAmount = requestOrder.amount;
-						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(10 ** payingToken.decimals).toDecimalPlaces(0);
+						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(payingToken.decimals)).toDecimalPlaces(0);
 
 						ordersMessages.push([
 							side,
 							{
-								oracle: deviation.toNumber()
+								oracle: deviationInBasisPoints.toNumber()
 							},
 							payingTokenAmountWithoutDecimals.toFixed()
 						]);
 
-						fundsMap.set(payingToken.address, get<Amount>(fundsMap.get(payingToken.address)).plus(payingTokenAmountWithoutDecimals), true);
+						fundsMap.set(payingToken.address, cast<Amount>(fundsMap.get(payingToken.address, undefined)).plus(payingTokenAmountWithoutDecimals));
 					} else {
 						throw new Error(`Order side ${requestOrder.side} not supported`);
 					}
@@ -3531,7 +3561,8 @@ export class Fin {
 					type: existingOrder?.type || requestOrder.type,
 					side: existingOrder?.side || requestOrder.side,
 					price: existingOrder?.price || requestOrder.price,
-					deviation: existingOrder?.deviation || requestOrder.deviation,
+					deviationInPercentage: existingOrder?.deviationInBasisPoints?.div(DECIMAL_100) || existingOrder?.deviationInPercentage || requestOrder?.deviationInBasisPoints?.div(DECIMAL_100) || requestOrder?.deviationInPercentage,
+					deviationInBasisPoints: existingOrder?.deviationInBasisPoints || existingOrder?.deviationInPercentage?.mul(DECIMAL_100) || requestOrder?.deviationInBasisPoints || requestOrder?.deviationInPercentage?.mul(DECIMAL_100),
 					amount: existingOrder?.amount || requestOrder.amount,
 					filledPercentage: [OrderType.MARKET].includes(type) ? DECIMAL_100 : DECIMAL_0,
 					status: [OrderType.MARKET].includes(type) ? OrderStatus.FILLED : OrderStatus.OPEN,
@@ -3539,11 +3570,11 @@ export class Fin {
 					updateTimestamp: Date.now(),
 					raw: requestOrder
 				};
-				placeAndReplaceOrdersMap.set(orderId, order, true);
+				placeAndReplaceOrdersMap.set(orderId, order);
 				if (existingOrder) {
-					replaceOrdersMap.set(orderId, order, true);
+					replaceOrdersMap.set(orderId, order);
 				} else {
-					placeOrdersMap.set(orderId, order, true);
+					placeOrdersMap.set(orderId, order);
 				}
 			});
 			ordersMap.set('placeAndReplace', placeAndReplaceOrdersMap);
@@ -3572,8 +3603,8 @@ export class Fin {
 
 				if (existingOrder.type === OrderType.TRACKING_ORDER) {
 					// For tracking orders, use the stored deviation (already in 100 basis points (bps))
-					const deviation = existingOrder.deviation?.mul(DECIMAL_100) || DECIMAL_0;
-					ordersMessages.push([side, { oracle: deviation.toNumber() }, "0"]);
+					const deviationInBasisPoints = cast<OrderDeviationInBasisPoints>(existingOrder.deviationInBasisPoints || existingOrder.deviationInPercentage?.mul(DECIMAL_100));
+					ordersMessages.push([side, { oracle: deviationInBasisPoints.toNumber() }, "0"]);
 				} else {
 					// For fixed price orders
 					const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
@@ -3586,7 +3617,7 @@ export class Fin {
 					status: OrderStatus.CANCELLED,
 					updateTimestamp: Date.now()
 				};
-				cancelOrdersMap.set(orderId, cancelledOrder, true);
+				cancelOrdersMap.set(orderId, cancelledOrder);
 			});
 			ordersMap.set('cancel', cancelOrdersMap);
 		}
@@ -3612,8 +3643,8 @@ export class Fin {
 
 				if (existingOrder.type === OrderType.TRACKING_ORDER) {
 					// For tracking orders, use the stored deviation (already in 100 basis points (bps))
-					const deviation = existingOrder.deviation?.mul(DECIMAL_100) || DECIMAL_0;
-					ordersMessages.push([side, { oracle: deviation.toNumber() }, null]);
+					const deviationInBasisPoints = cast<OrderDeviationInBasisPoints>(existingOrder.deviationInBasisPoints || existingOrder.deviationInPercentage?.mul(DECIMAL_100));
+					ordersMessages.push([side, { oracle: deviationInBasisPoints.toNumber() }, null]);
 				} else {
 					// For fixed price orders
 					const price = existingOrder.price ? existingOrder.price.toFixed(18) : '0.000000000000000000';
@@ -3625,7 +3656,7 @@ export class Fin {
 					...existingOrder,
 					updateTimestamp: Date.now()
 				};
-				withdrawOrdersMap.set(orderId, withdrawnOrder, true);
+				withdrawOrdersMap.set(orderId, withdrawnOrder);
 			});
 			ordersMap.set('withdraw', withdrawOrdersMap);
 		}
@@ -3661,7 +3692,8 @@ export class Fin {
 					});
 				}
 			});
-			funds = rawFunds;
+			// Sort funds by denomination (required by Cosmos)
+			funds = rawFunds.sort((a, b) => a.denom.localeCompare(b.denom));
 		}
 
 		// Execute the transaction
@@ -3674,9 +3706,12 @@ export class Fin {
 			funds
 		);
 
+		// Wait for a delay so we guarantee the transaction is already available in NineRealms
+		await sleep(properties.getAs<number>("rujira.default.orders.delayBetweenTransactions"));
+
 		// Get the transaction details
 		const transaction = await this.getTransaction({ hash: response.transactionHash });
-		transactions.set(transaction.hash, transaction, true);
+		transactions.set(transaction.hash, transaction);
 
 		// Build the response
 		const result: FinPersistOrdersResponse = {
@@ -3725,22 +3760,23 @@ export class Fin {
 		orderType?: OrderType;
 		orderSide?: OrderSide;
 		orderPrice?: OrderPrice;
-		orderDeviationPercentage?: OrderDeviationPercentage;
+		orderDeviationInPercentage?: OrderDeviationInPercentage;
+		orderDeviationInBasisPoints?: OrderDeviationInBasisPoints;
 	}): OrderId {
-		let { ownerAddress, marketSymbol, market, order, orderType, orderSide, orderPrice, orderDeviationPercentage } = options;
+		let { ownerAddress, marketSymbol, market, order, orderType, orderSide, orderPrice, orderDeviationInPercentage, orderDeviationInBasisPoints } = options;
 
-		ownerAddress = ownerAddress || get<Order>(order).ownerAddress;
+		ownerAddress = ownerAddress || cast<Order>(order).ownerAddress;
 
-		marketSymbol = marketSymbol || order?.market?.symbol || get<Market>(market).symbol;
+		marketSymbol = marketSymbol || order?.market?.symbol || cast<Market>(market).symbol;
 
-		orderType = orderType || get<Order>(order).type;
+		orderType = orderType || cast<Order>(order).type;
 
-		orderSide = orderSide || get<Order>(order).side;
+		orderSide = orderSide || cast<Order>(order).side;
 
 		orderPrice = orderPrice || order?.price;
 
-		orderDeviationPercentage = orderDeviationPercentage || order?.deviation || undefined;
+		orderDeviationInBasisPoints = orderDeviationInBasisPoints || orderDeviationInPercentage?.mul(DECIMAL_100) || order?.deviationInBasisPoints || order?.deviationInPercentage?.mul(DECIMAL_100) || undefined;
 
-		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed()}|deviation:${orderDeviationPercentage?.toNumber()}`;
+		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed(18)}|deviation:${orderDeviationInBasisPoints?.toFixed(18)}`;
 	}
 }

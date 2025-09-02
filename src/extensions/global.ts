@@ -15,7 +15,13 @@ declare global {
 	 * Dump an object to the console.
 	 * @param target - The object to dump.
 	 */
-	var dump: (target: any) => void;
+	var dump: (target: any) => string | any;
+
+	/**
+	 * Inspect an object.
+	 * @param target - The object to inspect.
+	 */
+	var inspect: (target: any) => any;
 
 	/**
 	 * A test variable to store the result of the promise.
@@ -100,7 +106,9 @@ const jsonReplacer = (key: string, value: any) => {
 		const prototype = Object.getPrototypeOf(value);
 		if (prototype && prototype !== Object.prototype) {
 			// For class instances, include class name
-			const object: any = { __class__: prototype.constructor.name };
+			const object: any = {
+				// __class__: prototype.constructor.name
+			};
 			for (const property in value) {
 				if (Object.prototype.hasOwnProperty.call(value, property)) {
 					object[property] = value[property];
@@ -124,12 +132,26 @@ const jsonReplacer = (key: string, value: any) => {
  * Dump the target to the console.
  * @param target - The target to dump.
  */
-globalThis.dump = (target: any) => {
+globalThis.dump = (target: any): string | any => {
 	try {
 		return JSON.stringify(target, jsonReplacer, 2);
 	} catch (exception) {
 		return target;
 	}
+};
+
+/**
+ * Flatten an object.
+ * @param target - The object to flatten.
+ */
+globalThis.inspect = (target: any): any => {
+	const dumped = globalThis.dump(target);
+
+	if (typeof dumped === 'string') {
+		return JSON.parse(dumped);
+	}
+
+	return dumped;
 };
 
 

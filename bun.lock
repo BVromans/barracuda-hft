@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "rujira-hft-bot",
+      "name": "barracuda-hft",
       "dependencies": {
         "@cosmjs/cosmwasm-stargate": "^0.33.1",
         "@cosmjs/proto-signing": "^0.33.1",
