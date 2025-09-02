@@ -470,7 +470,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		const market: Market = this.state.getOrThrow('market');
 		const balances: Balances = this.state.getOrThrow('balances');
 
-		if (!this.state.getOrThrow('summary.tokens.balances.initial.base').isFinite()) {
+		if (!this.state.get('summary.tokens.balances.initial.base') || !this.state.get('summary.tokens.balances.initial.base').isFinite()) {
 			this.state.set('summary.tokens.balances.initial.base', balances.tokens.getOrThrow(market.tokens.base.symbol).balances.token.total);
 			this.state.set('summary.tokens.balances.initial.quote', balances.tokens.getOrThrow(market.tokens.quote.symbol).balances.token.total);
 			this.state.set('summary.tokens.balances.initial.native', balances.tokens.getOrThrow(this.rujira.fin.nativeToken.symbol).balances.token.total);
