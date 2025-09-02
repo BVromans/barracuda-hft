@@ -728,6 +728,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		const rows: Array<Record<string, unknown>> = [];
 
 		const mapOrderToRow = (order: Order, statusOverride?: OrderStatus): Record<string, unknown> => ({
+			id: this.rujira.fin.getOrderId({ order: order }),
 			owner_address: order.ownerAddress,
 			market_address: order.market.address,
 			side: order.side,
@@ -742,6 +743,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		});
 
 		const mapPlaceRequestToRow = (request: FinPlaceOrderRequest, status: OrderStatus): Record<string, unknown> => ({
+			id: this.rujira.fin.getOrderId({ order: request }),
 			owner_address: this.rujira.walletAddress,
 			market_address: market.address,
 			side: request.side,
@@ -806,19 +808,14 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		if (rows.length === 0) return;
 
 		for (const row of rows) {
+			if (!(row as any)?.id) throw new Error('Order id is required');
+
 			const existing = database.select_single(
-				`SELECT id FROM orders
-				 WHERE owner_address = :owner_address
-				   AND market_address = :market_address
-				   AND side = :side
-				   AND type = :type
-				   AND ((price = :price) OR (price IS NULL AND :price IS NULL))
-				   AND ((deviation_in_percentage = :deviation_in_percentage) OR (deviation_in_percentage IS NULL AND :deviation_in_percentage IS NULL))`,
+				`SELECT id FROM orders WHERE id = :id`,
 				row
 			);
 
 			if (existing) {
-				// Update existing record (do not touch creation_timestamp)
 				database.update(
 					`UPDATE orders
 					   SET amount = :amount,
@@ -827,19 +824,13 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 					       filled_percentage = :filled_percentage,
 					       status = :status,
 					       update_timestamp = :update_timestamp
-					 WHERE owner_address = :owner_address
-					   AND market_address = :market_address
-					   AND side = :side
-					   AND type = :type
-					   AND ((price = :price) OR (price IS NULL AND :price IS NULL))
-					   AND ((deviation_in_percentage = :deviation_in_percentage) OR (deviation_in_percentage IS NULL AND :deviation_in_percentage IS NULL))`,
+					 WHERE id = :id`,
 					row
 				);
 			} else {
-				// Insert new record
 				database.insert(
-					`INSERT INTO orders (owner_address, market_address, side, type, amount, price, deviation_in_percentage, filled_percentage, status, creation_timestamp, update_timestamp)
-					 VALUES (:owner_address, :market_address, :side, :type, :amount, :price, :deviation_in_percentage, :filled_percentage, :status, :creation_timestamp, :update_timestamp)`,
+					`INSERT INTO orders (id, owner_address, market_address, side, type, amount, price, deviation_in_percentage, filled_percentage, status, creation_timestamp, update_timestamp)
+					 VALUES (:id, :owner_address, :market_address, :side, :type, :amount, :price, :deviation_in_percentage, :filled_percentage, :status, :creation_timestamp, :update_timestamp)`,
 					row
 				);
 			}
