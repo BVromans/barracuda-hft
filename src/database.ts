@@ -96,7 +96,7 @@ export class Database {
 
 		this.mutate(`
 			CREATE TABLE IF NOT EXISTS orders (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				id TEXT PRIMARY KEY,
 				owner_address TEXT,
 				market_address TEXT,
 				side TEXT,

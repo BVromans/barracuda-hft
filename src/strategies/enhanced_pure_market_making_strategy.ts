@@ -3,7 +3,7 @@ import { List, Map } from "immutable";
 import { loggedClass } from "../annotations";
 import { logger } from "../logger";
 import { properties } from "../properties";
-import { Amount, Balances, DECIMAL_0, DECIMAL_1, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
+import { Amount, Balances, DECIMAL_0, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
 import { cast, dump } from "../utils";
 import { BasePureMarketMakingStrategy } from "./base_pure_market_making_strategy";
 import { Proposal } from "./base_strategy";
