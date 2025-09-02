@@ -771,7 +771,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		if (proposal.place) {
 			const placeArray = (MList<FinPlaceOrderRequest>(proposal.place as any)).toArray();
 			for (const request of placeArray) {
-				rows.push(mapPlaceRequestToRow(request, OrderStatus.CREATION_PENDING));
+				rows.push(mapPlaceRequestToRow(request, OrderStatus.OPEN));
 			}
 		}
 
@@ -779,7 +779,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		if (proposal.replace) {
 			const replaceArray = (MList<FinReplaceOrderRequest>(proposal.replace as any)).toArray();
 			for (const request of replaceArray) {
-				rows.push(mapPlaceRequestToRow(request, OrderStatus.CREATION_PENDING));
+				rows.push(mapPlaceRequestToRow(request, OrderStatus.OPEN));
 			}
 		}
 
@@ -789,7 +789,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			for (const candidate of cancelArray) {
 				const order = findMatchingOrder(candidate);
 				if (order) {
-					rows.push(mapOrderToRow(order, OrderStatus.CANCELLATION_PENDING));
+					rows.push(mapOrderToRow(order, OrderStatus.CANCELLED));
 				}
 			}
 		}
@@ -800,38 +800,95 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			for (const candidate of withdrawArray) {
 				const order = findMatchingOrder(candidate);
 				if (order) {
-					rows.push(mapOrderToRow(order));
+					const row = mapOrderToRow(order, OrderStatus.FILLED);
+					(row as any).filled_percentage = '100';
+					rows.push(row);
 				}
 			}
 		}
 
-		if (rows.length === 0) return;
+		if (rows.length > 0) {
+			for (const row of rows) {
+				if (!(row as any)?.id) throw new Error('Order id is required');
 
-		for (const row of rows) {
-			if (!(row as any)?.id) throw new Error('Order id is required');
-
-			const existing = database.select_single(
-				`SELECT id FROM orders WHERE id = :id`,
-				row
-			);
-
-			if (existing) {
-				database.update(
-					`UPDATE orders
-					   SET amount = :amount,
-					       price = :price,
-					       deviation_in_percentage = :deviation_in_percentage,
-					       filled_percentage = :filled_percentage,
-					       status = :status,
-					       update_timestamp = :update_timestamp
-					 WHERE id = :id`,
+				const existing = database.select_single(
+					`SELECT id FROM orders WHERE id = :id`,
 					row
 				);
-			} else {
-				database.insert(
-					`INSERT INTO orders (id, owner_address, market_address, side, type, amount, price, deviation_in_percentage, filled_percentage, status, creation_timestamp, update_timestamp)
-					 VALUES (:id, :owner_address, :market_address, :side, :type, :amount, :price, :deviation_in_percentage, :filled_percentage, :status, :creation_timestamp, :update_timestamp)`,
-					row
+
+				if (existing) {
+					database.update(
+						`UPDATE orders
+						   SET amount = :amount,
+						       price = :price,
+						       deviation_in_percentage = :deviation_in_percentage,
+						       filled_percentage = :filled_percentage,
+						       status = :status,
+						       update_timestamp = :update_timestamp
+						 WHERE id = :id`,
+						row
+					);
+				} else {
+					database.insert(
+						`INSERT INTO orders (id, owner_address, market_address, side, type, amount, price, deviation_in_percentage, filled_percentage, status, creation_timestamp, update_timestamp)
+						 VALUES (:id, :owner_address, :market_address, :side, :type, :amount, :price, :deviation_in_percentage, :filled_percentage, :status, :creation_timestamp, :update_timestamp)`,
+						row
+					);
+				}
+			}
+		}
+
+		// Reconcile: any DB order for this owner+market not present in current orders or in this proposal should be marked as cancelled
+		const currentOrderIds = new Set((currentOrders?.keySeq?.().toArray?.() ?? []) as string[]);
+
+		const proposalIds = new Set<string>();
+		if (proposal.place) {
+			const list = (MList<FinPlaceOrderRequest>(proposal.place as any)).toArray();
+			for (const request of list) {
+				proposalIds.add(this.rujira.fin.getOrderId({ order: request }));
+			}
+		}
+		if (proposal.replace) {
+			const list = (MList<FinReplaceOrderRequest>(proposal.replace as any)).toArray();
+			for (const request of list) {
+				proposalIds.add(this.rujira.fin.getOrderId({ order: request }));
+			}
+		}
+		if (proposal.cancel) {
+			const list = (MList<OrderId | Order>(proposal.cancel as any)).toArray();
+			for (const candidate of list) {
+				if (typeof candidate === 'string') {
+					proposalIds.add(candidate);
+				} else {
+					const id = (candidate as Order)?.id ?? this.rujira.fin.getOrderId({ order: candidate as Order });
+					proposalIds.add(id);
+				}
+			}
+		}
+		if (proposal.withdraw) {
+			const list = (MList<OrderId | Order>(proposal.withdraw as any)).toArray();
+			for (const candidate of list) {
+				if (typeof candidate === 'string') {
+					proposalIds.add(candidate);
+				} else {
+					const id = (candidate as Order)?.id ?? this.rujira.fin.getOrderId({ order: candidate as Order });
+					proposalIds.add(id);
+				}
+			}
+		}
+
+		const dbOrders = database.select(
+			`SELECT id FROM orders WHERE owner_address = :owner_address AND market_address = :market_address`,
+			{ owner_address: this.rujira.walletAddress, market_address: market.address }
+		);
+
+		for (const row of dbOrders.toArray()) {
+			const id = (row.get('id') as string) ?? '';
+			if (!id) continue;
+			if (!currentOrderIds.has(id) && !proposalIds.has(id)) {
+				database.update(
+					`UPDATE orders SET status = :status, update_timestamp = :update_timestamp WHERE id = :id`,
+					{ id, status: OrderStatus.CANCELLED, update_timestamp: nowIso }
 				);
 			}
 		}
