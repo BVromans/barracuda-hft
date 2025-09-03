@@ -1,6 +1,6 @@
 # Barracuda HFT, a Rujira High-Frequency Trading Bot
 
-A High-Frequency Trading (HFT) bot, codname Barracuda, for Rujira Trade (aka FIN).
+A High-Frequency Trading (HFT) bot, codenamed Barracuda, for Rujira Trade (also known as FIN).
 
 # Instructions
 
@@ -18,16 +18,16 @@ cd barracuda-hft
 ./setup
 ```
 
-When asked, inform your `wallet mnemonic` or your `wallet private key` or directly configure it in your `resources/configuration/production.yml` configuration file.
+When prompted, provide your `wallet mnemonic` or your `wallet private key`, or configure them directly in your `resources/configuration/production.yml` file.
 
 ## Running
 
-Check all the configurations present in the `resources/configuration`.
-Have an especial attention to the `rujira.wallet` and `strategy` sections, double checking if all the parameters are tailored to you.
+Review all configurations in `resources/configuration`.
+Pay special attention to the `rujira.wallet` and `strategy` sections, and double-check that all parameters are tailored to you.
 
-IMPORTANT: The Rujira GraphQL API have restricted access, you will need an authentication token to use it.
-Contact Rujira (api@rujira.network) or Funttastic (https://www.funttastic.com/discord) to ask for one.
-Configure it in the `rujira.tokens.graphql` section in your `production.yml` configuration file.
+IMPORTANT: The Rujira GraphQL API has restricted access; you will need an authentication token to use it.
+Contact Rujira at `api@rujira.network` or Funttastic via [Discord](https://www.funttastic.com/discord) to request one.
+Configure it in the `rujira.tokens.graphql` section of your `production.yml` configuration file.
 
 Then run:
 
@@ -41,19 +41,19 @@ or
 bun run start
 ```
 
-**Disclaimer**: This application is provided as a bootstrap for HFT strategies. You are solely responsible for your trading decisions and financial outcomes. Cryptocurrency trading involves substantial risk, including potential loss of your entire investment. Funttastic and Rujira are not responsible for any financial losses, bugs, or technical issues. Use at your own risk and only invest what you can afford to lose.
+**Disclaimer**: This application is provided as a bootstrap for HFT strategies. You are solely responsible for your trading decisions and financial outcomes. Cryptocurrency trading involves substantial risk, including the potential loss of your entire investment. Funttastic and Rujira are not responsible for any financial losses, bugs, or technical issues. Use at your own risk and only invest what you can afford to lose.
 
 
 # FAQ
 
-- How to solve an error like `GraphQL errors: [{"message":"rate bucket full (5000). bucket drains 500/s.\ncontact api@rujira.network to increase your limit.\n","path":["node"],"locations":[{"line":3,"column":7}]}]`?
+- How do I resolve an error like `GraphQL errors: [{"message":"rate bucket full (5000). bucket drains 500/s.\ncontact api@rujira.network to increase your limit.\n","path":["node"],"locations":[{"line":3,"column":7}]}]`?
 
-You hit the Rujira GraphQL API limit, you will need to wait, or, preferably, request one authentication token contacting Rujira (api@rujira.network) or Funttastic (https://www.funttastic.com/discord).
+You have reached the Rujira GraphQL API rate limit. You will need to wait for it to reset or, preferably, request an authentication token by contacting Rujira at `api@rujira.network` or Funttastic via [Discord](https://www.funttastic.com/discord).
 
-- How to reset the strategy state (for example the initial balances used for comparision and PnL calculation)?
+- How do I reset the strategy state (for example, the initial balances used for comparison and PnL calculations)?
 
-Delete the file `resources/database/database.sqlite`, the state of the strategy is saved there.
-Optionally, also delete the log files from `logs` folder.
+Delete the file `resources/database/database.sqlite`, which stores the strategy state.
+Optionally, also delete the log files in the `logs` folder.
 
 - How to contact Rujira?
 
