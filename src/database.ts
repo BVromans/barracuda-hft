@@ -110,6 +110,12 @@ export class Database {
 				update_timestamp TEXT
 			)
 		`);
+
+		this.mutate(`
+			CREATE TABLE IF NOT EXISTS summary (
+				data TEXT
+			)
+		`);
 	}
 
 	/**

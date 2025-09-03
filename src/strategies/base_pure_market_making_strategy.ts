@@ -119,6 +119,8 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			});
 			this.state.set('candles', candles);
 
+			await this.loadOrCreateSummaryFromDatabase({});
+
 			await this.cancelAllOrdersIfConfigured({});
 			await this.withdrawAllFilledOrdersIfConfigured({});
 
@@ -557,6 +559,8 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		const summary = this.state.get('summary').toJS();
 
 		logger.info(`Summary:\n${dump(summary)}`);
+
+		await this.persistSummaryToDatabase({});
 	}
 
 	/**
@@ -627,6 +631,46 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 				ownerAddress: this.rujira.walletAddress,
 				market: this.state.getOrThrow('market'),
 			});
+		}
+	}
+
+	/**
+	 * Load the summary from the database or create it if it does not exist.
+	 */
+	private async loadOrCreateSummaryFromDatabase(_options: {}) {
+		const existing = database.select_single(`SELECT data FROM summary LIMIT 1`);
+
+		if (existing) {
+			const data = (existing.get('data') as string) ?? '';
+			const parsed = JSON.parse(data, (_key, value) => {
+				if (typeof value === 'string' && /^-?\d+(?:\.\d+)?$/.test(value)) {
+					return new Decimal(value);
+				}
+				return value;
+			});
+
+			this.state.set('summary', MMap<string, any>(parsed as Record<string, unknown>, '.'));
+		} else {
+			const currentSummaryMap = this.state.get('summary');
+			const currentSummaryObject = currentSummaryMap ? (currentSummaryMap as any).toJS() : {};
+			const json = JSON.stringify(currentSummaryObject);
+			database.insert(`INSERT INTO summary (data) VALUES (:data)`, { data: json });
+		}
+	}
+
+	/**
+	 * Persist the current in-memory summary into the database (upsert behavior).
+	 */
+	private async persistSummaryToDatabase(_options: {}) {
+		const summaryMap = this.state.get('summary');
+		const summaryObject = summaryMap ? (summaryMap as any).toJS() : {};
+		const json = JSON.stringify(summaryObject);
+
+		const existing = database.select_single(`SELECT rowid AS id FROM summary LIMIT 1`);
+		if (existing) {
+			database.update(`UPDATE summary SET data = :data`, { data: json });
+		} else {
+			database.insert(`INSERT INTO summary (data) VALUES (:data)`, { data: json });
 		}
 	}
 
