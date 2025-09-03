@@ -3779,7 +3779,7 @@ export class Fin {
 
 		orderDeviationInBasisPoints = orderDeviationInBasisPoints || orderDeviationInPercentage?.mul(DECIMAL_100) || order?.deviationInBasisPoints || order?.deviationInPercentage?.mul(DECIMAL_100) || undefined;
 
-		if (orderDeviationInBasisPoints) {
+		if (orderDeviationInBasisPoints?.gt(DECIMAL_0)) {
 			orderPrice = undefined;
 		}
 
