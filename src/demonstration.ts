@@ -20,7 +20,7 @@ import { dump, cast } from "./utils";
 		getCandles: false,
 		getIndicators: false,
 		getBalances: false,
-		placeOrder: true,
+		placeOrder: false,
 		placeOrders: false,
 		getOrder: false,
 		getOrders: false,
@@ -1107,7 +1107,7 @@ import { dump, cast } from "./utils";
 	}
 
 	if (active.cancelOrder) {
-		const buyOrder = await rujira.fin.cancelOrder({
+		const fixedPriceBuyOrder = await rujira.fin.cancelOrder({
 			orderId: rujira.fin.getOrderId({
 					ownerAddress: orderTemplates.place.single.fixedPrice.buy.ownerAddress,
 					marketSymbol: orderTemplates.place.single.fixedPrice.buy.marketSymbol,
@@ -1124,7 +1124,7 @@ import { dump, cast } from "./utils";
 			marketSymbol: orderTemplates.place.single.fixedPrice.buy.marketSymbol,
 			// market: defaultMarket,
 		});
-		const sellOrder = await rujira.fin.cancelOrder({
+		const fixedPriceSellOrder = await rujira.fin.cancelOrder({
 			orderId: rujira.fin.getOrderId({
 				ownerAddress: orderTemplates.place.single.fixedPrice.sell.ownerAddress,
 				marketSymbol: orderTemplates.place.single.fixedPrice.sell.marketSymbol,
@@ -1173,12 +1173,12 @@ import { dump, cast } from "./utils";
 			marketSymbol: orderTemplates.cancel.single.tracking.sell.marketSymbol,
 			// market: btcMarket,
 		});
-		orders.cancel.single.fixedPrice.buy = buyOrder.order;
-		orders.cancel.single.fixedPrice.sell = sellOrder.order;
+		orders.cancel.single.fixedPrice.buy = fixedPriceBuyOrder.order;
+		orders.cancel.single.fixedPrice.sell = fixedPriceSellOrder.order;
 		orders.cancel.single.tracking.buy = trackingBuyOrder.order;
 		orders.cancel.single.tracking.sell = trackingSellOrder.order;
-		console.log('cancelOrder:fixedPrice:buy:\n', dump(buyOrder));
-		console.log('cancelOrder:fixedPrice:sell:\n', dump(sellOrder));
+		console.log('cancelOrder:fixedPrice:buy:\n', dump(fixedPriceBuyOrder));
+		console.log('cancelOrder:fixedPrice:sell:\n', dump(fixedPriceSellOrder));
 		console.log('cancelOrder:tracking:buy:\n', dump(trackingBuyOrder));
 		console.log('cancelOrder:tracking:sell:\n', dump(trackingSellOrder));
 		console.log('\n--------------------------------------------------------------------------------\n');
