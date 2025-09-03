@@ -104,6 +104,8 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 
 			this.state.set('market', market);
 
+			await this.loadOrCreateSummaryFromDatabase({});
+
 			this.state.set('summary.market.symbol', market.symbol);
 			this.state.set('summary.market.tokens.symbols.base', market.tokens.base.symbol);
 			this.state.set('summary.market.tokens.symbols.quote', market.tokens.quote.symbol);
@@ -118,8 +120,6 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 				interval: CandleInterval.ONE_MINUTE
 			});
 			this.state.set('candles', candles);
-
-			await this.loadOrCreateSummaryFromDatabase({});
 
 			await this.cancelAllOrdersIfConfigured({});
 			await this.withdrawAllFilledOrdersIfConfigured({});
@@ -478,38 +478,53 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	private async updateSummary(_options: {}) {
-		const market: Market = this.state.getOrThrow('market');
+		const tokenSymbols = this.state.getOrThrow('balances.current').tokens.keySeq().toArray();
 
-		const initialBalances: Balances = this.state.getOrThrow('balances.initial');
-		const currentBalances: Balances = this.state.getOrThrow('balances.current');
+		const possibleRoles = ['base', 'quote', 'native', 'feePayment', 'usd'];
+		const tokenRoles = possibleRoles.filter((role) => {
+			const symbol = this.state.get(`summary.market.tokens.symbols.${role}`) as string | undefined;
 
-		const currentTotal = currentBalances.total.usdToken.total;
-		const initialTotal = initialBalances.total.usdToken.total;
+			return !!symbol && tokenSymbols.includes(symbol);
+		});
 
 		const percentage = (absoluteChange: Decimal, baseTotal: Decimal) =>
 			baseTotal.eq(0) ? DECIMAL_NaN : absoluteChange.div(baseTotal).mul(DECIMAL_100);
 
-		const absoluteChangeCurrentToInitial = currentTotal.minus(initialTotal);
-		this.state.set('summary.profitAndLoss.currentToInitial.totalBalanceChange.absolute', absoluteChangeCurrentToInitial);
-		this.state.set('summary.profitAndLoss.currentToInitial.totalBalanceChange.percentage', percentage(absoluteChangeCurrentToInitial, initialTotal));
+		const readDecimal = (path: string): Decimal => {
+			return Decimal(this.state.get(path));
+		};
 
-		// Profit and loss against not trading: value all scenarios at current prices
-		const tokenSymbols = currentBalances.tokens.keySeq().toArray();
-		const valueAtCurrentPrices = (balances: Balances) => {
+		const computeTotal = (when: 'initial' | 'current'): Decimal => {
 			let total = DECIMAL_0;
-			for (const tokenSymbol of tokenSymbols) {
-				const tokenBalance = balances.tokens.get(tokenSymbol);
-				const tokenBalanceTotalAmount = tokenBalance?.balances.token.total ?? DECIMAL_0;
-				const tokenCurrentPrice = currentBalances.tokens.get(tokenSymbol)?.balances.usdToken.quotation.tokenToQuote ?? DECIMAL_0;
-
-				total = total.plus(tokenBalanceTotalAmount.mul(tokenCurrentPrice));
+			for (const role of tokenRoles) {
+				const balance = readDecimal(`summary.market.tokens.balances.${when}.${role}`);
+				const price = readDecimal(`summary.market.tokens.prices.${when}.${role}`);
+				total = total.plus(balance.mul(price));
 			}
 
 			return total;
 		};
 
-		const currentTotalValuedAtCurrent = valueAtCurrentPrices(currentBalances);
-		const initialTotalValuedAtCurrent = valueAtCurrentPrices(initialBalances);
+		const computeTotalValuedAtCurrent = (when: 'initial' | 'current'): Decimal => {
+			let total = DECIMAL_0;
+			for (const role of tokenRoles) {
+				const balance = readDecimal(`summary.market.tokens.balances.${when}.${role}`);
+				const currentPrice = readDecimal(`summary.market.tokens.prices.current.${role}`);
+				total = total.plus(balance.mul(currentPrice));
+			}
+
+			return total;
+		};
+
+		const initialTotal = computeTotal('initial');
+		const currentTotal = computeTotal('current');
+
+		const absoluteChangeCurrentToInitial = currentTotal.minus(initialTotal);
+		this.state.set('summary.profitAndLoss.currentToInitial.totalBalanceChange.absolute', absoluteChangeCurrentToInitial);
+		this.state.set('summary.profitAndLoss.currentToInitial.totalBalanceChange.percentage', percentage(absoluteChangeCurrentToInitial, initialTotal));
+
+		const initialTotalValuedAtCurrent = computeTotalValuedAtCurrent('initial');
+		const currentTotalValuedAtCurrent = computeTotalValuedAtCurrent('current');
 
 		const absoluteAgainstInitial = currentTotalValuedAtCurrent.minus(initialTotalValuedAtCurrent);
 		this.state.set('summary.profitAndLoss.currentToInitial.totalBalanceChangeAgainstIfNotTrading.absolute', absoluteAgainstInitial);
