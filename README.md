@@ -10,7 +10,7 @@ A High-Frequency Trading (HFT) bot, codenamed Barracuda, for Rujira Trade (also 
 - Latest version of [Bun](https://bun.com/)
 - [Keplr](https://www.keplr.app/) wallet and access to your wallet mnemonic or private key from Rujira
 - Funds in the native token (THOR-RUJI), fee payment token (THOR-RUNE), and in your desired base and quote tokens (ex.: THOR-RUJI/ETH-USDC)
-- A Rujira GraphQL API authentication toke (see below)
+- A Rujira GraphQL API authentication token (see below)
 
 ## Installation
 
