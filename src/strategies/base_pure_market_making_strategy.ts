@@ -479,7 +479,6 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		const market: Market = this.state.getOrThrow('market');
 
 		const initialBalances: Balances = this.state.getOrThrow('balances.initial');
-		const previousBalances: Balances = this.state.getOrThrow('balances.previous');
 		const currentBalances: Balances = this.state.getOrThrow('balances.current');
 
 		const currentTotal = currentBalances.total.usdToken.total;
@@ -514,7 +513,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		this.state.set('summary.profitAndLoss.currentToInitial.totalBalanceChangeAgainstIfNotTrading.absolute', absoluteAgainstInitial);
 		this.state.set('summary.profitAndLoss.currentToInitial.totalBalanceChangeAgainstIfNotTrading.percentage', percentage(absoluteAgainstInitial, initialTotalValuedAtCurrent));
 
-		if (!initialTotal || !initialTotal.isFinite()) {
+		if (!this.state.get('summary.tokens.balances.initial.base') || !this.state.get('summary.tokens.balances.initial.base').isFinite()) {
 			this.state.set('summary.tokens.balances.initial.base', initialBalances.tokens.getOrThrow(market.tokens.base.symbol).balances.token.total);
 			this.state.set('summary.tokens.balances.initial.quote', initialBalances.tokens.getOrThrow(market.tokens.quote.symbol).balances.token.total);
 			this.state.set('summary.tokens.balances.initial.native', initialBalances.tokens.getOrThrow(this.rujira.fin.nativeToken.symbol).balances.token.total);
