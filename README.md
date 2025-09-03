@@ -57,7 +57,7 @@ Optionally, also delete the log files from `logs` folder.
 
 - How to contact Rujira?
 
-Join [Rujira's Discord](https://discord.gg/XPvsxhWKfb) and access the [#barracuda-hft-bot](https://discord.com/channels/1280807332766548052/1408109042051715294) dedicated channel.
+Join [Rujira's Discord](https://discord.gg/XPvsxhWKfb) and ask for support in the [#barracuda-hft-bot](https://discord.com/channels/1280807332766548052/1408109042051715294) dedicated channel.
 
 - How to contact Funttastic?
 
