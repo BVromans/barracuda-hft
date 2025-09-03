@@ -52,13 +52,13 @@ You hit the Rujira GraphQL API limit, you will need to wait, or, preferably, req
 
 - How to reset the strategy state (for example the initial balances used for comparision and PnL calculation)?
 
-Delete the file `resources/database/database.sqlite`, the state of the straty is saved there.
+Delete the file `resources/database/database.sqlite`, the state of the strategy is saved there.
 Optionally, also delete the log files from `logs` folder.
 
 - How to contact Funttastic?
 
-Join (our Discord)[https://www.funttastic.com/discord] and ask for support in our dedicated #rujira channel.
+Join [our Discord](https://www.funttastic.com/discord) and ask for support in our dedicated #rujira channel.
 
 - How to contact Rujira?
 
-Join (Rujira's Discord)[https://discord.gg/XPvsxhWKfb].
+Join [Rujira's Discord](https://discord.gg/XPvsxhWKfb).
