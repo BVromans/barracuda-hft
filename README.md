@@ -1,6 +1,6 @@
 # Barracuda HFT, a Rujira High-Frequency Trading Bot
 
-A High-Frequency Trading (HFT) bot, codname Barracuda, for Rujira FIN.
+A High-Frequency Trading (HFT) bot, codname Barracuda, for Rujira FIN (trade).
 
 # Instructions
 
@@ -22,8 +22,13 @@ When asked, inform your `wallet mnemonic` or your `wallet private key` or direct
 
 ## Running
 
-Check if all the configurations present in the `resources/configuration`.
+Check all the configurations present in the `resources/configuration`.
 Have an especial attention to the `rujira.wallet` and `strategy` sections, double checking if all the parameters are tailored for you.
+
+IMPORTANT: The Rujira GraphQL API have restricted access, you will need an API authentication token to use it.
+Contact Rujira (api@rujira.network) or Funttastic (https://www.funttastic.com/discord) to get one.
+Configure it in the `rujira.tokens.graphql` section in your `production.yml` configuration file.
+
 Then run:
 
 ```sh
