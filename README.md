@@ -55,10 +55,10 @@ You hit the Rujira GraphQL API limit, you will need to wait, or, preferably, req
 Delete the file `resources/database/database.sqlite`, the state of the strategy is saved there.
 Optionally, also delete the log files from `logs` folder.
 
-- How to contact Funttastic?
-
-Join [our Discord](https://www.funttastic.com/discord) and ask for support in our dedicated #rujira channel.
-
 - How to contact Rujira?
 
-Join [Rujira's Discord](https://discord.gg/XPvsxhWKfb).
+Join [Rujira's Discord](https://discord.gg/XPvsxhWKfb) and access the [#barracuda-hft-bot](https://discord.com/channels/1280807332766548052/1408109042051715294) dedicated channel.
+
+- How to contact Funttastic?
+
+Join [our Discord](https://www.funttastic.com/discord) and ask for support in our dedicated [#rujira](https://discord.com/channels/974407301521887273/1099305303352291358) channel.
