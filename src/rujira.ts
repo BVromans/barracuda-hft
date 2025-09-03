@@ -2839,7 +2839,9 @@ export class Fin {
 				market,
 				orderType: type,
 				orderSide: side,
-				orderPrice: price
+				orderPrice: price,
+				orderDeviationInBasisPoints: deviationInBasisPoints,
+				orderDeviationInPercentage: deviationInPercentage
 			});
 
 			const order = {
@@ -3776,6 +3778,10 @@ export class Fin {
 		orderPrice = orderPrice || order?.price;
 
 		orderDeviationInBasisPoints = orderDeviationInBasisPoints || orderDeviationInPercentage?.mul(DECIMAL_100) || order?.deviationInBasisPoints || order?.deviationInPercentage?.mul(DECIMAL_100) || undefined;
+
+		if (orderDeviationInBasisPoints) {
+			orderPrice = undefined;
+		}
 
 		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed(18)}|deviation:${orderDeviationInBasisPoints?.toFixed(18)}`;
 	}

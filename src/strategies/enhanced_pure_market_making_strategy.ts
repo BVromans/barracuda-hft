@@ -3,7 +3,7 @@ import { List, Map } from "immutable";
 import { loggedClass } from "../annotations";
 import { logger } from "../logger";
 import { properties } from "../properties";
-import { Amount, Balances, DECIMAL_0, DECIMAL_1, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
+import { Amount, Balances, DECIMAL_0, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, IndicatorData, IndicatorId, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
 import { cast, dump } from "../utils";
 import { BasePureMarketMakingStrategy } from "./base_pure_market_making_strategy";
 import { Proposal } from "./base_strategy";
@@ -47,7 +47,7 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 		const volatilitySizeShrinkageMultiplier = Decimal(properties.getAs<number>('strategy.pure_market_making.enhanced.orders.volatilitySizeShrinkageMultiplier')); // Multiplier for size shrinkage based on average true range (≈3–6)
 
 		const market: Market = cast<Market>(this.state.get('market'));
-		const balances: Balances = cast<Balances>(this.state.get('balances'));
+		const balances: Balances = cast<Balances>(this.state.get('balances.current'));
 		const orderBook: OrderBook = cast<OrderBook>(this.state.get('orderBook'));
 		const indicators: Map<IndicatorId, IndicatorData> = cast<Map<IndicatorId, IndicatorData>>(this.state.get('indicators'));
 		const currentOrders: Map<OrderId, Order> = cast<Map<OrderId, Order>>(this.state.get('orders'));

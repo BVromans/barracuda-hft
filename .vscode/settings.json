@@ -1,13 +1,22 @@
 {
-  "cSpell.words": [
-    "cosmjs",
-    "cosmwasm",
-    "denoms",
-    "rujira",
-    "Rujira",
-    "stargate",
-    "THORCHAIN"
-  ],
-  "editor.renderWhitespace": "all",
-	"editor.guides.indentation": true
+	"cSpell.words": [
+		"cosmjs",
+		"cosmwasm",
+		"denoms",
+		"rujira",
+		"Rujira",
+		"stargate",
+		"THORCHAIN"
+	],
+	"editor.renderWhitespace": "all",
+	"editor.guides.indentation": true,
+	"sqltools.useNodeRuntime": true,
+	"sqltools.connections": [
+		{
+			"previewLimit": 50,
+			"driver": "SQLite",
+			"database": "${workspaceFolder:barracuda-hft}/resources/database/database.sqlite",
+			"name": "barracuda"
+		}
+	]
 }
