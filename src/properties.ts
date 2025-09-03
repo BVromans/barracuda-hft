@@ -145,6 +145,10 @@ export class Properties {
 		if (!this.map.get('rujira.wallet.publicKeys.ethereum')) {
 			this.map.set('rujira.wallet.publicKeys.ethereum', process.env.RUJIRA_WALLET_PUBLIC_KEY_ETHEREUM);
 		}
+
+		if (!this.map.get('rujira.tokens.graphql')) {
+			this.map.set('rujira.tokens.graphql', process.env.RUJIRA_TOKEN_GRAPHQL);
+		}
 	}
 
 	/**

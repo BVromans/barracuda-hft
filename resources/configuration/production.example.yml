@@ -1,6 +1,6 @@
 rujira:
   tokens:
-    graphql: "<graphql token>"
+    graphql: "<graphql token>" # Optional, but required if you want to use the GraphQL API. It is also possible to use the RUJIRA_TOKEN_GRAPHQL environment variable, in this case set this field to null.
   wallet:
     mnemonic: "<wallet mnemonic>" # Optional, but required if privateKey is not provided. It is also possible to use the RUJIRA_WALLET_MNEMONIC environment variable, in this case set this field to null.
     privateKey: "<wallet private key>" # Optional, but required if mnemonic is not provided. It is also possible to use the RUJIRA_WALLET_PRIVATE_KEY environment variable, in this case set this field to null.
