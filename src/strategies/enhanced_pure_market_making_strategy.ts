@@ -47,7 +47,7 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 		const volatilitySizeShrinkageMultiplier = Decimal(properties.getAs<number>('strategy.pure_market_making.enhanced.orders.volatilitySizeShrinkageMultiplier')); // Multiplier for size shrinkage based on average true range (≈3–6)
 
 		const market: Market = cast<Market>(this.state.get('market'));
-		const balances: Balances = cast<Balances>(this.state.get('balances'));
+		const balances: Balances = cast<Balances>(this.state.get('balances.current'));
 		const orderBook: OrderBook = cast<OrderBook>(this.state.get('orderBook'));
 		const indicators: Map<IndicatorId, IndicatorData> = cast<Map<IndicatorId, IndicatorData>>(this.state.get('indicators'));
 		const currentOrders: Map<OrderId, Order> = cast<Map<OrderId, Order>>(this.state.get('orders'));

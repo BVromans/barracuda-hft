@@ -1,12 +1,12 @@
 import Decimal from "decimal.js";
 import { Map } from "immutable";
+import { loggedClass } from "../annotations";
+import { logger } from "../logger";
 import { properties } from "../properties";
-import { Balances, DECIMAL_0, DECIMAL_1, DECIMAL_100, DECIMAL_INFINITY, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
+import { Balances, DECIMAL_0, DECIMAL_1, DECIMAL_100, DECIMAL_NaN, FinPlaceOrderRequest, FinReplaceOrderRequest, Market, MList, Order, OrderBook, OrderId, OrderSide, OrderStatus, OrderType } from "../types";
+import { cast, dump } from "../utils";
 import { BasePureMarketMakingStrategy } from "./base_pure_market_making_strategy";
 import { Proposal } from "./base_strategy";
-import { logger } from "../logger";
-import { loggedClass } from "../annotations";
-import { cast, dump } from "../utils";
 
 /**
  * Pure market making strategy
@@ -36,7 +36,7 @@ export class SimplePureMarketMakingStrategy extends BasePureMarketMakingStrategy
 		const desiredTokenFreeBalanceAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredTokenFreeBalanceAmountPerOrder')) || DECIMAL_0;
 
 		const market: Market = this.state.getOrThrow('market');
-		const balances: Balances = this.state.getOrThrow('balances');
+		const balances: Balances = this.state.getOrThrow('balances.current');
 		const orderBook: OrderBook = this.state.getOrThrow('orderBook');
 		const currentOrders: Map<OrderId, Order> = this.state.getOrThrow('orders');
 
