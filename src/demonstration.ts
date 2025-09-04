@@ -2,7 +2,7 @@ import Decimal from "decimal.js";
 import "./bootstrap";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
-import { DECIMAL_100, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, Map, Market, MarketSymbol, Order, OrderBookOrder, OrderId, OrderPrice, OrderSide, OrderStatus, OrderType, Price, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
+import { DECIMAL_100, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, Map, Market, MarketSymbol, Order, OrderBookOrder, OrderDeviationInBasisPoints, OrderId, OrderPrice, OrderSide, OrderStatus, OrderType, Price, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
 import { cast, dump, sanitizeOrderPrice } from "./utils";
 
 (async function run() {
@@ -88,7 +88,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 	const defaultBuyOrderMaximumAmount = Decimal('0.12345678'); // Depends on the market decimals
 
 	const defaultBuyOrderMininumPrice = Decimal('0.01000000'); // Usually 1e-12
-	const defaultBuyOrderMiddlePrice = Decimal('0.02234'); // Depends on the market tick
+	const defaultBuyOrderMiddlePrice = Decimal('0.01234'); // Depends on the market tick
 	const defaultBuyOrderMaximumPrice = cast<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.div(DECIMAL_100)); // Depends on the market tick
 	const defaultBuyOrderFillablePrice = cast<OrderBookOrder>(defaultMarketOrderBook.book.bestAsk).price.mul(defaultFillableSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100)); // Depends on the market tick
 
@@ -125,7 +125,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 						type: OrderType.FIXED_PRICE,
 						side: OrderSide.BUY,
 						amount: defaultBuyOrderMiddleAmount,
-						price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice, fixedOrdersMarket.tick)
+						price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 					} as FinPlaceOrderRequest,
 					sell: {
 						ownerAddress: walletAddress,
@@ -136,7 +136,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 						type: OrderType.FIXED_PRICE,
 						side: OrderSide.SELL,
 						amount: defaultSellOrderMiddleAmount,
-						price: sanitizeOrderPrice(defaultSellOrderMiddlePrice, fixedOrdersMarket.tick)
+						price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 					} as FinPlaceOrderRequest,
 				},
 				limit: {
@@ -149,7 +149,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					// 	type: OrderType.LIMIT,
 					// 	side: OrderSide.BUY,
 					// 	amount: defaultBuyOrderMiddleAmount,
-					// 	price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice, fixedOrdersMarket.tick)
+					// 	price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 					// } as FinPlaceOrderRequest,
 					// sell: {
 					// 	ownerAddress: walletAddress,
@@ -160,7 +160,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					// 	type: OrderType.LIMIT,
 					// 	side: OrderSide.SELL,
 					// 	amount: defaultSellOrderMiddleAmount,
-					// 	price: sanitizeOrderPrice(defaultSellOrderMiddlePrice, fixedOrdersMarket.tick)
+					// 	price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 					// } as FinPlaceOrderRequest,
 				},
 				tracking: {
@@ -223,7 +223,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
 					amount: defaultBuyOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -234,7 +234,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
 					amount: defaultBuyOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -245,7 +245,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
 					amount: defaultBuyOrderMaximumAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMaximumPrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultBuyOrderMaximumPrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -255,7 +255,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
 					amount: defaultBuyOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderFillablePrice, fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultBuyOrderFillablePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinPlaceOrderRequest,
 				// {
 				// 	ownerAddress: walletAddress,
@@ -277,7 +277,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
 					amount: defaultSellOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -288,7 +288,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
 					amount: defaultSellOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -299,7 +299,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
 					amount: defaultSellOrderMaximumAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -310,7 +310,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
 					amount: defaultSellOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultSellOrderFillablePrice, fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultSellOrderFillablePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinPlaceOrderRequest,
 				// {
 				// 	ownerAddress: walletAddress,
@@ -411,7 +411,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 						type: OrderType.FIXED_PRICE,
 						side: OrderSide.BUY,
 						amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultBuyOrderMiddleAmount)),
-						price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice, fixedOrdersMarket.tick)
+						price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 					} as FinReplaceOrderRequest,
 					sell: {
 						ownerAddress: walletAddress,
@@ -421,7 +421,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 						type: OrderType.FIXED_PRICE,
 						side: OrderSide.SELL,
 						amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultSellOrderMiddleAmount)),
-						price: sanitizeOrderPrice(defaultSellOrderMiddlePrice, fixedOrdersMarket.tick)
+						price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 					} as FinReplaceOrderRequest,
 				},
 				limit: {
@@ -433,7 +433,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					// 	type: OrderType.LIMIT,
 					// 	side: OrderSide.BUY,
 					// 	amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultBuyOrderMiddleAmount)),
-					// 	price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice, fixedOrdersMarket.tick)
+					// 	price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 					// } as FinReplaceOrderRequest,
 					// sell: {
 					// 	ownerAddress: walletAddress,
@@ -443,7 +443,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					// 	type: OrderType.LIMIT,
 					// 	side: OrderSide.SELL,
 					// 	amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultSellOrderMiddleAmount)),
-					// 	price: sanitizeOrderPrice(defaultSellOrderMiddlePrice, fixedOrdersMarket.tick)
+					// 	price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 					// } as FinReplaceOrderRequest,
 				},
 				tracking: {
@@ -485,7 +485,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
 					amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultBuyOrderMiddleAmount)),
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinReplaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -496,7 +496,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
 					amount: defaultBuyOrderMiddleAmount.plus(Decimal(1).mul(defaultBuyOrderMiddleAmount)),
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinReplaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -507,7 +507,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
 					amount: defaultSellOrderMiddleAmount.plus(Decimal(1).mul(defaultSellOrderMiddleAmount)),
-					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinReplaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -518,7 +518,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
 					amount: defaultSellOrderMaximumAmount.plus(Decimal(1).mul(defaultSellOrderMaximumAmount)),
-					price: sanitizeOrderPrice(defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinReplaceOrderRequest,
 
 				// BTC TRACKING order replacement templates
@@ -584,7 +584,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 						type: OrderType.FIXED_PRICE,
 						side: OrderSide.BUY,
 						amount: defaultBuyOrderMiddleAmount,
-						price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice, fixedOrdersMarket.tick)
+						price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 					} as FinPlaceOrderRequest,
 					sell: {
 						ownerAddress: walletAddress,
@@ -595,7 +595,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 						type: OrderType.FIXED_PRICE,
 						side: OrderSide.SELL,
 						amount: defaultSellOrderMiddleAmount,
-						price: sanitizeOrderPrice(defaultSellOrderMiddlePrice, fixedOrdersMarket.tick)
+						price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 					} as FinPlaceOrderRequest,
 				},
 				limit: {
@@ -608,7 +608,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					// 	type: OrderType.LIMIT,
 					// 	side: OrderSide.BUY,
 					// 	amount: defaultBuyOrderMiddleAmount,
-					// 	price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice, fixedOrdersMarket.tick)
+					// 	price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 					// } as FinPlaceOrderRequest,
 					// sell: {
 					// 	ownerAddress: walletAddress,
@@ -619,7 +619,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					// 	type: OrderType.LIMIT,
 					// 	side: OrderSide.SELL,
 					// 	amount: defaultSellOrderMiddleAmount,
-					// 	price: sanitizeOrderPrice(defaultSellOrderMiddlePrice, fixedOrdersMarket.tick)
+					// 	price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.toDecimalPlaces(4), fixedOrdersMarket.tick)
 					// } as FinPlaceOrderRequest,
 				},
 				tracking: {
@@ -662,7 +662,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
 					amount: defaultBuyOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -673,7 +673,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.BUY,
 					amount: defaultBuyOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -684,7 +684,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
 					amount: defaultSellOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -695,7 +695,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.FIXED_PRICE,
 					side: OrderSide.SELL,
 					amount: defaultSellOrderMaximumAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)), fixedOrdersMarket.tick)
+					price: sanitizeOrderPrice(defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), fixedOrdersMarket.tick)
 				} as FinPlaceOrderRequest,
 
 				// BTC TRACKING order cancel templates
@@ -1110,7 +1110,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			marketSymbol: trackingOrdersMarketSymbol,
 			// market: trackingOrdersMarket,
 			orderSide: orderTemplates.place.single.tracking.buy.side,
-			orderPrice: cast<OrderPrice>(orderTemplates.place.single.tracking.buy.price)
+			orderDeviationInBasisPoints: cast<OrderDeviationInBasisPoints>(orderTemplates.place.single.tracking.buy.deviationInBasisPoints)
 		});
 		const sellTrackingOrder = await rujira.fin.getOrder({
 			ownerAddress: walletAddress,
@@ -1119,7 +1119,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			marketSymbol: trackingOrdersMarketSymbol,
 			// market: trackingOrdersMarket,
 			orderSide: orderTemplates.place.single.tracking.sell.side,
-			orderPrice: cast<OrderPrice>(orderTemplates.place.single.tracking.sell.price)
+			orderDeviationInBasisPoints: cast<OrderDeviationInBasisPoints>(orderTemplates.place.single.tracking.sell.deviationInBasisPoints)
 		});
 		orders.get.single.trackingBuy = buyTrackingOrder;
 		orders.get.single.trackingSell = sellTrackingOrder;
