@@ -111,7 +111,7 @@ export enum OrderType {
 	MARKET = 'market',
 	FIXED_PRICE = 'fixed_price',
 	TRACKING_ORDER = 'tracking_order', // They are also called "oracle orders"
-	// LIMIT = 'limit',
+	// LIMIT = 'limit', // Not supported for now by Rujira
 }
 
 /**

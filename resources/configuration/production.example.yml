@@ -20,7 +20,7 @@ strategy:
         minimumTokenAmountPerOrder: 0 # Minimum amount of the token per order (for buy orders, the amount informed (in base token) is converted to quote token using the price)
         desiredTokenFreeBalancePercentagePerOrder: 10 # Desired percentage of the token free balance per order (0-100) (for buy orders, the amount informed (in base token) is converted to quote token using the price)
         desiredTokenFreeBalanceAmountPerOrder: 1 # Desired amount of the token free balance per order (for buy orders, the amount informed (in base token) is converted to quote token using the price)
-        maximumTokenAmountPerOrder: 10 # Maximum amount of the token per order (for buy orders, the amount informed (in base token) is converted to quote token using the price)
+        maximumTokenAmountPerOrder: 5 # Maximum amount of the token per order (for buy orders, the amount informed (in base token) is converted to quote token using the price)
       whenStart:
         cancelAllOrders: true # Cancel all orders when the strategy starts
         withdrawAllFilledOrders: true # Withdraw all filled orders when the strategy starts
@@ -29,7 +29,7 @@ strategy:
         withdrawAllFilledOrders: true # Withdraw all filled orders when the strategy stops
       monitorProfitAndLoss:
         enabled: true # Enable or disable the profit and loss monitor
-        maximumAllowedWalletLossFromInitialValue: 10 # Maximum allowed wallet loss from the initial value (1 means 1%)
+        maximumAllowedWalletLossFromInitialValue: 5 # Maximum allowed wallet loss from the initial value (1 means 1%)
       tasks:
         updateTokens:
           interval: 21600000 # How much time to wait between each update of the tokens. 6 hours in milliseconds, to disable set it to null
@@ -43,10 +43,10 @@ strategy:
           interval: 60000 # How much time to wait between each update of the profit and loss monitoring. 1 minute in milliseconds, to disable set it to null
     simple: # Simple strategy settings
       orders:
-        spreadPercentage: 10 # Spread as a percentage of the middle price (example: 1 means 1%)
+        spreadPercentage: 5 # Spread as a percentage of the middle price (example: 1 means 1%)
     enhanced: # Enhanced strategy settings
       orders:
-        minimumSpreadPercentage: 10 # Minimum spread as a percentage of the middle price (example: 1 means 1%)
+        minimumSpreadPercentage: 5 # Minimum spread as a percentage of the middle price (example: 1 means 1%)
         bollingerBandsWidthSpreadWidthMultiplier: 1.2 # Multiplier for the spread using Bollinger Bands width (≈1.0–1.8)
         volumeWeightedAveragePriceSkewMultiplier: 0.8 # Pull intensity toward the volume weighted average price (≈0.5–1.2)
         maximumSkewPercentage: 0.40 # Maximum absolute skew as a percentage (example: 1 means 1%) (~0.4)

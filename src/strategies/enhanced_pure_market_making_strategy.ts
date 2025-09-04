@@ -245,14 +245,13 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 		currentOrders.valueSeq().forEach((order: Order) => {
 			const orderId = this.rujira.fin.getOrderId({ order: order });
 
-			// Cancel current open/partial orders to re-quote fresh, only per-side when a replacement exists
-			if (order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED) {
-				if (order.side === OrderSide.BUY && isBuyPlaceable && orderId !== buyOrderId) {
-					proposal.cancel?.push(order as any);
-				}
-				if (order.side === OrderSide.SELL && isSellPlaceable && orderId !== sellOrderId) {
-					proposal.cancel?.push(order as any);
-				}
+			// Cancel current open orders/partially filled orders to re-quote fresh, only per-side when a replacement exists
+			if (
+				[OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED].includes(order.status)
+				&& orderId !== buyOrderId
+				&& orderId !== sellOrderId
+			) {
+				proposal.cancel?.push(order as any);
 			}
 
 			// Withdraw current filled orders to withdraw funds
