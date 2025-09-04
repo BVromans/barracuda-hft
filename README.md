@@ -1,6 +1,6 @@
 # Barracuda HFT, a Rujira High-Frequency Trading Bot
 
-A High-Frequency Trading (HFT) bot, codenamed Barracuda, for Rujira Trade (also known as FIN).
+A High-Frequency Trading (HFT) bot template, codenamed Barracuda, for Rujira Trade (also known as FIN).
 
 # Instructions
 
@@ -8,6 +8,9 @@ A High-Frequency Trading (HFT) bot, codenamed Barracuda, for Rujira Trade (also 
 
 - Unix-like operating system (Linux, macOS) or, for Windows, Windows Subsystem for Linux (WSL)
 - Latest version of [Bun](https://bun.com/)
+- [Keplr](https://www.keplr.app/) wallet and access to your wallet mnemonic or private key from Rujira
+- Funds in the native token (THOR-RUJI), fee payment token (THOR-RUNE), and in your desired base and quote tokens (ex.: THOR-RUJI/ETH-USDC)
+- A Rujira GraphQL API authentication token (see below)
 
 ## Installation
 
@@ -22,7 +25,7 @@ When prompted, provide your `wallet mnemonic` or your `wallet private key`, or c
 
 ## Running
 
-Review all configurations in `resources/configuration`.
+Review all configurations in `resources/configuration` (the documentation is present in loco there).
 Pay special attention to the `rujira.wallet` and `strategy` sections, and double-check that all parameters are tailored to you.
 
 IMPORTANT: The Rujira GraphQL API has restricted access; you will need an authentication token to use it.

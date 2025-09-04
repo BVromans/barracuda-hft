@@ -1,59 +1,59 @@
 rujira:
   endpoints:
-    rpc: "https://thornode-mainnet-rpc.bryanlabs.net"
-    rest: "https://thornode.ninerealms.com"
-    graphql: "https://api.rujira.network/api/graphql"
-    oracle: "https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices" # Currently not available on mainnet, change to it when it becomes available.
+    rpc: "https://thornode-mainnet-rpc.bryanlabs.net" # The RPC endpoint to use
+    rest: "https://thornode.ninerealms.com" # The REST endpoint to use
+    graphql: "https://api.rujira.network/api/graphql" # The GraphQL endpoint to use (usually requires authentication and is important for indicators)
+    oracle: "https://stagenet-thornode.ninerealms.com/thorchain/oracle/prices" # Used to retrieve the prices from the oracle. Currently not available on mainnet, change to it when it becomes available.
   cache:
     rujira:
-      getThorChainConfiguration: 21600 # 6 * 60 * 60 = 6 hours
+      getThorChainConfiguration: 21600 # How much time to cache the Thor Chain configuration. 6 * 60 * 60 = 6 hours
     fin:
-      getAllTokens: 21600 # 6 * 60 * 60 = 6 hours
-      getAllMarkets: 21600 # 6 * 60 * 60 = 6 hours
+      getAllTokens: 21600 # How much time to cache the tokens. 6 * 60 * 60 = 6 hours
+      getAllMarkets: 21600 # How much time to cache the markets. 6 * 60 * 60 = 6 hours
   constants:
     enum:
       markets:
-        active: "LIVE"
+        active: "LIVE" # The active market status
     tokens:
       native:
         address: "x/ruji" # Denom
-        symbol: "THOR-RUJI"
+        symbol: "THOR-RUJI" # Symbol
       usd:
         address: "eth-usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"  # Denom
-        symbol: "ETH-USDC"
+        symbol: "ETH-USDC" # Symbol
       feePayment:
         address: "rune"  # Denom
-        symbol: "THOR-RUNE"
-        thorChainConfigurationKey: "WASMMINGASPRICE"
+        symbol: "THOR-RUNE" # Symbol
+        thorChainConfigurationKey: "WASMMINGASPRICE" # Thor Chain configuration key that defines the gas price
   default:
     network:
-      gasPrice: '0' # A possible value is '0.02'
+      gasPrice: '0' # A default gas price to use if the Thor Chain configuration key is not found. A possible value is '0.02'
     cache:
-      ttlSeconds: 60
+      ttlSeconds: 60 # How much time to cache the data. 60 seconds
     parallel:
-      batchSize: 10
-      delayBetweenBatches: 100
+      batchSize: 10 # How many requests to make in parallel
+      delayBetweenBatches: 100 # How much time to wait between each batch
     retry:
-      maximumNumberOfRetries: 3
-      delayBetweenRetries: 1000 # 1 second in milliseconds
-      timeout: 30000 # 30 seconds in milliseconds
+      maximumNumberOfRetries: 3 # How many times to retry the request
+      delayBetweenRetries: 1000 # How much time to wait between each retry. 1 second in milliseconds
+      timeout: 30000 # How much time to wait for the request to complete. 30 seconds in milliseconds
     markets:
-      loadFromFile: false
-      filePath: "resources/graphql/responses/markets.json"
+      loadFromFile: false # Whether to load the markets from a file instead of fetching them from the GraphQLAPI
+      filePath: "resources/graphql/responses/markets.json" # The file path to the markets file
     orderBook:
-      maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
+      maximumNumberOfOrders: 100 # Maximum number of orders to return. Optional, leaving empty or null will return all orders
     candles:
-      interval: "1" # 1 means 1 minute candles
-      lookbackInterval: 21600000 # 6 hours in milliseconds
+      interval: "1" # The granularity of the candles. 1 means 1 minute candles
+      lookbackInterval: 21600000 # How much time to look back when fetching the candles. 6 hours in milliseconds
     orders:
-      maximumSlippagePercentage: 2.5 # 1 means 1%
-      maximumNumberOfOrders: 100 # Optional, leaving empty or null will return all orders
-      delayBetweenTransactions: 1000 # 1 second in milliseconds
+      maximumSlippagePercentage: 2.5 # Maximum slippage percentage. 1 means 1%
+      maximumNumberOfOrders: 100 # Maximum number of orders to return. Optional, leaving empty or null will return all orders
+      delayBetweenTransactions: 1000 # How much time to wait between each transaction. 1 second in milliseconds
 tests:
   unit:
-    timeout: 10000 # 10 seconds
+    timeout: 10000 # How much time to wait for the unit test to complete. 10 seconds in milliseconds
   integration:
-    timeout: 60000 # 60 seconds
+    timeout: 60000 # How much time to wait for the integration test to complete. 60 seconds in milliseconds
     transaction:
       hash: "6A2B2D1821B1E248410BA3CF273D65215C357DE559E0ED4117AEA3AA7967C05B" # Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
     markets:

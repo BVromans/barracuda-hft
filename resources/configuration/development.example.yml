@@ -1,55 +1,52 @@
 rujira:
   tokens:
-    graphql: "<graphql token>" # Optional, but required if you want to use the GraphQL API. It is also possible to use the RUJIRA_TOKEN_GRAPHQL environment variable, in this case set this field to null.
+    graphql: "<graphql token>" # Required if you want to use the GraphQL API (important for indicators). It is also possible to use the RUJIRA_TOKEN_GRAPHQL environment variable, in this case set this field to null.
   wallet:
-    mnemonic: "<wallet mnemonic>" # Optional, but required if privateKey is not provided. It is also possible to use the RUJIRA_WALLET_MNEMONIC environment variable, in this case set this field to null.
-    privateKey: "<wallet private key>" # Optional, but required if mnemonic is not provided. It is also possible to use the RUJIRA_WALLET_PRIVATE_KEY environment variable, in this case set this field to null.
+    mnemonic: "<wallet mnemonic>" # Required if privateKey is not provided. It is also possible to use the RUJIRA_WALLET_MNEMONIC environment variable, in this case set this field to null.
+    privateKey: "<wallet private key>" # Required if mnemonic is not provided. It is also possible to use the RUJIRA_WALLET_PRIVATE_KEY environment variable, in this case set this field to null.
     publicKeys:
-      thor: "<wallet thor public key>" # Optional. It is also possible to use the RUJIRA_WALLET_PUBLIC_KEY_THOR environment variable, in this case set this field to null.
-      ethereum: "<wallet ethereum public key>" # Optional. It is also possible to use the RUJIRA_WALLET_PUBLIC_KEY_ETHEREUM environment variable, in this case set this field to null.
+      thor: "<wallet thor public key>" # Required for integration tests. It is also possible to use the RUJIRA_WALLET_PUBLIC_KEY_THOR environment variable, in this case set this field to null.
+      ethereum: "<wallet ethereum public key>" # Required for integration tests. It is also possible to use the RUJIRA_WALLET_PUBLIC_KEY_ETHEREUM environment variable, in this case set this field to null.
 strategy:
   pure_market_making:
-    common:
-      market: "THOR-RUJI/ETH-USDC"
-      tickInterval: 60000 # 1 minute in milliseconds
+    common: # Common settings for both PMM strategies
+      market: "THOR-RUJI/ETH-USDC" # The market to trade on (BASE_CHAIN-BASE_TOKEN/QUOTE_CHAIN-QUOTE_TOKEN) (if in doubt which symbol to use, call the rujira.fin.getAllMarkets() method)
+      tickInterval: 60000 # How much time to wait between each cycle. 1 minute in milliseconds
       candles:
-        initialLookbackInterval: 21600000 # 6 hours in milliseconds
-        updateLookbackInterval: 300000 # 5 minutes in milliseconds
+        initialLookbackInterval: 21600000 # How much time to look back when fetching the initial candles. 6 hours in milliseconds
+        updateLookbackInterval: 300000 # How much time to look back when fetching the most updated candles. 5 minutes in milliseconds
         maximumNumberOfCandlesKept: 500 # Maximum number of candles that is kept in memory
       orders:
-        minimumTokenAmountPerOrder: 0 # Minimum token amount per order
-        desiredTokenFreeBalancePercentagePerOrder: 10 # Desired token percentage of the free balance per order (0-100)
-        desiredTokenFreeBalanceAmountPerOrder: 1 # Desired token free balance amount per order
-        maximumTokenAmountPerOrder: 10 # Maximum token amount per order
+        minimumTokenAmountPerOrder: 0 # Minimum amount of the token per order (for buy orders, the amount informed (in base token) is converted to quote token using the price)
+        desiredTokenFreeBalancePercentagePerOrder: 10 # Desired percentage of the token free balance per order (0-100) (for buy orders, the amount informed (in base token) is converted to quote token using the price)
+        desiredTokenFreeBalanceAmountPerOrder: 1 # Desired amount of the token free balance per order (for buy orders, the amount informed (in base token) is converted to quote token using the price)
+        maximumTokenAmountPerOrder: 10 # Maximum amount of the token per order (for buy orders, the amount informed (in base token) is converted to quote token using the price)
       whenStart:
-        cancelAllOrders: true
-        withdrawAllFilledOrders: true
+        cancelAllOrders: true # Cancel all orders when the strategy starts
+        withdrawAllFilledOrders: true # Withdraw all filled orders when the strategy starts
       whenStop:
-        cancelAllOrders: true
-        withdrawAllFilledOrders: true
+        cancelAllOrders: true # Cancel all orders when the strategy stops
+        withdrawAllFilledOrders: true # Withdraw all filled orders when the strategy stops
       monitorProfitAndLoss:
-        enabled: true
-        maximumAllowedWalletLossFromInitialValue: 10 # 1 means 1%
-        maximumAllowedWalletLossFromPreviousValue: 10 # 1 means 1%
+        enabled: true # Enable or disable the profit and loss monitor
+        maximumAllowedWalletLossFromInitialValue: 10 # Maximum allowed wallet loss from the initial value (1 means 1%)
       tasks:
         updateTokens:
-          interval: 21600000 # 6 hours in milliseconds, to disable set it to null
+          interval: 21600000 # How much time to wait between each update of the tokens. 6 hours in milliseconds, to disable set it to null
         updateMarkets:
-          interval: 21600000 # 6 hours in milliseconds, to disable set it to null
+          interval: 21600000 # How much time to wait between each update of the markets. 6 hours in milliseconds, to disable set it to null
         updateIndicators:
-          interval: 60000 # 1 minute in milliseconds, to disable set it to null
+          interval: 60000 # How much time to wait between each update of the indicators. 1 minute in milliseconds, to disable set it to null
         updateOrderBook:
-          interval: 30000 # 30 seconds in milliseconds, to disable set it to null
+          interval: 30000 # How much time to wait between each update of the order book. 30 seconds in milliseconds, to disable set it to null
         monitorProfitAndLoss:
-          interval: 60000 # 1 minute in milliseconds, to disable set it to null
-      logger:
-        level: "INFO"
-    simple:
+          interval: 60000 # How much time to wait between each update of the profit and loss monitoring. 1 minute in milliseconds, to disable set it to null
+    simple: # Simple strategy settings
       orders:
-        spreadPercentage: 10 # 1 means 1%
-    enhanced:
+        spreadPercentage: 10 # Spread as a percentage of the middle price (example: 1 means 1%)
+    enhanced: # Enhanced strategy settings
       orders:
-        minimumSpreadPercentage: 10 # // Minimum spread as a percentage of the middle price (example: 1 means 1%)
+        minimumSpreadPercentage: 10 # Minimum spread as a percentage of the middle price (example: 1 means 1%)
         bollingerBandsWidthSpreadWidthMultiplier: 1.2 # Multiplier for the spread using Bollinger Bands width (≈1.0–1.8)
         volumeWeightedAveragePriceSkewMultiplier: 0.8 # Pull intensity toward the volume weighted average price (≈0.5–1.2)
         maximumSkewPercentage: 0.40 # Maximum absolute skew as a percentage (example: 1 means 1%) (~0.4)
