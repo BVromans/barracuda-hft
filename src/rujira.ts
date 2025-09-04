@@ -3429,6 +3429,13 @@ export class Fin {
 						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(DECIMAL_10.pow(inputToken.decimals)).toDecimalPlaces(0);
 						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(DECIMAL_10.pow(outputToken.decimals)).toDecimalPlaces(0);
 
+						if (!outputTokenAmount.gt(DECIMAL_0)) {
+							throw new Error(`Invalid order: amount must be greater than zero. Original amount: ${requestOrder.amount}, calculated amount: ${outputTokenAmount}`);
+						}
+						if (!inputTokenAmountWithoutDecimals.gt(DECIMAL_0)) {
+							throw new Error(`Invalid order: insufficient funds. Original amount: ${requestOrder.amount}, calculated input amount: ${inputTokenAmountWithoutDecimals}`);
+						}
+
 						swapMessages.push({
 							min_return: outputTokenAmountWithoutDecimals.toFixed(),
 							to: ownerAddress
@@ -3445,6 +3452,13 @@ export class Fin {
 						outputTokenAmount = inputTokenAmount.mul(outputToInputPrice).mul(DECIMAL_100.minus(slippagePercentage).div(DECIMAL_100));
 						inputTokenAmountWithoutDecimals = inputTokenAmount.mul(DECIMAL_10.pow(inputToken.decimals)).toDecimalPlaces(0);
 						outputTokenAmountWithoutDecimals = outputTokenAmount.mul(DECIMAL_10.pow(outputToken.decimals)).toDecimalPlaces(0);
+
+						if (!inputTokenAmount.gt(DECIMAL_0)) {
+							throw new Error(`Invalid order: amount must be greater than zero. Original amount: ${requestOrder.amount}, calculated amount: ${inputTokenAmount}`);
+						}
+						if (!inputTokenAmountWithoutDecimals.gt(DECIMAL_0)) {
+							throw new Error(`Invalid order: insufficient funds. Original amount: ${requestOrder.amount}, calculated input amount: ${inputTokenAmountWithoutDecimals}`);
+						}
 
 						swapMessages.push({
 							min_return: outputTokenAmountWithoutDecimals.toFixed(),
@@ -3468,6 +3482,13 @@ export class Fin {
 						payingTokenAmount = requestOrder.amount.mul(price);
 						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(payingToken.decimals)).toDecimalPlaces(0);
 
+						if (!requestOrder.amount.gt(DECIMAL_0)) {
+							throw new Error(`Invalid order: amount must be greater than zero. Original amount: ${requestOrder.amount}`);
+						}
+						if (!payingTokenAmountWithoutDecimals.gt(DECIMAL_0)) {
+							throw new Error(`Invalid order: insufficient funds. Original amount: ${requestOrder.amount}, calculated paying amount: ${payingTokenAmountWithoutDecimals}`);
+						}
+
 						ordersMessages.push([
 							side,
 							{
@@ -3483,6 +3504,13 @@ export class Fin {
 						price = cast<OrderPrice>(requestOrder.price);
 						payingTokenAmount = requestOrder.amount;
 						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(payingToken.decimals)).toDecimalPlaces(0);
+
+						if (!requestOrder.amount.gt(DECIMAL_0)) {
+							throw new Error(`Invalid order: amount must be greater than zero. Original amount: ${requestOrder.amount}`);
+						}
+						if (!payingTokenAmountWithoutDecimals.gt(DECIMAL_0)) {
+							throw new Error(`Invalid order: insufficient funds. Original amount: ${requestOrder.amount}, calculated paying amount: ${payingTokenAmountWithoutDecimals}`);
+						}
 
 						ordersMessages.push([
 							side,
@@ -3524,6 +3552,13 @@ export class Fin {
 
 						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(payingToken.decimals)).toDecimalPlaces(0);
 
+						if (!requestOrder.amount.gt(DECIMAL_0)) {
+							throw new Error(`Invalid order: amount must be greater than zero. Original amount: ${requestOrder.amount}`);
+						}
+						if (!payingTokenAmountWithoutDecimals.gt(DECIMAL_0)) {
+							throw new Error(`Invalid order: insufficient funds. Original amount: ${requestOrder.amount}, calculated paying amount: ${payingTokenAmountWithoutDecimals}`);
+						}
+
 						ordersMessages.push([
 							side,
 							{
@@ -3538,6 +3573,13 @@ export class Fin {
 						receivingToken = market.tokens.quote;
 						payingTokenAmount = requestOrder.amount;
 						payingTokenAmountWithoutDecimals = payingTokenAmount.mul(DECIMAL_10.pow(payingToken.decimals)).toDecimalPlaces(0);
+
+						if (!requestOrder.amount.gt(DECIMAL_0)) {
+							throw new Error(`Invalid order: amount must be greater than zero. Original amount: ${requestOrder.amount}`);
+						}
+						if (!payingTokenAmountWithoutDecimals.gt(DECIMAL_0)) {
+							throw new Error(`Invalid order: insufficient funds. Original amount: ${requestOrder.amount}, calculated paying amount: ${payingTokenAmountWithoutDecimals}`);
+						}
 
 						ordersMessages.push([
 							side,
