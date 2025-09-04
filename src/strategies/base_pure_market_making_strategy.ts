@@ -559,15 +559,10 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 
 			if (enabled) {
 				const maximumAllowedWalletLossFromInitialValue = Decimal(properties.getAs<number>('strategy.pure_market_making.common.monitorProfitAndLoss.maximumAllowedWalletLossFromInitialValue'));
-				const maximumAllowedWalletLossFromPreviousValue = Decimal(properties.getAs<number>('strategy.pure_market_making.common.monitorProfitAndLoss.maximumAllowedWalletLossFromPreviousValue'));
 
-				const currentToInitialProfitAndLoss: Decimal = this.state.getOrThrow('summary.profitAndLoss.variation.currentToInitial.totalBalance.percentage');
-				const currentToPreviousProfitAndLoss: Decimal = this.state.getOrThrow('summary.profitAndLoss.variation.currentToPrevious.totalBalance.percentage');
+				const currentToInitialProfitAndLoss: Decimal = this.state.getOrThrow('summary.profitAndLoss.currentToInitial.totalBalanceChange.absolute');
 
-				if (
-					currentToInitialProfitAndLoss.gte(maximumAllowedWalletLossFromInitialValue)
-					|| currentToPreviousProfitAndLoss.gte(maximumAllowedWalletLossFromPreviousValue)
-				) {
+				if (currentToInitialProfitAndLoss.gte(maximumAllowedWalletLossFromInitialValue)) {
 					this.status = StrategyStatus.STOP_REQUESTED;
 
 					await this.stop({});
