@@ -176,7 +176,8 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	}
 
 	/**
-	 * Stop the strategy
+	 * Stop the strategy, gracefully
+	 * This method will make the strategy stop in the next cycle.
 	 * @param _options - Options for the strategy
 	 */
 	async stop(_options: {}) {
@@ -562,7 +563,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 
 				const currentToInitialProfitAndLoss: Decimal = this.state.getOrThrow('summary.profitAndLoss.currentToInitial.totalBalanceChange.absolute');
 
-				if (currentToInitialProfitAndLoss.gte(maximumAllowedWalletLossFromInitialValue)) {
+				if (currentToInitialProfitAndLoss.lte(maximumAllowedWalletLossFromInitialValue.neg())) {
 					this.status = StrategyStatus.STOP_REQUESTED;
 
 					await this.stop({});
