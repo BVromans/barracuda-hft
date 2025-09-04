@@ -173,8 +173,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 						type: OrderType.TRACKING_ORDER,
 						side: OrderSide.BUY,
 						amount: trackingOrderMinimumAmount,
-						deviationInBasisPoints: trackingOrderMinimumDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMinimumDeviationPercentage
+						deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
+						deviationInPercentage: trackingOrderMaximumDeviationPercentage
 					} as FinPlaceOrderRequest,
 					sell: {
 						ownerAddress: walletAddress,
@@ -185,8 +185,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 						type: OrderType.TRACKING_ORDER,
 						side: OrderSide.SELL,
 						amount: trackingOrderMinimumAmount,
-						deviationInBasisPoints: trackingOrderMinimumDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMinimumDeviationPercentage
+						deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
+						deviationInPercentage: trackingOrderMaximumDeviationPercentage
 					} as FinPlaceOrderRequest,
 				},
 				market: {
@@ -335,8 +335,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.TRACKING_ORDER,
 					side: OrderSide.BUY,
 					amount: trackingOrderMiddleAmount,
-					deviationInBasisPoints: trackingOrderMinimumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMinimumDeviationPercentage
+					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
+					deviationInPercentage: trackingOrderMaximumDeviationPercentage
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -371,8 +371,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.TRACKING_ORDER,
 					side: OrderSide.SELL,
 					amount: trackingOrderMinimumAmount,
-					deviationInBasisPoints: trackingOrderMinimumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMinimumDeviationPercentage
+					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
+					deviationInPercentage: trackingOrderMaximumDeviationPercentage
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -455,8 +455,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 						type: OrderType.TRACKING_ORDER,
 						side: OrderSide.BUY,
 						amount: trackingOrderMiddleAmount.plus(Decimal(1).mul(trackingOrderMinimumAmount)),
-						deviationInBasisPoints: trackingOrderMinimumDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMinimumDeviationPercentage
+						deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
+						deviationInPercentage: trackingOrderMaximumDeviationPercentage
 					} as FinReplaceOrderRequest,
 					sell: {
 						ownerAddress: walletAddress,
@@ -466,8 +466,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 						type: OrderType.TRACKING_ORDER,
 						side: OrderSide.SELL,
 						amount: trackingOrderMiddleAmount.plus(Decimal(1).mul(trackingOrderMinimumAmount)),
-						deviationInBasisPoints: trackingOrderMinimumDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMinimumDeviationPercentage
+						deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
+						deviationInPercentage: trackingOrderMaximumDeviationPercentage
 					} as FinReplaceOrderRequest,
 				},
 				market: {
@@ -531,8 +531,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.TRACKING_ORDER,
 					side: OrderSide.BUY,
 					amount: trackingOrderMinimumAmount.plus(Decimal(1).mul(trackingOrderMinimumAmount)),
-					deviationInBasisPoints: trackingOrderMinimumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMinimumDeviationPercentage
+					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
+					deviationInPercentage: trackingOrderMaximumDeviationPercentage
 				} as FinReplaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -555,8 +555,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.TRACKING_ORDER,
 					side: OrderSide.SELL,
 					amount: trackingOrderMinimumAmount.plus(Decimal(1).mul(trackingOrderMinimumAmount)),
-					deviationInBasisPoints: trackingOrderMinimumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMinimumDeviationPercentage
+					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
+					deviationInPercentage: trackingOrderMaximumDeviationPercentage
 				} as FinReplaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -708,8 +708,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.TRACKING_ORDER,
 					side: OrderSide.BUY,
 					amount: trackingOrderMinimumAmount,
-					deviationInBasisPoints: trackingOrderMinimumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMinimumDeviationPercentage
+					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
+					deviationInPercentage: trackingOrderMaximumDeviationPercentage
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -732,8 +732,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.TRACKING_ORDER,
 					side: OrderSide.SELL,
 					amount: trackingOrderMinimumAmount,
-					deviationInBasisPoints: trackingOrderMinimumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMinimumDeviationPercentage
+					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
+					deviationInPercentage: trackingOrderMaximumDeviationPercentage
 				} as FinPlaceOrderRequest,
 				{
 					ownerAddress: walletAddress,
@@ -744,8 +744,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 					type: OrderType.TRACKING_ORDER,
 					side: OrderSide.SELL,
 					amount: trackingOrderMinimumAmount,
-					deviationInBasisPoints: trackingOrderMinimumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMinimumDeviationPercentage
+					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
+					deviationInPercentage: trackingOrderMaximumDeviationPercentage
 				} as FinPlaceOrderRequest,
 			]
 		},
