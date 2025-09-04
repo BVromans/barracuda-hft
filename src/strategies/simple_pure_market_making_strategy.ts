@@ -110,27 +110,15 @@ export class SimplePureMarketMakingStrategy extends BasePureMarketMakingStrategy
 			sellOrder.price = sellPrice;
 		}
 
-		currentOrders.valueSeq().forEach((order: Order) => {
-			// Cancel current open/partial orders to re-quote fresh
-			if (order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED) {
-				proposal.cancel?.push(order as any);
-			}
-
-			// Withdraw current filled orders to withdraw funds
-			if (order.status === OrderStatus.FILLED) {
-				proposal.withdraw?.push(order as any);
-			}
-		});
-
 		const buyOrderId = this.rujira.fin.getOrderId({ order: buyOrder });
 		const sellOrderId = this.rujira.fin.getOrderId({ order: sellOrder });
 
 		currentOrders.valueSeq().forEach((order: Order) => {
 			const orderId = this.rujira.fin.getOrderId({ order });
 
-			// Cancel current open/partial orders to re-quote fresh
+			// Cancel current open/partially filled orders to re-quote fresh
 			if (
-				(order.status === OrderStatus.OPEN || order.status === OrderStatus.PARTIALLY_FILLED)
+				[OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED].includes(order.status)
 				&& orderId !== buyOrderId
 				&& orderId !== sellOrderId
 			) {

@@ -3638,8 +3638,8 @@ export class Fin {
 				}
 
 				// Validate order status for cancellation
-				if (existingOrder.status !== OrderStatus.OPEN) {
-					throw new Error(`Cannot cancel order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.OPEN}`);
+				if (![OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED].includes(existingOrder.status)) {
+					throw new Error(`Cannot cancel order ${orderId}: status is ${existingOrder.status}, must be ${OrderStatus.OPEN} or ${OrderStatus.PARTIALLY_FILLED}`);
 				}
 
 				// Create cancel message: [side, { fixed: price }, '0']
