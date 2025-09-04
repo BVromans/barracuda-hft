@@ -3699,7 +3699,7 @@ export class Fin {
 		}
 
 		// Execute the transaction
-		const response = await this.cosmClient.execute(
+		const response = await this.parent.cosmClientExecute(
 			ownerAddress,
 			contractAddress,
 			message,
@@ -3781,6 +3781,8 @@ export class Fin {
 
 		if (orderDeviationInBasisPoints?.gt(DECIMAL_0)) {
 			orderPrice = undefined;
+		} else if (orderPrice?.gt(DECIMAL_0)) {
+			orderDeviationInBasisPoints = undefined;
 		}
 
 		return `owner:${ownerAddress}|market:${marketSymbol}|type:${orderType}|side:${orderSide}|price:${orderPrice?.toFixed(18)}|deviation:${orderDeviationInBasisPoints?.toFixed(18)}`;
