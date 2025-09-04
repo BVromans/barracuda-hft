@@ -124,7 +124,9 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			await this.updateBalances({});
 			await this.updateSummary({});
 
-			this.status = StrategyStatus.IDLE;
+			if (![StrategyStatus.STOP_REQUESTED, StrategyStatus.STOPPING, StrategyStatus.STOPPED].includes(this.status)) {
+				this.status = StrategyStatus.IDLE;
+			}
 
 			logger.info("Strategy initialized successfully.");
 		} catch (exception) {
@@ -169,7 +171,9 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 
 					await sleep(tickInterval);
 
-					this.status = StrategyStatus.IDLE;
+					if (![StrategyStatus.STOP_REQUESTED, StrategyStatus.STOPPING, StrategyStatus.STOPPED].includes(this.status)) {
+						this.status = StrategyStatus.IDLE;
+					}
 				}
 			}
 		}
