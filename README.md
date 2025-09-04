@@ -25,7 +25,7 @@ When prompted, provide your `wallet mnemonic` or your `wallet private key`, or c
 
 ## Running
 
-Review all configurations in `resources/configuration`.
+Review all configurations in `resources/configuration` (the documentation is present in loco there).
 Pay special attention to the `rujira.wallet` and `strategy` sections, and double-check that all parameters are tailored to you.
 
 IMPORTANT: The Rujira GraphQL API has restricted access; you will need an authentication token to use it.
