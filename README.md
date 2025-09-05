@@ -9,7 +9,7 @@ A High-Frequency Trading (HFT) bot template, codenamed Barracuda, for Rujira Tra
 - Unix-like operating system (Linux, macOS) or, for Windows, Windows Subsystem for Linux (WSL)
 - Latest version of [Bun](https://bun.com/)
 - [Keplr](https://www.keplr.app/) wallet and access to your wallet mnemonic or private key from Rujira
-- Funds in the native token (THOR-RUJI), fee payment token (THOR-RUNE), and in your desired base and quote tokens (ex.: THOR-RUJI/ETH-USDC)
+- Funds in THOR-RUNE to pay for the fees, and in your desired base and quote tokens (ex.: THOR-RUJI/ETH-USDC)
 - A Rujira GraphQL API authentication token (see below)
 
 ## Installation

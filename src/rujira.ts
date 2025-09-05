@@ -2645,7 +2645,7 @@ export class Fin {
 	 * @returns The order response
 	 */
 	async getOrder(request: FinGetOrderRequest): Promise<FinGetOrderResponse> {
-		let { ownerAddress, owner, marketAddress, marketSymbol, market, orderType, orderSide, orderStatus, orderPrice } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, orderType, orderSide, orderStatus, orderPrice, orderDeviationInBasisPoints, orderDeviationInPercentage } = request;
 
 		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase() || undefined;
@@ -2654,6 +2654,8 @@ export class Fin {
 		orderSide = OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide] || undefined;
 		orderStatus = OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus] || undefined;
 		orderPrice = orderPrice || undefined;
+		orderDeviationInBasisPoints = orderDeviationInBasisPoints || undefined;
+		orderDeviationInPercentage = orderDeviationInPercentage || undefined;
 
 		if (!ownerAddress && !owner) {
 			throw new Error("Owner address or owner wallet is required, since it's used to compose the order ID.");
@@ -2662,8 +2664,8 @@ export class Fin {
 			throw new Error("Market address, market symbol, or market object is required");
 		}
 
-		if (!orderPrice) {
-			throw new Error("Order price is required, since it's used to compose the order ID.");
+		if (!orderPrice && !orderDeviationInBasisPoints && !orderDeviationInPercentage) {
+			throw new Error("Order price, order deviation in basis points, or order deviation in percentage is required, since it's used to compose the order ID.");
 		}
 
 		if (!orderSide) {
@@ -2684,6 +2686,8 @@ export class Fin {
 			orderSides: orderSide ? [orderSide] : undefined,
 			orderStatuses: orderStatus ? [orderStatus] : undefined,
 			orderPrices: orderPrice ? [orderPrice] : undefined,
+			orderDeviationInBasisPoints: orderDeviationInBasisPoints ? [orderDeviationInBasisPoints] : undefined,
+			orderDeviationInPercentage: orderDeviationInPercentage ? [orderDeviationInPercentage] : undefined,
 			maximumNumberOfOrders: 1
 		});
 		const order = orders.first();
@@ -2701,7 +2705,7 @@ export class Fin {
 	 * @returns The orders response
 	 */
 	async getOrders(request: FinGetOrdersRequest): Promise<FinGetOrdersResponse> {
-		let { ownerAddress, owner, marketAddress, marketSymbol, market, orderTypes, orderSides, orderStatuses, orderPrices, orderIds, orders, maximumNumberOfOrders } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, orderTypes, orderSides, orderStatuses, orderPrices, orderDeviationInBasisPoints, orderDeviationInPercentage, orderIds, orders, maximumNumberOfOrders } = request;
 
 		ownerAddress = this.getWalletAddress(ownerAddress, owner);
 		marketAddress = marketAddress?.trim().toLowerCase() || undefined;
@@ -2710,6 +2714,8 @@ export class Fin {
 		orderSides = orderSides ? MList(orderSides?.map((orderSide: OrderSide) => OrderSide[orderSide?.trim().toUpperCase() as keyof typeof OrderSide])) : undefined;
 		orderStatuses = orderStatuses ? MList(orderStatuses?.map((orderStatus: OrderStatus) => OrderStatus[orderStatus?.trim().toUpperCase() as keyof typeof OrderStatus])) : undefined;
 		orderPrices = orderPrices ? MList(orderPrices?.map((orderPrice: OrderPrice) => Decimal(orderPrice))) : undefined;
+		orderDeviationInBasisPoints = orderDeviationInBasisPoints ? MList(orderDeviationInBasisPoints?.map((orderDeviationInBasisPoints: OrderDeviationInBasisPoints) => Decimal(orderDeviationInBasisPoints))) : undefined;
+		orderDeviationInPercentage = orderDeviationInPercentage ? MList(orderDeviationInPercentage?.map((orderDeviationInPercentage: OrderDeviationInPercentage) => Decimal(orderDeviationInPercentage))) : undefined;
 		maximumNumberOfOrders = maximumNumberOfOrders ? Number(maximumNumberOfOrders) : undefined;
 
 		if (!ownerAddress && !owner) {
@@ -2902,6 +2908,16 @@ export class Fin {
 
 			// Filter by order prices
 			if (orderPrices && (!order.price || !orderPrices.includes(cast<OrderPrice>(order.price)))) {
+				return false;
+			}
+
+			// Filter by order deviation in basis points
+			if (orderDeviationInBasisPoints && !orderDeviationInBasisPoints.includes(cast<OrderDeviationInBasisPoints>(order.deviationInBasisPoints))) {
+				return false;
+			}
+
+			// Filter by order deviation in percentage
+			if (orderDeviationInPercentage && !orderDeviationInPercentage.includes(cast<OrderDeviationInPercentage>(order.deviationInPercentage))) {
 				return false;
 			}
 

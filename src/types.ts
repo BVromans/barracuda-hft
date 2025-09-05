@@ -1187,7 +1187,17 @@ export interface FinGetOrderRequest {
 	/**
 	 * Order price
 	 */
-	orderPrice: OrderPrice;
+	orderPrice?: OrderPrice;
+
+	/**
+	 * Order deviation in basis points
+	 */
+	orderDeviationInBasisPoints?: OrderDeviationInBasisPoints;
+
+	/**
+	 * Order deviation in percentage
+	 */
+	orderDeviationInPercentage?: OrderDeviationInPercentage;
 
 	/**
 	 * Order type
@@ -1251,6 +1261,16 @@ export interface FinGetOrdersRequest {
 	 * Order price
 	 */
 	orderPrices?: List<OrderPrice> | OrderPrice[];
+
+	/**
+	 * Order deviation in basis points
+	 */
+	orderDeviationInBasisPoints?: List<OrderDeviationInBasisPoints> | OrderDeviationInBasisPoints[];
+
+	/**
+	 * Order deviation in percentage
+	 */
+	orderDeviationInPercentage?: List<OrderDeviationInPercentage> | OrderDeviationInPercentage[];
 
 	/**
 	 * Order type
