@@ -20,7 +20,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		getCandles: false,
 		getIndicators: false,
 		getBalances: false,
-		placeOrder: false,
+		placeOrder: true,
 		placeOrders: false,
 		getOrder: false,
 		getOrders: false,
@@ -66,33 +66,33 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 	console.log('defaultMarketOrderBook:bestAsk:\n', defaultMarketOrderBook?.book?.bestAsk?.price?.toFixed());
 
 	const defaultSpreadPercentage = Decimal('50');
-	const defaultFillableSpreadPercentage = Decimal('1');
-	const defaultPriceIncrementPercentage = Decimal('1');
+	const defaultFillableSpreadPercentage = Decimal('0.1');
+	const defaultPriceIncrementPercentage = Decimal('0.1'); // 0.1% increments for smaller price differences
 	const defaultMaximumMarketOrderSlippagePercentage = Decimal('2.5');
 
 	const defaultOrderMininumAmountIncrement = Decimal('0.00000001'); // Depends on the market decimals
 	const defaultOrderMinimumPriceIncrement = Decimal('0.000000000001'); // Usually 1e-12
 
-	const defaultOrderMininumAmount = Decimal('0.00000001'); // Depends on the market decimals
-	const defaultOrderMiddleAmount = Decimal('0.01234567'); // Depends on the market decimals
-	const defaultOrderMaximumAmount = Decimal('0.12345678'); // Depends on the market decimals
+	const defaultOrderMininumAmount = Decimal('0.00000009'); // ~$0.01 (1 cent)
+	const defaultOrderMiddleAmount = Decimal('0.00000018'); // ~$0.02 (2 cents)
+	const defaultOrderMaximumAmount = Decimal('0.00000027'); // ~$0.05 (5 cents)
 
-	const defaultBuyOrderMininumPrice = Decimal('0.01000000'); // Usually 1e-12
-	const defaultBuyOrderMiddlePrice = Decimal('0.01234'); // Depends on the market tick
-	const defaultBuyOrderMaximumPrice = cast<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.div(DECIMAL_100)); // Depends on the market tick
-	const defaultBuyOrderFillablePrice = cast<OrderBookOrder>(defaultMarketOrderBook.book.bestAsk).price.mul(defaultFillableSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100)); // Depends on the market tick
+	const currentMarketPrice = cast<Price>(defaultMarketTicker.middlePrice.baseToQuote);
 
-	const defaultSellOrderMininumPrice = cast<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100)); // Depends on the market tick
-	const defaultSellOrderMiddlePrice = Decimal('98.76'); // Depends on the market tick
-	const defaultSellOrderMaximumPrice = Decimal('9999'); // Depends from the market "tick", which blocks the max precision
-	const defaultSellOrderFillablePrice = cast<OrderBookOrder>(defaultMarketOrderBook.book.bestBid).price.mul(DECIMAL_100.minus(defaultFillableSpreadPercentage).div(DECIMAL_100)); // Depends on the market tick
+	const defaultBuyOrderMininumPrice = Decimal('1');
+	const defaultBuyOrderMiddlePrice = Decimal('2');
+	const defaultBuyOrderMaximumPrice = Decimal('5');
+	const defaultBuyOrderFillablePrice = currentMarketPrice.mul(DECIMAL_100.plus(defaultFillableSpreadPercentage).div(DECIMAL_100));
 
-	const trackingOrderMinimumDeviationBasisPoints = Decimal('10'); // 0.1%
-	const trackingOrderMinimumDeviationPercentage = Decimal('0.1');
-	const trackingOrderMiddleDeviationBasisPoints = Decimal('150'); // 1.5%
-	const trackingOrderMiddleDeviationPercentage = Decimal('1.5');
-	const trackingOrderMaximumDeviationBasisPoints = Decimal('250'); // 2.5%
-	const trackingOrderMaximumDeviationPercentage = Decimal('2.5');
+	const defaultSellOrderFillablePrice = currentMarketPrice.mul(DECIMAL_100.minus(defaultFillableSpreadPercentage).div(DECIMAL_100));
+	const defaultSellOrderMininumPrice = currentMarketPrice.mul(defaultSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100));
+	const defaultSellOrderMiddlePrice = Decimal('500000');
+	const defaultSellOrderMaximumPrice = Decimal('999999');
+
+	const defaultTrackingOrderMaximumDeviationBasisPoints = Decimal('250'); // 2.5%
+	const defaultTrackingOrderMaximumDeviationPercentage = Decimal('2.5');
+	const defaultFillableTrackingOrderBasisPoints = defaultFillableSpreadPercentage.mul(DECIMAL_100).neg(); // -0.1%
+	const defaultFillableTrackingOrderPercentage = defaultFillableSpreadPercentage.neg();
 
 	// Base template for all order types
 	const baseOrder = {
@@ -106,395 +106,204 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		place: {
 			single: {
 				fixedPrice: {
-					buy: {
-						...baseOrder,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.BUY,
-						amount: defaultOrderMiddleAmount,
-						price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.toDecimalPlaces(4), defaultMarket.tick)
-					} as FinPlaceOrderRequest,
-					sell: {
-						...baseOrder,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.SELL,
-						amount: defaultOrderMiddleAmount,
-						price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.toDecimalPlaces(4), defaultMarket.tick)
-					} as FinPlaceOrderRequest,
+					buy: null as unknown as FinPlaceOrderRequest,
+					sell: null as unknown as FinPlaceOrderRequest,
 				},
 				limit: {},
 				tracking: {
-					buy: {
-						...baseOrder,
-						type: OrderType.TRACKING_ORDER,
-						side: OrderSide.BUY,
-						amount: defaultOrderMininumAmount,
-						deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMaximumDeviationPercentage
-					} as FinPlaceOrderRequest,
-					sell: {
-						...baseOrder,
-						type: OrderType.TRACKING_ORDER,
-						side: OrderSide.SELL,
-						amount: defaultOrderMininumAmount,
-						deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMaximumDeviationPercentage
-					} as FinPlaceOrderRequest,
+					buy: null as unknown as FinPlaceOrderRequest,
+					sell: null as unknown as FinPlaceOrderRequest,
 				},
 				market: {
-					buy: {
-						...baseOrder,
-						type: OrderType.MARKET,
-						side: OrderSide.BUY,
-						amount: defaultOrderMiddleAmount,
-						// price: undefined for market orders
-					} as FinPlaceOrderRequest,
-					sell: {
-						...baseOrder,
-						type: OrderType.MARKET,
-						side: OrderSide.SELL,
-						amount: defaultOrderMiddleAmount,
-						// price: undefined for market orders
-					} as FinPlaceOrderRequest,
+					buy: null as unknown as FinPlaceOrderRequest,
+					sell: null as unknown as FinPlaceOrderRequest,
 				},
-
 			},
-			multiple: [
-				// Fixed price buy orders
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMaximumAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMaximumPrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderFillablePrice.toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-
-				// Fixed price sell orders
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMaximumAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultSellOrderFillablePrice.toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-
-				// Tracking buy orders
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMiddleDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.BUY,
-					amount: defaultOrderMaximumAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-
-				// Tracking sell orders
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.SELL,
-					amount: defaultOrderMininumAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.SELL,
-					amount: defaultOrderMiddleAmount,
-					deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMiddleDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.SELL,
-					amount: defaultOrderMaximumAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-			]
+			multiple: Array<FinPlaceOrderRequest>(),
 		},
 		replace: {
 			single: {
 				fixedPrice: {
-					buy: {
-						...baseOrder,
-						marketSymbol: defaultMarketSymbol,
-						side: OrderSide.BUY,
-						amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-						price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.toDecimalPlaces(4), defaultMarket.tick)
-					} as FinReplaceOrderRequest,
-					sell: {
-						...baseOrder,
-						marketSymbol: defaultMarketSymbol,
-						side: OrderSide.SELL,
-						amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-						price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.toDecimalPlaces(4), defaultMarket.tick)
-					} as FinReplaceOrderRequest,
+					buy: null as unknown as FinReplaceOrderRequest,
+					sell: null as unknown as FinReplaceOrderRequest,
 				},
 				limit: {},
 				tracking: {
-					buy: {
-						...baseOrder,
-						marketSymbol: defaultMarketSymbol,
-						side: OrderSide.BUY,
-						amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMininumAmount)),
-						deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMaximumDeviationPercentage
-					} as FinReplaceOrderRequest,
-					sell: {
-						...baseOrder,
-						marketSymbol: defaultMarketSymbol,
-						side: OrderSide.SELL,
-						amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMininumAmount)),
-						deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMaximumDeviationPercentage
-					} as FinReplaceOrderRequest,
+					buy: null as unknown as FinReplaceOrderRequest,
+					sell: null as unknown as FinReplaceOrderRequest,
 				},
 				market: {
 					buy: undefined as unknown as FinReplaceOrderRequest,
 					sell: undefined as unknown as FinReplaceOrderRequest,
 				},
 			},
-			multiple: [
-				// Fixed price replace orders
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinReplaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinReplaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinReplaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMaximumAmount.plus(Decimal(1).mul(defaultOrderMaximumAmount)),
-					price: sanitizeOrderPrice(defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinReplaceOrderRequest,
-
-				// Tracking order replacements
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMininumAmount)),
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinReplaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-					deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMiddleDeviationPercentage
-				} as FinReplaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMininumAmount)),
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinReplaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-					deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMiddleDeviationPercentage
-				} as FinReplaceOrderRequest,
-			]
+			multiple: Array<FinReplaceOrderRequest>(),
 		},
 		cancel: {
 			single: {
 				fixedPrice: {
-					buy: {
-						...baseOrder,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.BUY,
-						amount: defaultOrderMiddleAmount,
-						price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.toDecimalPlaces(4), defaultMarket.tick)
-					} as FinPlaceOrderRequest,
-					sell: {
-						...baseOrder,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.SELL,
-						amount: defaultOrderMiddleAmount,
-						price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.toDecimalPlaces(4), defaultMarket.tick)
-					} as FinPlaceOrderRequest,
+					buy: null as unknown as FinPlaceOrderRequest,
+					sell: null as unknown as FinPlaceOrderRequest,
 				},
 				limit: {},
 				tracking: {
-					buy: {
-						...baseOrder,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.BUY,
-						amount: defaultOrderMiddleAmount,
-						deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMiddleDeviationPercentage
-					} as FinPlaceOrderRequest,
-					sell: {
-						...baseOrder,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.SELL,
-						amount: defaultOrderMiddleAmount,
-						deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMiddleDeviationPercentage
-					} as FinPlaceOrderRequest,
+					buy: null as unknown as FinPlaceOrderRequest,
+					sell: null as unknown as FinPlaceOrderRequest,
 				},
 				market: {
 					buy: undefined as unknown as FinPlaceOrderRequest,
 					sell: undefined as unknown as FinPlaceOrderRequest,
 				}
 			},
-			multiple: [
-				// Fixed price cancel orders
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMaximumAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-
-				// Tracking order cancellations
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMininumAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMiddleDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.SELL,
-					amount: defaultOrderMininumAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.SELL,
-					amount: defaultOrderMininumAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-			]
+			multiple: Array<FinPlaceOrderRequest>(),
 		},
 	}
+
+	// Define place orders
+	orderTemplates.place.single.fixedPrice.buy = {
+		...baseOrder,
+					type: OrderType.FIXED_PRICE,
+					side: OrderSide.BUY,
+		amount: defaultOrderMininumAmount,
+		price: sanitizeOrderPrice(defaultBuyOrderFillablePrice.toDecimalPlaces(4), defaultMarket.tick)
+	} as FinPlaceOrderRequest;
+
+	orderTemplates.place.single.fixedPrice.sell = {
+		...baseOrder,
+					type: OrderType.FIXED_PRICE,
+		side: OrderSide.SELL,
+		amount: defaultOrderMininumAmount,
+		price: sanitizeOrderPrice(defaultSellOrderFillablePrice.toDecimalPlaces(4), defaultMarket.tick)
+	} as FinPlaceOrderRequest;
+
+	orderTemplates.place.single.tracking.buy = {
+		...baseOrder,
+		type: OrderType.TRACKING_ORDER,
+					side: OrderSide.BUY,
+		amount: defaultOrderMininumAmount,
+		deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints,
+		deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage,
+	} as FinPlaceOrderRequest;
+
+	orderTemplates.place.single.tracking.sell = {
+		...baseOrder,
+		type: OrderType.TRACKING_ORDER,
+					side: OrderSide.SELL,
+		amount: defaultOrderMininumAmount,
+		deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints,
+		deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage,
+	} as FinPlaceOrderRequest;
+
+	orderTemplates.place.single.market.buy = {
+		...baseOrder,
+						type: OrderType.MARKET,
+						side: OrderSide.BUY,
+		amount: defaultOrderMiddleAmount,
+	} as FinPlaceOrderRequest;
+
+	orderTemplates.place.single.market.sell = {
+		...baseOrder,
+						type: OrderType.MARKET,
+					side: OrderSide.SELL,
+		amount: defaultOrderMiddleAmount,
+	} as FinPlaceOrderRequest;
+
+	// Multiple orders configuration
+	const multipleOrdersConfig = [
+		// Fixed price buy orders
+		{ type: OrderType.FIXED_PRICE, side: OrderSide.BUY, amount: defaultOrderMiddleAmount, price: defaultBuyOrderMiddlePrice },
+		{ type: OrderType.FIXED_PRICE, side: OrderSide.BUY, amount: defaultOrderMiddleAmount, price: defaultBuyOrderMiddlePrice },
+		{ type: OrderType.FIXED_PRICE, side: OrderSide.BUY, amount: defaultOrderMaximumAmount, price: defaultBuyOrderMaximumPrice },
+		{ type: OrderType.FIXED_PRICE, side: OrderSide.BUY, amount: defaultOrderMiddleAmount, price: defaultBuyOrderFillablePrice },
+
+		// Fixed price sell orders
+		{ type: OrderType.FIXED_PRICE, side: OrderSide.SELL, amount: defaultOrderMiddleAmount, price: defaultSellOrderMiddlePrice },
+		{ type: OrderType.FIXED_PRICE, side: OrderSide.SELL, amount: defaultOrderMiddleAmount, price: defaultSellOrderMiddlePrice },
+		{ type: OrderType.FIXED_PRICE, side: OrderSide.SELL, amount: defaultOrderMaximumAmount, price: defaultSellOrderMaximumPrice },
+		{ type: OrderType.FIXED_PRICE, side: OrderSide.SELL, amount: defaultOrderMiddleAmount, price: defaultSellOrderFillablePrice },
+
+		// Tracking buy orders
+		{ type: OrderType.TRACKING_ORDER, side: OrderSide.BUY, amount: defaultOrderMiddleAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints, deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage },
+		{ type: OrderType.TRACKING_ORDER, side: OrderSide.BUY, amount: defaultOrderMiddleAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints, deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage },
+		{ type: OrderType.TRACKING_ORDER, side: OrderSide.BUY, amount: defaultOrderMaximumAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints, deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage },
+
+		// Tracking sell orders
+		{ type: OrderType.TRACKING_ORDER, side: OrderSide.SELL, amount: defaultOrderMininumAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints, deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage },
+		{ type: OrderType.TRACKING_ORDER, side: OrderSide.SELL, amount: defaultOrderMiddleAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints, deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage },
+		{ type: OrderType.TRACKING_ORDER, side: OrderSide.SELL, amount: defaultOrderMaximumAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints, deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage },
+	];
+
+	// Generate multiple orders
+	orderTemplates.place.multiple = multipleOrdersConfig.map(config => ({
+		...baseOrder,
+		...config,
+		...(config.price && { price: sanitizeOrderPrice(config.price.toDecimalPlaces(4), defaultMarket.tick) })
+	})) as FinPlaceOrderRequest[];
+
+	// Generate replace orders from place orders
+	orderTemplates.replace.single.fixedPrice.buy = {
+		...orderTemplates.place.single.fixedPrice.buy,
+		marketSymbol: defaultMarketSymbol,
+		amount: orderTemplates.place.single.fixedPrice.buy.amount.plus(Decimal(1).mul(orderTemplates.place.single.fixedPrice.buy.amount))
+	} as FinReplaceOrderRequest;
+
+	orderTemplates.replace.single.fixedPrice.sell = {
+		...orderTemplates.place.single.fixedPrice.sell,
+		marketSymbol: defaultMarketSymbol,
+		amount: orderTemplates.place.single.fixedPrice.sell.amount.plus(Decimal(1).mul(orderTemplates.place.single.fixedPrice.sell.amount))
+	} as FinReplaceOrderRequest;
+
+	orderTemplates.replace.single.tracking.buy = {
+		...orderTemplates.place.single.tracking.buy,
+		marketSymbol: defaultMarketSymbol,
+		amount: orderTemplates.place.single.tracking.buy.amount.plus(Decimal(1).mul(orderTemplates.place.single.tracking.buy.amount))
+	} as FinReplaceOrderRequest;
+
+	orderTemplates.replace.single.tracking.sell = {
+		...orderTemplates.place.single.tracking.sell,
+		marketSymbol: defaultMarketSymbol,
+		amount: orderTemplates.place.single.tracking.sell.amount.plus(Decimal(1).mul(orderTemplates.place.single.tracking.sell.amount))
+	} as FinReplaceOrderRequest;
+
+	orderTemplates.replace.multiple = orderTemplates.place.multiple.map((order: FinPlaceOrderRequest) => ({
+		...order,
+		amount: order.amount.plus(Decimal(1).mul(order.amount))
+	})) as FinReplaceOrderRequest[];
+
+	// Generate cancel orders from place orders (same as place)
+	orderTemplates.cancel.single.fixedPrice.buy = orderTemplates.place.single.fixedPrice.buy as FinPlaceOrderRequest;
+	orderTemplates.cancel.single.fixedPrice.sell = orderTemplates.place.single.fixedPrice.sell as FinPlaceOrderRequest;
+	orderTemplates.cancel.single.tracking.buy = orderTemplates.place.single.tracking.buy as FinPlaceOrderRequest;
+	orderTemplates.cancel.single.tracking.sell = orderTemplates.place.single.tracking.sell as FinPlaceOrderRequest;
+
+	orderTemplates.cancel.multiple = orderTemplates.place.multiple as FinPlaceOrderRequest[];
 
 	const orders = {
 		fixedPrice: {
 			buy: {
 				single: undefined as unknown as Order,
-				multiple: undefined as unknown as Map<OrderId, Order>,
+			multiple: undefined as unknown as Map<OrderId, Order>,
 				all: undefined as unknown as Map<OrderId, Order>,
-			},
+		},
 			sell: {
 				single: undefined as unknown as Order,
-				multiple: undefined as unknown as Map<OrderId, Order>,
+			multiple: undefined as unknown as Map<OrderId, Order>,
 				all: undefined as unknown as Map<OrderId, Order>,
 			},
-		},
-		tracking: {
+				},
+				tracking: {
 			buy: {
 				single: undefined as unknown as Order,
-				multiple: undefined as unknown as Map<OrderId, Order>,
+			multiple: undefined as unknown as Map<OrderId, Order>,
 				all: undefined as unknown as Map<OrderId, Order>,
 			},
 			sell: {
 				single: undefined as unknown as Order,
-				multiple: undefined as unknown as Map<OrderId, Order>,
-				all: undefined as unknown as Map<OrderId, Order>,
-			},
+			multiple: undefined as unknown as Map<OrderId, Order>,
+			all: undefined as unknown as Map<OrderId, Order>,
 		},
-		market: {
+				},
+				market: {
 			buy: {
 				single: undefined as unknown as Order,
 			},
@@ -504,12 +313,9 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		},
 	}
 
-	console.log('\n--------------------------------------------------------------------------------\n');
-
 	if (active.getStatus) {
 		const getStatus = await rujira.fin.getStatus({});
 		console.log('getStatus:\n', dump(getStatus));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getTransaction) {
@@ -518,7 +324,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			hash: '6A2B2D1821B1E248410BA3CF273D65215C357DE559E0ED4117AEA3AA7967C05B'
 		});
 		console.log('getTransaction:\n', dump(getTransaction));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getAllTokens) {
@@ -528,7 +333,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('getAllTokens:addresses\n', dump(getAllTokens.valueSeq().map(token => token.address).toJS()));
 		console.log('getAllTokens:symbols->addresses:\n', dump(getAllTokens.entrySeq().map((entry: [TokenSymbol, Token]) => `${entry[0]} -> ${entry[1].address}`).toJS()));
 		// console.log('getAllTokens\n', getAllTokens.toJS());
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getTokens) {
@@ -547,7 +351,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('getTokens:addresses\n', dump(getTokens.valueSeq().map(token => token.address).toJS()));
 		console.log('getTokens:symbols->addresses:\n', dump(getTokens.entrySeq().map((entry: [TokenSymbol, Token]) => `${entry[0]} -> ${entry[1].address}`).toJS()));
 		// console.log('getTokens\n', getTokens.toJS());
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getToken) {
@@ -558,7 +361,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('getToken:address:', dump(getToken.address));
 		console.log('getToken:symbol:', dump(getToken.symbol));
 		console.log('getToken\n', dump(getToken));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getAllMarkets) {
@@ -568,7 +370,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('getAllMarkets:addresses\n', dump(getAllMarkets.valueSeq().map(market => market.address).toJS()));
 		console.log('getAllMarkets:symbols->addresses:\n', dump(getAllMarkets.entrySeq().map((entry: [MarketSymbol, Market]) => `${entry[0]} -> ${entry[1].address}`).toJS()));
 		// console.log('getAllMarkets\n', getAllMarkets.toJS());
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getMarkets) {
@@ -587,7 +388,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('getMarkets:addresses:\n', dump(getMarkets.valueSeq().map(market => market.address).toJS()));
 		console.log('getMarkets:symbols->addresses:\n', dump(getMarkets.entrySeq().map((entry: [MarketSymbol, Market]) => `${entry[0]} -> ${entry[1].address}`).toJS()));
 		// console.log('getMarkets\n', getMarkets.toJS());
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getMarket) {
@@ -598,7 +398,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('getMarket:address:', dump(getMarket.address));
 		console.log('getMarket:symbol:', dump(getMarket.symbol));
 		console.log('getMarket\n', dump(getMarket));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getOrderBook) {
@@ -607,7 +406,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// marketSymbol: defaultMarketSymbol,
 		});
 		console.log('getOrderBook:\n', dump(getOrderBook));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getTicker) {
@@ -616,7 +414,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// marketSymbol: defaultMarketSymbol,
 		});
 		console.log('getTicker:\n', dump(getTicker));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getCandles) {
@@ -629,7 +426,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		});
 		console.log('getCandles:size:', dump(getCandles.size));
 		console.log('getCandles:\n', dump(getCandles.toJS()));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getIndicators) {
@@ -648,7 +444,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		});
 		console.log('getIndicators:size:', dump(getIndicators.size));
 		console.log('getIndicators:\n', dump(getIndicators.toJS()));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getBalances) {
@@ -662,7 +457,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// ],
 		});
 		console.log('getBalances:\n', dump(getBalances));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.placeOrder) {
@@ -676,13 +470,13 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.fixedPrice.sell.single = fixedPriceSellOrder.order;
 		console.log('✅ Fixed Price SELL Order Placed:\n', dump(fixedPriceSellOrder));
 
-		const trackingBuyOrder = await rujira.fin.placeOrder(orderTemplates.place.single.tracking.buy);
-		orders.tracking.buy.single = trackingBuyOrder.order;
-		console.log('✅ Tracking BUY Order Placed:\n', dump(trackingBuyOrder));
+		// const trackingBuyOrder = await rujira.fin.placeOrder(orderTemplates.place.single.tracking.buy);
+		// orders.tracking.buy.single = trackingBuyOrder.order;
+		// console.log('✅ Tracking BUY Order Placed:\n', dump(trackingBuyOrder));
 
-		const trackingSellOrder = await rujira.fin.placeOrder(orderTemplates.place.single.tracking.sell);
-		orders.tracking.sell.single = trackingSellOrder.order;
-		console.log('✅ Tracking SELL Order Placed:\n', dump(trackingSellOrder));
+		// const trackingSellOrder = await rujira.fin.placeOrder(orderTemplates.place.single.tracking.sell);
+		// orders.tracking.sell.single = trackingSellOrder.order;
+		// console.log('✅ Tracking SELL Order Placed:\n', dump(trackingSellOrder));
 
 		const marketBuyOrder = await rujira.fin.placeOrder(orderTemplates.place.single.market.buy);
 		orders.market.buy.single = marketBuyOrder.order;
@@ -693,7 +487,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('✅ Market SELL Order Placed:\n', dump(marketSellOrder));
 
 		console.log('🎉 ALL SINGLE ORDERS PLACED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.placeOrders) {
@@ -730,7 +523,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('');
 
 		console.log('🎉 ALL MULTIPLE ORDERS PLACED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getOrder) {
@@ -768,8 +560,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// marketAddress: trackingOrdersMarketAddress,
 			marketSymbol: defaultMarketSymbol,
 			// market: trackingOrdersMarket,
-			orderSide: orderTemplates.place.single.tracking.buy.side,
-			orderDeviationInBasisPoints: cast<OrderDeviationInBasisPoints>(orderTemplates.place.single.tracking.buy.deviationInBasisPoints)
+			// orderSide: orderTemplates.place.single.tracking.buy.side,
+			// orderDeviationInBasisPoints: cast<OrderDeviationInBasisPoints>(orderTemplates.place.single.tracking.buy.deviationInBasisPoints)
 		});
 		orders.tracking.buy.single = buyTrackingOrder;
 		console.log('✅ Tracking BUY Order Retrieved:\n', dump(buyTrackingOrder));
@@ -781,14 +573,13 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// marketAddress: trackingOrdersMarketAddress,
 			marketSymbol: defaultMarketSymbol,
 			// market: trackingOrdersMarket,
-			orderSide: orderTemplates.place.single.tracking.sell.side,
-			orderDeviationInBasisPoints: cast<OrderDeviationInBasisPoints>(orderTemplates.place.single.tracking.sell.deviationInBasisPoints)
+			// orderSide: orderTemplates.place.single.tracking.sell.side,
+			// orderDeviationInBasisPoints: cast<OrderDeviationInBasisPoints>(orderTemplates.place.single.tracking.sell.deviationInBasisPoints)
 		});
 		orders.tracking.sell.single = sellTrackingOrder;
 		console.log('✅ Tracking SELL Order Retrieved:\n', dump(sellTrackingOrder));
 
 		console.log('🎉 ALL SINGLE ORDERS RETRIEVED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getOrders) {
@@ -835,7 +626,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('   📋 Order Details:', dump(trackingGetOrders.toJS()));
 
 		console.log('🎉 ALL MULTIPLE ORDERS RETRIEVED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.replaceOrder) {
@@ -858,7 +648,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('✅ Tracking SELL Order Replaced:\n', dump(trackingSellOrder));
 
 		console.log('🎉 ALL SINGLE ORDERS REPLACED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.replaceOrders) {
@@ -893,7 +682,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('   🔗 Transaction Hashes:', dump(trackingReplaceOrders.transactions.keySeq().toJS()));
 
 		console.log('🎉 ALL MULTIPLE ORDERS REPLACED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.cancelOrder) {
@@ -978,7 +766,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('✅ Tracking SELL Order Cancelled:\n', dump(trackingSellOrder));
 
 		console.log('🎉 ALL SINGLE ORDERS CANCELLED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.cancelOrders) {
@@ -1031,7 +818,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('   🔗 Transaction Hashes:', dump(trackingCancelOrders.transactions.keySeq().toJS()));
 
 		console.log('🎉 ALL MULTIPLE ORDERS CANCELLED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.cancelAllOrders) {
@@ -1070,7 +856,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('   🔗 Transaction Hashes:', dump(trackingCancelAllOrders.transactions.keySeq().toJS()));
 
 		console.log('🎉 ALL ORDERS CANCELLED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.withdrawAllFilledOrders) {
@@ -1107,7 +892,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('   🔗 Transaction Hashes:', dump(trackingWithdrawAllFilledOrders.transactions.keySeq().toJS()));
 
 		console.log('🎉 ALL FILLED ORDERS WITHDRAWN SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 })();
 
