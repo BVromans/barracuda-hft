@@ -77,7 +77,7 @@ export class SimplePureMarketMakingStrategy extends BasePureMarketMakingStrategy
 		const quoteTokenSymbol = market.tokens.quote.symbol;
 		const baseTokenFreeBalanceAmount = balances.tokens.getOrThrow(baseTokenSymbol).balances.token.free;
 		const quoteTokenFreeBalanceAmount = balances.tokens.getOrThrow(quoteTokenSymbol).balances.token.free;
-		const quoteTokenFreeBalanceInBaseToken = quoteTokenFreeBalanceAmount.div(middlePrice);
+		const quoteTokenFreeBalanceAmountInBaseToken = quoteTokenFreeBalanceAmount.div(middlePrice);
 
 		// Compute fixed spread around the middle price
 		const spreadRatio = spreadPercentage.div(DECIMAL_100);
@@ -87,11 +87,11 @@ export class SimplePureMarketMakingStrategy extends BasePureMarketMakingStrategy
 
 		// Determine final order sizes using configured per-order targets clamped by min/max and free balances
 		const buyAmount = Decimal.min(
-			quoteTokenFreeBalanceInBaseToken,
+			quoteTokenFreeBalanceAmountInBaseToken,
 			Decimal.max(
 				minimumTokenAmountPerOrder,
 				desiredTokenFreeBalanceAmountPerOrder,
-				quoteTokenFreeBalanceInBaseToken.mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100)),
+				quoteTokenFreeBalanceAmountInBaseToken.mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100)),
 			),
 			maximumTokenAmountPerOrder
 		);
