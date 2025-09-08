@@ -245,13 +245,11 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 		const sellOrderId = isSellPlaceable ? this.rujira.fin.getOrderId({ order: sellOrder }) : undefined;
 
 		currentOrders.valueSeq().forEach((order: Order) => {
-			const orderId = this.rujira.fin.getOrderId({ order: order });
-
 			// Cancel current open orders/partially filled orders to re-quote fresh, only per-side when a replacement exists
 			if (
 				[OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED].includes(order.status)
-				&& orderId !== buyOrderId
-				&& orderId !== sellOrderId
+				&& order.id !== buyOrderId
+				&& order.id !== sellOrderId
 			) {
 				proposal.cancel?.push(order as any);
 			}
@@ -263,10 +261,18 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 		});
 
 		if (isBuyPlaceable) {
-			proposal.place?.push(buyOrder);
+			if (buyOrderId && currentOrders.has(buyOrderId)) {
+				proposal.replace?.push(buyOrder);
+			} else {
+				proposal.place?.push(buyOrder);
+			}
 		}
 		if (isSellPlaceable) {
-			proposal.place?.push(sellOrder);
+			if (sellOrderId && currentOrders.has(sellOrderId)) {
+				proposal.replace?.push(sellOrder);
+			} else {
+				proposal.place?.push(sellOrder);
+			}
 		}
 
 		logger.info(`Proposal:\n${dump(this.convertProposalToJson(proposal))}`);
