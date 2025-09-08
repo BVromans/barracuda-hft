@@ -147,7 +147,6 @@ export class SimplePureMarketMakingStrategy extends BasePureMarketMakingStrategy
 			} else {
 				proposal.place?.push(buyOrder);
 			}
-
 		}
 		if (sellOrder.amount && sellOrder.price && sellOrder.amount.gt(DECIMAL_0) && sellOrder.price.gt(DECIMAL_0)) {
 			if (currentOrders.has(sellOrderId)) {
