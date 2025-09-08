@@ -118,8 +118,9 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 
 		const baseTokenSymbol = market.tokens.base.symbol;
 		const quoteTokenSymbol = market.tokens.quote.symbol;
-		const baseTokenFreeBalance = cast<Amount>(balances.tokens.get(baseTokenSymbol)?.balances.token.free);
-		const quoteTokenFreeBalance = cast<Amount>(balances.tokens.get(quoteTokenSymbol)?.balances.token.free);
+		const baseTokenFreeBalanceAmount = cast<Amount>(balances.tokens.get(baseTokenSymbol)?.balances.token.free);
+		const quoteTokenFreeBalanceAmount = cast<Amount>(balances.tokens.get(quoteTokenSymbol)?.balances.token.free);
+		const quoteTokenFreeBalanceAmountInBaseToken = quoteTokenFreeBalanceAmount.div(middlePrice);
 
 		/*
 			SPREAD:
@@ -200,32 +201,33 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 		const averageTrueRangePercentageMultiplier = DECIMAL_100.mul(volatilitySizeShrinkageMultiplier.mul(averageTrueRange.div(middlePrice)));
 		const sizePercentageMultiplier = DECIMAL_100.mul(DECIMAL_100.div(DECIMAL_100.plus(averageTrueRangePercentageMultiplier)));
 
-		// Determine desired base-token amount before funds constraints
-		const desiredBaseAmountFromBaseBalance = baseTokenFreeBalance.mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100));
-		const desiredBaseAmountFromQuoteBalance = quoteTokenFreeBalance.div(middlePrice).mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100));
-		const desiredBaseAmountUncapped = Decimal.max(
-			desiredTokenFreeBalanceAmountPerOrder,
-			desiredBaseAmountFromBaseBalance,
-			desiredBaseAmountFromQuoteBalance,
+		// Determine final order sizes using configured per-order targets clamped by min/max and free balances
+		const buyAmount = Decimal.min(
+			quoteTokenFreeBalanceAmountInBaseToken,
+			Decimal.max(
+				minimumTokenAmountPerOrder,
+				desiredTokenFreeBalanceAmountPerOrder.mul(sizePercentageMultiplier.div(DECIMAL_100)),
+				quoteTokenFreeBalanceAmountInBaseToken.mul(sizePercentageMultiplier.div(DECIMAL_100)).mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100)),
+			),
+			maximumTokenAmountPerOrder
 		);
-		const desiredBaseAmountCapped = Decimal.max(
-			minimumTokenAmountPerOrder,
-			Decimal.min(desiredBaseAmountUncapped, maximumTokenAmountPerOrder),
-		);
-		const desiredBaseAmountAfterVolatility = desiredBaseAmountCapped.mul(sizePercentageMultiplier.div(DECIMAL_100));
 
-		// Enforce funds constraints (convert quote to base using middle price)
-		const maximumAffordableBaseByFunds = Decimal.min(
-			baseTokenFreeBalance,
-			quoteTokenFreeBalance.div(middlePrice),
+		const sellAmount = Decimal.min(
+			baseTokenFreeBalanceAmount,
+			Decimal.max(
+				minimumTokenAmountPerOrder,
+				desiredTokenFreeBalanceAmountPerOrder.mul(sizePercentageMultiplier.div(DECIMAL_100)),
+				baseTokenFreeBalanceAmount.mul(sizePercentageMultiplier.div(DECIMAL_100)).mul(desiredTokenFreeBalancePercentagePerOrder.div(DECIMAL_100)),
+			),
+			maximumTokenAmountPerOrder
 		);
-		let amount = Decimal.min(desiredBaseAmountAfterVolatility, maximumAffordableBaseByFunds);
-		amount = Decimal.max(minimumTokenAmountPerOrder, Decimal.min(amount, maximumTokenAmountPerOrder));
 
-		// Populate orders only if valid, with final prices and amounts
-		if (amount.gte(minimumTokenAmountPerOrder)) {
-			buyOrder.amount = amount;
-			sellOrder.amount = amount;
+		if (buyAmount.gt(DECIMAL_0)) {
+			buyOrder.amount = buyAmount;
+		}
+
+		if (sellAmount.gt(DECIMAL_0)) {
+			sellOrder.amount = sellAmount;
 		}
 
 		const bestAskPrice = cast(orderBook.book.bestAsk?.price, DECIMAL_NaN);

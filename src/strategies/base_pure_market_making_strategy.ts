@@ -426,7 +426,6 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		const tokenSymbols = MList<TokenSymbol>([
 			market.tokens.base.symbol,
 			market.tokens.quote.symbol,
-			this.rujira.fin.nativeToken.symbol,
 			this.rujira.fin.feePaymentToken.symbol,
 			this.rujira.fin.usdToken.symbol
 		]).toSet().toList().asMutable();
