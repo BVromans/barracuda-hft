@@ -2,7 +2,7 @@ import Decimal from "decimal.js";
 import "./bootstrap";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
-import { DECIMAL_100, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, Map, Market, MarketSymbol, Order, OrderDeviationInBasisPoints, OrderId, OrderPrice, OrderSide, OrderStatus, OrderType, Price, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
+import { DECIMAL_0, DECIMAL_100, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, Map, Market, MarketSymbol, Order, OrderDeviationInBasisPoints, OrderId, OrderPrice, OrderSide, OrderStatus, OrderType, Price, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
 import { cast, dump, sanitizeOrderPrice } from "./utils";
 
 (async function run() {
@@ -72,8 +72,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 	console.log('defaultMarketOrderBook:bestAsk:\n', defaultMarketOrderBook?.book?.bestAsk?.price?.toFixed());
 
 	const defaultSpreadPercentage = Decimal('50');
-	const defaultFillableSpreadPercentage = Decimal('0.01'); // 1 means 1%
-	const defaultPriceIncrementPercentage = Decimal('0.1'); // 1 means 1%
+	const defaultFillableSpreadPercentage = Decimal('0.03'); // 1 means 1%
+	const defaultPriceIncrementPercentage = Decimal('0.01'); // 1 means 1%
 	const defaultDeviationIncrementPercentage = Decimal('0.01'); // 1 means 1%
 	const defaultDeviationIncrementBasisPoints = defaultDeviationIncrementPercentage.mul(DECIMAL_100); // 1bps means 0.01%, 1bps means 0.01%
 	const defaultMaximumMarketOrderSlippagePercentage = Decimal('2.5'); // 1 means 1%
@@ -95,8 +95,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 	const defaultSellOrderMiddlePrice = Decimal('500000'); // Depends on the market, selling 1 BTC for $500,000 is profitable
 	const defaultSellOrderMaximumPrice = Decimal('799999'); // Depends on the market, selling 1 BTC for $999,999 is profitable
 
-	const defaultTrackingOrderMaximumDeviationPercentage = Decimal('2.5'); // 1% means 100bps, 2.5% means 250bps
-	const defaultTrackingOrderMaximumDeviationBasisPoints = defaultTrackingOrderMaximumDeviationPercentage.mul(DECIMAL_100); // 1bps means 0.01%, 250bps means 2.5%
+	const defaultTrackingOrderMaximumDeviationPercentage = Decimal('2.4'); // 1% means 100bps, 2.4% means 240bps
+	const defaultTrackingOrderMaximumDeviationBasisPoints = defaultTrackingOrderMaximumDeviationPercentage.mul(DECIMAL_100); // 1bps means 0.01%, 240bps means 2.4%
 	const defaultFillableTrackingOrderPercentage = defaultFillableSpreadPercentage; // 1% means 100bps, -0.01% means -1bps
 	const defaultFillableTrackingOrderBasisPoints = defaultFillableTrackingOrderPercentage.mul(DECIMAL_100); // 1bps means 0.01%, -1 bps means -0.01%
 
@@ -255,20 +255,20 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		{ ...baseOrder, type: OrderType.FIXED_PRICE, side: OrderSide.SELL, amount: defaultOrderMaximumAmount, price: defaultSellOrderMaximumPrice },
 
 		// Tracking buy orders
-		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.BUY, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints, deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage },
+		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.BUY, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints.neg(), deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage.neg() },
 		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.BUY, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultFillableTrackingOrderBasisPoints, deviationInPercentage: defaultFillableTrackingOrderPercentage },
 
 		// Tracking sell orders
 		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.SELL, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultFillableTrackingOrderBasisPoints.neg(), deviationInPercentage: defaultFillableTrackingOrderPercentage.neg() },
-		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.SELL, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints.neg(), deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage.neg() },
+		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.SELL, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints, deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage },
 	];
 
 	orderTemplates.place.multiple = orderTemplates.place.multiple.map(order => ({
 		...order,
-		amount: order.amount.plus(defaultOrderMinimumAmount), // To differentiate between single and multiple orders
-		price: order.price ? sanitizeOrderPriceForDefaultMarket(order.price.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), order.side) : undefined, // To differentiate between single and multiple orders
-		deviationInBasisPoints: order.deviationInBasisPoints ? order.deviationInBasisPoints.plus(order.side === OrderSide.BUY ? defaultDeviationIncrementBasisPoints.neg() : defaultDeviationIncrementBasisPoints) : undefined, // To differentiate between single and multiple orders
-		deviationInPercentage: order.deviationInPercentage ? order.deviationInPercentage.plus(order.side === OrderSide.BUY ? defaultDeviationIncrementPercentage.neg() : defaultDeviationIncrementPercentage) : undefined, // To differentiate between single and multiple orders
+		// amount: order.amount.plus(defaultOrderMinimumAmount), // To differentiate between single and multiple orders
+		// price: order.price ? sanitizeOrderPriceForDefaultMarket(order.price.mul(DECIMAL_100.plus(order.side === OrderSide.BUY ? defaultPriceIncrementPercentage : defaultPriceIncrementPercentage.neg()).div(DECIMAL_100)).toDecimalPlaces(4), order.side) : undefined, // To differentiate between single and multiple orders
+		// deviationInBasisPoints: order.deviationInBasisPoints ? order.deviationInBasisPoints.plus(order.side === OrderSide.BUY ? defaultDeviationIncrementBasisPoints.neg() : defaultDeviationIncrementBasisPoints) : undefined, // To differentiate between single and multiple orders
+		// deviationInPercentage: order.deviationInPercentage ? order.deviationInPercentage.plus(order.side === OrderSide.BUY ? defaultDeviationIncrementPercentage.neg() : defaultDeviationIncrementPercentage) : undefined, // To differentiate between single and multiple orders
 	})) as FinPlaceOrderRequest[];
 
 	orderTemplates.replace.single.fixedPrice.buy = {
@@ -291,7 +291,42 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		amount: orderTemplates.place.single.tracking.sell.amount.plus(orderTemplates.place.single.tracking.sell.amount)
 	} as FinReplaceOrderRequest;
 
-	orderTemplates.replace.multiple = orderTemplates.place.multiple.map((order: FinPlaceOrderRequest) => ({
+	orderTemplates.replace.multiple = orderTemplates.place.multiple
+	.filter((order: FinPlaceOrderRequest) => {
+		const result =  !(
+			(
+				order.type === OrderType.TRACKING_ORDER
+				&& (
+					(
+						order.side === OrderSide.BUY
+						&& (
+							order.deviationInBasisPoints?.gt(DECIMAL_0)
+							|| order.deviationInPercentage?.gt(DECIMAL_0)
+						)
+					) || (
+						order.side === OrderSide.SELL
+						&& (
+							order.deviationInBasisPoints?.lt(DECIMAL_0)
+							|| order.deviationInPercentage?.lt(DECIMAL_0)
+						)
+					)
+				)
+			) || (
+				order.type === OrderType.FIXED_PRICE
+				&& (
+					(
+						order.side === OrderSide.BUY
+						&& order.price?.gt(defaultMarketPrice)
+					) || (
+						order.side === OrderSide.SELL
+						&& order.price?.lt(defaultMarketPrice)
+					)
+				)
+			)
+		)
+
+		return result;
+	}).map((order: FinPlaceOrderRequest) => ({
 		...order,
 		amount: order.amount.plus(order.amount)
 	})) as FinReplaceOrderRequest[];
