@@ -484,13 +484,13 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.tracking.sell = trackingSellOrder.order;
 		console.log('✅ Tracking SELL Order Placed:\n', dump(trackingSellOrder));
 
-		const marketBuyOrder = await rujira.fin.placeOrder(orderTemplates.place.single.market.buy);
-		orders.market.buy = marketBuyOrder.order;
-		console.log('✅ Market BUY Order Placed:\n', dump(marketBuyOrder));
+		// const marketBuyOrder = await rujira.fin.placeOrder(orderTemplates.place.single.market.buy);
+		// orders.market.buy = marketBuyOrder.order;
+		// console.log('✅ Market BUY Order Placed:\n', dump(marketBuyOrder));
 
-		const marketSellOrder = await rujira.fin.placeOrder(orderTemplates.place.single.market.sell);
-		orders.market.sell = marketSellOrder.order;
-		console.log('✅ Market SELL Order Placed:\n', dump(marketSellOrder));
+		// const marketSellOrder = await rujira.fin.placeOrder(orderTemplates.place.single.market.sell);
+		// orders.market.sell = marketSellOrder.order;
+		// console.log('✅ Market SELL Order Placed:\n', dump(marketSellOrder));
 
 		console.log('🎉 ALL SINGLE ORDERS PLACED SUCCESSFULLY!');
 	}
