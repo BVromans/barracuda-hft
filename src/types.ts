@@ -1185,6 +1185,16 @@ export interface FinGetOrderRequest {
 	market?: Market;
 
 	/**
+	 * Order type
+	 */
+	orderType?: OrderType;
+
+	/**
+	 * Order side
+	 */
+	orderSide?: OrderSide;
+
+	/**
 	 * Order price
 	 */
 	orderPrice?: OrderPrice;
@@ -1198,16 +1208,6 @@ export interface FinGetOrderRequest {
 	 * Order deviation in percentage
 	 */
 	orderDeviationInPercentage?: OrderDeviationInPercentage;
-
-	/**
-	 * Order type
-	 */
-	orderType?: OrderType;
-
-	/**
-	 * Order side
-	 */
-	orderSide?: OrderSide;
 
 	/**
 	 * Order status
