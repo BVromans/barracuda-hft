@@ -703,8 +703,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.multiple = placeOrders.orders;
 		console.log('✅ Orders Placed:');
 		console.log('   📊 Total Orders:', dump(placeOrders.orders.size));
-		console.log('   🆔 Order IDs\n:', dump(placeOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes\n:', dump(placeOrders.transactions.keySeq().toJS()));
+		console.log('   🆔 Order IDs:\n', dump(placeOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(placeOrders.transactions.keySeq().toJS()));
 		console.log('');
 
 		console.log('🎉 ALL MULTIPLE ORDERS PLACED SUCCESSFULLY!');
@@ -728,7 +728,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.multiple = getOrders;
 		console.log('✅ Orders Retrieved:');
 		console.log('   📊 Total Orders:', dump(getOrders.size));
-		console.log('   🆔 Order IDs\n:', dump(getOrders.keySeq().toJS()));
+		console.log('   🆔 Order IDs:\n', dump(getOrders.keySeq().toJS()));
 		// console.log('   📋 Order Details:\n', dump(getOrders.toJS()));
 
 		console.log('🎉 ALL MULTIPLE ORDERS RETRIEVED SUCCESSFULLY!');
@@ -745,8 +745,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.multiple = replaceOrders.orders;
 		console.log('✅ Orders Replaced:');
 		console.log('   📊 Total Orders:', dump(replaceOrders.orders.size));
-		console.log('   🆔 Order IDs\n:', dump(replaceOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes\n:', dump(replaceOrders.transactions.keySeq().toJS()));
+		console.log('   🆔 Order IDs:\n', dump(replaceOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(replaceOrders.transactions.keySeq().toJS()));
 
 		console.log('🎉 ALL MULTIPLE ORDERS REPLACED SUCCESSFULLY!');
 	}
@@ -777,8 +777,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.multiple = cancelOrders.orders;
 		console.log('✅ Orders Cancelled:');
 		console.log('   📊 Total Orders:', dump(cancelOrders.orders.size));
-		console.log('   🆔 Order IDs\n:', dump(cancelOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes\n:', dump(cancelOrders.transactions.keySeq().toJS()));
+		console.log('   🆔 Order IDs:\n', dump(cancelOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(cancelOrders.transactions.keySeq().toJS()));
 
 		console.log('🎉 ALL MULTIPLE ORDERS CANCELLED SUCCESSFULLY!');
 	}
@@ -796,8 +796,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.allCanceled = cancelAllOrders.orders;
 		console.log('✅ All Orders Cancelled:');
 		console.log('   📊 Total Orders:', dump(cancelAllOrders.orders.size));
-		console.log('   🆔 Order IDs\n:', dump(cancelAllOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes\n:', dump(cancelAllOrders.transactions.keySeq().toJS()));
+		console.log('   🆔 Order IDs:\n', dump(cancelAllOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(cancelAllOrders.transactions.keySeq().toJS()));
 
 		console.log('🎉 ALL ORDERS CANCELLED SUCCESSFULLY!');
 	}
@@ -813,8 +813,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.allWithdrawn = withdrawAllFilledOrders.orders;
 		console.log('✅ Filled Orders Withdrawn:');
 		console.log('   📊 Total Orders:', dump(withdrawAllFilledOrders.orders.size));
-		console.log('   🆔 Order IDs\n:', dump(withdrawAllFilledOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes\n:', dump(withdrawAllFilledOrders.transactions.keySeq().toJS()));
+		console.log('   🆔 Order IDs:\n', dump(withdrawAllFilledOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(withdrawAllFilledOrders.transactions.keySeq().toJS()));
 	}
 })();
 
