@@ -2938,7 +2938,7 @@ export class Fin {
 	 * @returns The response for the created order
 	 */
 	async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
-		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price, deviationInPercentage, deviationInBasisPoints } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price, deviationInPercentage, deviationInBasisPoints, maximumSlippagePercentage } = request;
 
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
@@ -2960,7 +2960,8 @@ export class Fin {
 							amount,
 							price,
 							deviationInPercentage,
-							deviationInBasisPoints
+							deviationInBasisPoints,
+							maximumSlippagePercentage
 						}
 					]
 				)
@@ -3021,7 +3022,7 @@ export class Fin {
 	 * @returns The response for the replaced order
 	 */
 	async replaceOrder(request: FinReplaceOrderRequest): Promise<FinReplaceOrderResponse> {
-		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price, deviationInPercentage, deviationInBasisPoints } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price, deviationInPercentage, deviationInBasisPoints, maximumSlippagePercentage } = request;
 
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
@@ -3041,7 +3042,8 @@ export class Fin {
 					amount,
 					price,
 					deviationInPercentage,
-					deviationInBasisPoints
+					deviationInBasisPoints,
+					maximumSlippagePercentage
 				}])
 			}
 		});
