@@ -72,6 +72,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 	const defaultSpreadPercentage = Decimal('50');
 	const defaultFillableSpreadPercentage = Decimal('0.01'); // 1 means 1%
 	const defaultPriceIncrementPercentage = Decimal('0.1'); // 1 means 1%
+	const defaultDeviationIncrementPercentage = Decimal('0.1'); // 1 means 1%
+	const defaultDeviationIncrementBasisPoints = defaultDeviationIncrementPercentage.mul(DECIMAL_100); // 1bps means 0.01%, 10bps means 0.1%
 	const defaultMaximumMarketOrderSlippagePercentage = Decimal('2.5'); // 1 means 1%
 
 	const defaultOrderMinimumAmountIncrement = Decimal('0.00000001'); // Depends on the market (BTC uses 8 decimals)
@@ -91,10 +93,10 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 	const defaultSellOrderMiddlePrice = Decimal('500000'); // Depends on the market, selling 1 BTC for $500,000 is profitable
 	const defaultSellOrderMaximumPrice = Decimal('999999'); // Depends on the market, selling 1 BTC for $999,999 is profitable
 
-	const defaultTrackingOrderMaximumDeviationBasisPoints = Decimal('250'); // 1bps means 0.01%, 250bps means 2.5%
 	const defaultTrackingOrderMaximumDeviationPercentage = Decimal('2.5'); // 1% means 100bps, 2.5% means 250bps
-	const defaultFillableTrackingOrderBasisPoints = defaultFillableSpreadPercentage.mul(DECIMAL_100).neg(); // 1bps means 0.01%, -1 bps means -0.01%
+	const defaultTrackingOrderMaximumDeviationBasisPoints = defaultTrackingOrderMaximumDeviationPercentage.mul(DECIMAL_100); // 1bps means 0.01%, 250bps means 2.5%
 	const defaultFillableTrackingOrderPercentage = defaultFillableSpreadPercentage.neg(); // 1% means 100bps, -0.01% means -1bps
+	const defaultFillableTrackingOrderBasisPoints = defaultFillableTrackingOrderPercentage.mul(DECIMAL_100); // 1bps means 0.01%, -1 bps means -0.01%
 
 	const orderTemplates = {
 		place: {
@@ -242,7 +244,9 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 	orderTemplates.place.multiple = orderTemplates.place.multiple.map(order => ({
 		...order,
 		amount: order.amount.plus(defaultOrderMinimumAmount), // To differentiate between single and multiple orders
-		price: order.price ? sanitizeOrderPrice(order.price.toDecimalPlaces(4), defaultMarket.tick) : undefined
+		price: order.price ? sanitizeOrderPrice(order.price.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick) : undefined, // To differentiate between single and multiple orders
+		deviationInBasisPoints: order.deviationInBasisPoints ? order.deviationInBasisPoints.plus(defaultDeviationIncrementBasisPoints) : undefined, // To differentiate between single and multiple orders
+		deviationInPercentage: order.deviationInPercentage ? order.deviationInPercentage.plus(defaultDeviationIncrementPercentage) : undefined, // To differentiate between single and multiple orders
 	})) as FinPlaceOrderRequest[];
 
 	orderTemplates.replace.single.fixedPrice.buy = {
