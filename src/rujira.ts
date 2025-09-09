@@ -2820,16 +2820,16 @@ export class Fin {
 			let deviationInBasisPoints: OrderDeviationInBasisPoints;
 			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
 
-			if (rawOrder.price.fixed) {
-				type = OrderType.FIXED_PRICE;
-				price = Decimal(rawOrder.price.fixed);
-				deviationInPercentage = DECIMAL_0;
-				deviationInBasisPoints = DECIMAL_0;
-			} else if (rawOrder.price.oracle) {
+			if (rawOrder.price.oracle) {
 				type = OrderType.TRACKING_ORDER;
 				deviationInPercentage = Decimal(rawOrder.price.oracle).div(DECIMAL_100); // Convert from bps (basis points) to percentage
 				deviationInBasisPoints = Decimal(rawOrder.price.oracle);
 				price = Decimal(rawOrder.rate || '0');
+			} else if (rawOrder.price.fixed) {
+				type = OrderType.FIXED_PRICE;
+				price = Decimal(rawOrder.price.fixed);
+				deviationInPercentage = DECIMAL_0;
+				deviationInBasisPoints = DECIMAL_0;
 			} else {
 				throw new Error(`Unknown order price type: ${JSON.stringify(rawOrder)}`);
 			}
@@ -3839,7 +3839,7 @@ export class Fin {
 
 		orderDeviationInBasisPoints = orderDeviationInBasisPoints || orderDeviationInPercentage?.mul(DECIMAL_100) || order?.deviationInBasisPoints || order?.deviationInPercentage?.mul(DECIMAL_100) || undefined;
 
-		if (orderDeviationInBasisPoints?.gt(DECIMAL_0)) {
+		if (orderDeviationInBasisPoints && !orderDeviationInBasisPoints.abs().eq(DECIMAL_0)) {
 			orderPrice = undefined;
 		} else if (orderPrice?.gt(DECIMAL_0)) {
 			orderDeviationInBasisPoints = undefined;
