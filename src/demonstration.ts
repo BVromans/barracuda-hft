@@ -665,11 +665,11 @@ import { cast, dump, sanitizeOrderPrice, sleep } from "./utils";
 		console.log('🎉 ALL SINGLE ORDERS REPLACED SUCCESSFULLY!');
 	}
 
-	console.log('WAITING FOR 1 SECOND...');
-	sleep(1000);
-
 	if (active.cancelOrder) {
 		console.log('❌ CANCELLING SINGLE ORDERS ================================================================================');
+
+		console.log('WAITING FOR 1 SECOND...');
+		sleep(1000);
 
 		const fixedPriceBuyOrder = await rujira.fin.cancelOrder({
 			orderId: rujira.fin.getOrderId({
@@ -825,11 +825,11 @@ import { cast, dump, sanitizeOrderPrice, sleep } from "./utils";
 		console.log('🎉 ALL MULTIPLE ORDERS REPLACED SUCCESSFULLY!');
 	}
 
-	console.log('WAITING FOR 1 SECOND...');
-	sleep(1000);
-
 	if (active.cancelOrders) {
 		console.log('❌ CANCELLING MULTIPLE ORDERS ================================================================================');
+
+		console.log('WAITING FOR 1 SECOND...');
+		sleep(1000);
 
 		const cancelOrders = await rujira.fin.cancelOrders({
 			orderIds: orderTemplates.cancel.multiple.map(order => rujira.fin.getOrderId({
