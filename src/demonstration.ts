@@ -20,6 +20,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		getCandles: false,
 		getIndicators: false,
 		getBalances: false,
+		cancelAllOrdersBefore: false,
+		withdrawAllFilledOrdersBefore: false,
 		placeOrder: false,
 		getOrder: false,
 		replaceOrder: false,
@@ -465,7 +467,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('getBalances:\n', dump(getBalances));
 	}
 
-	if (active.cancelAllOrders) {
+	if (active.cancelAllOrdersBefore) {
 		console.log('❌ CANCELLING ALL ORDERS ================================================================================');
 
 		const cancelAllOrders = await rujira.fin.cancelAllOrders({
@@ -484,7 +486,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('🎉 ALL ORDERS CANCELLED SUCCESSFULLY!');
 	}
 
-	if (active.withdrawAllFilledOrders) {
+	if (active.withdrawAllFilledOrdersBefore) {
 		console.log('💰 WITHDRAWING ALL FILLED ORDERS ================================================================================');
 
 		const withdrawAllFilledOrders = await rujira.fin.withdrawAllFilledOrders({
