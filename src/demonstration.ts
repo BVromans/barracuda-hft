@@ -3,7 +3,7 @@ import "./bootstrap";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
 import { DECIMAL_0, DECIMAL_100, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, Map, Market, MarketSymbol, Order, OrderDeviationInBasisPoints, OrderId, OrderPrice, OrderSide, OrderStatus, OrderType, Price, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
-import { cast, dump, sanitizeOrderPrice } from "./utils";
+import { cast, dump, sanitizeOrderPrice, sleep } from "./utils";
 
 (async function run() {
 	const active = {
@@ -665,6 +665,9 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('🎉 ALL SINGLE ORDERS REPLACED SUCCESSFULLY!');
 	}
 
+	console.log('WAITING FOR 1 SECOND...');
+	sleep(1000);
+
 	if (active.cancelOrder) {
 		console.log('❌ CANCELLING SINGLE ORDERS ================================================================================');
 
@@ -821,6 +824,9 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 
 		console.log('🎉 ALL MULTIPLE ORDERS REPLACED SUCCESSFULLY!');
 	}
+
+	console.log('WAITING FOR 1 SECOND...');
+	sleep(1000);
 
 	if (active.cancelOrders) {
 		console.log('❌ CANCELLING MULTIPLE ORDERS ================================================================================');
