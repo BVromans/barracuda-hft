@@ -470,27 +470,33 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 
 		const fixedPriceBuyOrder = await rujira.fin.placeOrder(orderTemplates.place.single.fixedPrice.buy);
 		orders.fixedPrice.buy = fixedPriceBuyOrder.order;
-		console.log('✅ Fixed Price BUY Order Placed:\n', dump(fixedPriceBuyOrder));
+		console.log(`✅ Fixed Price BUY Order Placed: ${fixedPriceBuyOrder.order.id}`);
+		// console.log('\n', dump(fixedPriceBuyOrder));
 
 		const fixedPriceSellOrder = await rujira.fin.placeOrder(orderTemplates.place.single.fixedPrice.sell);
 		orders.fixedPrice.sell = fixedPriceSellOrder.order;
-		console.log('✅ Fixed Price SELL Order Placed:\n', dump(fixedPriceSellOrder));
+		console.log(`✅ Fixed Price SELL Order Placed: ${fixedPriceSellOrder.order.id}`);
+		// console.log('\n', dump(fixedPriceSellOrder));
 
 		const trackingBuyOrder = await rujira.fin.placeOrder(orderTemplates.place.single.tracking.buy);
 		orders.tracking.buy = trackingBuyOrder.order;
-		console.log('✅ Tracking BUY Order Placed:\n', dump(trackingBuyOrder));
+		console.log(`✅ Tracking BUY Order Placed: ${trackingBuyOrder.order.id}`);
+		// console.log('\n', dump(trackingBuyOrder));
 
 		const trackingSellOrder = await rujira.fin.placeOrder(orderTemplates.place.single.tracking.sell);
 		orders.tracking.sell = trackingSellOrder.order;
-		console.log('✅ Tracking SELL Order Placed:\n', dump(trackingSellOrder));
+		console.log(`✅ Tracking SELL Order Placed: ${trackingSellOrder.order.id}`);
+		// console.log('\n', dump(trackingSellOrder));
 
 		// const marketBuyOrder = await rujira.fin.placeOrder(orderTemplates.place.single.market.buy);
 		// orders.market.buy = marketBuyOrder.order;
-		// console.log('✅ Market BUY Order Placed:\n', dump(marketBuyOrder));
+		// console.log(`✅ Market BUY Order Placed: ${marketBuyOrder.order.id}`);
+		// console.log('\n', dump(marketBuyOrder));
 
 		// const marketSellOrder = await rujira.fin.placeOrder(orderTemplates.place.single.market.sell);
 		// orders.market.sell = marketSellOrder.order;
-		// console.log('✅ Market SELL Order Placed:\n', dump(marketSellOrder));
+		// console.log(`✅ Market SELL Order Placed: ${marketSellOrder.order.id}`);
+		// console.log('\n', dump(marketSellOrder));
 
 		console.log('🎉 ALL SINGLE ORDERS PLACED SUCCESSFULLY!');
 	}
@@ -509,7 +515,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			orderPrice: cast<OrderPrice>(orderTemplates.place.single.fixedPrice.buy.price),
 		});
 		orders.fixedPrice.buy = buyFixedPriceOrder;
-		console.log('✅ Fixed Price BUY Order Retrieved:\n', dump(buyFixedPriceOrder));
+		console.log(`✅ Fixed Price BUY Order Retrieved: ${buyFixedPriceOrder.id}`);
+		// console.log('\n', dump(buyFixedPriceOrder));
 		console.log('');
 
 		const sellFixedPriceOrder = await rujira.fin.getOrder({
@@ -523,7 +530,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			orderPrice: cast<OrderPrice>(orderTemplates.place.single.fixedPrice.sell.price)
 		});
 		orders.fixedPrice.sell = sellFixedPriceOrder;
-		console.log('✅ Fixed Price SELL Order Retrieved:\n', dump(sellFixedPriceOrder));
+		console.log(`✅ Fixed Price SELL Order Retrieved: ${sellFixedPriceOrder.id}`);
+		// console.log('\n', dump(sellFixedPriceOrder));
 		console.log('');
 
 		const buyTrackingOrder = await rujira.fin.getOrder({
@@ -538,7 +546,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// orderDeviationInPercentage: cast<OrderDeviationInPercentage>(orderTemplates.place.single.tracking.buy.deviationInPercentage)
 		});
 		orders.tracking.buy = buyTrackingOrder;
-		console.log('✅ Tracking BUY Order Retrieved:\n', dump(buyTrackingOrder));
+		console.log(`✅ Tracking BUY Order Retrieved: ${buyTrackingOrder.id}`);
+		// console.log('\n', dump(buyTrackingOrder));
 		console.log('');
 
 		const sellTrackingOrder = await rujira.fin.getOrder({
@@ -553,7 +562,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// orderDeviationInPercentage: cast<OrderDeviationInPercentage>(orderTemplates.place.single.tracking.sell.deviationInPercentage)
 		});
 		orders.tracking.sell = sellTrackingOrder;
-		console.log('✅ Tracking SELL Order Retrieved:\n', dump(sellTrackingOrder));
+		console.log(`✅ Tracking SELL Order Retrieved: ${sellTrackingOrder.id}`);
+		// console.log('\n', dump(sellTrackingOrder));
 
 		console.log('🎉 ALL SINGLE ORDERS RETRIEVED SUCCESSFULLY!');
 	}
@@ -563,19 +573,23 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 
 		const fixedPriceBuyOrder = await rujira.fin.replaceOrder(orderTemplates.replace.single.fixedPrice.buy);
 		orders.fixedPrice.buy = fixedPriceBuyOrder.order;
-		console.log('✅ Fixed Price BUY Order Replaced:\n', dump(fixedPriceBuyOrder));
+		console.log(`✅ Fixed Price BUY Order Replaced: ${fixedPriceBuyOrder.order.id}`);
+		// console.log('\n', dump(fixedPriceBuyOrder));
 
 		const fixedPriceSellOrder = await rujira.fin.replaceOrder(orderTemplates.replace.single.fixedPrice.sell);
 		orders.fixedPrice.sell = fixedPriceSellOrder.order;
-		console.log('✅ Fixed Price SELL Order Replaced:\n', dump(fixedPriceSellOrder));
+		console.log(`✅ Fixed Price SELL Order Replaced: ${fixedPriceSellOrder.order.id}`);
+		// console.log('\n', dump(fixedPriceSellOrder));
 
 		const trackingBuyOrder = await rujira.fin.replaceOrder(orderTemplates.replace.single.tracking.buy);
 		orders.tracking.buy = trackingBuyOrder.order;
-		console.log('✅ Tracking BUY Order Replaced:\n', dump(trackingBuyOrder));
+		console.log(`✅ Tracking BUY Order Replaced: ${trackingBuyOrder.order.id}`);
+		// console.log('\n', dump(trackingBuyOrder));
 
 		const trackingSellOrder = await rujira.fin.replaceOrder(orderTemplates.replace.single.tracking.sell);
 		orders.tracking.sell = trackingSellOrder.order;
-		console.log('✅ Tracking SELL Order Replaced:\n', dump(trackingSellOrder));
+		console.log(`✅ Tracking SELL Order Replaced: ${trackingSellOrder.order.id}`);
+		// console.log('\n', dump(trackingSellOrder));
 
 		console.log('🎉 ALL SINGLE ORDERS REPLACED SUCCESSFULLY!');
 	}
@@ -603,7 +617,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// market: orderTemplates.place.single.fixedPrice.buy.market,
 		});
 		orders.fixedPrice.buy = fixedPriceBuyOrder.order;
-		console.log('✅ Fixed Price BUY Order Cancelled:\n', dump(fixedPriceBuyOrder));
+		console.log(`✅ Fixed Price BUY Order Cancelled: ${fixedPriceBuyOrder.order.id}`);
+		// console.log('\n', dump(fixedPriceBuyOrder));
 
 		const fixedPriceSellOrder = await rujira.fin.cancelOrder({
 			orderId: rujira.fin.getOrderId({
@@ -625,7 +640,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// market: orderTemplates.place.single.fixedPrice.sell.market,
 		});
 		orders.fixedPrice.sell = fixedPriceSellOrder.order;
-		console.log('✅ Fixed Price SELL Order Cancelled:\n', dump(fixedPriceSellOrder));
+		console.log(`✅ Fixed Price SELL Order Cancelled: ${fixedPriceSellOrder.order.id}`);
+		// console.log('\n', dump(fixedPriceSellOrder));
 
 		const trackingBuyOrder = await rujira.fin.cancelOrder({
 			orderId: rujira.fin.getOrderId({
@@ -647,7 +663,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// market: orderTemplates.place.single.tracking.buy.market,
 		});
 		orders.tracking.buy = trackingBuyOrder.order;
-		console.log('✅ Tracking BUY Order Cancelled:\n', dump(trackingBuyOrder));
+		console.log(`✅ Tracking BUY Order Cancelled: ${trackingBuyOrder.order.id}`);
+		// console.log('\n', dump(trackingBuyOrder));
 
 		const trackingSellOrder = await rujira.fin.cancelOrder({
 			orderId: rujira.fin.getOrderId({
@@ -669,7 +686,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// market: orderTemplates.place.single.tracking.sell.market,
 		});
 		orders.tracking.sell = trackingSellOrder.order;
-		console.log('✅ Tracking SELL Order Cancelled:\n', dump(trackingSellOrder));
+		console.log(`✅ Tracking SELL Order Cancelled: ${trackingSellOrder.order.id}`);
+		// console.log('\n', dump(trackingSellOrder));
 
 		console.log('🎉 ALL SINGLE ORDERS CANCELLED SUCCESSFULLY!');
 	}
@@ -685,8 +703,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.multiple = placeOrders.orders;
 		console.log('✅ Orders Placed:');
 		console.log('   📊 Total Orders:', dump(placeOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(placeOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(placeOrders.transactions.keySeq().toJS()));
+		console.log('   🆔 Order IDs\n:', dump(placeOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes\n:', dump(placeOrders.transactions.keySeq().toJS()));
 		console.log('');
 
 		console.log('🎉 ALL MULTIPLE ORDERS PLACED SUCCESSFULLY!');
@@ -710,8 +728,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.multiple = getOrders;
 		console.log('✅ Orders Retrieved:');
 		console.log('   📊 Total Orders:', dump(getOrders.size));
-		console.log('   🆔 Order IDs:', dump(getOrders.keySeq().toJS()));
-		console.log('   📋 Order Details:', dump(getOrders.toJS()));
+		console.log('   🆔 Order IDs\n:', dump(getOrders.keySeq().toJS()));
+		// console.log('   📋 Order Details:\n', dump(getOrders.toJS()));
 
 		console.log('🎉 ALL MULTIPLE ORDERS RETRIEVED SUCCESSFULLY!');
 	}
@@ -727,8 +745,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.multiple = replaceOrders.orders;
 		console.log('✅ Orders Replaced:');
 		console.log('   📊 Total Orders:', dump(replaceOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(replaceOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(replaceOrders.transactions.keySeq().toJS()));
+		console.log('   🆔 Order IDs\n:', dump(replaceOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes\n:', dump(replaceOrders.transactions.keySeq().toJS()));
 
 		console.log('🎉 ALL MULTIPLE ORDERS REPLACED SUCCESSFULLY!');
 	}
@@ -759,8 +777,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.multiple = cancelOrders.orders;
 		console.log('✅ Orders Cancelled:');
 		console.log('   📊 Total Orders:', dump(cancelOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(cancelOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(cancelOrders.transactions.keySeq().toJS()));
+		console.log('   🆔 Order IDs\n:', dump(cancelOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes\n:', dump(cancelOrders.transactions.keySeq().toJS()));
 
 		console.log('🎉 ALL MULTIPLE ORDERS CANCELLED SUCCESSFULLY!');
 	}
@@ -778,8 +796,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.allCanceled = cancelAllOrders.orders;
 		console.log('✅ All Orders Cancelled:');
 		console.log('   📊 Total Orders:', dump(cancelAllOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(cancelAllOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(cancelAllOrders.transactions.keySeq().toJS()));
+		console.log('   🆔 Order IDs\n:', dump(cancelAllOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes\n:', dump(cancelAllOrders.transactions.keySeq().toJS()));
 
 		console.log('🎉 ALL ORDERS CANCELLED SUCCESSFULLY!');
 	}
@@ -795,8 +813,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		orders.allWithdrawn = withdrawAllFilledOrders.orders;
 		console.log('✅ Filled Orders Withdrawn:');
 		console.log('   📊 Total Orders:', dump(withdrawAllFilledOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(withdrawAllFilledOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(withdrawAllFilledOrders.transactions.keySeq().toJS()));
+		console.log('   🆔 Order IDs\n:', dump(withdrawAllFilledOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes\n:', dump(withdrawAllFilledOrders.transactions.keySeq().toJS()));
 	}
 })();
 
