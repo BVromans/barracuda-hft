@@ -72,8 +72,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 	const defaultSpreadPercentage = Decimal('50');
 	const defaultFillableSpreadPercentage = Decimal('0.01'); // 1 means 1%
 	const defaultPriceIncrementPercentage = Decimal('0.1'); // 1 means 1%
-	const defaultDeviationIncrementPercentage = Decimal('0.1'); // 1 means 1%
-	const defaultDeviationIncrementBasisPoints = defaultDeviationIncrementPercentage.mul(DECIMAL_100); // 1bps means 0.01%, 10bps means 0.1%
+	const defaultDeviationIncrementPercentage = Decimal('0.01'); // 1 means 1%
+	const defaultDeviationIncrementBasisPoints = defaultDeviationIncrementPercentage.mul(DECIMAL_100); // 1bps means 0.01%, 1bps means 0.01%
 	const defaultMaximumMarketOrderSlippagePercentage = Decimal('2.5'); // 1 means 1%
 
 	const defaultOrderMinimumAmountIncrement = Decimal('0.00000001'); // Depends on the market (BTC uses 8 decimals)
@@ -95,7 +95,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 
 	const defaultTrackingOrderMaximumDeviationPercentage = Decimal('2.5'); // 1% means 100bps, 2.5% means 250bps
 	const defaultTrackingOrderMaximumDeviationBasisPoints = defaultTrackingOrderMaximumDeviationPercentage.mul(DECIMAL_100); // 1bps means 0.01%, 250bps means 2.5%
-	const defaultFillableTrackingOrderPercentage = defaultFillableSpreadPercentage.neg(); // 1% means 100bps, -0.01% means -1bps
+	const defaultFillableTrackingOrderPercentage = defaultFillableSpreadPercentage; // 1% means 100bps, -0.01% means -1bps
 	const defaultFillableTrackingOrderBasisPoints = defaultFillableTrackingOrderPercentage.mul(DECIMAL_100); // 1bps means 0.01%, -1 bps means -0.01%
 
 	const sanitizeOrderPriceForDefaultMarket = (price: Decimal, side: OrderSide) => {
@@ -212,8 +212,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		type: OrderType.TRACKING_ORDER,
 		side: OrderSide.BUY,
 		amount: defaultOrderMinimumAmount,
-		deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints,
-		deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage,
+		deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints.neg(),
+		deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage.neg(),
 	} as FinPlaceOrderRequest;
 
 	orderTemplates.place.single.tracking.sell = {
@@ -257,16 +257,16 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.BUY, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultFillableTrackingOrderBasisPoints, deviationInPercentage: defaultFillableTrackingOrderPercentage },
 
 		// Tracking sell orders
-		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.SELL, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultFillableTrackingOrderBasisPoints, deviationInPercentage: defaultFillableTrackingOrderPercentage },
-		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.SELL, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints, deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage },
+		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.SELL, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultFillableTrackingOrderBasisPoints.neg(), deviationInPercentage: defaultFillableTrackingOrderPercentage.neg() },
+		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.SELL, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints.neg(), deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage.neg() },
 	];
 
 	orderTemplates.place.multiple = orderTemplates.place.multiple.map(order => ({
 		...order,
 		amount: order.amount.plus(defaultOrderMinimumAmount), // To differentiate between single and multiple orders
 		price: order.price ? sanitizeOrderPriceForDefaultMarket(order.price.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), order.side) : undefined, // To differentiate between single and multiple orders
-		deviationInBasisPoints: order.deviationInBasisPoints ? order.deviationInBasisPoints.plus(defaultDeviationIncrementBasisPoints) : undefined, // To differentiate between single and multiple orders
-		deviationInPercentage: order.deviationInPercentage ? order.deviationInPercentage.plus(defaultDeviationIncrementPercentage) : undefined, // To differentiate between single and multiple orders
+		deviationInBasisPoints: order.deviationInBasisPoints ? order.deviationInBasisPoints.plus(order.side === OrderSide.BUY ? defaultDeviationIncrementBasisPoints.neg() : defaultDeviationIncrementBasisPoints) : undefined, // To differentiate between single and multiple orders
+		deviationInPercentage: order.deviationInPercentage ? order.deviationInPercentage.plus(order.side === OrderSide.BUY ? defaultDeviationIncrementPercentage.neg() : defaultDeviationIncrementPercentage) : undefined, // To differentiate between single and multiple orders
 	})) as FinPlaceOrderRequest[];
 
 	orderTemplates.replace.single.fixedPrice.buy = {
@@ -463,6 +463,40 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// ],
 		});
 		console.log('getBalances:\n', dump(getBalances));
+	}
+
+	if (active.cancelAllOrders) {
+		console.log('❌ CANCELLING ALL ORDERS ================================================================================');
+
+		const cancelAllOrders = await rujira.fin.cancelAllOrders({
+			ownerAddress: walletAddress,
+			// owner: undefined,
+			// marketAddress: defaultMarketAddress,
+			marketSymbol: defaultMarketSymbol,
+			// market: defaultMarket,
+		});
+		orders.allCanceled = cancelAllOrders.orders;
+		console.log('✅ All Orders Cancelled:');
+		console.log('   📊 Total Orders:', dump(cancelAllOrders.orders.size));
+		console.log('   🆔 Order IDs:\n', dump(cancelAllOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(cancelAllOrders.transactions.keySeq().toJS()));
+
+		console.log('🎉 ALL ORDERS CANCELLED SUCCESSFULLY!');
+	}
+
+	if (active.withdrawAllFilledOrders) {
+		console.log('💰 WITHDRAWING ALL FILLED ORDERS ================================================================================');
+
+		const withdrawAllFilledOrders = await rujira.fin.withdrawAllFilledOrders({
+			ownerAddress: walletAddress,
+			marketAddress: defaultMarketAddress,
+			marketSymbol: defaultMarketSymbol,
+		});
+		orders.allWithdrawn = withdrawAllFilledOrders.orders;
+		console.log('✅ Filled Orders Withdrawn:');
+		console.log('   📊 Total Orders:', dump(withdrawAllFilledOrders.orders.size));
+		console.log('   🆔 Order IDs:\n', dump(withdrawAllFilledOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(withdrawAllFilledOrders.transactions.keySeq().toJS()));
 	}
 
 	if (active.placeOrder) {
