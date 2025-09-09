@@ -20,7 +20,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		getCandles: false,
 		getIndicators: false,
 		getBalances: false,
-		placeOrder: true,
+		placeOrder: false,
 		placeOrders: false,
 		getOrder: false,
 		getOrders: false,
@@ -28,7 +28,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		replaceOrders: false,
 		cancelOrder: false,
 		cancelOrders: false,
-		cancelAllOrders: true,
+		cancelAllOrders: false,
 		withdrawAllFilledOrders: false,
 	};
 
@@ -91,7 +91,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 	const defaultSellOrderFillablePrice = defaultMarketPrice.mul(DECIMAL_100.minus(defaultFillableSpreadPercentage).div(DECIMAL_100));
 	const defaultSellOrderMinimumPrice = defaultMarketPrice.mul(DECIMAL_100.plus(defaultSpreadPercentage).div(DECIMAL_100));
 	const defaultSellOrderMiddlePrice = Decimal('500000'); // Depends on the market, selling 1 BTC for $500,000 is profitable
-	const defaultSellOrderMaximumPrice = Decimal('999999'); // Depends on the market, selling 1 BTC for $999,999 is profitable
+	const defaultSellOrderMaximumPrice = Decimal('799999'); // Depends on the market, selling 1 BTC for $999,999 is profitable
 
 	const defaultTrackingOrderMaximumDeviationPercentage = Decimal('2.5'); // 1% means 100bps, 2.5% means 250bps
 	const defaultTrackingOrderMaximumDeviationBasisPoints = defaultTrackingOrderMaximumDeviationPercentage.mul(DECIMAL_100); // 1bps means 0.01%, 250bps means 2.5%
