@@ -2,7 +2,7 @@ import Decimal from "decimal.js";
 import "./bootstrap";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
-import { DECIMAL_100, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, Map, Market, MarketSymbol, Order, OrderBookOrder, OrderDeviationInBasisPoints, OrderDeviationInPercentage, OrderId, OrderPrice, OrderSide, OrderStatus, OrderType, Price, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
+import { DECIMAL_100, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, Map, Market, MarketSymbol, Order, OrderDeviationInBasisPoints, OrderId, OrderPrice, OrderSide, OrderStatus, OrderType, Price, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
 import { cast, dump, sanitizeOrderPrice } from "./utils";
 
 (async function run() {
@@ -28,7 +28,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		replaceOrders: false,
 		cancelOrder: false,
 		cancelOrders: false,
-		cancelAllOrders: false,
+		cancelAllOrders: true,
 		withdrawAllFilledOrders: false,
 	};
 
@@ -97,6 +97,26 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 	const defaultTrackingOrderMaximumDeviationBasisPoints = defaultTrackingOrderMaximumDeviationPercentage.mul(DECIMAL_100); // 1bps means 0.01%, 250bps means 2.5%
 	const defaultFillableTrackingOrderPercentage = defaultFillableSpreadPercentage.neg(); // 1% means 100bps, -0.01% means -1bps
 	const defaultFillableTrackingOrderBasisPoints = defaultFillableTrackingOrderPercentage.mul(DECIMAL_100); // 1bps means 0.01%, -1 bps means -0.01%
+
+	const sanitizeOrderPriceForDefaultMarket = (price: Decimal, side: OrderSide) => {
+		try {
+			return sanitizeOrderPrice(price, defaultMarket.tick)
+		} catch (error) {
+			if (side === OrderSide.BUY) {
+				if (price.toDecimalPlaces(0).lte(defaultBuyOrderFillablePrice)) {
+					return sanitizeOrderPrice(price.toDecimalPlaces(0), defaultMarket.tick)
+				}
+			} else if (side === OrderSide.SELL) {
+				if (price.toDecimalPlaces(0).gte(defaultSellOrderFillablePrice)) {
+					return sanitizeOrderPrice(price.toDecimalPlaces(0), defaultMarket.tick)
+				}
+			} else {
+				throw error;
+			}
+
+			throw error;
+		};
+	}
 
 	const orderTemplates = {
 		place: {
@@ -176,7 +196,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		type: OrderType.FIXED_PRICE,
 		side: OrderSide.BUY,
 		amount: defaultOrderMinimumAmount,
-		price: sanitizeOrderPrice(defaultBuyOrderMaximumPrice.toDecimalPlaces(4), defaultMarket.tick)
+		price: sanitizeOrderPriceForDefaultMarket(defaultBuyOrderMaximumPrice.toDecimalPlaces(4), OrderSide.BUY)
 	} as FinPlaceOrderRequest;
 
 	orderTemplates.place.single.fixedPrice.sell = {
@@ -184,7 +204,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		type: OrderType.FIXED_PRICE,
 		side: OrderSide.SELL,
 		amount: defaultOrderMinimumAmount,
-		price: sanitizeOrderPrice(defaultSellOrderMinimumPrice.toDecimalPlaces(4), defaultMarket.tick)
+		price: sanitizeOrderPriceForDefaultMarket(defaultSellOrderMinimumPrice.toDecimalPlaces(4), OrderSide.SELL)
 	} as FinPlaceOrderRequest;
 
 	orderTemplates.place.single.tracking.buy = {
@@ -244,7 +264,7 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 	orderTemplates.place.multiple = orderTemplates.place.multiple.map(order => ({
 		...order,
 		amount: order.amount.plus(defaultOrderMinimumAmount), // To differentiate between single and multiple orders
-		price: order.price ? sanitizeOrderPrice(order.price.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick) : undefined, // To differentiate between single and multiple orders
+		price: order.price ? sanitizeOrderPriceForDefaultMarket(order.price.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), order.side) : undefined, // To differentiate between single and multiple orders
 		deviationInBasisPoints: order.deviationInBasisPoints ? order.deviationInBasisPoints.plus(defaultDeviationIncrementBasisPoints) : undefined, // To differentiate between single and multiple orders
 		deviationInPercentage: order.deviationInPercentage ? order.deviationInPercentage.plus(defaultDeviationIncrementPercentage) : undefined, // To differentiate between single and multiple orders
 	})) as FinPlaceOrderRequest[];
