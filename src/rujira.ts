@@ -2820,12 +2820,12 @@ export class Fin {
 			let deviationInBasisPoints: OrderDeviationInBasisPoints;
 			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
 
-			if (rawOrder.price.oracle) {
+			if (rawOrder.price.oracle !== undefined) {
 				type = OrderType.TRACKING_ORDER;
 				deviationInPercentage = Decimal(rawOrder.price.oracle).div(DECIMAL_100); // Convert from bps (basis points) to percentage
 				deviationInBasisPoints = Decimal(rawOrder.price.oracle);
 				price = Decimal(rawOrder.rate || '0');
-			} else if (rawOrder.price.fixed) {
+			} else if (rawOrder.price.fixed !== undefined) {
 				type = OrderType.FIXED_PRICE;
 				price = Decimal(rawOrder.price.fixed);
 				deviationInPercentage = DECIMAL_0;
