@@ -2820,16 +2820,16 @@ export class Fin {
 			let deviationInBasisPoints: OrderDeviationInBasisPoints;
 			const side = rawOrder.side === 'quote' ? OrderSide.BUY : OrderSide.SELL;
 
-			if (rawOrder.price.fixed) {
-				type = OrderType.FIXED_PRICE;
-				price = Decimal(rawOrder.price.fixed);
-				deviationInPercentage = DECIMAL_0;
-				deviationInBasisPoints = DECIMAL_0;
-			} else if (rawOrder.price.oracle) {
+			if (rawOrder.price.oracle !== undefined) {
 				type = OrderType.TRACKING_ORDER;
 				deviationInPercentage = Decimal(rawOrder.price.oracle).div(DECIMAL_100); // Convert from bps (basis points) to percentage
 				deviationInBasisPoints = Decimal(rawOrder.price.oracle);
 				price = Decimal(rawOrder.rate || '0');
+			} else if (rawOrder.price.fixed !== undefined) {
+				type = OrderType.FIXED_PRICE;
+				price = Decimal(rawOrder.price.fixed);
+				deviationInPercentage = DECIMAL_0;
+				deviationInBasisPoints = DECIMAL_0;
 			} else {
 				throw new Error(`Unknown order price type: ${JSON.stringify(rawOrder)}`);
 			}
@@ -2938,7 +2938,7 @@ export class Fin {
 	 * @returns The response for the created order
 	 */
 	async placeOrder(request: FinPlaceOrderRequest): Promise<FinPlaceOrderResponse> {
-		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price, deviationInPercentage, deviationInBasisPoints } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price, deviationInPercentage, deviationInBasisPoints, maximumSlippagePercentage } = request;
 
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
@@ -2960,7 +2960,8 @@ export class Fin {
 							amount,
 							price,
 							deviationInPercentage,
-							deviationInBasisPoints
+							deviationInBasisPoints,
+							maximumSlippagePercentage
 						}
 					]
 				)
@@ -3021,7 +3022,7 @@ export class Fin {
 	 * @returns The response for the replaced order
 	 */
 	async replaceOrder(request: FinReplaceOrderRequest): Promise<FinReplaceOrderResponse> {
-		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price, deviationInPercentage, deviationInBasisPoints } = request;
+		let { ownerAddress, owner, marketAddress, marketSymbol, market, side, type, amount, price, deviationInPercentage, deviationInBasisPoints, maximumSlippagePercentage } = request;
 
 		const persistedOrders = await this.persistOrders({
 			ownerAddress,
@@ -3041,7 +3042,8 @@ export class Fin {
 					amount,
 					price,
 					deviationInPercentage,
-					deviationInBasisPoints
+					deviationInBasisPoints,
+					maximumSlippagePercentage
 				}])
 			}
 		});
@@ -3305,6 +3307,8 @@ export class Fin {
 			});
 			orders.withdraw = withdrawOrderIds;
 		}
+
+		const memo = 'ca471857845511f5b27c748969cf2b37cbca7c2e';
 
 		// ===== VALIDATION =====
 		if (!ownerAddress) {
@@ -3729,6 +3733,8 @@ export class Fin {
 			throw new Error("Due the Rujira limitations, it is not possible to persist more than one market order");
 		}
 
+		const fee = 'auto';
+
 		const message: any = {};
 
 		if (ordersMessages.length > 0) {
@@ -3761,8 +3767,8 @@ export class Fin {
 			ownerAddress,
 			contractAddress,
 			message,
-			'auto',
-			undefined,
+			fee,
+			memo,
 			funds
 		);
 
@@ -3837,7 +3843,7 @@ export class Fin {
 
 		orderDeviationInBasisPoints = orderDeviationInBasisPoints || orderDeviationInPercentage?.mul(DECIMAL_100) || order?.deviationInBasisPoints || order?.deviationInPercentage?.mul(DECIMAL_100) || undefined;
 
-		if (orderDeviationInBasisPoints?.gt(DECIMAL_0)) {
+		if (orderDeviationInBasisPoints && !orderDeviationInBasisPoints.abs().eq(DECIMAL_0)) {
 			orderPrice = undefined;
 		} else if (orderPrice?.gt(DECIMAL_0)) {
 			orderDeviationInBasisPoints = undefined;

@@ -2,8 +2,8 @@ import Decimal from "decimal.js";
 import "./bootstrap";
 import { properties } from "./properties";
 import { Rujira } from "./rujira";
-import { DECIMAL_100, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, Map, Market, MarketSymbol, Order, OrderBookOrder, OrderDeviationInBasisPoints, OrderId, OrderPrice, OrderSide, OrderStatus, OrderType, Price, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
-import { cast, dump, sanitizeOrderPrice } from "./utils";
+import { DECIMAL_0, DECIMAL_100, FinPlaceOrderRequest, FinReplaceOrderRequest, Indicator, Map, Market, MarketSymbol, Order, OrderDeviationInBasisPoints, OrderId, OrderPrice, OrderSide, OrderStatus, OrderType, Price, RujiraConstructorOptions, RujiraInitializeOptions, Token, TokenSymbol, WalletAddress, WalletMnemonic, WalletPrivateKey } from "./types";
+import { cast, dump, sanitizeOrderPrice, sleep } from "./utils";
 
 (async function run() {
 	const active = {
@@ -20,13 +20,15 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		getCandles: false,
 		getIndicators: false,
 		getBalances: false,
+		cancelAllOrdersBefore: false,
+		withdrawAllFilledOrdersBefore: false,
 		placeOrder: false,
-		placeOrders: false,
 		getOrder: false,
-		getOrders: false,
 		replaceOrder: false,
-		replaceOrders: false,
 		cancelOrder: false,
+		placeOrders: false,
+		getOrders: false,
+		replaceOrders: false,
 		cancelOrders: false,
 		cancelAllOrders: false,
 		withdrawAllFilledOrders: false,
@@ -43,6 +45,8 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 
 	console.log('\n--------------------------------------------------------------------------------\n');
 
+	const defaultTransactionHash = '6A2B2D1821B1E248410BA3CF273D65215C357DE559E0ED4117AEA3AA7967C05B';
+
 	const defaultMarketAddress = 'thor1dwsnlqw3lfhamc5dz3r57hlsppx3a2n2d7kppccxfdhfazjh06rs5077sz';
 	const defaultMarketSymbol = 'BTC-BTC/ETH-USDC';
 	const defaultMarket = await rujira.fin.getMarket({
@@ -55,7 +59,9 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		marketSymbol: defaultMarketSymbol,
 	});
 
-	console.log('defaultMarketTicker:\n', defaultMarketTicker?.middlePrice?.baseToQuote?.toFixed());
+	const defaultMarketPrice = cast<Price>(defaultMarketTicker.middlePrice.baseToQuote);
+
+	console.log('defaultMarketPrice:\n', defaultMarketPrice.toFixed());
 
 	const defaultMarketOrderBook = await rujira.fin.getOrderBook({
 		marketAddress: defaultMarketAddress,
@@ -66,459 +72,301 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 	console.log('defaultMarketOrderBook:bestAsk:\n', defaultMarketOrderBook?.book?.bestAsk?.price?.toFixed());
 
 	const defaultSpreadPercentage = Decimal('50');
-	const defaultFillableSpreadPercentage = Decimal('1');
-	const defaultPriceIncrementPercentage = Decimal('1');
-	const defaultMaximumMarketOrderSlippagePercentage = Decimal('2.5');
+	const defaultFillableSpreadPercentage = Decimal('0.03'); // 1 means 1%
+	const defaultPriceIncrementPercentage = Decimal('0.01'); // 1 means 1%
+	const defaultDeviationIncrementPercentage = Decimal('0.01'); // 1 means 1%
+	const defaultDeviationIncrementBasisPoints = defaultDeviationIncrementPercentage.mul(DECIMAL_100); // 1bps means 0.01%, 1bps means 0.01%
+	const defaultMaximumMarketOrderSlippagePercentage = Decimal('2.5'); // 1 means 1%
 
-	const defaultOrderMininumAmountIncrement = Decimal('0.00000001'); // Depends on the market decimals
-	const defaultOrderMinimumPriceIncrement = Decimal('0.000000000001'); // Usually 1e-12
+	const defaultOrderMinimumAmountIncrement = Decimal('0.00000001'); // Depends on the market (BTC uses 8 decimals)
+	const defaultOrderMinimumPriceIncrement = Decimal('0.000000000001'); // Depends on the market (BTC uses 12 decimals)
 
-	const defaultOrderMininumAmount = Decimal('0.00000001'); // Depends on the market decimals
-	const defaultOrderMiddleAmount = Decimal('0.01234567'); // Depends on the market decimals
-	const defaultOrderMaximumAmount = Decimal('0.12345678'); // Depends on the market decimals
+	const defaultOrderMinimumAmount = Decimal('0.00000009'); // Depends on the market, for BTC at the current price, this is ~$0.01 (1 cent)
+	const defaultOrderMiddleAmount = Decimal('0.00000018'); // Depends on the market, for BTC at the current price, this is ~$0.02 (2 cents)
+	const defaultOrderMaximumAmount = Decimal('0.00000027'); // Depends on the market, for BTC at the current price, this is ~$0.05 (5 cents)
 
-	const defaultBuyOrderMininumPrice = Decimal('0.01000000'); // Usually 1e-12
-	const defaultBuyOrderMiddlePrice = Decimal('0.01234'); // Depends on the market tick
-	const defaultBuyOrderMaximumPrice = cast<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.div(DECIMAL_100)); // Depends on the market tick
-	const defaultBuyOrderFillablePrice = cast<OrderBookOrder>(defaultMarketOrderBook.book.bestAsk).price.mul(defaultFillableSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100)); // Depends on the market tick
+	const defaultBuyOrderMinimumPrice = Decimal('1'); // Depends on the market, buying 1 BTC for $1 is profitable
+	const defaultBuyOrderMiddlePrice = Decimal('2'); // Depends on the market, buying 1 BTC for $2 is profitable
+	const defaultBuyOrderMaximumPrice = defaultMarketPrice.mul(DECIMAL_100.minus(defaultSpreadPercentage).div(DECIMAL_100)); // Depends on the market, buying 1 BTC for $5 is profitable
+	const defaultBuyOrderFillablePrice = defaultMarketPrice.mul(DECIMAL_100.plus(defaultFillableSpreadPercentage).div(DECIMAL_100));
 
-	const defaultSellOrderMininumPrice = cast<Price>(defaultMarketTicker.middlePrice.baseToQuote).mul(defaultSpreadPercentage.plus(DECIMAL_100).div(DECIMAL_100)); // Depends on the market tick
-	const defaultSellOrderMiddlePrice = Decimal('98.76'); // Depends on the market tick
-	const defaultSellOrderMaximumPrice = Decimal('9999'); // Depends from the market "tick", which blocks the max precision
-	const defaultSellOrderFillablePrice = cast<OrderBookOrder>(defaultMarketOrderBook.book.bestBid).price.mul(DECIMAL_100.minus(defaultFillableSpreadPercentage).div(DECIMAL_100)); // Depends on the market tick
+	const defaultSellOrderFillablePrice = defaultMarketPrice.mul(DECIMAL_100.minus(defaultFillableSpreadPercentage).div(DECIMAL_100));
+	const defaultSellOrderMinimumPrice = defaultMarketPrice.mul(DECIMAL_100.plus(defaultSpreadPercentage).div(DECIMAL_100));
+	const defaultSellOrderMiddlePrice = Decimal('500000'); // Depends on the market, selling 1 BTC for $500,000 is profitable
+	const defaultSellOrderMaximumPrice = Decimal('799999'); // Depends on the market, selling 1 BTC for $999,999 is profitable
 
-	const trackingOrderMinimumDeviationBasisPoints = Decimal('10'); // 0.1%
-	const trackingOrderMinimumDeviationPercentage = Decimal('0.1');
-	const trackingOrderMiddleDeviationBasisPoints = Decimal('150'); // 1.5%
-	const trackingOrderMiddleDeviationPercentage = Decimal('1.5');
-	const trackingOrderMaximumDeviationBasisPoints = Decimal('250'); // 2.5%
-	const trackingOrderMaximumDeviationPercentage = Decimal('2.5');
+	const defaultTrackingOrderMaximumDeviationPercentage = Decimal('2.4'); // 1% means 100bps, 2.4% means 240bps
+	const defaultTrackingOrderMaximumDeviationBasisPoints = defaultTrackingOrderMaximumDeviationPercentage.mul(DECIMAL_100); // 1bps means 0.01%, 240bps means 2.4%
+	const defaultFillableTrackingOrderPercentage = defaultFillableSpreadPercentage; // 1% means 100bps, -0.01% means -1bps
+	const defaultFillableTrackingOrderBasisPoints = defaultFillableTrackingOrderPercentage.mul(DECIMAL_100); // 1bps means 0.01%, -1 bps means -0.01%
 
-	// Base template for all order types
-	const baseOrder = {
-		ownerAddress: walletAddress,
-		marketAddress: defaultMarketAddress,
-		marketSymbol: defaultMarketSymbol,
-		market: defaultMarket,
-	} as const;
+	const sanitizeOrderPriceForDefaultMarket = (price: Decimal, side: OrderSide) => {
+		try {
+			return sanitizeOrderPrice(price, defaultMarket.tick)
+		} catch (error) {
+			if (side === OrderSide.BUY) {
+				if (price.toDecimalPlaces(0).lte(defaultBuyOrderFillablePrice)) {
+					return sanitizeOrderPrice(price.toDecimalPlaces(0), defaultMarket.tick)
+				}
+			} else if (side === OrderSide.SELL) {
+				if (price.toDecimalPlaces(0).gte(defaultSellOrderFillablePrice)) {
+					return sanitizeOrderPrice(price.toDecimalPlaces(0), defaultMarket.tick)
+				}
+			} else {
+				throw error;
+			}
+
+			throw error;
+		};
+	}
 
 	const orderTemplates = {
 		place: {
 			single: {
 				fixedPrice: {
-					buy: {
-						...baseOrder,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.BUY,
-						amount: defaultOrderMiddleAmount,
-						price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.toDecimalPlaces(4), defaultMarket.tick)
-					} as FinPlaceOrderRequest,
-					sell: {
-						...baseOrder,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.SELL,
-						amount: defaultOrderMiddleAmount,
-						price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.toDecimalPlaces(4), defaultMarket.tick)
-					} as FinPlaceOrderRequest,
+					buy: null as unknown as FinPlaceOrderRequest,
+					sell: null as unknown as FinPlaceOrderRequest,
 				},
-				limit: {},
+				limit: {
+					buy: null as unknown as FinPlaceOrderRequest,
+					sell: null as unknown as FinPlaceOrderRequest,
+				},
 				tracking: {
-					buy: {
-						...baseOrder,
-						type: OrderType.TRACKING_ORDER,
-						side: OrderSide.BUY,
-						amount: defaultOrderMininumAmount,
-						deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMaximumDeviationPercentage
-					} as FinPlaceOrderRequest,
-					sell: {
-						...baseOrder,
-						type: OrderType.TRACKING_ORDER,
-						side: OrderSide.SELL,
-						amount: defaultOrderMininumAmount,
-						deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMaximumDeviationPercentage
-					} as FinPlaceOrderRequest,
+					buy: null as unknown as FinPlaceOrderRequest,
+					sell: null as unknown as FinPlaceOrderRequest,
 				},
 				market: {
-					buy: {
-						...baseOrder,
-						type: OrderType.MARKET,
-						side: OrderSide.BUY,
-						amount: defaultOrderMiddleAmount,
-						// price: undefined for market orders
-					} as FinPlaceOrderRequest,
-					sell: {
-						...baseOrder,
-						type: OrderType.MARKET,
-						side: OrderSide.SELL,
-						amount: defaultOrderMiddleAmount,
-						// price: undefined for market orders
-					} as FinPlaceOrderRequest,
+					buy: null as unknown as FinPlaceOrderRequest,
+					sell: null as unknown as FinPlaceOrderRequest,
 				},
-
 			},
-			multiple: [
-				// Fixed price buy orders
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMaximumAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMaximumPrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderFillablePrice.toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-
-				// Fixed price sell orders
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMaximumAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultSellOrderFillablePrice.toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-
-				// Tracking buy orders
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMiddleDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.BUY,
-					amount: defaultOrderMaximumAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-
-				// Tracking sell orders
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.SELL,
-					amount: defaultOrderMininumAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.SELL,
-					amount: defaultOrderMiddleAmount,
-					deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMiddleDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.SELL,
-					amount: defaultOrderMaximumAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-			]
+			multiple: Array<FinPlaceOrderRequest>(),
 		},
 		replace: {
 			single: {
 				fixedPrice: {
-					buy: {
-						...baseOrder,
-						marketSymbol: defaultMarketSymbol,
-						side: OrderSide.BUY,
-						amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-						price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.toDecimalPlaces(4), defaultMarket.tick)
-					} as FinReplaceOrderRequest,
-					sell: {
-						...baseOrder,
-						marketSymbol: defaultMarketSymbol,
-						side: OrderSide.SELL,
-						amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-						price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.toDecimalPlaces(4), defaultMarket.tick)
-					} as FinReplaceOrderRequest,
+					buy: null as unknown as FinReplaceOrderRequest,
+					sell: null as unknown as FinReplaceOrderRequest,
 				},
-				limit: {},
+				limit: {
+					buy: null as unknown as FinReplaceOrderRequest,
+					sell: null as unknown as FinReplaceOrderRequest,
+				},
 				tracking: {
-					buy: {
-						...baseOrder,
-						marketSymbol: defaultMarketSymbol,
-						side: OrderSide.BUY,
-						amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMininumAmount)),
-						deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMaximumDeviationPercentage
-					} as FinReplaceOrderRequest,
-					sell: {
-						...baseOrder,
-						marketSymbol: defaultMarketSymbol,
-						side: OrderSide.SELL,
-						amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMininumAmount)),
-						deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMaximumDeviationPercentage
-					} as FinReplaceOrderRequest,
+					buy: null as unknown as FinReplaceOrderRequest,
+					sell: null as unknown as FinReplaceOrderRequest,
 				},
 				market: {
 					buy: undefined as unknown as FinReplaceOrderRequest,
 					sell: undefined as unknown as FinReplaceOrderRequest,
 				},
 			},
-			multiple: [
-				// Fixed price replace orders
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinReplaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinReplaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinReplaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMaximumAmount.plus(Decimal(1).mul(defaultOrderMaximumAmount)),
-					price: sanitizeOrderPrice(defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinReplaceOrderRequest,
-
-				// Tracking order replacements
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMininumAmount)),
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinReplaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-					deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMiddleDeviationPercentage
-				} as FinReplaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMininumAmount)),
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinReplaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMininumAmount.plus(Decimal(1).mul(defaultOrderMiddleAmount)),
-					deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMiddleDeviationPercentage
-				} as FinReplaceOrderRequest,
-			]
+			multiple: Array<FinReplaceOrderRequest>(),
 		},
 		cancel: {
 			single: {
 				fixedPrice: {
-					buy: {
-						...baseOrder,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.BUY,
-						amount: defaultOrderMiddleAmount,
-						price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.toDecimalPlaces(4), defaultMarket.tick)
-					} as FinPlaceOrderRequest,
-					sell: {
-						...baseOrder,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.SELL,
-						amount: defaultOrderMiddleAmount,
-						price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.toDecimalPlaces(4), defaultMarket.tick)
-					} as FinPlaceOrderRequest,
+					buy: null as unknown as FinPlaceOrderRequest,
+					sell: null as unknown as FinPlaceOrderRequest,
 				},
-				limit: {},
+				limit: {
+					buy: null as unknown as FinReplaceOrderRequest,
+					sell: null as unknown as FinReplaceOrderRequest,
+				},
 				tracking: {
-					buy: {
-						...baseOrder,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.BUY,
-						amount: defaultOrderMiddleAmount,
-						deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMiddleDeviationPercentage
-					} as FinPlaceOrderRequest,
-					sell: {
-						...baseOrder,
-						type: OrderType.FIXED_PRICE,
-						side: OrderSide.SELL,
-						amount: defaultOrderMiddleAmount,
-						deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-						deviationInPercentage: trackingOrderMiddleDeviationPercentage
-					} as FinPlaceOrderRequest,
+					buy: null as unknown as FinPlaceOrderRequest,
+					sell: null as unknown as FinPlaceOrderRequest,
 				},
 				market: {
 					buy: undefined as unknown as FinPlaceOrderRequest,
 					sell: undefined as unknown as FinPlaceOrderRequest,
 				}
 			},
-			multiple: [
-				// Fixed price cancel orders
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultBuyOrderMiddlePrice.mul(DECIMAL_100.plus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMiddleAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMiddlePrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					side: OrderSide.SELL,
-					amount: defaultOrderMaximumAmount,
-					price: sanitizeOrderPrice(defaultSellOrderMaximumPrice.mul(DECIMAL_100.minus(defaultPriceIncrementPercentage).div(DECIMAL_100)).toDecimalPlaces(4), defaultMarket.tick)
-				} as FinPlaceOrderRequest,
-
-				// Tracking order cancellations
-				{
-					...baseOrder,
-					side: OrderSide.BUY,
-					amount: defaultOrderMininumAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.BUY,
-					amount: defaultOrderMiddleAmount,
-					deviationInBasisPoints: trackingOrderMiddleDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMiddleDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.SELL,
-					amount: defaultOrderMininumAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-				{
-					...baseOrder,
-					type: OrderType.TRACKING_ORDER,
-					side: OrderSide.SELL,
-					amount: defaultOrderMininumAmount,
-					deviationInBasisPoints: trackingOrderMaximumDeviationBasisPoints,
-					deviationInPercentage: trackingOrderMaximumDeviationPercentage
-				} as FinPlaceOrderRequest,
-			]
+			multiple: Array<FinPlaceOrderRequest>(),
 		},
 	}
+
+	const baseOrder = {
+		ownerAddress: walletAddress,
+		marketAddress: defaultMarketAddress,
+		marketSymbol: defaultMarketSymbol,
+		market: defaultMarket,
+	};
+
+	orderTemplates.place.single.fixedPrice.buy = {
+		...baseOrder,
+		type: OrderType.FIXED_PRICE,
+		side: OrderSide.BUY,
+		amount: defaultOrderMinimumAmount,
+		price: sanitizeOrderPriceForDefaultMarket(defaultBuyOrderMaximumPrice.toDecimalPlaces(4), OrderSide.BUY)
+	} as FinPlaceOrderRequest;
+
+	orderTemplates.place.single.fixedPrice.sell = {
+		...baseOrder,
+		type: OrderType.FIXED_PRICE,
+		side: OrderSide.SELL,
+		amount: defaultOrderMinimumAmount,
+		price: sanitizeOrderPriceForDefaultMarket(defaultSellOrderMinimumPrice.toDecimalPlaces(4), OrderSide.SELL)
+	} as FinPlaceOrderRequest;
+
+	orderTemplates.place.single.tracking.buy = {
+		...baseOrder,
+		type: OrderType.TRACKING_ORDER,
+		side: OrderSide.BUY,
+		amount: defaultOrderMinimumAmount,
+		deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints.neg(),
+		deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage.neg(),
+	} as FinPlaceOrderRequest;
+
+	orderTemplates.place.single.tracking.sell = {
+		...baseOrder,
+		type: OrderType.TRACKING_ORDER,
+		side: OrderSide.SELL,
+		amount: defaultOrderMinimumAmount,
+		deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints,
+		deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage,
+	} as FinPlaceOrderRequest;
+
+	orderTemplates.place.single.market.buy = {
+		...baseOrder,
+		type: OrderType.MARKET,
+		side: OrderSide.BUY,
+		amount: defaultOrderMinimumAmount,
+	} as FinPlaceOrderRequest;
+
+	orderTemplates.place.single.market.sell = {
+		...baseOrder,
+		type: OrderType.MARKET,
+		side: OrderSide.SELL,
+		amount: defaultOrderMinimumAmount,
+	} as FinPlaceOrderRequest;
+
+	orderTemplates.place.multiple = [
+		// Fixed price buy orders
+		{ ...baseOrder, type: OrderType.FIXED_PRICE, side: OrderSide.BUY, amount: defaultOrderMaximumAmount, price: defaultBuyOrderMinimumPrice },
+		{ ...baseOrder, type: OrderType.FIXED_PRICE, side: OrderSide.BUY, amount: defaultOrderMiddleAmount, price: defaultBuyOrderMiddlePrice },
+		{ ...baseOrder, type: OrderType.FIXED_PRICE, side: OrderSide.BUY, amount: defaultOrderMinimumAmount, price: defaultBuyOrderMaximumPrice },
+		{ ...baseOrder, type: OrderType.FIXED_PRICE, side: OrderSide.BUY, amount: defaultOrderMinimumAmount, price: defaultBuyOrderFillablePrice },
+
+		// Fixed price sell orders
+		{ ...baseOrder, type: OrderType.FIXED_PRICE, side: OrderSide.SELL, amount: defaultOrderMinimumAmount, price: defaultSellOrderFillablePrice },
+		{ ...baseOrder, type: OrderType.FIXED_PRICE, side: OrderSide.SELL, amount: defaultOrderMinimumAmount, price: defaultSellOrderMinimumPrice },
+		{ ...baseOrder, type: OrderType.FIXED_PRICE, side: OrderSide.SELL, amount: defaultOrderMiddleAmount, price: defaultSellOrderMiddlePrice },
+		{ ...baseOrder, type: OrderType.FIXED_PRICE, side: OrderSide.SELL, amount: defaultOrderMaximumAmount, price: defaultSellOrderMaximumPrice },
+
+		// Tracking buy orders
+		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.BUY, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints.neg(), deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage.neg() },
+		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.BUY, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultFillableTrackingOrderBasisPoints, deviationInPercentage: defaultFillableTrackingOrderPercentage },
+
+		// Tracking sell orders
+		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.SELL, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultFillableTrackingOrderBasisPoints.neg(), deviationInPercentage: defaultFillableTrackingOrderPercentage.neg() },
+		{ ...baseOrder, type: OrderType.TRACKING_ORDER, side: OrderSide.SELL, amount: defaultOrderMinimumAmount, deviationInBasisPoints: defaultTrackingOrderMaximumDeviationBasisPoints, deviationInPercentage: defaultTrackingOrderMaximumDeviationPercentage },
+	];
+
+	orderTemplates.place.multiple = orderTemplates.place.multiple.map(order => ({
+		...order,
+		// amount: order.amount.plus(defaultOrderMinimumAmount), // To differentiate between single and multiple orders
+		// price: order.price ? sanitizeOrderPriceForDefaultMarket(order.price.mul(DECIMAL_100.plus(order.side === OrderSide.BUY ? defaultPriceIncrementPercentage : defaultPriceIncrementPercentage.neg()).div(DECIMAL_100)).toDecimalPlaces(4), order.side) : undefined, // To differentiate between single and multiple orders
+		// deviationInBasisPoints: order.deviationInBasisPoints ? order.deviationInBasisPoints.plus(order.side === OrderSide.BUY ? defaultDeviationIncrementBasisPoints.neg() : defaultDeviationIncrementBasisPoints) : undefined, // To differentiate between single and multiple orders
+		// deviationInPercentage: order.deviationInPercentage ? order.deviationInPercentage.plus(order.side === OrderSide.BUY ? defaultDeviationIncrementPercentage.neg() : defaultDeviationIncrementPercentage) : undefined, // To differentiate between single and multiple orders
+	})) as FinPlaceOrderRequest[];
+
+	orderTemplates.replace.single.fixedPrice.buy = {
+		...orderTemplates.place.single.fixedPrice.buy,
+		amount: orderTemplates.place.single.fixedPrice.buy.amount.plus(orderTemplates.place.single.fixedPrice.buy.amount)
+	} as FinReplaceOrderRequest;
+
+	orderTemplates.replace.single.fixedPrice.sell = {
+		...orderTemplates.place.single.fixedPrice.sell,
+		amount: orderTemplates.place.single.fixedPrice.sell.amount.plus(orderTemplates.place.single.fixedPrice.sell.amount)
+	} as FinReplaceOrderRequest;
+
+	orderTemplates.replace.single.tracking.buy = {
+		...orderTemplates.place.single.tracking.buy,
+		amount: orderTemplates.place.single.tracking.buy.amount.plus(orderTemplates.place.single.tracking.buy.amount)
+	} as FinReplaceOrderRequest;
+
+	orderTemplates.replace.single.tracking.sell = {
+		...orderTemplates.place.single.tracking.sell,
+		amount: orderTemplates.place.single.tracking.sell.amount.plus(orderTemplates.place.single.tracking.sell.amount)
+	} as FinReplaceOrderRequest;
+
+	orderTemplates.replace.multiple = orderTemplates.place.multiple
+	.filter((order: FinPlaceOrderRequest) => {
+		const result =  !(
+			(
+				order.type === OrderType.TRACKING_ORDER
+				&& (
+					(
+						order.side === OrderSide.BUY
+						&& (
+							order.deviationInBasisPoints?.gt(DECIMAL_0)
+							|| order.deviationInPercentage?.gt(DECIMAL_0)
+						)
+					) || (
+						order.side === OrderSide.SELL
+						&& (
+							order.deviationInBasisPoints?.lt(DECIMAL_0)
+							|| order.deviationInPercentage?.lt(DECIMAL_0)
+						)
+					)
+				)
+			) || (
+				order.type === OrderType.FIXED_PRICE
+				&& (
+					(
+						order.side === OrderSide.BUY
+						&& order.price?.gt(defaultMarketPrice)
+					) || (
+						order.side === OrderSide.SELL
+						&& order.price?.lt(defaultMarketPrice)
+					)
+				)
+			)
+		)
+
+		return result;
+	}).map((order: FinPlaceOrderRequest) => ({
+		...order,
+		amount: order.amount.plus(order.amount)
+	})) as FinReplaceOrderRequest[];
+
+	orderTemplates.cancel.single.fixedPrice.buy = orderTemplates.replace.single.fixedPrice.buy as FinReplaceOrderRequest;
+	orderTemplates.cancel.single.fixedPrice.sell = orderTemplates.replace.single.fixedPrice.sell as FinReplaceOrderRequest;
+	orderTemplates.cancel.single.tracking.buy = orderTemplates.replace.single.tracking.buy as FinReplaceOrderRequest;
+	orderTemplates.cancel.single.tracking.sell = orderTemplates.replace.single.tracking.sell as FinReplaceOrderRequest;
+
+	orderTemplates.cancel.multiple = orderTemplates.replace.multiple as FinReplaceOrderRequest[];
 
 	const orders = {
 		fixedPrice: {
-			buy: {
-				single: undefined as unknown as Order,
-				multiple: undefined as unknown as Map<OrderId, Order>,
-				all: undefined as unknown as Map<OrderId, Order>,
-			},
-			sell: {
-				single: undefined as unknown as Order,
-				multiple: undefined as unknown as Map<OrderId, Order>,
-				all: undefined as unknown as Map<OrderId, Order>,
-			},
+			buy: undefined as unknown as Order,
+			sell: undefined as unknown as Order,
 		},
 		tracking: {
-			buy: {
-				single: undefined as unknown as Order,
-				multiple: undefined as unknown as Map<OrderId, Order>,
-				all: undefined as unknown as Map<OrderId, Order>,
-			},
-			sell: {
-				single: undefined as unknown as Order,
-				multiple: undefined as unknown as Map<OrderId, Order>,
-				all: undefined as unknown as Map<OrderId, Order>,
-			},
+			buy: undefined as unknown as Order,
+			sell: undefined as unknown as Order,
 		},
 		market: {
-			buy: {
-				single: undefined as unknown as Order,
-			},
-			sell: {
-				single: undefined as unknown as Order,
-			},
+			buy: undefined as unknown as Order,
+			sell: undefined as unknown as Order,
 		},
+		multiple: undefined as unknown as Map<OrderId, Order>,
+		allCanceled: undefined as unknown as Map<OrderId, Order>,
+		allWithdrawn: undefined as unknown as Map<OrderId, Order>,
 	}
-
-	console.log('\n--------------------------------------------------------------------------------\n');
 
 	if (active.getStatus) {
 		const getStatus = await rujira.fin.getStatus({});
 		console.log('getStatus:\n', dump(getStatus));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getTransaction) {
 		const getTransaction = await rujira.fin.getTransaction({
 			// Too old transactions cannot be fetched from NineRealms, maybe the hash needs to be updated.
-			hash: '6A2B2D1821B1E248410BA3CF273D65215C357DE559E0ED4117AEA3AA7967C05B'
+			hash: defaultTransactionHash
 		});
 		console.log('getTransaction:\n', dump(getTransaction));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getAllTokens) {
@@ -528,7 +376,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('getAllTokens:addresses\n', dump(getAllTokens.valueSeq().map(token => token.address).toJS()));
 		console.log('getAllTokens:symbols->addresses:\n', dump(getAllTokens.entrySeq().map((entry: [TokenSymbol, Token]) => `${entry[0]} -> ${entry[1].address}`).toJS()));
 		// console.log('getAllTokens\n', getAllTokens.toJS());
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getTokens) {
@@ -547,7 +394,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('getTokens:addresses\n', dump(getTokens.valueSeq().map(token => token.address).toJS()));
 		console.log('getTokens:symbols->addresses:\n', dump(getTokens.entrySeq().map((entry: [TokenSymbol, Token]) => `${entry[0]} -> ${entry[1].address}`).toJS()));
 		// console.log('getTokens\n', getTokens.toJS());
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getToken) {
@@ -558,7 +404,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('getToken:address:', dump(getToken.address));
 		console.log('getToken:symbol:', dump(getToken.symbol));
 		console.log('getToken\n', dump(getToken));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getAllMarkets) {
@@ -568,7 +413,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('getAllMarkets:addresses\n', dump(getAllMarkets.valueSeq().map(market => market.address).toJS()));
 		console.log('getAllMarkets:symbols->addresses:\n', dump(getAllMarkets.entrySeq().map((entry: [MarketSymbol, Market]) => `${entry[0]} -> ${entry[1].address}`).toJS()));
 		// console.log('getAllMarkets\n', getAllMarkets.toJS());
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getMarkets) {
@@ -587,18 +431,16 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		console.log('getMarkets:addresses:\n', dump(getMarkets.valueSeq().map(market => market.address).toJS()));
 		console.log('getMarkets:symbols->addresses:\n', dump(getMarkets.entrySeq().map((entry: [MarketSymbol, Market]) => `${entry[0]} -> ${entry[1].address}`).toJS()));
 		// console.log('getMarkets\n', getMarkets.toJS());
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getMarket) {
 		const getMarket = await rujira.fin.getMarket({
 			// address: 'thor12ds7fxj5g47jwzfzvzzhzxxd3cp6v55flgwxva0803r8k5mzm44skth6wa', // THOR-TCY/THOR-RUNE
-				symbol: 'THOR-TCY/THOR-RUNE'
+			symbol: 'THOR-TCY/THOR-RUNE'
 		});
 		console.log('getMarket:address:', dump(getMarket.address));
 		console.log('getMarket:symbol:', dump(getMarket.symbol));
 		console.log('getMarket\n', dump(getMarket));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getOrderBook) {
@@ -607,7 +449,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// marketSymbol: defaultMarketSymbol,
 		});
 		console.log('getOrderBook:\n', dump(getOrderBook));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getTicker) {
@@ -616,27 +457,25 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// marketSymbol: defaultMarketSymbol,
 		});
 		console.log('getTicker:\n', dump(getTicker));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getCandles) {
 		const getCandles = await rujira.fin.getCandles({
 			marketAddress: defaultMarketAddress,
 			// marketSymbol: defaultMarketSymbol,
-			// market: fixedOrdersMarket,
+			// market: defaultMarket,
 			// interval: CandleInterval.ONE_MINUTE,
 			// maximumNumberOfCandles: 100,
 		});
 		console.log('getCandles:size:', dump(getCandles.size));
 		console.log('getCandles:\n', dump(getCandles.toJS()));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getIndicators) {
 		const getIndicators = await rujira.fin.getIndicators({
 			marketAddress: defaultMarketAddress,
 			// marketSymbol: defaultMarketSymbol,
-			// market: fixedOrdersMarket,
+			// market: defaultMarket,
 			// interval: CandleInterval.ONE_MINUTE,
 			// maximumNumberOfCandles: 100,
 			// candles: undefined,
@@ -648,7 +487,6 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 		});
 		console.log('getIndicators:size:', dump(getIndicators.size));
 		console.log('getIndicators:\n', dump(getIndicators.toJS()));
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getBalances) {
@@ -662,75 +500,76 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// ],
 		});
 		console.log('getBalances:\n', dump(getBalances));
-		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.cancelAllOrdersBefore) {
+		console.log('❌ CANCELLING ALL ORDERS ================================================================================');
+
+		const cancelAllOrders = await rujira.fin.cancelAllOrders({
+			ownerAddress: walletAddress,
+			// owner: undefined,
+			// marketAddress: defaultMarketAddress,
+			marketSymbol: defaultMarketSymbol,
+			// market: defaultMarket,
+		});
+		orders.allCanceled = cancelAllOrders.orders;
+		console.log('✅ All Orders Cancelled:');
+		console.log('   📊 Total Orders:', dump(cancelAllOrders.orders.size));
+		console.log('   🆔 Order IDs:\n', dump(cancelAllOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(cancelAllOrders.transactions.keySeq().toJS()));
+
+		console.log('🎉 ALL ORDERS CANCELLED SUCCESSFULLY!');
+	}
+
+	if (active.withdrawAllFilledOrdersBefore) {
+		console.log('💰 WITHDRAWING ALL FILLED ORDERS ================================================================================');
+
+		const withdrawAllFilledOrders = await rujira.fin.withdrawAllFilledOrders({
+			ownerAddress: walletAddress,
+			marketAddress: defaultMarketAddress,
+			marketSymbol: defaultMarketSymbol,
+		});
+		orders.allWithdrawn = withdrawAllFilledOrders.orders;
+		console.log('✅ Filled Orders Withdrawn:');
+		console.log('   📊 Total Orders:', dump(withdrawAllFilledOrders.orders.size));
+		console.log('   🆔 Order IDs:\n', dump(withdrawAllFilledOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(withdrawAllFilledOrders.transactions.keySeq().toJS()));
 	}
 
 	if (active.placeOrder) {
 		console.log('🔥 PLACING SINGLE ORDERS ================================================================================');
 
 		const fixedPriceBuyOrder = await rujira.fin.placeOrder(orderTemplates.place.single.fixedPrice.buy);
-		orders.fixedPrice.buy.single = fixedPriceBuyOrder.order;
-		console.log('✅ Fixed Price BUY Order Placed:\n', dump(fixedPriceBuyOrder));
+		orders.fixedPrice.buy = fixedPriceBuyOrder.order;
+		console.log(`✅ Fixed Price BUY Order Placed: ${fixedPriceBuyOrder.order.id}`);
+		// console.log('\n', dump(fixedPriceBuyOrder));
 
 		const fixedPriceSellOrder = await rujira.fin.placeOrder(orderTemplates.place.single.fixedPrice.sell);
-		orders.fixedPrice.sell.single = fixedPriceSellOrder.order;
-		console.log('✅ Fixed Price SELL Order Placed:\n', dump(fixedPriceSellOrder));
+		orders.fixedPrice.sell = fixedPriceSellOrder.order;
+		console.log(`✅ Fixed Price SELL Order Placed: ${fixedPriceSellOrder.order.id}`);
+		// console.log('\n', dump(fixedPriceSellOrder));
 
 		const trackingBuyOrder = await rujira.fin.placeOrder(orderTemplates.place.single.tracking.buy);
-		orders.tracking.buy.single = trackingBuyOrder.order;
-		console.log('✅ Tracking BUY Order Placed:\n', dump(trackingBuyOrder));
+		orders.tracking.buy = trackingBuyOrder.order;
+		console.log(`✅ Tracking BUY Order Placed: ${trackingBuyOrder.order.id}`);
+		// console.log('\n', dump(trackingBuyOrder));
 
 		const trackingSellOrder = await rujira.fin.placeOrder(orderTemplates.place.single.tracking.sell);
-		orders.tracking.sell.single = trackingSellOrder.order;
-		console.log('✅ Tracking SELL Order Placed:\n', dump(trackingSellOrder));
+		orders.tracking.sell = trackingSellOrder.order;
+		console.log(`✅ Tracking SELL Order Placed: ${trackingSellOrder.order.id}`);
+		// console.log('\n', dump(trackingSellOrder));
 
-		const marketBuyOrder = await rujira.fin.placeOrder(orderTemplates.place.single.market.buy);
-		orders.market.buy.single = marketBuyOrder.order;
-		console.log('✅ Market BUY Order Placed:\n', dump(marketBuyOrder));
+		// const marketBuyOrder = await rujira.fin.placeOrder(orderTemplates.place.single.market.buy);
+		// orders.market.buy = marketBuyOrder.order;
+		// console.log(`✅ Market BUY Order Placed: ${marketBuyOrder.order.id}`);
+		// console.log('\n', dump(marketBuyOrder));
 
-		const marketSellOrder = await rujira.fin.placeOrder(orderTemplates.place.single.market.sell);
-		orders.market.sell.single = marketSellOrder.order;
-		console.log('✅ Market SELL Order Placed:\n', dump(marketSellOrder));
+		// const marketSellOrder = await rujira.fin.placeOrder(orderTemplates.place.single.market.sell);
+		// orders.market.sell = marketSellOrder.order;
+		// console.log(`✅ Market SELL Order Placed: ${marketSellOrder.order.id}`);
+		// console.log('\n', dump(marketSellOrder));
 
 		console.log('🎉 ALL SINGLE ORDERS PLACED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
-	}
-
-	if (active.placeOrders) {
-		console.log('🔥 PLACING MULTIPLE ORDERS ================================================================================');
-
-		const marketFixedPricePlaceOrders = await rujira.fin.placeOrders({
-			ownerAddress: walletAddress,
-			// owner: undefined,
-			orders: orderTemplates.place.multiple.filter((order) => [OrderType.MARKET, OrderType.FIXED_PRICE].includes(order.type))
-		});
-		// Store fixed price orders (both buy and sell)
-		const fixedPriceOrders = marketFixedPricePlaceOrders.orders;
-		orders.fixedPrice.buy.multiple = fixedPriceOrders.filter((order, orderId) => order.side === OrderSide.BUY);
-		orders.fixedPrice.sell.multiple = fixedPriceOrders.filter((order, orderId) => order.side === OrderSide.SELL);
-		console.log('✅ Fixed Price Orders Placed:');
-		console.log('   📊 Total Orders:', dump(fixedPriceOrders.size));
-		console.log('   🆔 Order IDs:', dump(fixedPriceOrders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(marketFixedPricePlaceOrders.transactions.keySeq().toJS()));
-		console.log('');
-
-		const trackingPlaceOrders = await rujira.fin.placeOrders({
-			ownerAddress: walletAddress,
-			// owner: undefined,
-			orders: orderTemplates.place.multiple.filter((order) => [OrderType.TRACKING_ORDER].includes(order.type))
-		});
-		// Store tracking orders (both buy and sell)
-		const trackingOrders = trackingPlaceOrders.orders;
-		orders.tracking.buy.multiple = trackingOrders.filter((order, orderId) => order.side === OrderSide.BUY);
-		orders.tracking.sell.multiple = trackingOrders.filter((order, orderId) => order.side === OrderSide.SELL);
-		console.log('✅ Tracking Orders Placed:');
-		console.log('   📊 Total Orders:', dump(trackingOrders.size));
-		console.log('   🆔 Order IDs:', dump(trackingOrders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(trackingPlaceOrders.transactions.keySeq().toJS()));
-		console.log('');
-
-		console.log('🎉 ALL MULTIPLE ORDERS PLACED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.getOrder) {
@@ -741,12 +580,14 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// owner: undefined,
 			// marketAddress: defaultMarketAddress,
 			marketSymbol: defaultMarketSymbol,
-			// market: fixedOrdersMarket,
+			// market: defaultMarket,
+			orderType: orderTemplates.place.single.fixedPrice.buy.type,
 			orderSide: orderTemplates.place.single.fixedPrice.buy.side,
-			orderPrice: cast<OrderPrice>(orderTemplates.place.single.fixedPrice.buy.price)
+			orderPrice: cast<OrderPrice>(orderTemplates.place.single.fixedPrice.buy.price),
 		});
-		orders.fixedPrice.buy.single = buyFixedPriceOrder;
-		console.log('✅ Fixed Price BUY Order Retrieved:\n', dump(buyFixedPriceOrder));
+		orders.fixedPrice.buy = buyFixedPriceOrder;
+		console.log(`✅ Fixed Price BUY Order Retrieved: ${buyFixedPriceOrder.id}`);
+		// console.log('\n', dump(buyFixedPriceOrder));
 		console.log('');
 
 		const sellFixedPriceOrder = await rujira.fin.getOrder({
@@ -754,360 +595,303 @@ import { cast, dump, sanitizeOrderPrice } from "./utils";
 			// owner: undefined,
 			// marketAddress: defaultMarketAddress,
 			marketSymbol: defaultMarketSymbol,
-			// market: fixedOrdersMarket,
+			// market: defaultMarket,
+			orderType: orderTemplates.place.single.fixedPrice.sell.type,
 			orderSide: orderTemplates.place.single.fixedPrice.sell.side,
 			orderPrice: cast<OrderPrice>(orderTemplates.place.single.fixedPrice.sell.price)
 		});
-		orders.fixedPrice.sell.single = sellFixedPriceOrder;
-		console.log('✅ Fixed Price SELL Order Retrieved:\n', dump(sellFixedPriceOrder));
+		orders.fixedPrice.sell = sellFixedPriceOrder;
+		console.log(`✅ Fixed Price SELL Order Retrieved: ${sellFixedPriceOrder.id}`);
+		// console.log('\n', dump(sellFixedPriceOrder));
 		console.log('');
 
 		const buyTrackingOrder = await rujira.fin.getOrder({
 			ownerAddress: walletAddress,
 			// owner: undefined,
-			// marketAddress: trackingOrdersMarketAddress,
+			// marketAddress: defaultMarketAddress,
 			marketSymbol: defaultMarketSymbol,
-			// market: trackingOrdersMarket,
+			// market: defaultMarket,
+			orderType: orderTemplates.place.single.tracking.buy.type,
 			orderSide: orderTemplates.place.single.tracking.buy.side,
-			orderDeviationInBasisPoints: cast<OrderDeviationInBasisPoints>(orderTemplates.place.single.tracking.buy.deviationInBasisPoints)
+			orderDeviationInBasisPoints: cast<OrderDeviationInBasisPoints>(orderTemplates.place.single.tracking.buy.deviationInBasisPoints),
+			// orderDeviationInPercentage: cast<OrderDeviationInPercentage>(orderTemplates.place.single.tracking.buy.deviationInPercentage)
 		});
-		orders.tracking.buy.single = buyTrackingOrder;
-		console.log('✅ Tracking BUY Order Retrieved:\n', dump(buyTrackingOrder));
+		orders.tracking.buy = buyTrackingOrder;
+		console.log(`✅ Tracking BUY Order Retrieved: ${buyTrackingOrder.id}`);
+		// console.log('\n', dump(buyTrackingOrder));
 		console.log('');
 
 		const sellTrackingOrder = await rujira.fin.getOrder({
 			ownerAddress: walletAddress,
 			// owner: undefined,
-			// marketAddress: trackingOrdersMarketAddress,
-			marketSymbol: defaultMarketSymbol,
-			// market: trackingOrdersMarket,
-			orderSide: orderTemplates.place.single.tracking.sell.side,
-			orderDeviationInBasisPoints: cast<OrderDeviationInBasisPoints>(orderTemplates.place.single.tracking.sell.deviationInBasisPoints)
-		});
-		orders.tracking.sell.single = sellTrackingOrder;
-		console.log('✅ Tracking SELL Order Retrieved:\n', dump(sellTrackingOrder));
-
-		console.log('🎉 ALL SINGLE ORDERS RETRIEVED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
-	}
-
-	if (active.getOrders) {
-		console.log('🔍 GETTING MULTIPLE ORDERS ================================================================================');
-
-		const fixedPriceGetOrders = await rujira.fin.getOrders({
-			ownerAddress: walletAddress,
-			// owner: undefined,
 			// marketAddress: defaultMarketAddress,
 			marketSymbol: defaultMarketSymbol,
-			// market: fixedOrdersMarket,
-			orderTypes: [OrderType.FIXED_PRICE],
-			orderSides: [OrderSide.BUY, OrderSide.SELL],
-			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED],
-			// orderPrices: orderTemplates.place.multiple.map(order => get<OrderPrice>(order.price)),
-			// maximumNumberOfOrders: orderTemplates.place.multiple.length
+			// market: defaultMarket,
+			orderType: orderTemplates.place.single.tracking.sell.type,
+			orderSide: orderTemplates.place.single.tracking.sell.side,
+			orderDeviationInBasisPoints: cast<OrderDeviationInBasisPoints>(orderTemplates.place.single.tracking.sell.deviationInBasisPoints),
+			// orderDeviationInPercentage: cast<OrderDeviationInPercentage>(orderTemplates.place.single.tracking.sell.deviationInPercentage)
 		});
-		// Store fixed price orders by side
-		orders.fixedPrice.buy.multiple = fixedPriceGetOrders.filter((order, orderId) => order.side === OrderSide.BUY);
-		orders.fixedPrice.sell.multiple = fixedPriceGetOrders.filter((order, orderId) => order.side === OrderSide.SELL);
-		console.log('✅ Fixed Price Orders Retrieved:');
-		console.log('   📊 Total Orders:', dump(fixedPriceGetOrders.size));
-		console.log('   🆔 Order IDs:', dump(fixedPriceGetOrders.keySeq().toJS()));
-		console.log('   📋 Order Details:', dump(fixedPriceGetOrders.toJS()));
+		orders.tracking.sell = sellTrackingOrder;
+		console.log(`✅ Tracking SELL Order Retrieved: ${sellTrackingOrder.id}`);
+		// console.log('\n', dump(sellTrackingOrder));
 
-		const trackingGetOrders = await rujira.fin.getOrders({
-			ownerAddress: walletAddress,
-			// owner: undefined,
-			// marketAddress: trackingOrdersMarketAddress,
-			marketSymbol: defaultMarketSymbol,
-			// market: trackingOrdersMarket,
-			orderTypes: [OrderType.TRACKING_ORDER],
-			orderSides: [OrderSide.BUY, OrderSide.SELL],
-			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED],
-			// orderPrices: orderTemplates.place.multiple.map(order => get<OrderPrice>(order.price)),
-			// maximumNumberOfOrders: orderTemplates.place.multiple.length
-		});
-		// Store tracking orders by side
-		orders.tracking.buy.multiple = trackingGetOrders.filter((order, orderId) => order.side === OrderSide.BUY);
-		orders.tracking.sell.multiple = trackingGetOrders.filter((order, orderId) => order.side === OrderSide.SELL);
-		console.log('✅ Tracking Orders Retrieved:');
-		console.log('   📊 Total Orders:', dump(trackingGetOrders.size));
-		console.log('   🆔 Order IDs:', dump(trackingGetOrders.keySeq().toJS()));
-		console.log('   📋 Order Details:', dump(trackingGetOrders.toJS()));
-
-		console.log('🎉 ALL MULTIPLE ORDERS RETRIEVED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
+		console.log('🎉 ALL SINGLE ORDERS RETRIEVED SUCCESSFULLY!');
 	}
 
 	if (active.replaceOrder) {
 		console.log('🔄 REPLACING SINGLE ORDERS ================================================================================');
 
 		const fixedPriceBuyOrder = await rujira.fin.replaceOrder(orderTemplates.replace.single.fixedPrice.buy);
-		orders.fixedPrice.buy.single = fixedPriceBuyOrder.order;
-		console.log('✅ Fixed Price BUY Order Replaced:\n', dump(fixedPriceBuyOrder));
+		orders.fixedPrice.buy = fixedPriceBuyOrder.order;
+		console.log(`✅ Fixed Price BUY Order Replaced: ${fixedPriceBuyOrder.order.id}`);
+		// console.log('\n', dump(fixedPriceBuyOrder));
 
 		const fixedPriceSellOrder = await rujira.fin.replaceOrder(orderTemplates.replace.single.fixedPrice.sell);
-		orders.fixedPrice.sell.single = fixedPriceSellOrder.order;
-		console.log('✅ Fixed Price SELL Order Replaced:\n', dump(fixedPriceSellOrder));
+		orders.fixedPrice.sell = fixedPriceSellOrder.order;
+		console.log(`✅ Fixed Price SELL Order Replaced: ${fixedPriceSellOrder.order.id}`);
+		// console.log('\n', dump(fixedPriceSellOrder));
 
 		const trackingBuyOrder = await rujira.fin.replaceOrder(orderTemplates.replace.single.tracking.buy);
-		orders.tracking.buy.single = trackingBuyOrder.order;
-		console.log('✅ Tracking BUY Order Replaced:\n', dump(trackingBuyOrder));
+		orders.tracking.buy = trackingBuyOrder.order;
+		console.log(`✅ Tracking BUY Order Replaced: ${trackingBuyOrder.order.id}`);
+		// console.log('\n', dump(trackingBuyOrder));
 
 		const trackingSellOrder = await rujira.fin.replaceOrder(orderTemplates.replace.single.tracking.sell);
-		orders.tracking.sell.single = trackingSellOrder.order;
-		console.log('✅ Tracking SELL Order Replaced:\n', dump(trackingSellOrder));
+		orders.tracking.sell = trackingSellOrder.order;
+		console.log(`✅ Tracking SELL Order Replaced: ${trackingSellOrder.order.id}`);
+		// console.log('\n', dump(trackingSellOrder));
 
 		console.log('🎉 ALL SINGLE ORDERS REPLACED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
-	}
-
-	if (active.replaceOrders) {
-		console.log('🔄 REPLACING MULTIPLE ORDERS ================================================================================');
-
-		const fixedPriceReplaceOrders = await rujira.fin.replaceOrders({
-			ownerAddress: walletAddress,
-			// owner: undefined,
-			orders: orderTemplates.replace.multiple.filter((order) => [OrderType.FIXED_PRICE].includes(order.type))
-		});
-		// Store fixed price replace orders by side
-		const fixedPriceReplaceOrdersMap = fixedPriceReplaceOrders.orders;
-		orders.fixedPrice.buy.multiple = fixedPriceReplaceOrdersMap.filter((order, orderId) => order.side === OrderSide.BUY);
-		orders.fixedPrice.sell.multiple = fixedPriceReplaceOrdersMap.filter((order, orderId) => order.side === OrderSide.SELL);
-		console.log('✅ Fixed Price Orders Replaced:');
-		console.log('   📊 Total Orders:', dump(fixedPriceReplaceOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(fixedPriceReplaceOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(fixedPriceReplaceOrders.transactions.keySeq().toJS()));
-
-		const trackingReplaceOrders = await rujira.fin.replaceOrders({
-			ownerAddress: walletAddress,
-			// owner: undefined,
-			orders: orderTemplates.replace.multiple.filter((order) => [OrderType.TRACKING_ORDER].includes(order.type))
-		});
-		// Store tracking replace orders by side
-		const trackingReplaceOrdersMap = trackingReplaceOrders.orders;
-		orders.tracking.buy.multiple = trackingReplaceOrdersMap.filter((order, orderId) => order.side === OrderSide.BUY);
-		orders.tracking.sell.multiple = trackingReplaceOrdersMap.filter((order, orderId) => order.side === OrderSide.SELL);
-		console.log('✅ Tracking Orders Replaced:');
-		console.log('   📊 Total Orders:', dump(trackingReplaceOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(trackingReplaceOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(trackingReplaceOrders.transactions.keySeq().toJS()));
-
-		console.log('🎉 ALL MULTIPLE ORDERS REPLACED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.cancelOrder) {
 		console.log('❌ CANCELLING SINGLE ORDERS ================================================================================');
 
+		console.log('WAITING FOR 1 SECOND...');
+		sleep(1000);
+
 		const fixedPriceBuyOrder = await rujira.fin.cancelOrder({
 			orderId: rujira.fin.getOrderId({
-					ownerAddress: orderTemplates.place.single.fixedPrice.buy.ownerAddress,
-					marketSymbol: orderTemplates.place.single.fixedPrice.buy.marketSymbol,
-					// market: fixedOrdersMarket,
-					orderType: orderTemplates.place.single.fixedPrice.buy.type,
-					orderSide: orderTemplates.place.single.fixedPrice.buy.side,
-					orderPrice: orderTemplates.place.single.fixedPrice.buy.price,
-					// order: orderTemplates.place.single.buy
+				// ownerAddress: orderTemplates.place.single.fixedPrice.buy.ownerAddress,
+				// marketSymbol: orderTemplates.place.single.fixedPrice.buy.marketSymbol,
+				// market: orderTemplates.place.single.fixedPrice.buy.market,
+				// orderType: orderTemplates.place.single.fixedPrice.buy.type,
+				// orderSide: orderTemplates.place.single.fixedPrice.buy.side,
+				// orderPrice: orderTemplates.place.single.fixedPrice.buy.price,
+				// orderDeviationInBasisPoints: orderTemplates.place.single.fixedPrice.buy.deviationInBasisPoints,
+				// orderDeviationInPercentage: orderTemplates.place.single.fixedPrice.buy.deviationInPercentage,
+				order: orderTemplates.place.single.fixedPrice.buy
 			}),
-			// order: orders.place.single.buy,
+			// order: orders.fixedPrice.buy,
 			ownerAddress: orderTemplates.place.single.fixedPrice.buy.ownerAddress,
 			// owner: undefined,
-			// marketAddress: orderTemplates.place.single.buy.marketAddress,
+			// marketAddress: orderTemplates.place.single.fixedPrice.buy.marketAddress,
 			marketSymbol: orderTemplates.place.single.fixedPrice.buy.marketSymbol,
-			// market: fixedOrdersMarket,
+			// market: orderTemplates.place.single.fixedPrice.buy.market,
 		});
-		orders.fixedPrice.buy.single = fixedPriceBuyOrder.order;
-		console.log('✅ Fixed Price BUY Order Cancelled:\n', dump(fixedPriceBuyOrder));
+		orders.fixedPrice.buy = fixedPriceBuyOrder.order;
+		console.log(`✅ Fixed Price BUY Order Cancelled: ${fixedPriceBuyOrder.order.id}`);
+		// console.log('\n', dump(fixedPriceBuyOrder));
 
 		const fixedPriceSellOrder = await rujira.fin.cancelOrder({
 			orderId: rujira.fin.getOrderId({
-				ownerAddress: orderTemplates.place.single.fixedPrice.sell.ownerAddress,
-				marketSymbol: orderTemplates.place.single.fixedPrice.sell.marketSymbol,
-				// market: fixedOrdersMarket,
-				orderType: orderTemplates.place.single.fixedPrice.sell.type,
-				orderSide: orderTemplates.place.single.fixedPrice.sell.side,
-				orderPrice: orderTemplates.place.single.fixedPrice.sell.price,
-				// order: orderTemplates.place.single.sell
+				// ownerAddress: orderTemplates.place.single.fixedPrice.sell.ownerAddress,
+				// marketSymbol: orderTemplates.place.single.fixedPrice.sell.marketSymbol,
+				// market: orderTemplates.place.single.fixedPrice.sell.market,
+				// orderType: orderTemplates.place.single.fixedPrice.sell.type,
+				// orderSide: orderTemplates.place.single.fixedPrice.sell.side,
+				// orderPrice: orderTemplates.place.single.fixedPrice.sell.price,
+				// orderDeviationInBasisPoints: orderTemplates.place.single.fixedPrice.sell.deviationInBasisPoints,
+				// orderDeviationInPercentage: orderTemplates.place.single.fixedPrice.sell.deviationInPercentage,
+				order: orderTemplates.place.single.fixedPrice.sell
 			}),
-			// order: orders.place.single.buy,
+			// order: orders.fixedPrice.sell,
 			ownerAddress: orderTemplates.place.single.fixedPrice.sell.ownerAddress,
 			// owner: undefined,
-			// marketAddress: orderTemplates.place.single.sell.marketAddress,
+			// marketAddress: orderTemplates.place.single.fixedPrice.sell.marketAddress,
 			marketSymbol: orderTemplates.place.single.fixedPrice.sell.marketSymbol,
-			// market: fixedOrdersMarket,
+			// market: orderTemplates.place.single.fixedPrice.sell.market,
 		});
-		orders.fixedPrice.sell.single = fixedPriceSellOrder.order;
-		console.log('✅ Fixed Price SELL Order Cancelled:\n', dump(fixedPriceSellOrder));
+		orders.fixedPrice.sell = fixedPriceSellOrder.order;
+		console.log(`✅ Fixed Price SELL Order Cancelled: ${fixedPriceSellOrder.order.id}`);
+		// console.log('\n', dump(fixedPriceSellOrder));
 
 		const trackingBuyOrder = await rujira.fin.cancelOrder({
 			orderId: rujira.fin.getOrderId({
-				ownerAddress: orderTemplates.cancel.single.tracking.buy.ownerAddress,
-				marketSymbol: orderTemplates.cancel.single.tracking.buy.marketSymbol,
-				// market: trackingOrdersMarket,
-				orderType: orderTemplates.cancel.single.tracking.buy.type,
-				orderSide: orderTemplates.cancel.single.tracking.buy.side,
-				orderDeviationInBasisPoints: orderTemplates.cancel.single.tracking.buy.deviationInBasisPoints,
-				// order: orderTemplates.cancel.single.tracking.buy
+				// ownerAddress: orderTemplates.place.single.tracking.buy.ownerAddress,
+				// marketSymbol: orderTemplates.place.single.tracking.buy.marketSymbol,
+				// market: orderTemplates.place.single.tracking.buy.market,
+				// orderType: orderTemplates.place.single.tracking.buy.type,
+				// orderSide: orderTemplates.place.single.tracking.buy.side,
+				// orderPrice: orderTemplates.place.single.tracking.buy.price,
+				// orderDeviationInBasisPoints: orderTemplates.place.single.tracking.buy.deviationInBasisPoints,
+				// orderDeviationInPercentage: orderTemplates.place.single.tracking.buy.deviationInPercentage,
+				order: orderTemplates.place.single.tracking.buy
 			}),
-			ownerAddress: orderTemplates.cancel.single.tracking.buy.ownerAddress,
+			// order: orders.tracking.buy,
+			ownerAddress: orderTemplates.place.single.tracking.buy.ownerAddress,
 			// owner: undefined,
-			// marketAddress: orderTemplates.cancel.single.tracking.buy.marketAddress,
-			marketSymbol: orderTemplates.cancel.single.tracking.buy.marketSymbol,
-			// market: trackingOrdersMarket,
+			// marketAddress: orderTemplates.place.single.tracking.buy.marketAddress,
+			marketSymbol: orderTemplates.place.single.tracking.buy.marketSymbol,
+			// market: orderTemplates.place.single.tracking.buy.market,
 		});
-		orders.tracking.buy.single = trackingBuyOrder.order;
-		console.log('✅ Tracking BUY Order Cancelled:\n', dump(trackingBuyOrder));
+		orders.tracking.buy = trackingBuyOrder.order;
+		console.log(`✅ Tracking BUY Order Cancelled: ${trackingBuyOrder.order.id}`);
+		// console.log('\n', dump(trackingBuyOrder));
 
 		const trackingSellOrder = await rujira.fin.cancelOrder({
 			orderId: rujira.fin.getOrderId({
-				ownerAddress: orderTemplates.cancel.single.tracking.sell.ownerAddress,
-				marketSymbol: orderTemplates.cancel.single.tracking.sell.marketSymbol,
-				// market: trackingOrdersMarket,
-				orderType: orderTemplates.cancel.single.tracking.sell.type,
-				orderSide: orderTemplates.cancel.single.tracking.sell.side,
-				orderDeviationInBasisPoints: orderTemplates.cancel.single.tracking.sell.deviationInBasisPoints,
-				// order: orderTemplates.cancel.single.tracking.sell
+				// ownerAddress: orderTemplates.place.single.tracking.sell.ownerAddress,
+				// marketSymbol: orderTemplates.place.single.tracking.sell.marketSymbol,
+				// market: orderTemplates.place.single.tracking.sell.market,
+				// orderType: orderTemplates.place.single.tracking.sell.type,
+				// orderSide: orderTemplates.place.single.tracking.sell.side,
+				// orderPrice: orderTemplates.place.single.tracking.sell.price,
+				// orderDeviationInBasisPoints: orderTemplates.place.single.tracking.sell.deviationInBasisPoints,
+				// orderDeviationInPercentage: orderTemplates.place.single.tracking.sell.deviationInPercentage,
+				order: orderTemplates.place.single.tracking.sell
 			}),
-			ownerAddress: orderTemplates.cancel.single.tracking.sell.ownerAddress,
+			// order: orders.tracking.sell,
+			ownerAddress: orderTemplates.place.single.tracking.sell.ownerAddress,
 			// owner: undefined,
-			// marketAddress: orderTemplates.cancel.single.tracking.sell.marketAddress,
-			marketSymbol: orderTemplates.cancel.single.tracking.sell.marketSymbol,
-			// market: trackingOrdersMarket,
+			// marketAddress: orderTemplates.place.single.tracking.sell.marketAddress,
+			marketSymbol: orderTemplates.place.single.tracking.sell.marketSymbol,
+			// market: orderTemplates.place.single.tracking.sell.market,
 		});
-		orders.tracking.sell.single = trackingSellOrder.order;
-		console.log('✅ Tracking SELL Order Cancelled:\n', dump(trackingSellOrder));
+		orders.tracking.sell = trackingSellOrder.order;
+		console.log(`✅ Tracking SELL Order Cancelled: ${trackingSellOrder.order.id}`);
+		// console.log('\n', dump(trackingSellOrder));
 
 		console.log('🎉 ALL SINGLE ORDERS CANCELLED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
+	}
+
+	if (active.placeOrders) {
+		console.log('🔥 PLACING MULTIPLE ORDERS ================================================================================');
+
+		const placeOrders = await rujira.fin.placeOrders({
+			ownerAddress: walletAddress,
+			// owner: undefined,
+			orders: orderTemplates.place.multiple
+		});
+		orders.multiple = placeOrders.orders;
+		console.log('✅ Orders Placed:');
+		console.log('   📊 Total Orders:', dump(placeOrders.orders.size));
+		console.log('   🆔 Order IDs:\n', dump(placeOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(placeOrders.transactions.keySeq().toJS()));
+		console.log('');
+
+		console.log('🎉 ALL MULTIPLE ORDERS PLACED SUCCESSFULLY!');
+	}
+
+	if (active.getOrders) {
+		console.log('🔍 GETTING MULTIPLE ORDERS ================================================================================');
+
+		const getOrders = await rujira.fin.getOrders({
+			ownerAddress: walletAddress,
+			// owner: undefined,
+			// marketAddress: defaultMarketAddress,
+			marketSymbol: defaultMarketSymbol,
+			// market: defaultMarket,
+			orderTypes: [OrderType.FIXED_PRICE, OrderType.TRACKING_ORDER],
+			orderSides: [OrderSide.BUY, OrderSide.SELL],
+			orderStatuses: [OrderStatus.OPEN, OrderStatus.PARTIALLY_FILLED, OrderStatus.FILLED],
+			// orderPrices: orderTemplates.place.multiple.map(order => get<OrderPrice>(order.price)),
+			// maximumNumberOfOrders: orderTemplates.place.multiple.length
+		});
+		orders.multiple = getOrders;
+		console.log('✅ Orders Retrieved:');
+		console.log('   📊 Total Orders:', dump(getOrders.size));
+		console.log('   🆔 Order IDs:\n', dump(getOrders.keySeq().toJS()));
+		// console.log('   📋 Order Details:\n', dump(getOrders.toJS()));
+
+		console.log('🎉 ALL MULTIPLE ORDERS RETRIEVED SUCCESSFULLY!');
+	}
+
+	if (active.replaceOrders) {
+		console.log('🔄 REPLACING MULTIPLE ORDERS ================================================================================');
+
+		const replaceOrders = await rujira.fin.replaceOrders({
+			ownerAddress: walletAddress,
+			// owner: undefined,
+			orders: orderTemplates.replace.multiple
+		});
+		orders.multiple = replaceOrders.orders;
+		console.log('✅ Orders Replaced:');
+		console.log('   📊 Total Orders:', dump(replaceOrders.orders.size));
+		console.log('   🆔 Order IDs:\n', dump(replaceOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(replaceOrders.transactions.keySeq().toJS()));
+
+		console.log('🎉 ALL MULTIPLE ORDERS REPLACED SUCCESSFULLY!');
 	}
 
 	if (active.cancelOrders) {
 		console.log('❌ CANCELLING MULTIPLE ORDERS ================================================================================');
 
-		const fixedPriceCancelOrders = await rujira.fin.cancelOrders({
-			orderIds: orderTemplates.cancel.multiple.filter((order) => [OrderType.FIXED_PRICE].includes(order.type)).map(orderTemplate => rujira.fin.getOrderId({
-				ownerAddress: orderTemplate.ownerAddress,
-				marketSymbol: orderTemplate.marketSymbol,
-				// market: fixedOrdersMarket,
-				orderType: orderTemplate.type,
-				orderSide: orderTemplate.side,
-				orderPrice: orderTemplate.price,
-				// order: orderTemplate
+		console.log('WAITING FOR 1 SECOND...');
+		sleep(1000);
+
+		const cancelOrders = await rujira.fin.cancelOrders({
+			orderIds: orderTemplates.cancel.multiple.map(order => rujira.fin.getOrderId({
+				// ownerAddress: order.ownerAddress,
+				// marketSymbol: order.marketSymbol,
+				// market: order.market,
+				// orderType: order.type,
+				// orderSide: order.side,
+				// orderPrice: order.price,
+				// orderDeviationInBasisPoints: order.deviationInBasisPoints,
+				// orderDeviationInPercentage: order.deviationInPercentage,
+				order: order
 			})),
-			// orders: orders.place.multiple.valueSeq().toList(),
+			// orders: orders.multiple.valueSeq().toList(),
 			ownerAddress: walletAddress,
 			// owner: undefined,
 			// marketAddress: defaultMarketAddress,
 			marketSymbol: defaultMarketSymbol,
-			// market: fixedOrdersMarket,
+			// market: defaultMarket,
 		});
 		// Store fixed price cancel orders by side
-		const fixedPriceCancelOrdersMap = fixedPriceCancelOrders.orders;
-		orders.fixedPrice.buy.multiple = fixedPriceCancelOrdersMap.filter((order, orderId) => order.side === OrderSide.BUY);
-		orders.fixedPrice.sell.multiple = fixedPriceCancelOrdersMap.filter((order, orderId) => order.side === OrderSide.SELL);
-		console.log('✅ Fixed Price Orders Cancelled:');
-		console.log('   📊 Total Orders:', dump(fixedPriceCancelOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(fixedPriceCancelOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(fixedPriceCancelOrders.transactions.keySeq().toJS()));
-
-		const trackingCancelOrders = await rujira.fin.cancelOrders({
-			orderIds: orderTemplates.cancel.multiple.filter((order) => [OrderType.TRACKING_ORDER].includes(order.type)).map(orderTemplate => rujira.fin.getOrderId({
-				ownerAddress: orderTemplate.ownerAddress,
-				marketSymbol: orderTemplate.marketSymbol,
-				// market: trackingOrdersMarket,
-				orderType: orderTemplate.type,
-				orderSide: orderTemplate.side,
-				orderDeviationInBasisPoints: orderTemplate.deviationInBasisPoints,
-				// order: orderTemplate
-			})),
-		});
-		// Store tracking cancel orders by side
-		const trackingCancelOrdersMap = trackingCancelOrders.orders;
-		orders.tracking.buy.multiple = trackingCancelOrdersMap.filter((order, orderId) => order.side === OrderSide.BUY);
-		orders.tracking.sell.multiple = trackingCancelOrdersMap.filter((order, orderId) => order.side === OrderSide.SELL);
-		console.log('✅ Tracking Orders Cancelled:');
-		console.log('   📊 Total Orders:', dump(trackingCancelOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(trackingCancelOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(trackingCancelOrders.transactions.keySeq().toJS()));
+		orders.multiple = cancelOrders.orders;
+		console.log('✅ Orders Cancelled:');
+		console.log('   📊 Total Orders:', dump(cancelOrders.orders.size));
+		console.log('   🆔 Order IDs:\n', dump(cancelOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(cancelOrders.transactions.keySeq().toJS()));
 
 		console.log('🎉 ALL MULTIPLE ORDERS CANCELLED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.cancelAllOrders) {
 		console.log('❌ CANCELLING ALL ORDERS ================================================================================');
 
-		const fixedPriceCancelAllOrders = await rujira.fin.cancelAllOrders({
+		const cancelAllOrders = await rujira.fin.cancelAllOrders({
 			ownerAddress: walletAddress,
 			// owner: undefined,
 			// marketAddress: defaultMarketAddress,
 			marketSymbol: defaultMarketSymbol,
-			// market: fixedOrdersMarket,
+			// market: defaultMarket,
 		});
-		// Store fixed price cancel all orders by side
-		const fixedPriceCancelAllOrdersMap = fixedPriceCancelAllOrders.orders;
-		orders.fixedPrice.buy.all = fixedPriceCancelAllOrdersMap.filter((order, orderId) => order.side === OrderSide.BUY);
-		orders.fixedPrice.sell.all = fixedPriceCancelAllOrdersMap.filter((order, orderId) => order.side === OrderSide.SELL);
-		console.log('✅ All Fixed Price Orders Cancelled:');
-		console.log('   📊 Total Orders:', dump(fixedPriceCancelAllOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(fixedPriceCancelAllOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(fixedPriceCancelAllOrders.transactions.keySeq().toJS()));
-
-		const trackingCancelAllOrders = await rujira.fin.cancelAllOrders({
-			ownerAddress: walletAddress,
-			// owner: undefined,
-			// marketAddress: trackingOrdersMarketAddress,
-			marketSymbol: defaultMarketSymbol,
-			// market: trackingOrdersMarket,
-		});
-		// Store tracking cancel all orders by side
-		const trackingCancelAllOrdersMap = trackingCancelAllOrders.orders;
-		orders.tracking.buy.all = trackingCancelAllOrdersMap.filter((order, orderId) => order.side === OrderSide.BUY);
-		orders.tracking.sell.all = trackingCancelAllOrdersMap.filter((order, orderId) => order.side === OrderSide.SELL);
-		console.log('✅ All Tracking Orders Cancelled:');
-		console.log('   📊 Total Orders:', dump(trackingCancelAllOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(trackingCancelAllOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(trackingCancelAllOrders.transactions.keySeq().toJS()));
+		orders.allCanceled = cancelAllOrders.orders;
+		console.log('✅ All Orders Cancelled:');
+		console.log('   📊 Total Orders:', dump(cancelAllOrders.orders.size));
+		console.log('   🆔 Order IDs:\n', dump(cancelAllOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(cancelAllOrders.transactions.keySeq().toJS()));
 
 		console.log('🎉 ALL ORDERS CANCELLED SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
 	}
 
 	if (active.withdrawAllFilledOrders) {
 		console.log('💰 WITHDRAWING ALL FILLED ORDERS ================================================================================');
 
-		const fixedPriceWithdrawAllFilledOrders = await rujira.fin.withdrawAllFilledOrders({
+		const withdrawAllFilledOrders = await rujira.fin.withdrawAllFilledOrders({
 			ownerAddress: walletAddress,
 			marketAddress: defaultMarketAddress,
 			marketSymbol: defaultMarketSymbol,
 		});
-		// Store fixed price withdraw all orders by side
-		const fixedPriceWithdrawAllOrdersMap = fixedPriceWithdrawAllFilledOrders.orders;
-		orders.fixedPrice.buy.all = fixedPriceWithdrawAllOrdersMap.filter((order, orderId) => order.side === OrderSide.BUY);
-		orders.fixedPrice.sell.all = fixedPriceWithdrawAllOrdersMap.filter((order, orderId) => order.side === OrderSide.SELL);
-		console.log('✅ Fixed Price Filled Orders Withdrawn:');
-		console.log('   📊 Total Orders:', dump(fixedPriceWithdrawAllFilledOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(fixedPriceWithdrawAllFilledOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(fixedPriceWithdrawAllFilledOrders.transactions.keySeq().toJS()));
-
-		const trackingWithdrawAllFilledOrders = await rujira.fin.withdrawAllFilledOrders({
-			ownerAddress: walletAddress,
-			// owner: undefined,
-			// marketAddress: trackingOrdersMarketAddress,
-			marketSymbol: defaultMarketSymbol,
-			// market: trackingOrdersMarket,
-		});
-		// Store tracking withdraw all orders by side
-		const trackingWithdrawAllOrdersMap = trackingWithdrawAllFilledOrders.orders;
-		orders.tracking.buy.all = trackingWithdrawAllOrdersMap.filter((order, orderId) => order.side === OrderSide.BUY);
-		orders.tracking.sell.all = trackingWithdrawAllOrdersMap.filter((order, orderId) => order.side === OrderSide.SELL);
-		console.log('✅ Tracking Filled Orders Withdrawn:');
-		console.log('   📊 Total Orders:', dump(trackingWithdrawAllFilledOrders.orders.size));
-		console.log('   🆔 Order IDs:', dump(trackingWithdrawAllFilledOrders.orders.keySeq().toJS()));
-		console.log('   🔗 Transaction Hashes:', dump(trackingWithdrawAllFilledOrders.transactions.keySeq().toJS()));
-
-		console.log('🎉 ALL FILLED ORDERS WITHDRAWN SUCCESSFULLY!');
-		console.log('\n--------------------------------------------------------------------------------\n');
+		orders.allWithdrawn = withdrawAllFilledOrders.orders;
+		console.log('✅ Filled Orders Withdrawn:');
+		console.log('   📊 Total Orders:', dump(withdrawAllFilledOrders.orders.size));
+		console.log('   🆔 Order IDs:\n', dump(withdrawAllFilledOrders.orders.keySeq().toJS()));
+		console.log('   🔗 Transaction Hashes:\n', dump(withdrawAllFilledOrders.transactions.keySeq().toJS()));
 	}
 })();
 
