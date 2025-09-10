@@ -3308,6 +3308,8 @@ export class Fin {
 			orders.withdraw = withdrawOrderIds;
 		}
 
+		const memo = 'ca471857845511f5b27c748969cf2b37cbca7c2e';
+
 		// ===== VALIDATION =====
 		if (!ownerAddress) {
 			throw new Error("Owner address or owner wallet is required");
@@ -3731,6 +3733,8 @@ export class Fin {
 			throw new Error("Due the Rujira limitations, it is not possible to persist more than one market order");
 		}
 
+		const fee = 'auto';
+
 		const message: any = {};
 
 		if (ordersMessages.length > 0) {
@@ -3763,8 +3767,8 @@ export class Fin {
 			ownerAddress,
 			contractAddress,
 			message,
-			'auto',
-			undefined,
+			fee,
+			memo,
 			funds
 		);
 
