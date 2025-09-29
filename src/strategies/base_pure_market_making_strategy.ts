@@ -119,6 +119,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			await this.cancelAllOrdersIfConfigured({});
 			await this.withdrawAllFilledOrdersIfConfigured({});
 
+			this.state.set('tasks', MMap<string, NodeJS.Timeout>());
 			await this.startRepeatingTasks({});
 
 			await this.updateBalances({});
@@ -266,9 +267,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	private async startRepeatingTasks(_options: {}) {
-		const tasks = MMap<string, NodeJS.Timeout>();
-
-		this.state.set('tasks', tasks);
+		const tasks = this.state.getOrThrow('tasks');
 
 		if (properties.getAs<number>('strategy.pure_market_making.common.tasks.updateTokens.interval')) {
 			tasks.set(
@@ -331,6 +330,8 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		if (tasks) {
 			tasks.forEach((task: NodeJS.Timeout) => clearInterval(task));
 		}
+
+		tasks.clear();
 	}
 
 	/**
