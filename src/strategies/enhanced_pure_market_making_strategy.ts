@@ -183,6 +183,9 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 			sellPrice = Decimal.max(sellPrice, middlePrice.plus(minimalSeparationAmount.div(2)));
 		}
 
+		buyPrice = buyPrice.toDecimalPlaces(market.tick);
+		sellPrice = sellPrice.toDecimalPlaces(market.tick);
+
 		/*
 			SIZE:
 			======

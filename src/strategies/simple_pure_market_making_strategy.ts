@@ -82,8 +82,8 @@ export class SimplePureMarketMakingStrategy extends BasePureMarketMakingStrategy
 		// Compute fixed spread around the middle price
 		const spreadRatio = spreadPercentage.div(DECIMAL_100);
 		const halfSpreadRatio = spreadRatio.div(2);
-		const buyPrice = middlePrice.mul(DECIMAL_1.minus(halfSpreadRatio));
-		const sellPrice = middlePrice.mul(DECIMAL_1.plus(halfSpreadRatio));
+		const buyPrice = middlePrice.mul(DECIMAL_1.minus(halfSpreadRatio)).toDecimalPlaces(market.tick);
+		const sellPrice = middlePrice.mul(DECIMAL_1.plus(halfSpreadRatio)).toDecimalPlaces(market.tick);
 
 		// Determine final order sizes using configured per-order targets clamped by min/max and free balances
 		const buyAmount = Decimal.min(
