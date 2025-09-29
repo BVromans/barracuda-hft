@@ -325,13 +325,12 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 	 * @param _options - Options for the strategy
 	 */
 	private async stopRepeatingTasks(_options: {}) {
-		const tasks = this.state.getOrThrow('tasks').valueSeq().toArray();
+		const tasks = this.state.getOrThrow('tasks');
 
-		if (tasks) {
-			tasks.forEach((task: NodeJS.Timeout) => clearInterval(task));
+		if (!tasks.isEmpty()) {
+			tasks.valueSeq().toArray().forEach((task: NodeJS.Timeout) => clearInterval(task));
+			tasks.clear();
 		}
-
-		tasks.clear();
 	}
 
 	/**
