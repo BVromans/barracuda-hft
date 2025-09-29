@@ -331,8 +331,6 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		if (tasks) {
 			tasks.forEach((task: NodeJS.Timeout) => clearInterval(task));
 		}
-
-		this.state.delete('tasks');
 	}
 
 	/**
@@ -564,7 +562,7 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 			if (enabled) {
 				const maximumAllowedWalletLossFromInitialValue = Decimal(properties.getAs<number>('strategy.pure_market_making.common.monitorProfitAndLoss.maximumAllowedWalletLossFromInitialValue'));
 
-				const currentToInitialProfitAndLoss: Decimal = this.state.getOrThrow('summary.profitAndLoss.currentToInitial.totalBalanceChange.absolute');
+				const currentToInitialProfitAndLoss: Decimal = this.state.getOrThrow('summary.profitAndLoss.currentToInitial.totalBalanceChange.percentage');
 
 				if (currentToInitialProfitAndLoss.lte(maximumAllowedWalletLossFromInitialValue.neg())) {
 					this.status = StrategyStatus.STOP_REQUESTED;
