@@ -29,6 +29,7 @@ export class SimplePureMarketMakingStrategy extends BasePureMarketMakingStrategy
 	 * @param _options - Options for the strategy
 	 */
 	protected async createProposal(_options: {}) {
+		const truncatePriceDecimalsUsingMarketTick = properties.getAs<boolean>('strategy.pure_market_making.common.orders.truncatePriceDecimalsUsingMarketTick');
 		const minimumTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.minimumTokenAmountPerOrder'));
 		const desiredTokenFreeBalanceAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredTokenFreeBalanceAmountPerOrder')) || DECIMAL_0;
 		const desiredTokenFreeBalancePercentagePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredTokenFreeBalancePercentagePerOrder')) || DECIMAL_0;
@@ -82,8 +83,13 @@ export class SimplePureMarketMakingStrategy extends BasePureMarketMakingStrategy
 		// Compute fixed spread around the middle price
 		const spreadRatio = spreadPercentage.div(DECIMAL_100);
 		const halfSpreadRatio = spreadRatio.div(2);
-		const buyPrice = middlePrice.mul(DECIMAL_1.minus(halfSpreadRatio)).toDecimalPlaces(market.tick);
-		const sellPrice = middlePrice.mul(DECIMAL_1.plus(halfSpreadRatio)).toDecimalPlaces(market.tick);
+		let buyPrice = middlePrice.mul(DECIMAL_1.minus(halfSpreadRatio));
+		let sellPrice = middlePrice.mul(DECIMAL_1.plus(halfSpreadRatio));
+
+		if (truncatePriceDecimalsUsingMarketTick) {
+			buyPrice = buyPrice.toDecimalPlaces(market.tick);
+			sellPrice = sellPrice.toDecimalPlaces(market.tick);
+		}
 
 		// Determine final order sizes using configured per-order targets clamped by min/max and free balances
 		const buyAmount = Decimal.min(
