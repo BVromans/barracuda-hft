@@ -331,8 +331,6 @@ export abstract class BasePureMarketMakingStrategy implements BaseStrategy {
 		if (tasks) {
 			tasks.forEach((task: NodeJS.Timeout) => clearInterval(task));
 		}
-
-		this.state.delete('tasks');
 	}
 
 	/**
