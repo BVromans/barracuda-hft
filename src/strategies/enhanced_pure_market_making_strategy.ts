@@ -29,6 +29,8 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 	 * @param _options - Options for the strategy
 	 */
 	protected override async createProposal(_options: {}) {
+		const truncatePriceDecimalsUsingMarketTick = properties.getAs<boolean>('strategy.pure_market_making.common.orders.truncatePriceDecimalsUsingMarketTick');
+
 		// Token parameters
 		const minimumTokenAmountPerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.minimumTokenAmountPerOrder')); // Lower bound safeguard for token size per order
 		const desiredTokenFreeBalancePercentagePerOrder = Decimal(properties.getAs<number>('strategy.pure_market_making.common.orders.desiredTokenFreeBalancePercentagePerOrder')); // Desired token percentage of the free balance per order (0-100)
@@ -181,6 +183,11 @@ export class EnhancedPureMarketMakingStrategy extends BasePureMarketMakingStrate
 			const minimalSeparationAmount = middlePrice.mul(minimumSpreadPercentage.div(DECIMAL_100));
 			buyPrice = Decimal.min(buyPrice, middlePrice.minus(minimalSeparationAmount.div(2)));
 			sellPrice = Decimal.max(sellPrice, middlePrice.plus(minimalSeparationAmount.div(2)));
+		}
+
+		if (truncatePriceDecimalsUsingMarketTick) {
+			buyPrice = buyPrice.toDecimalPlaces(market.tick);
+			sellPrice = sellPrice.toDecimalPlaces(market.tick);
 		}
 
 		/*

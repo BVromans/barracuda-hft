@@ -17,6 +17,7 @@ strategy:
         updateLookbackInterval: 300000 # How much time to look back when fetching the most updated candles. 5 minutes in milliseconds
         maximumNumberOfCandlesKept: 500 # Maximum number of candles that is kept in memory
       orders:
+        truncatePriceDecimalsUsingMarketTick: true # Whether to truncate the price decimals using the market tick (If tick is 4: 100.0001 -> 100.00, 0.001234 -> 0.0012, etc. Beware that this can cause issues since tick is not the same as decimals.)
         minimumTokenAmountPerOrder: 0 # Minimum amount of the token per order (for buy orders, the amount informed (in base token) is converted to quote token using the price)
         desiredTokenFreeBalancePercentagePerOrder: 10 # Desired percentage of the token free balance per order (0-100) (for buy orders, the amount informed (in base token) is converted to quote token using the price), set to null to use the desiredTokenFreeBalanceAmountPerOrder only
         desiredTokenFreeBalanceAmountPerOrder: 1 # Desired amount of the token free balance per order (for buy orders, the amount informed (in base token) is converted to quote token using the price), set to null to use the desiredTokenFreeBalancePercentagePerOrder only
