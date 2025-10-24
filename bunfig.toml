@@ -1,0 +1,11 @@
+# ============================================
+# ⚙️ Bun Configuration – Load central .env
+# ============================================
+
+[env]
+# Altijd dit pad gebruiken voor de .env file:
+BUN_ENV_FILE = "/volume1/tcy-bot/.env"
+
+# Automatisch laden bij elk bun-commando:
+autoLoad = true
+

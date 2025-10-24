@@ -3,305 +3,164 @@ import { List, Map } from "immutable";
 import * as fs from "fs";
 import * as path from "path";
 
-/**
- * Replacer for JSON.stringify to handle special cases.
- * @param key - The key of the value.
- * @param value - The value to replace.
- * @returns The replaced value.
- */
-const jsonReplacer = (key: string, value: any) => {
-	if (value instanceof Decimal) {
-		return value.toFixed();
-	}
-	if (typeof value === "bigint") {
-		return value.toString();
-	}
-	if (value instanceof Date) {
-		return value.toISOString();
-	}
-	if (value instanceof List || value instanceof Map) {
-		return (value as any).toJS();
-	}
-	if (typeof value === "function") {
-		return `[Function: ${value.name || "anonymous"}]`;
-	}
-	if (typeof value === "symbol") {
-		return value.toString();
-	}
-	if (typeof value === "object" && value !== null) {
-		// Handle plain objects and class instances
-		const prototype = Object.getPrototypeOf(value);
-		if (prototype && prototype !== Object.prototype) {
-			// For class instances, include class name
-			const object: any = {
-				// __class__: prototype.constructor.name
-			};
-			for (const property in value) {
-				if (Object.prototype.hasOwnProperty.call(value, property)) {
-					object[property] = value[property];
-				}
-			}
-			return object;
-		} else {
-			const object: any = {};
-			for (const property in value) {
-				if (Object.prototype.hasOwnProperty.call(value, property)) {
-					object[property] = jsonReplacer(property, value[property]);
-				}
-			}
-			return object;
-		}
-	}
-	return value;
+// ANSI color codes for console output
+const COLORS = {
+  reset: "\x1b[0m",
+  gray: "\x1b[90m",
+  blue: "\x1b[34m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  red: "\x1b[31m",
+  magenta: "\x1b[35m",
+  bold: "\x1b[1m",
 };
 
-/**
- * Dump the target to the console.
- * @param target - The target to dump.
- */
-const dump = (target: any) => {
-	try {
-		return JSON.stringify(target, jsonReplacer, 2);
-	} catch (exception) {
-		return target;
-	}
+// === Safe JSON serialization helpers ===
+const jsonReplacer = (key: string, value: any): any => {
+  try {
+    if (value instanceof Decimal) return value.toFixed();
+    if (typeof value === "bigint") return value.toString();
+    if (value instanceof Date) return value.toISOString();
+    if (value instanceof List || value instanceof Map) return (value as any).toJS();
+    if (typeof value === "function") return `[Function: ${value.name || "anonymous"}]`;
+    if (typeof value === "symbol") return value.toString();
+    if (typeof value === "object" && value !== null) {
+      const prototype = Object.getPrototypeOf(value);
+      if (prototype === null || prototype === Object.prototype) {
+        const clone: any = {};
+        for (const k in value) {
+          if (Object.prototype.hasOwnProperty.call(value, k)) {
+            clone[k] = jsonReplacer(k, value[k]);
+          }
+        }
+        return clone;
+      }
+      return `[Instance of ${(prototype as any).constructor?.name || "Object"}]`;
+    }
+    return value;
+  } catch {
+    return `[Unserializable: ${typeof value}]`;
+  }
 };
 
-/**
- * Prepare the stack trace.
- * Important, this changes the default stack trace for the entire system.
- * @param err - The error.
- * @param stack - The stack.
- */
-Error.prepareStackTrace = (err, stack) => {
-	return stack.map(callSite => {
-		// getThis	this value of the function call
-		// getTypeName	typeof this
-		// getFunction	function object
-		// getFunctionName	function name as a string
-		// getMethodName	method name as a string
-		// getFileName	file name or URL
-		// getLineNumber	line number
-		// getColumnNumber	column number
-		// getEvalOrigin	undefined
-		// getScriptNameOrSourceURL	source URL
-		// isToplevel	returns true if the function is in the global scope
-		// isEval	returns true if the function is an eval call
-		// isNative	returns true if the function is native
-		// isConstructor	returns true if the function is a constructor
-		// isAsync	returns true if the function is async
-		// isPromiseAll	Not implemented yet.
-		// getPromiseIndex	Not implemented yet.
-		// toString
-		const result = {
-			this: typeof (callSite as any).getThis === 'function' ? (callSite as any).getThis() : undefined,
-			typeName: typeof (callSite as any).getTypeName === 'function' ? (callSite as any).getTypeName() : undefined,
-			function: typeof (callSite as any).getFunction === 'function' ? (callSite as any).getFunction() : undefined,
-			functionName: typeof (callSite as any).getFunctionName === 'function' ? (callSite as any).getFunctionName() : undefined,
-			methodName: typeof (callSite as any).getMethodName === 'function' ? (callSite as any).getMethodName() : undefined,
-			fileName: typeof (callSite as any).getFileName === 'function' ? (callSite as any).getFileName() : undefined,
-			lineNumber: typeof (callSite as any).getLineNumber === 'function' ? (callSite as any).getLineNumber() : undefined,
-			columnNumber: typeof (callSite as any).getColumnNumber === 'function' ? (callSite as any).getColumnNumber() : undefined,
-			evalOrigin: typeof (callSite as any).getEvalOrigin === 'function' ? (callSite as any).getEvalOrigin() : undefined,
-			scriptNameOrSourceURL: typeof (callSite as any).getScriptNameOrSourceURL === 'function' ? (callSite as any).getScriptNameOrSourceURL() : undefined,
-			isToplevel: typeof (callSite as any).isToplevel === 'function' ? (callSite as any).isToplevel() : undefined,
-			isEval: typeof (callSite as any).isEval === 'function' ? (callSite as any).isEval() : undefined,
-			isNative: typeof (callSite as any).isNative === 'function' ? (callSite as any).isNative() : undefined,
-			isConstructor: typeof (callSite as any).isConstructor === 'function' ? (callSite as any).isConstructor() : undefined,
-			isAsync: typeof (callSite as any).isAsync === 'function' ? (callSite as any).isAsync() : undefined,
-			isPromiseAll: typeof (callSite as any).isPromiseAll === 'function' ? (callSite as any).isPromiseAll() : undefined,
-			promiseIndex: typeof (callSite as any).getPromiseIndex === 'function' ? (callSite as any).getPromiseIndex() : undefined,
-			string: typeof (callSite as any).toString === 'function' ? (callSite as any).toString() : undefined,
-		}
-
-		return result;
-	});
+const dump = (target: any): string => {
+  try {
+    return JSON.stringify(target, jsonReplacer, 2);
+  } catch {
+    return String(target);
+  }
 };
 
-/**
- * Log levels
- */
+// === Log Levels ===
 export enum LogLevel {
-	DEBUG = 'debug',
-	INFO = 'info',
-	WARNING = 'warning',
-	ERROR = 'error',
-	CRITICAL = 'critical',
+  DEBUG = "debug",
+  INFO = "info",
+  WARNING = "warning",
+  ERROR = "error",
+  CRITICAL = "critical",
 }
 
-/**
- * Centralized, singleton application logger.
- */
+// === Centralized Logger (colorized + NAS-safe) ===
 export class Logger {
-	/**
-	 * Singleton instance
-	 */
-	private static instance: Logger;
+  private readonly name: string;
+  private readonly logDirectory: string;
 
-	/**
-	 * Log directory path
-	 */
-	private readonly logDirectory: string;
+  constructor(name = "GLOBAL") {
+    this.name = name;
 
-	/**
-	 * Constructor
-	 */
-	private constructor() {
-		this.logDirectory = path.join(process.cwd(), "logs");
-		this.ensureLogDirectoryExists();
-	}
+    // Pick a writable log directory (NAS or fallback)
+    const preferred = "/volume1/logs";
+    const safeBase =
+      fs.existsSync(preferred) && fs.lstatSync(preferred).isDirectory()
+        ? preferred
+        : path.join(process.cwd(), "logs");
 
-	/**
-	 * Returns the singleton, initializing on first call.
-	 */
-	public static getInstance(): Logger {
-		if (!Logger.instance) {
-			Logger.instance = new Logger();
-		}
+    this.logDirectory = safeBase;
+    if (!fs.existsSync(this.logDirectory)) {
+      try {
+        fs.mkdirSync(this.logDirectory, { recursive: true });
+      } catch {
+        console.warn(`⚠️ Could not create log directory: ${this.logDirectory}`);
+      }
+    }
+  }
 
-		return Logger.instance;
-	}
+  private writeToLogFile(filename: string, message: string): void {
+    try {
+      const filePath = path.join(this.logDirectory, filename);
+      fs.appendFileSync(filePath, message + "\n", { encoding: "utf8", mode: 0o644 });
+    } catch (error) {
+      console.error(`❌ Failed to write log file (${filename}):`, error);
+    }
+  }
 
-	/**
-	 * Ensures the log directory exists, creating it if necessary
-	 */
-	private ensureLogDirectoryExists(): void {
-		if (!fs.existsSync(this.logDirectory)) {
-			fs.mkdirSync(this.logDirectory, { recursive: true });
-		}
-	}
+  private getColor(level: LogLevel): string {
+    switch (level) {
+      case LogLevel.DEBUG:
+        return COLORS.gray;
+      case LogLevel.INFO:
+        return COLORS.green;
+      case LogLevel.WARNING:
+        return COLORS.yellow;
+      case LogLevel.ERROR:
+        return COLORS.red;
+      case LogLevel.CRITICAL:
+        return COLORS.magenta;
+      default:
+        return COLORS.reset;
+    }
+  }
 
-	/**
-	 * Writes a message to a specific log file
-	 * @param filename - The name of the log file
-	 * @param message - The message to write
-	 */
-	private writeToLogFile(filename: string, message: string): void {
-		try {
-			const filePath = path.join(this.logDirectory, filename);
-			fs.appendFileSync(filePath, message, 'utf8');
-		} catch (error) {
-			// Fallback to console if file writing fails
-			console.error(`Failed to write to log file ${filename}:`, error);
-		}
-	}
+  private log(level: LogLevel, message: string, object?: any, ...params: any[]): void {
+    const now = new Date().toISOString();
+    const color = this.getColor(level);
+    const formatted = `[${now}][${level.toUpperCase()}][${this.name}] ${message}`;
+    const colored = `${color}${formatted}${COLORS.reset}`;
 
-	/**
-	 * Log a debug message
-	 * @param message - The message to log
-	 */
-	public debug(message: string, object?: any, ...optionalParams: any[]): void {
-		this.log(LogLevel.DEBUG, message, object, ...optionalParams);
-	}
+    const method =
+      level === LogLevel.ERROR || level === LogLevel.CRITICAL
+        ? "error"
+        : level === LogLevel.WARNING
+        ? "warn"
+        : "log";
 
-	/**
-	 * Log an information
-	 * @param message - The message to log
-	 */
-	public info(message: string, object?: any, ...optionalParams: any[]): void {
-		this.log(LogLevel.INFO, message, object, ...optionalParams);
-	}
+    // Console output
+    if (object || params.length > 0) {
+      (console as any)[method](colored, dump(object || params));
+    } else {
+      (console as any)[method](colored);
+    }
 
-	/**
-	 * Log a warning
-	 * @param message - The message to log
-	 */
-	public warning(message: string, object?: any, ...optionalParams: any[]): void {
-		this.log(LogLevel.WARNING, message, object, ...optionalParams);
-	}
+    // File output (plain, no colors)
+    this.writeToLogFile(`${level}.log`, formatted);
+    this.writeToLogFile("all.log", formatted);
+  }
 
-	/**
-	 * Log an error
-	 * @param message - The message to log
-	 */
-	public error(message: string, object?: any, ...optionalParams: any[]): void {
-		this.log(LogLevel.ERROR, message, object, ...optionalParams);
-	}
+  // === Level helpers ===
+  debug(message: string, obj?: any, ...p: any[]) {
+    this.log(LogLevel.DEBUG, message, obj, ...p);
+  }
+  info(message: string, obj?: any, ...p: any[]) {
+    this.log(LogLevel.INFO, message, obj, ...p);
+  }
+  warn(message: string, obj?: any, ...p: any[]) {
+    this.log(LogLevel.WARNING, message, obj, ...p);
+  }
+  error(message: string, obj?: any, ...p: any[]) {
+    this.log(LogLevel.ERROR, message, obj, ...p);
+  }
+  critical(message: string, obj?: any, ...p: any[]) {
+    this.log(LogLevel.CRITICAL, message, obj, ...p);
+  }
 
-	/**
-	 * Log a critical message
-	 * @param message - The message to log
-	 */
-	public critical(message: string, object?: any, ...optionalParams: any[]): void {
-		this.log(LogLevel.CRITICAL, message, object, ...optionalParams);
-	}
-
-	/**
-	 * Ignore an exception
-	 * @param exception - The exception to ignore
-	 * @param message - The message to log
-	 */
-	public ignoreException(exception: any, message?: string): void {
-		message = message || 'Ignored exception:';
-		if (exception instanceof Error) {
-			message += ` ${exception.message}`;
-		} else {
-			message += exception;
-		}
-
-		this.log(LogLevel.WARNING, message, undefined, new Error().stack as any);
-	}
-
-	/**
-	 * Log a message
-	 * @param message - The message to log
-	 */
-	private log(level: LogLevel, message: string, object?: any, stack?: any, includeStackTrace?: boolean, ...optionalParams: any[]): void {
-		const now = new Date();
-		const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-
-		let frame: any | undefined;
-		let stacktrace: string | undefined = undefined;
-		if (!stack) {
-			stack = new Error().stack as any;
-			frame = stack[2];
-			stacktrace = stack?.slice(2).map((frame: any) => frame.string).join('\n');
-		} else {
-			frame = stack[0];
-			stacktrace = stack?.map((frame: any) => frame.string).join('\n');
-		}
-
-		const filePath = frame?.fileName;
-		const lineNumber = frame?.lineNumber;
-		const columnNumber = frame?.columnNumber;
-		const functionName = frame?.functionName;
-		const methodName = frame?.methodName;
-
-		message = `\n[${timestamp}][${level.toUpperCase()}][${filePath}:${lineNumber}:${columnNumber}][${functionName || methodName}]: ${message}${includeStackTrace ? `\n\n${stacktrace}` : ''}\n`;
-
-		let method: 'debug' | 'info' | 'warn' | 'error' = 'debug';
-
-		if (level === LogLevel.DEBUG) {
-			method = 'debug';
-		} else if (level === LogLevel.INFO) {
-			method = 'info';
-		} else if (level === LogLevel.WARNING) {
-			method = 'warn';
-		} else if (level === LogLevel.ERROR) {
-			method = 'error';
-		} else if (level === LogLevel.CRITICAL) {
-			method = 'error';
-		}
-
-		if (object) {
-			if (optionalParams.length > 0) {
-				console[method](message, dump(object), dump(optionalParams));
-			} else {
-				console[method](message, dump(object));
-			}
-		} else if (optionalParams.length > 0) {
-			console[method](message, dump(optionalParams));
-		} else {
-			console[method](message);
-		}
-
-		this.writeToLogFile("all.log", message);
-
-		this.writeToLogFile(`${level}.log`, message);
-	}
+  /**
+   * Used by older strategies – prevents crashes on recoverable exceptions.
+   */
+  ignoreException(error: unknown, context?: string): void {
+    const label = context ? `(${context})` : "";
+    this.warn(`Ignored exception ${label}: ${String(error)}`);
+  }
 }
 
-/**
- * Singleton instance of logger
- */
-export const logger = Logger.getInstance();
+// === Global default logger instance ===
+export const logger = new Logger();

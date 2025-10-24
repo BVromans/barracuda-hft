@@ -1,18 +1,39 @@
+# --- Environment & secrets ---
 .env
-node_modules
-dist
-.bun
-logs
+.env.*
+!.env.example
+
+# --- Node / TypeScript ---
+node_modules/
+dist/
+.bun/
+.tsbuildinfo
+*.map
+
+# --- Logs ---
+logs/
 *.log
 debug.log
-.idea
-*.iml
 
+# --- IDE / OS files ---
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+.vscode/
+
+# --- Project-specific (NAS & TCY Bot) ---
+@eaDir/
+_backup_strategies/
+temporary/
+resources/references
 resources/configuration/development.yml
 resources/configuration/staging.yml
 resources/configuration/production.yml
-
 resources/database/database.sqlite
 
-temporary
-resouces/references
+# --- Other ---
+coverage/
+.tmp/
+.temp/
+.cache/

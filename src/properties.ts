@@ -1,220 +1,160 @@
-import { readFileSync, existsSync } from 'fs';
-import * as path from 'path';
-import { parse } from 'yaml';
-import { Map } from 'immutable';
-import { MMap } from './extensions/immutablejs';
+import { readFileSync, existsSync } from "fs";
+import * as path from "path";
+import { parse } from "yaml";
+import { Map } from "immutable";
+import { MMap } from "./extensions/immutablejs";
 
 /**
- * Centralized, singleton application properties/configuration.
+ * ✅ Centralized, singleton configuration manager for TCY-BOT
+ * Loads YAML + ENV synchronously at import time (no async/await).
  */
 export class Properties {
-	/**
-	 * Singleton instance
-	 */
-	private static instance: Properties;
+  private static instance: Properties;
+  private readonly map: Map<string, any>;
 
-	/**
-	 * Properties
-	 */
-	private readonly map: Map<string, any>;
+  private constructor() {
+    this.map = MMap<string, any>({}, ".");
+    this.initialize();
+  }
 
-	/**
-	 * Constructor
-	 */
-	private constructor() {
-		this.map = MMap<string, any>({}, '.');
-	}
+  /** Get singleton instance (synchronous) */
+  public static getInstance(): Properties {
+    if (!Properties.instance) {
+      Properties.instance = new Properties();
+    }
+    return Properties.instance;
+  }
 
-	/**
-	 * Returns the singleton, initializing on first call.
-	 */
-	public static async getInstance(): Promise<Properties> {
-		if (!Properties.instance) {
-			Properties.instance = new Properties();
-			await Properties.instance.initialize();
-		}
+  /** Full initialization sequence */
+  private initialize(): void {
+    this.initialLoad();
+    this.loadFromConstants();
+    this.loadFromConfigurationFiles();
+    this.loadFromEnvironmentVariables();
+    this.defineExtraProperties();
+  }
 
-		return Properties.instance;
-	}
+  /** Setup for key paths */
+  private initialLoad(): void {
+    const root = process.cwd();
+    this.map.set("paths.root.path", root);
+    this.map.set("paths.resources.path", path.join(root, "resources"));
+    this.map.set("paths.resources.configuration.path", path.join(root, "resources", "configuration"));
+    this.map.set("paths.resources.database.path", path.join(root, "resources", "database"));
+  }
 
-	/**
-	 * Load everything in order.
-	 */
-	private async initialize(): Promise<void> {
-		this.initialLoad();
-		this.loadFromConstants();
-		await this.loadFromConfigurationFiles();
-		await this.loadFromDatabase();
-		this.loadFromEnvironmentVariables();
-		this.defineExtraProperties();
-	}
+  /** Load static constants (optional) */
+  private loadFromConstants(): void {
+    // Reserved for future defaults
+  }
 
-	/**
-	 * Initial load
-	 */
-	private initialLoad(): void {
-		this.map.set('paths.root.path', process.cwd());
-		this.map.set('paths.resources.path', path.join(this.map.get('paths.root.path'), 'resources'));
-		this.map.set('paths.resources.configuration.path', path.join(this.map.get('paths.resources.path'), 'configuration'));
-		this.map.set('paths.resources.database.path', path.join(this.map.get('paths.resources.path'), 'database'));
-	}
+  /** Load configuration files from YAML (main.yml, common.yml, and env-specific) */
+  private loadFromConfigurationFiles(): void {
+    const configFolder =
+      this.getOrDefault<string>(
+        "paths.resources.configuration.path",
+        path.join(process.cwd(), "resources", "configuration")
+      ) || path.join(process.cwd(), "resources", "configuration");
 
-	/**
-	 * Load from constants
-	 */
-	private loadFromConstants(): void {
-	}
+    let configuration: Map<string, any> = Map<string, any>().asMutable();
 
-	/**
-	 * Load from configuration files
-	 */
-	private async loadFromConfigurationFiles(): Promise<void> {
-		const configurationFolder = this.get<string>('paths.resources.configuration.path');
+    const loadYaml = (filename: string): Map<string, any> => {
+      const fullPath = path.join(configFolder, filename);
+      if (!existsSync(fullPath)) {
+        console.warn(`⚠️ Configuration file not found: ${fullPath}`);
+        return Map<string, any>().asMutable();
+      }
 
-		let configuration: Map<string, any> = Map<string, any>().asMutable();
+      try {
+        const content = readFileSync(fullPath, "utf8");
+        const parsed = parse(content);
+        return Map<string, any>(parsed).asMutable();
+      } catch (err) {
+        console.error(`❌ Failed to parse YAML: ${filename}`, err);
+        return Map<string, any>().asMutable();
+      }
+    };
 
-		const loadYaml = (file: string): Map<string, any> => {
-			const fullPath = path.join(configurationFolder, file);
+    // main.yml and common.yml
+    configuration = configuration.mergeDeep(loadYaml("main.yml"));
+    configuration = configuration.mergeDeep(loadYaml("common.yml"));
 
-			if (!existsSync(fullPath)) {
-				throw new Error(`Configuration file not found: ${fullPath}`);
-			}
+    // Environment override (from ENV or YAML)
+    const environment = process.env.ENVIRONMENT || configuration.get("environment");
+    if (environment) {
+      const envFile = `${environment}.yml`;
+      if (existsSync(path.join(configFolder, envFile))) {
+        configuration = configuration.mergeDeep(loadYaml(envFile));
+        console.log(`✅ Loaded environment config: ${envFile}`);
+      }
+    }
 
-			const content = readFileSync(fullPath, 'utf8');
+    this.map.mergeDeep(configuration);
+  }
 
-			return Map<string, any>(parse(content)).asMutable();
-		};
+  /** Load environment variables (auto-type conversion) */
+  private loadFromEnvironmentVariables(): void {
+    const parseValue = (value?: string): any => {
+      if (value === undefined) return undefined;
+      if (/^(true|false)$/i.test(value)) return value.toLowerCase() === "true";
+      if (!isNaN(Number(value))) return Number(value);
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    };
 
-		configuration = configuration.mergeDeep(loadYaml('main.yml'));
-		configuration = configuration.mergeDeep(loadYaml('common.yml'));
+    for (let [key, value] of Object.entries(process.env)) {
+      key = key.toLowerCase();
+      this.map.set(key, parseValue(value));
+    }
+  }
 
-		// override env if set
-		const environment = process.env.ENVIRONMENT || configuration.get('environment');
-		if (environment) {
-			configuration = configuration.mergeDeep(loadYaml(`${environment}.yml`));
-		}
+  /** Add or override from environment */
+  private defineExtraProperties(): void {
+    const setIfMissing = (key: string, value?: string) => {
+      if (value && !this.map.get(key)) this.map.set(key, value);
+    };
 
-		this.map.mergeDeep(configuration);
-	}
+    setIfMissing("rujira.wallet.mnemonic", process.env.RUJIRA_WALLET_MNEMONIC);
+    setIfMissing("rujira.wallet.privateKey", process.env.RUJIRA_WALLET_PRIVATE_KEY);
+    setIfMissing("rujira.wallet.publicKeys.thor", process.env.RUJIRA_WALLET_PUBLIC_KEY_THOR);
+    setIfMissing("rujira.wallet.publicKeys.ethereum", process.env.RUJIRA_WALLET_PUBLIC_KEY_ETHEREUM);
+    setIfMissing("rujira.tokens.graphql", process.env.RUJIRA_TOKEN_GRAPHQL);
+  }
 
-	/**
-	 * Load from database
-	 */
-	private async loadFromDatabase(): Promise<void> {
-	}
+  /** Strict getter — throws if missing */
+  public get<T = unknown>(key: string): T {
+    const value = this.getOrDefault<T>(key);
+    if (value === undefined) throw new Error(`Property "${key}" not found.`);
+    return value;
+  }
 
-	/**
-	 * Load from environment variables
-	 */
-	private loadFromEnvironmentVariables(): void {
-		const parseEnvironmentVariableValue = (value?: string): any => {
-			if (!value) return value;
+  /** Getter with fallback */
+  public getOrDefault<T = unknown>(key: string, defaultValue?: T): T | undefined {
+    let result = this.map.get(key);
+    if (result !== undefined) return result;
 
-			if (/^(true|false)$/i.test(value)) return value.toLowerCase() === 'true';
+    const altKey = key.toLowerCase().replace(/\./g, "_");
+    result = this.map.get(altKey);
+    return result !== undefined ? result : defaultValue;
+  }
 
-			if (!isNaN(Number(value))) return Number(value);
+  /** Typed getter (used in index.ts, etc.) */
+  public getAs<T = unknown>(key: string, defaultValue?: T): T {
+    const value = this.getOrDefault<T>(key, defaultValue);
+    return value as T;
+  }
 
-			try {
-				return JSON.parse(value);
-			} catch {
-			}
-
-			return value;
-		}
-
-		for (let [key, value] of Object.entries(process.env)) {
-			key = key.toLowerCase();
-
-			this.map.set(key, parseEnvironmentVariableValue(value));
-		}
-	}
-
-	/**
-	 * Define extra properties
-	 */
-	private defineExtraProperties(): void {
-		if (!this.map.get('rujira.wallet.mnemonic')) {
-			this.map.set('rujira.wallet.mnemonic', process.env.RUJIRA_WALLET_MNEMONIC);
-		}
-		if (!this.map.get('rujira.wallet.privateKey')) {
-			this.map.set('rujira.wallet.privateKey', process.env.RUJIRA_WALLET_PRIVATE_KEY);
-		}
-		if (!this.map.get('rujira.wallet.publicKeys.thor')) {
-			this.map.set('rujira.wallet.publicKeys.thor', process.env.RUJIRA_WALLET_PUBLIC_KEY_THOR);
-		}
-		if (!this.map.get('rujira.wallet.publicKeys.ethereum')) {
-			this.map.set('rujira.wallet.publicKeys.ethereum', process.env.RUJIRA_WALLET_PUBLIC_KEY_ETHEREUM);
-		}
-
-		if (!this.map.get('rujira.tokens.graphql')) {
-			this.map.set('rujira.tokens.graphql', process.env.RUJIRA_TOKEN_GRAPHQL);
-		}
-	}
-
-	/**
-	 * Retrieve a value or throw if missing.
-	 * @param key
-	 * @returns
-	 */
-	public get<T = any>(key: string): T {
-		const value = this.getOrDefault(key);
-
-		if (value === undefined) {
-			throw new Error(`Property "${key}" not found.`);
-		}
-
-		return value;
-	}
-
-	/**
-	 * Retrieve a value or return default.
-	 * @param key
-	 * @param defaultValue
-	 * @returns
-	 */
-	public getOrDefault<T = any>(key: string, defaultValue?: T): T | undefined {
-		let result: T | undefined = this.map.get(key);
-
-		if (result !== undefined) {
-			return result;
-		}
-
-		const modifiedKey = key.toLowerCase().replace(/\./g, '_');
-
-		result = this.map.get(modifiedKey);
-
-		if (result !== undefined) {
-			return result;
-		}
-
-		return defaultValue;
-	}
-
-	/**
-	 * Like getOrDefault but *always* returns T (never undefined).
-	 * Use when you know a default.
-	 * @param key
-	 * @param defaultValue
-	 * @returns
-	 */
-	public getAs<T>(key: string, defaultValue?: T): T {
-		const value = this.getOrDefault<T>(key, defaultValue);
-
-		return value as T;
-	}
-
-	// noinspection JSUnusedGlobalSymbols
-	/**
-	 * Set a value
-	 * @param key
-	 * @param value
-	 */
-	public set(key: string, value: any): void {
-		this.map.set(key, value);
-	}
+  /** Set or override manually */
+  public set(key: string, value: any): void {
+    this.map.set(key, value);
+  }
 }
 
 /**
- * Singleton instance of properties
+ * ✅ Synchronous singleton export
+ * Ensures configs + env vars available immediately.
  */
-export const properties = await Properties.getInstance();
+export const properties = Properties.getInstance();
