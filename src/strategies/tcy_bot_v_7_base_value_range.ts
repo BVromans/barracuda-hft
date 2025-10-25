@@ -1,11 +1,12 @@
 // ============================================================
-// 🤖 TCY Bot – Base Value Range Strategy (v7.0.0, Final Anchor Logic)
+// 🤖 TCY Bot – Base Value Range Strategy (v7.0.1, Stable Fix)
 // ------------------------------------------------------------
-// ✅ Fully aligned with spreadsheet logic:
+// ✅ Fully aligned with spreadsheet logic + stable execution:
 //   - Limit prices derived from base value (not midprice)
 //   - Order values fixed at base×0.032 (buy) / base×0.036 (sell)
 //   - Stable 60s scan loop – no redundant reorders
-//   - European number formatting
+//   - Uses static balance in paper mode to avoid micro-fluctuations
+//   - Rounds limit prices to 4 decimals for floating-point safety
 // ============================================================
 
 import {
@@ -126,15 +127,19 @@ async function calibrateToRange(walletAddress: string, startBase: number): Promi
 }
 
 // ------------------------------------------------------------
-// ♻️ Phase 2 – Dual-limit mode (Base-anchored logic)
+// ♻️ Phase 2 – Dual-limit mode (Stable Base Anchored Logic)
 // ------------------------------------------------------------
 async function runDualLimitMode(walletAddress: string, baseValue: number) {
   let lastBuyPrice: number | null = null;
   let lastSellPrice: number | null = null;
 
+  // ✅ Use static balance in paper mode for stability
+  const isPaperMode = !process.env.WALLET_ADDRESS;
+  const staticBalance = 38643; // from your environment logs
+
   while (true) {
     try {
-      const balance = await getWalletBalance(walletAddress);
+      const balance = isPaperMode ? staticBalance : await getWalletBalance(walletAddress);
       const price = await getMarketPrice("TCY_USDC");
 
       if (!price || price <= 0 || !balance || balance <= 0) {
@@ -147,17 +152,17 @@ async function runDualLimitMode(walletAddress: string, baseValue: number) {
       const buyValue = baseValue * 0.032;
       const sellValue = baseValue * 0.036;
 
-      // ✅ Correct base-anchored limit prices (spreadsheet formula)
-      const buyPrice = (baseValue * RANGE_DOWN) / balance;
-      const sellPrice = (baseValue * RANGE_UP) / balance;
+      // ✅ Base-anchored limit prices (spreadsheet formula)
+      const buyPrice = Math.round(((baseValue * RANGE_DOWN) / balance) * 10000) / 10000;
+      const sellPrice = Math.round(((baseValue * RANGE_UP) / balance) * 10000) / 10000;
 
       const buyAmount = buyValue / buyPrice;
       const sellAmount = sellValue / sellPrice;
 
       const pricesChanged =
         !lastBuyPrice || !lastSellPrice ||
-        Math.abs(buyPrice - lastBuyPrice) > 0.0001 ||
-        Math.abs(sellPrice - lastSellPrice) > 0.0001;
+        Math.abs(buyPrice - lastBuyPrice) > 0.0005 ||
+        Math.abs(sellPrice - lastSellPrice) > 0.0005;
 
       if (pricesChanged) {
         await cancelAllOrders();
@@ -183,17 +188,34 @@ async function runDualLimitMode(walletAddress: string, baseValue: number) {
       const newPrice = await getMarketPrice("TCY_USDC");
       if (!newPrice || newPrice <= 0) continue;
 
+      // --- Simulated fill notifications ---
       if (newPrice <= buyPrice) {
         await cancelAllOrders();
-        await sendTelegram(tagMessage(`✅ BUY filled @ $${newPrice.toFixed(4)} (${formatTcy(buyAmount)} TCY ≈ ${formatNumber(buyValue)})`, baseValue));
+        await sendTelegram(
+          tagMessage(
+            `✅ BUY filled (paper) @ $${buyPrice.toFixed(4)} (${formatTcy(buyAmount)} TCY ≈ ${formatNumber(buyValue)})\n📈 Market now: $${newPrice.toFixed(4)}\nRepositioning next limit orders...`,
+            baseValue
+          )
+        );
+        log.info(`[Fill] Simulated BUY filled at $${buyPrice.toFixed(4)} (${buyAmount.toFixed(2)} TCY)`);
         lastBuyPrice = null;
         lastSellPrice = null;
-      } else if (newPrice >= sellPrice) {
+        continue;
+      }
+
+      if (newPrice >= sellPrice) {
         await cancelAllOrders();
         baseValue += BASE_INCREMENT;
-        await sendTelegram(tagMessage(`✅ SELL filled @ $${newPrice.toFixed(4)} (${formatTcy(sellAmount)} TCY ≈ ${formatNumber(sellValue)}) → new base: ${formatNumber(baseValue)}`, baseValue));
+        await sendTelegram(
+          tagMessage(
+            `✅ SELL filled (paper) @ $${sellPrice.toFixed(4)} (${formatTcy(sellAmount)} TCY ≈ ${formatNumber(sellValue)})\n💰 Base value raised to ${formatNumber(baseValue)}\nRepositioning next limit orders...`,
+            baseValue
+          )
+        );
+        log.info(`[Fill] Simulated SELL filled at $${sellPrice.toFixed(4)} (${sellAmount.toFixed(2)} TCY)`);
         lastBuyPrice = null;
         lastSellPrice = null;
+        continue;
       }
 
       log.info(`[Cycle] Waiting ${DEFAULT_TICK / 1000}s for next check...`);

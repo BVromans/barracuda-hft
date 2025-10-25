@@ -8,17 +8,13 @@
     "//": "=== Node.js mode (recommended for Synology NAS) ===",
     "build:node": "./node_modules/.bin/tsc",
     "start:node": "NODE_ENV=development /usr/local/bin/node -r dotenv/config dist/index.js dotenv_config_path=/volume1/tcy-bot/barracuda-hft/.env",
-
     "//dev": "Optional development shortcut using ts-node",
     "dev:node": "NODE_ENV=development ./node_modules/.bin/ts-node -r dotenv/config src/index.ts dotenv_config_path=/volume1/tcy-bot/barracuda-hft/.env",
-
     "//tools": "Utility and testing scripts",
     "clean": "rm -rf dist dist-test .tsbuildinfo",
     "lint": "echo 'Linting skipped (no linter configured)'",
-    
     "//test-db": "Runs a simple connection test for the SQLite database",
     "test:db": "./node_modules/.bin/tsc test-db.ts --target ES2020 --module CommonJS --outDir dist-test && /usr/local/bin/node dist-test/test-db.js",
-
     "//test-db-clean": "Drops and recreates database tables before testing",
     "test:db:clean": "./node_modules/.bin/tsc test-db-clean.ts --target ES2020 --module CommonJS --outDir dist-test && /usr/local/bin/node dist-test/test-db-clean.js"
   },
@@ -34,6 +30,7 @@
     "extendable-immutable": "^1.3.3",
     "immutable": "^5.1.3",
     "lru-cache": "^11.1.0",
+    "node-telegram-bot-api": "^0.66.0",
     "reflect-metadata": "^0.2.2",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
@@ -42,6 +39,7 @@
   "devDependencies": {
     "@types/bn.js": "^5.1.6",
     "@types/node": "^20.14.11",
+    "@types/node-telegram-bot-api": "^0.64.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },

@@ -1,0 +1,57 @@
+#!/bin/bash
+# TCY Bot Manager (v7)
+SERVICE_NAME="tcy-bot-v7.service"
+LOG_FILE="/volume1/tcy-bot/barracuda-hft/logs/all.log"
+
+echo "🤖 TCY Bot Manager (v7)"
+echo "🧠 Active service: $SERVICE_NAME"
+echo "-------------------------------------------"
+
+cmd="${1:-status}"
+
+# helper: check unit exists
+if ! systemctl list-unit-files | grep -q "^${SERVICE_NAME}"; then
+  echo "⚠️  Systemd unit ${SERVICE_NAME} not found."
+  echo "    Create/enable the service or adjust SERVICE_NAME in this script."
+  exit 1
+fi
+
+case "$cmd" in
+  start)
+    echo "🟢 Starting ${SERVICE_NAME}..."
+    sudo systemctl start "$SERVICE_NAME"
+    systemctl status "$SERVICE_NAME" --no-pager
+    ;;
+  stop)
+    echo "🛑 Stopping ${SERVICE_NAME}..."
+    sudo systemctl stop "$SERVICE_NAME"
+    ;;
+  restart)
+    echo "🔁 Restarting ${SERVICE_NAME}..."
+    sudo systemctl restart "$SERVICE_NAME"
+    systemctl status "$SERVICE_NAME" --no-pager
+    ;;
+  status)
+    systemctl status "$SERVICE_NAME" --no-pager
+    ;;
+  log|logs)
+    echo "🧾 Tailing $LOG_FILE (Ctrl+C to exit)…"
+    tail -f "$LOG_FILE"
+    ;;
+  journal)
+    echo "📜 Following journal for ${SERVICE_NAME} (Ctrl+C to exit)…"
+    sudo journalctl -u "$SERVICE_NAME" -f
+    ;;
+  enable)
+    echo "🧩 Enabling autostart…"
+    sudo systemctl enable "$SERVICE_NAME"
+    ;;
+  disable)
+    echo "🚫 Disabling autostart…"
+    sudo systemctl disable "$SERVICE_NAME"
+    ;;
+  *)
+    echo "Usage: tcybot {start|stop|restart|status|log|logs|journal|enable|disable}"
+    exit 2
+    ;;
+esac

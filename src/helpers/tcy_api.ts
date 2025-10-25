@@ -1,20 +1,24 @@
 // ============================================================
-// 🌐 TCY API Helper Module (clean version, no version tags)
+// 🌐 TCY API Helper Module
 // ------------------------------------------------------------
 // Handles GraphQL + REST calls to Rujira API, simulates orders,
 // and sends Telegram notifications. Paper-trading only.
-// Stops trading when no live data is available.
+// Fully driven by .env (no hardcoded endpoints).
 // ============================================================
 
 import { logger } from "../logger";
 const log = logger;
 
-const GQL = "https://api.rujira.network/api";
+// ============================================================
+// 🔧 Environment setup
+// ============================================================
+const GQL_BASE = process.env.RUJIRA_API_BASE || "https://api.rujira.network/api";
+const MARKET_URL =
+  process.env.RUJIRA_MARKET_URL || "https://api.rujira.network/api/trade/orderbook";
 
 // ------------------------------------------------------------
-// 🔧 Helpers
+// 🧩 Helpers
 // ------------------------------------------------------------
-
 function authHeaders(): Record<string, string> {
   const token = process.env.RUJIRA_TOKEN_GRAPHQL || "";
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -41,9 +45,9 @@ function formatTcy(num: number, decimals = 2): string {
   return `${formattedInt},${decPart}`;
 }
 
-// ------------------------------------------------------------
+// ============================================================
 // 💰 Wallet balance (GraphQL)
-// ------------------------------------------------------------
+// ============================================================
 export async function getWalletBalance(address: string): Promise<number> {
   if (!address) {
     log.warn("[Wallet] WALLET_ADDRESS not set; using INITIAL_TCY from .env");
@@ -63,7 +67,7 @@ export async function getWalletBalance(address: string): Promise<number> {
   };
 
   try {
-    const response = await fetch(GQL, {
+    const response = await fetch(GQL_BASE, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify(query),
@@ -71,12 +75,8 @@ export async function getWalletBalance(address: string): Promise<number> {
 
     const json: any = await response.json();
     const pending = json?.data?.staking?.pendingBalances || [];
-
     let total = 0;
-    for (const item of pending) {
-      const claim = Number(item?.tcy?.claimable || 0);
-      total += claim;
-    }
+    for (const item of pending) total += Number(item?.tcy?.claimable || 0);
 
     if (total <= 0) {
       const fallback = parseFloat(process.env.INITIAL_TCY || "0");
@@ -93,13 +93,13 @@ export async function getWalletBalance(address: string): Promise<number> {
   }
 }
 
-// ------------------------------------------------------------
+// ============================================================
 // 💹 Market price (REST)
-// ------------------------------------------------------------
+// ============================================================
 export async function getMarketPrice(pair = "TCY_USDC"): Promise<number> {
   while (true) {
     try {
-      const url = `https://api.rujira.network/api/trade/orderbook?ticker_id=${pair}&depth=1`;
+      const url = `${MARKET_URL}?ticker_id=${pair}&depth=1`;
       const response = await fetch(url, { method: "GET", headers: authHeaders() });
       const json: any = await response.json();
 
@@ -115,14 +115,14 @@ export async function getMarketPrice(pair = "TCY_USDC"): Promise<number> {
       log.warn(`[Market] Live price unavailable: ${err}`);
       await sendTelegram("⚠️ Price feed unavailable – retrying in 10 minutes...");
       log.info("🕒 Waiting 10 minutes before retry...");
-      await sleep(10 * 60 * 1000); // 10 minutes
+      await sleep((parseInt(process.env.PRICE_RETRY_MINUTES || "10") || 10) * 60 * 1000);
     }
   }
 }
 
-// ------------------------------------------------------------
+// ============================================================
 // 📊 Paper order simulation
-// ------------------------------------------------------------
+// ============================================================
 export async function placeOrder(side: "BUY" | "SELL", price: number, amount: number): Promise<void> {
   const value = price * amount;
   log.info(`[Order] (PAPER LIMIT) ${side} @ $${price.toFixed(4)} | ${formatTcy(amount)} TCY ≈ ${formatNumber(value)}`);
@@ -133,19 +133,20 @@ export async function placeMarketOrder(side: "BUY" | "SELL", price: number, valu
   log.info(`[Order] (PAPER MARKET) ${side} @ $${price.toFixed(4)} | ${formatTcy(amount)} TCY ≈ ${formatNumber(value)}`);
 }
 
-// ------------------------------------------------------------
+// ============================================================
 // ❌ Cancel orders
-// ------------------------------------------------------------
+// ============================================================
 export async function cancelAllOrders(): Promise<void> {
   log.info("[Order] (PAPER) All limit orders cancelled");
 }
 
-// ------------------------------------------------------------
-// ✉️ Telegram
-// ------------------------------------------------------------
+// ============================================================
+// ✉️ Telegram integration
+// ============================================================
 export async function sendTelegram(message: string): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
+
   if (!token || !chatId) {
     log.debug(`[Telegram] (skip) ${message}`);
     return;
