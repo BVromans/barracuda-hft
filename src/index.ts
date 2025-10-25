@@ -27,8 +27,14 @@ let botRunning = false;
 let baseValueCache = parseFloat(process.env.INITIAL_PORTFOLIO_VALUE || "5950");
 let tcyAmountCache = parseFloat(process.env.INITIAL_TCY || "38643");
 
+// ✅ Paths
+const rootPath = "/volume1/tcy-bot/barracuda-hft";
+const envPath = `${rootPath}/.env`;
+const logPath = `${rootPath}/logs/tcy-bot-run.log`;
+const crashFlagPath = `${rootPath}/logs/last_crash.flag`;
+const systemServiceName = "tcy-bot-v7.service";
+
 // ✅ Manual .env loading for Synology NAS
-const envPath = "/volume1/tcy-bot/barracuda-hft/.env";
 if (fs.existsSync(envPath)) {
   const result = require("dotenv").config({ path: envPath });
   if (result.error) console.error("⚠️ Could not load .env:", result.error);
@@ -92,6 +98,7 @@ Available commands:
 /start – Start strategy
 /stop – Stop bot
 /restart – Restart bot
+/reboot – Restart TCY-bot system service
 /base <value> – Change base value and restart
 /tcy <amount> – Change starting TCY and restart
 /log – Show last 10 log lines
@@ -137,6 +144,17 @@ Status: ${botRunning ? "🟢 Running" : "🛑 Stopped"}`,
           process.exit(1);
           break;
 
+        case "/reboot":
+          await safeSendMessage(chatId, "♻️ Restarting TCY-bot system service...");
+          try {
+            execSync(`sudo systemctl restart ${systemServiceName}`);
+            await safeSendMessage(chatId, "✅ TCY-bot service restart command issued.");
+          } catch (err: any) {
+            await safeSendMessage(chatId, `⚠️ Failed to restart service: ${err.message}`);
+          }
+          process.exit(0);
+          break;
+
         case "/base": {
           const newBase = parseFloat(arg);
           if (isNaN(newBase) || newBase <= 0) {
@@ -172,7 +190,6 @@ Status: ${botRunning ? "🟢 Running" : "🛑 Stopped"}`,
         }
 
         case "/log": {
-          const logPath = "/volume1/tcy-bot/barracuda-hft/logs/tcy-bot-run.log";
           if (fs.existsSync(logPath)) {
             const lastLines = fs.readFileSync(logPath, "utf8").trim().split("\n").slice(-10).join("\n");
             await safeSendMessage(chatId, `📜 Last 10 log lines:\n\n${lastLines}`);
@@ -209,8 +226,15 @@ Status: ${botRunning ? "🟢 Running" : "🛑 Stopped"}`,
     log.info("🔐 Wallet credentials detected – live trading capabilities available (currently disabled).");
   }
 
+  // 🚨 Detect crash restarts
+  let startupMessage = `🤖 ${TCY_BOT_NAME} v${TCY_BOT_VERSION}\nMode: ${process.env.MODE || "unknown"}\nBot starting up...`;
+  if (fs.existsSync(crashFlagPath)) {
+    startupMessage = `⚠️ ${TCY_BOT_NAME} auto-restarted after a crash.\n\n${startupMessage}`;
+    fs.unlinkSync(crashFlagPath);
+  }
+
   try {
-    await sendTelegram(`🤖 ${TCY_BOT_NAME} v${TCY_BOT_VERSION}\nMode: ${process.env.MODE || "unknown"}\nBot starting up...`);
+    await sendTelegram(startupMessage);
     log.info("📨 Telegram startup message sent successfully.");
   } catch (err) {
     log.error("❌ Telegram startup message failed:", err);
@@ -237,6 +261,7 @@ Status: ${botRunning ? "🟢 Running" : "🛑 Stopped"}`,
     const msg = `💥 ${TCY_BOT_NAME} crashed!\n${err?.message || err}`;
     log.error(`❌ Fatal error: ${err?.stack || err}`);
     try {
+      fs.writeFileSync(crashFlagPath, new Date().toISOString());
       await sendTelegram(msg);
     } catch {
       log.warn("⚠️ Failed to send crash notification to Telegram.");
@@ -272,6 +297,7 @@ process.on("SIGTERM", () => gracefulStop("SIGTERM"));
 process.on("uncaughtException", async (err) => {
   log.error(`💥 Uncaught Exception: ${err.stack || err}`);
   try {
+    fs.writeFileSync(crashFlagPath, new Date().toISOString());
     await sendTelegram(`💥 TCY Bot crashed!\n${err.message}`);
   } catch {}
   process.exit(1);
@@ -280,6 +306,7 @@ process.on("uncaughtException", async (err) => {
 process.on("unhandledRejection", async (reason: any) => {
   log.error(`⚠️ Unhandled Promise rejection: ${reason}`);
   try {
+    fs.writeFileSync(crashFlagPath, new Date().toISOString());
     await sendTelegram(`⚠️ Unhandled rejection: ${reason}`);
   } catch {}
 });
