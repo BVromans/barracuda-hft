@@ -1,9 +1,8 @@
 // ============================================================
 // 🧩 Version Metadata for TCY Bot
 // ------------------------------------------------------------
-// This file keeps version and name constants for consistent
-// use across all bot modules.
+// Central name + version used across modules and logs.
 // ============================================================
 
 export const TCY_BOT_NAME = "TCY Bot – Base Value Range";
-export const TCY_BOT_VERSION = "7.0.0";
+export const TCY_BOT_VERSION = "8.0";

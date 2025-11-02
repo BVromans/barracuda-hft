@@ -1,0 +1,207 @@
+.
+   |-- setup
+   |-- start
+   |-- @eaDir
+   |   |-- README tcy_bot.md@SynoResource
+   |   |-- .DS_Store@SynoResource
+   |   |-- .env@SynoEAStream
+   |   |-- .gitignore@SynoEAStream
+   |   |-- README original.md@SynoEAStream
+   |   |-- README tcy_bot.md@SynoEAStream
+   |   |-- TCY_Bot_Readme.md@SynoEAStream
+   |   |-- TCY_Bot_Readme.md@SynoResource
+   |   |-- TCY_Bot_Readme.pdf@SynoEAStream
+   |   |-- TCY_Bot_Readme.pdf@SynoResource
+   |   |-- Temp_testing@SynoEAStream
+   |   |-- bunfig.toml@SynoEAStream
+   |   |-- package.json@SynoEAStream
+   |   |-- tcybot@SynoEAStream
+   |   |-- test-db-clean.ts@SynoEAStream
+   |   |-- test-db.ts@SynoEAStream
+   |   |-- tsconfig.build.json@SynoEAStream
+   |   |-- tsconfig.json@SynoEAStream
+   |-- dist_test
+   |   |-- test.js
+   |-- README tcy_bot.md
+   |-- .env
+   |-- .editorconfig
+   |-- .gitignore
+   |-- .gitmodules
+   |-- .vscode
+   |   |-- launch.json
+   |   |-- settings.json
+   |-- AGENTS.md
+   |-- LICENSE.md
+   |-- README original.md
+   |-- bun.lock
+   |-- integration
+   |   |-- index.test.ts
+   |-- resources
+   |   |-- configuration
+   |   |   |-- common.yml
+   |   |   |-- development.example.yml
+   |   |   |-- main.yml
+   |   |   |-- production.example.yml
+   |   |   |-- staging.example.yml
+   |   |   |-- production.yml
+   |   |   |-- @eaDir
+   |   |   |   |-- production.yml@SynoEAStream
+   |   |-- graphql
+   |   |   |-- responses
+   |   |   |   |-- markets.json
+   |   |-- references
+   |   |   |-- graphql
+   |   |   |   |-- schema.json
+   |   |   |-- rujira
+   |   |   |   |-- api
+   |   |   |   |-- contracts
+   |   |   |   |-- ui
+   |   |-- scripts
+   |   |   |-- setup
+   |   |   |-- start
+   |-- _backup_strategies
+   |   |-- @eaDir
+   |   |   |-- readme_6_1_ENG.md@SynoEAStream
+   |   |   |-- readme_6_1_ENG.md@SynoResource
+   |   |   |-- readme_6_1_NL.md@SynoEAStream
+   |   |   |-- readme_6_1_NL.md@SynoResource
+   |   |   |-- rujira.ts@SynoEAStream
+   |   |   |-- tcy_base_value_range.ts@SynoEAStream
+   |   |   |-- tcy_bot_v_6_1_realdata_paper.ts@SynoEAStream
+   |   |   |-- tcy_bot_v_6_1_realdata_paper.ts@SynoResource
+   |   |-- enhanced_pure_market_making_strategy.ts
+   |   |-- readme_6_1_ENG.md
+   |   |-- readme_6_1_NL.md
+   |   |-- rujira.ts
+   |   |-- simple_pure_market_making_strategy.ts
+   |   |-- tcy_base_value_range.ts
+   |   |-- tcy_bot_v_6_1_realdata_paper.backup.ts
+   |   |-- tcy_bot_v_6_1_realdata_paper.ts
+   |-- logs
+   |   |-- control.json
+   |   |-- tcy-bot-run.log
+   |   |-- all.log
+   |   |-- debug.log
+   |   |-- error.log
+   |   |-- info.log
+   |   |-- warning.log
+   |-- src
+   |   |-- @eaDir
+   |   |   |-- .DS_Store@SynoResource
+   |   |   |-- core@SynoEAStream
+   |   |   |-- index.ts@SynoEAStream
+   |   |   |-- rujira.ts@SynoEAStream
+   |   |   |-- rujira.ts@SynoResource
+   |   |   |-- version.ts@SynoEAStream
+   |   |   |-- logger.ts@SynoEAStream
+   |   |-- core
+   |   |   |-- @eaDir
+   |   |   |   |-- value_based_limits.ts@SynoEAStream
+   |   |   |-- value_based_limits.ts
+   |   |-- extensions
+   |   |   |-- global.ts
+   |   |   |-- immutablejs.ts
+   |   |-- helpers
+   |   |   |-- @eaDir
+   |   |   |   |-- control_state.ts@SynoEAStream
+   |   |   |   |-- rujira_adapter.ts@SynoEAStream
+   |   |   |   |-- rujira_fills.ts@SynoEAStream
+   |   |   |   |-- rujira_public.ts@SynoEAStream
+   |   |   |   |-- tcy_api.ts@SynoEAStream
+   |   |   |   |-- tcy_api.ts@SynoResource
+   |   |   |   |-- tcy_telegram_control.ts@SynoEAStream
+   |   |   |-- control_state.ts
+   |   |   |-- env_sanity.ts
+   |   |   |-- rujira_adapter.ts
+   |   |   |-- rujira_public.ts
+   |   |   |-- tcy_telegram_control.ts
+   |   |   |-- rujira_fills.ts
+   |   |   |-- tcy_api.ts
+   |   |-- strategies
+   |   |   |-- @eaDir
+   |   |   |   |-- tcy_base_value_range.ts@SynoEAStream
+   |   |   |   |-- tcy_base_value_range.ts@SynoResource
+   |   |   |-- base_pure_market_making_strategy.ts
+   |   |   |-- base_strategy.ts
+   |   |   |-- tcy_base_value_range.ts
+   |   |-- .DS_Store
+   |   |-- annotations.ts
+   |   |-- bootstrap.ts
+   |   |-- database.ts
+   |   |-- demonstration.ts
+   |   |-- index.ts
+   |   |-- logger.ts
+   |   |-- properties.ts
+   |   |-- rujira.ts
+   |   |-- types.ts
+   |   |-- utils.ts
+   |   |-- version.ts
+   |-- .DS_Store
+   |-- NODE_ENV=development
+   |-- TCY_Bot_Readme.md
+   |-- TCY_Bot_Readme.pdf
+   |-- Temp_testing
+   |-- barracuda-hft@6.1.2
+   |-- bunfig.toml
+   |-- tcybot
+   |-- test-db-clean.ts
+   |-- test-db.ts
+   |-- test.ts
+   |-- tsconfig.build.json
+   |-- tsconfig.json
+   |-- dist
+   |   |-- extensions
+   |   |   |-- global.js
+   |   |   |-- global.js.map
+   |   |   |-- immutablejs.js
+   |   |   |-- immutablejs.js.map
+   |   |-- helpers
+   |   |   |-- control_state.js
+   |   |   |-- control_state.js.map
+   |   |   |-- env_sanity.js
+   |   |   |-- env_sanity.js.map
+   |   |   |-- rujira_adapter.js
+   |   |   |-- rujira_adapter.js.map
+   |   |   |-- rujira_fills.js
+   |   |   |-- rujira_fills.js.map
+   |   |   |-- rujira_public.js
+   |   |   |-- rujira_public.js.map
+   |   |   |-- tcy_api.js
+   |   |   |-- tcy_api.js.map
+   |   |   |-- tcy_telegram_control.js
+   |   |   |-- tcy_telegram_control.js.map
+   |   |-- strategies
+   |   |   |-- base_pure_market_making_strategy.js
+   |   |   |-- base_pure_market_making_strategy.js.map
+   |   |   |-- base_strategy.js
+   |   |   |-- base_strategy.js.map
+   |   |   |-- tcy_base_value_range.js
+   |   |   |-- tcy_base_value_range.js.map
+   |   |-- core
+   |   |   |-- value_based_limits.js
+   |   |   |-- value_based_limits.js.map
+   |   |-- annotations.js
+   |   |-- annotations.js.map
+   |   |-- bootstrap.js
+   |   |-- bootstrap.js.map
+   |   |-- database.js
+   |   |-- database.js.map
+   |   |-- demonstration.js
+   |   |-- demonstration.js.map
+   |   |-- index.js
+   |   |-- index.js.map
+   |   |-- logger.js
+   |   |-- logger.js.map
+   |   |-- properties.js
+   |   |-- properties.js.map
+   |   |-- rujira.js
+   |   |-- rujira.js.map
+   |   |-- types.js
+   |   |-- types.js.map
+   |   |-- utils.js
+   |   |-- utils.js.map
+   |   |-- version.js
+   |   |-- version.js.map
+   |-- package-lock.json
+   |-- package.json
+   |-- project-structure.txt

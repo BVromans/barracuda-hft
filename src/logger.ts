@@ -3,7 +3,10 @@ import { List, Map } from "immutable";
 import * as fs from "fs";
 import * as path from "path";
 
-// ANSI color codes for console output
+// ============================================================
+// 🧩 TCY Logger — clean output + Amsterdam local time (YYYY-MM-DD HH:mm:ss)
+// ============================================================
+
 const COLORS = {
   reset: "\x1b[0m",
   gray: "\x1b[90m",
@@ -15,7 +18,9 @@ const COLORS = {
   bold: "\x1b[1m",
 };
 
-// === Safe JSON serialization helpers ===
+// ============================================================
+// 🧮 Safe JSON serialization helpers
+// ============================================================
 const jsonReplacer = (key: string, value: any): any => {
   try {
     if (value instanceof Decimal) return value.toFixed();
@@ -51,7 +56,9 @@ const dump = (target: any): string => {
   }
 };
 
-// === Log Levels ===
+// ============================================================
+// 📊 Log Levels
+// ============================================================
 export enum LogLevel {
   DEBUG = "debug",
   INFO = "info",
@@ -60,7 +67,9 @@ export enum LogLevel {
   CRITICAL = "critical",
 }
 
-// === Centralized Logger (colorized + NAS-safe) ===
+// ============================================================
+// 🧠 Centralized Logger (local-time + clean console output)
+// ============================================================
 export class Logger {
   private readonly name: string;
   private readonly logDirectory: string;
@@ -68,7 +77,6 @@ export class Logger {
   constructor(name = "GLOBAL") {
     this.name = name;
 
-    // Pick a writable log directory (NAS or fallback)
     const preferred = "/volume1/logs";
     const safeBase =
       fs.existsSync(preferred) && fs.lstatSync(preferred).isDirectory()
@@ -96,10 +104,6 @@ export class Logger {
 
   private getColor(level: LogLevel): string {
     switch (level) {
-      case LogLevel.DEBUG:
-        return COLORS.gray;
-      case LogLevel.INFO:
-        return COLORS.green;
       case LogLevel.WARNING:
         return COLORS.yellow;
       case LogLevel.ERROR:
@@ -111,10 +115,22 @@ export class Logger {
     }
   }
 
+  private formatTimestamp(): string {
+    const now = new Date();
+    const ams = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Amsterdam" }));
+    const y = ams.getFullYear();
+    const m = String(ams.getMonth() + 1).padStart(2, "0");
+    const d = String(ams.getDate()).padStart(2, "0");
+    const hh = String(ams.getHours()).padStart(2, "0");
+    const mm = String(ams.getMinutes()).padStart(2, "0");
+    const ss = String(ams.getSeconds()).padStart(2, "0");
+    return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+  }
+
   private log(level: LogLevel, message: string, object?: any, ...params: any[]): void {
-    const now = new Date().toISOString();
+    const timestamp = this.formatTimestamp();
     const color = this.getColor(level);
-    const formatted = `[${now}][${level.toUpperCase()}][${this.name}] ${message}`;
+    const formatted = `[${timestamp}] ${message}`;
     const colored = `${color}${formatted}${COLORS.reset}`;
 
     const method =
@@ -131,36 +147,35 @@ export class Logger {
       (console as any)[method](colored);
     }
 
-    // File output (plain, no colors)
+    // File output (keep timestamp + message)
     this.writeToLogFile(`${level}.log`, formatted);
     this.writeToLogFile("all.log", formatted);
   }
 
-  // === Level helpers ===
-  debug(message: string, obj?: any, ...p: any[]) {
-    this.log(LogLevel.DEBUG, message, obj, ...p);
+  // Level helpers
+  debug(msg: string, obj?: any, ...p: any[]) {
+    this.log(LogLevel.DEBUG, msg, obj, ...p);
   }
-  info(message: string, obj?: any, ...p: any[]) {
-    this.log(LogLevel.INFO, message, obj, ...p);
+  info(msg: string, obj?: any, ...p: any[]) {
+    this.log(LogLevel.INFO, msg, obj, ...p);
   }
-  warn(message: string, obj?: any, ...p: any[]) {
-    this.log(LogLevel.WARNING, message, obj, ...p);
+  warn(msg: string, obj?: any, ...p: any[]) {
+    this.log(LogLevel.WARNING, msg, obj, ...p);
   }
-  error(message: string, obj?: any, ...p: any[]) {
-    this.log(LogLevel.ERROR, message, obj, ...p);
+  error(msg: string, obj?: any, ...p: any[]) {
+    this.log(LogLevel.ERROR, msg, obj, ...p);
   }
-  critical(message: string, obj?: any, ...p: any[]) {
-    this.log(LogLevel.CRITICAL, message, obj, ...p);
+  critical(msg: string, obj?: any, ...p: any[]) {
+    this.log(LogLevel.CRITICAL, msg, obj, ...p);
   }
 
-  /**
-   * Used by older strategies – prevents crashes on recoverable exceptions.
-   */
   ignoreException(error: unknown, context?: string): void {
     const label = context ? `(${context})` : "";
     this.warn(`Ignored exception ${label}: ${String(error)}`);
   }
 }
 
-// === Global default logger instance ===
+// ============================================================
+// 🌐 Global default logger
+// ============================================================
 export const logger = new Logger();

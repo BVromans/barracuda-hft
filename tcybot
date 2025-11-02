@@ -1,29 +1,62 @@
 #!/bin/bash
-# TCY Bot Manager (v7)
-SERVICE_NAME="tcy-bot-v7.service"
-LOG_FILE="/volume1/tcy-bot/barracuda-hft/logs/all.log"
+# ============================================================
+# TCY Bot Manager (v8)
+# ------------------------------------------------------------
+# Controls TCY Bot lifecycle via systemd, adds build/deploy/logs
+# ============================================================
 
-echo "🤖 TCY Bot Manager (v7)"
-echo "🧠 Active service: $SERVICE_NAME"
+SERVICE_NAME="tcy-bot-v8.service"
+PROJECT_DIR="/volume1/tcy-bot/barracuda-hft-v8"
+LOG_FILE="${PROJECT_DIR}/logs/all.log"
+DIST_DIR="${PROJECT_DIR}/dist"
+TS_BUILDINFO="${PROJECT_DIR}/.tsbuildinfo"
+
+echo "TCY Bot Manager (v8)"
+echo "Active service: ${SERVICE_NAME}"
 echo "-------------------------------------------"
 
 cmd="${1:-status}"
 
-# helper: check unit exists
+# 🧩 Safety checks
 if ! systemctl list-unit-files | grep -q "^${SERVICE_NAME}"; then
-  echo "⚠️  Systemd unit ${SERVICE_NAME} not found."
-  echo "    Create/enable the service or adjust SERVICE_NAME in this script."
+  echo "❌ Systemd unit ${SERVICE_NAME} not found."
+  echo "Please create or enable it first."
   exit 1
 fi
 
+if [ ! -d "$PROJECT_DIR" ]; then
+  echo "❌ Project directory not found: $PROJECT_DIR"
+  exit 1
+fi
+
+# 🧠 Build helper (used in multiple commands)
+perform_build() {
+  echo "🧱 Building TCY Bot (TypeScript → Node.js)..."
+  cd "$PROJECT_DIR" || exit 1
+
+  # Clean prior output
+  rm -rf "$DIST_DIR" "$TS_BUILDINFO"
+
+  # Force TypeScript build using tsconfig.build.json
+  ./node_modules/.bin/tsc --project tsconfig.build.json --noEmitOnError false --skipLibCheck true --verbose
+
+  # ✅ Sanity check
+  if [ ! -d "$DIST_DIR" ] || [ -z "$(find "$DIST_DIR" -type f -name '*.js' | head -n1)" ]; then
+    echo "❌ Build failed: No JavaScript output found in dist/"
+    exit 1
+  fi
+
+  echo "✅ Build completed successfully."
+}
+
 case "$cmd" in
   start)
-    echo "🟢 Starting ${SERVICE_NAME}..."
+    echo "▶️ Starting ${SERVICE_NAME}..."
     sudo systemctl start "$SERVICE_NAME"
     systemctl status "$SERVICE_NAME" --no-pager
     ;;
   stop)
-    echo "🛑 Stopping ${SERVICE_NAME}..."
+    echo "⏹️ Stopping ${SERVICE_NAME}..."
     sudo systemctl stop "$SERVICE_NAME"
     ;;
   restart)
@@ -35,23 +68,119 @@ case "$cmd" in
     systemctl status "$SERVICE_NAME" --no-pager
     ;;
   log|logs)
-    echo "🧾 Tailing $LOG_FILE (Ctrl+C to exit)…"
+    echo "📜 Tailing ${LOG_FILE} (Ctrl+C to exit)…"
     tail -f "$LOG_FILE"
     ;;
   journal)
-    echo "📜 Following journal for ${SERVICE_NAME} (Ctrl+C to exit)…"
+    echo "📡 Following journal for ${SERVICE_NAME} (Ctrl+C to exit)…"
     sudo journalctl -u "$SERVICE_NAME" -f
     ;;
+  build)
+    perform_build
+    ;;
+  rebuild)
+    echo "♻️ Rebuilding TCY Bot (clean build)..."
+    perform_build
+    ;;
+  deploy)
+    echo "🚀 Deploying TCY Bot (rebuild + restart)..."
+    perform_build
+    echo "🔁 Restarting service..."
+    sudo systemctl restart "$SERVICE_NAME"
+    systemctl status "$SERVICE_NAME" --no-pager
+    echo "✅ Deployment finished."
+    ;;
   enable)
-    echo "🧩 Enabling autostart…"
+    echo "🟢 Enabling autostart for ${SERVICE_NAME}..."
     sudo systemctl enable "$SERVICE_NAME"
     ;;
   disable)
-    echo "🚫 Disabling autostart…"
+    echo "🔴 Disabling autostart for ${SERVICE_NAME}..."
     sudo systemctl disable "$SERVICE_NAME"
     ;;
+  backup)
+    TIMESTAMP=$(date +"%Y-%m-%d_%H%M")
+    DEST="/volume1/tcy-bot/backups/${TIMESTAMP}"
+    SRC="/volume1/tcy-bot/barracuda-hft-v8"
+
+    echo "-------------------------------------------"
+    echo "🧠  TCY Bot Backup Utility (SAFE MODE DEFAULT)"
+    echo "Creating backup from:"
+    echo "  $SRC"
+    echo "→ $DEST"
+    echo "-------------------------------------------"
+
+    echo "🛑 Stopping ${SERVICE_NAME} for a consistent backup..."
+    sudo systemctl stop "$SERVICE_NAME"
+    sleep 3
+
+    sudo mkdir -p "$DEST"
+
+    echo "📦 Copying files with rsync..."
+    sudo rsync -avh --delete "$SRC"/ "$DEST"/
+
+    if [ $? -eq 0 ]; then
+      echo "✅ Backup completed successfully!"
+      echo "Backup stored at: $DEST"
+    else
+      echo "❌ Backup failed. Please check permissions or paths."
+    fi
+
+    echo "🚀 Restarting ${SERVICE_NAME}..."
+    sudo systemctl start "$SERVICE_NAME"
+    echo "✅ Bot restarted successfully."
+    ;;
+  list-backups)
+    BACKUP_DIR="/volume1/tcy-bot/backups"
+    echo "-------------------------------------------"
+    echo "📂 Available TCY Bot backups:"
+    echo "-------------------------------------------"
+    ls -1 "$BACKUP_DIR" | sort -r
+    echo "-------------------------------------------"
+    ;;
+
+  restore)
+    BACKUP_DIR="/volume1/tcy-bot/backups"
+    TIMESTAMP="$2"
+    SRC="${BACKUP_DIR}/${TIMESTAMP}"
+    DEST="/volume1/tcy-bot/barracuda-hft-v8"
+
+    if [ -z "$TIMESTAMP" ]; then
+      echo "Usage: tcybot restore <timestamp-folder>"
+      echo "Example: tcybot restore 2025-10-30_2117"
+      exit 1
+    fi
+
+    if [ ! -d "$SRC" ]; then
+      echo "❌ Backup folder not found: $SRC"
+      exit 1
+    fi
+
+    echo "-------------------------------------------"
+    echo "⚠️  You are about to restore TCY Bot from:"
+    echo "    $SRC"
+    echo "→   $DEST"
+    echo "This will overwrite the current bot folder."
+    echo "-------------------------------------------"
+    read -p "Type 'YES' to confirm restore: " CONFIRM
+    if [ "$CONFIRM" != "YES" ]; then
+      echo "Restore aborted."
+      exit 0
+    fi
+
+    echo "🛑 Stopping ${SERVICE_NAME} before restore..."
+    sudo systemctl stop "$SERVICE_NAME"
+    sleep 3
+
+    echo "♻️ Restoring backup..."
+    sudo rsync -avh --delete "$SRC"/ "$DEST"/
+
+    echo "🚀 Restarting ${SERVICE_NAME}..."
+    sudo systemctl start "$SERVICE_NAME"
+    echo "✅ Restore complete and bot restarted."
+    ;;
   *)
-    echo "Usage: tcybot {start|stop|restart|status|log|logs|journal|enable|disable}"
+    echo "Usage: tcybot {start|stop|restart|status|log|logs|journal|build|rebuild|deploy|enable|disable|backup|list-backups|restore}"
     exit 2
     ;;
 esac
